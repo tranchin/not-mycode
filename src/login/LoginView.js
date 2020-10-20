@@ -370,7 +370,8 @@ export class LoginView {
 
 		}
 		promise.then(() => {
-			if (this._displayMode) {
+			// do nothing if we explicitly dont want to login, and the loginviewcontroller is already being displayed
+			if (args.noAutoLogin && this._displayMode) {
 				return
 			}
 			if ((args.loginWith || args.userId) && !(args.loginWith && deviceConfig.get(args.loginWith) ||

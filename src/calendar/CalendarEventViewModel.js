@@ -52,7 +52,7 @@ import type {RecipientInfo, RecipientInfoTypeEnum} from "../api/common/Recipient
 import {isExternal, RecipientInfoType} from "../api/common/RecipientInfo"
 import type {Contact} from "../api/entities/tutanota/Contact"
 import {defaultSendMailModel, SendMailModel} from "../mail/SendMailModel"
-import {firstThrow} from "../api/common/utils/ArrayUtils"
+import {findAndTake, firstThrow} from "../api/common/utils/ArrayUtils"
 import {addMapEntry} from "../api/common/utils/MapUtils"
 import type {RepeatRule} from "../api/entities/sys/RepeatRule"
 import {UserError} from "../api/common/error/UserError"
@@ -681,6 +681,14 @@ export class CalendarEventViewModel {
 
 	_sendNotificationAndSave(askInsecurePassword: () => Promise<boolean>, askForUpdates: () => Promise<"yes" | "no" | "cancel">,
 	                         showProgress: ShowProgressCallback, newEvent: CalendarEvent, newAlarms: Array<AlarmInfo>): Promise<boolean> {
+
+		// We don't want to send updates to declined attendees,
+		// so remove them from the recipients
+		// but save them for if the user cancels
+		let removedRecipients = this.attendees()
+		                            .filter(a => a.status === CalendarAttendeeStatus.DECLINED)
+		                            .map(a => findAndTake(this._updateModel.bccRecipients(), r => r.mailAddress === a.address.address))
+		                            .filter(r => r !== null) // there shouldn't be any null but it's good to be sure
 		// ask for update
 		const askForUpdatesAwait = this._updateModel.bccRecipients().length
 			? askForUpdates()
@@ -691,6 +699,10 @@ export class CalendarEventViewModel {
 
 		return askForUpdatesAwait.then(updateResponse => {
 			if (updateResponse === "cancel") {
+				// put the declined attendees back as recipients
+				// Not 100% sure if this is neceessary, since they won't be changed from declined to accepted while editing anyway
+				// so we could just pretend like they aren't there
+				this._updateModel.bccRecipients().concat(removedRecipients)
 				return false
 			}
 

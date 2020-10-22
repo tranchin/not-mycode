@@ -100,6 +100,21 @@ export function replace(theArray: Array<any>, oldElement: any, newElement: any):
 	}
 }
 
+/**
+ * Find a value based on a predicate, remove and return it
+ * @param theArray
+ * @param finder
+ * @returns {null|*}
+ */
+export function findAndTake<T>(theArray: Array<any>, finder: finder<T>): ?T {
+	let i = theArray.findIndex(finder)
+	if (i !== -1) {
+		return theArray.splice(i, 1)[0]
+	} else {
+		return null;
+	}
+}
+
 export function mapAndFilterNull<T, R>(theArray: Array<T>, mapper: mapper<T, R>): R[] {
 	let resultList = []
 	theArray.forEach(item => {

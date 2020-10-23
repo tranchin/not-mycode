@@ -61,6 +61,7 @@ import {logins} from "../api/main/LoginController"
 import {locator} from "../api/main/MainLocator"
 import {ProgrammingError} from "../api/common/error/ProgrammingError"
 import {cleanMatch} from "../api/common/utils/StringUtils"
+import {sendEventResponse} from "./CalendarInvites"
 
 const TIMESTAMP_ZERO_YEAR = 1970
 
@@ -583,11 +584,14 @@ export class CalendarEventViewModel {
 	deleteEvent(): Promise<void> {
 		const event = this.existingEvent
 		if (event) {
+
 			// We must always be in attendees so we just check that there's more than one attendee
-			const awaitCancellation = this._eventType === EventType.OWN && event.attendees.length > 1
+			const beforeDelete = this._eventType === EventType.OWN && event.attendees.length > 1
 				? this._sendCancellation(event)
-				: Promise.resolve()
-			return awaitCancellation.then(() => this._calendarModel.deleteEvent(event)).catch(NotFoundError, noOp)
+				: this._eventType === EventType.INVITE
+					? this._sendDecline(event)
+					: Promise.resolve()
+			return beforeDelete.then(() => this._calendarModel.deleteEvent(event)).catch(NotFoundError, noOp)
 		} else {
 			return Promise.resolve()
 		}
@@ -664,6 +668,23 @@ export class CalendarEventViewModel {
 			.catch(TooManyRequestsError, () => {
 				throw new UserError("mailAddressDelay_msg") // This will be caught and open error dialog
 			})
+	}
+
+	/**
+	 * Send a decline email
+	 * does nothing if you aren't an attendee or you have already declined
+	 * @param _event
+	 * @returns {Promise<void>}
+	 * @private
+	 */
+	_sendDecline(_event: CalendarEvent): Promise<void> {
+		const event = clone(_event)
+		const ownAttendee = event.attendees.find(a => this._ownMailAddresses.includes(a.address.address))
+		if (ownAttendee && ownAttendee.status !== CalendarAttendeeStatus.DECLINED) {
+			ownAttendee.status = CalendarAttendeeStatus.DECLINED
+			return sendEventResponse(event, ownAttendee.address.address, locator.mailModel.getUserMailboxDetails())
+		}
+		return Promise.resolve()
 	}
 
 	_saveEvent(newEvent: CalendarEvent, newAlarms: Array<AlarmInfo>): Promise<void> {
@@ -748,7 +769,6 @@ export class CalendarEventViewModel {
 
 	_respondToOrganizerAndSave(showProgress: ShowProgressCallback, existingEvent: CalendarEvent, newEvent: CalendarEvent,
 	                           newAlarms: Array<AlarmInfo>): Promise<boolean> {
-		// We are not using this._findAttendee() because we want to search it on the event, before our modifications
 		const ownAttendee = existingEvent.attendees.find(a => this._ownMailAddresses.includes(a.address.address))
 		const selectedOwnAttendeeStatus = ownAttendee && this._guestStatuses().get(ownAttendee.address.address)
 		let sendPromise = Promise.resolve()
@@ -760,8 +780,7 @@ export class CalendarEventViewModel {
 			const sendResponseModel = this._sendModelFactory()
 			const organizer = assertNotNull(existingEvent.organizer)
 			sendResponseModel.addOrGetRecipient("to", {name: organizer.name, address: organizer.address, contact: null})
-			sendPromise = this._distributor.sendResponse(newEvent, sendResponseModel, ownAttendee.address.address, this._responseTo,
-				assertNotNull(selectedOwnAttendeeStatus)
+			sendPromise = this._distributor.sendResponse(newEvent, sendResponseModel, ownAttendee.address.address, this._responseTo
 			).then(() => sendResponseModel.dispose())
 		}
 		const p = sendPromise.then(() => this._saveEvent(newEvent, newAlarms))

@@ -11,11 +11,13 @@ import {CalendarMethod, getAsEnumValue} from "../api/common/TutanotaConstants"
 import {assertNotNull, clone} from "../api/common/utils/Utils"
 import {filterInt, findPrivateCalendar, getTimeZone} from "./CalendarUtils"
 import {logins} from "../api/main/LoginController"
-import {SendMailModel} from "../mail/SendMailModel"
+import {defaultSendMailModel} from "../mail/SendMailModel"
 import type {Mail} from "../api/entities/tutanota/Mail"
 import {calendarUpdateDistributor} from "./CalendarUpdateDistributor"
 import {Dialog} from "../gui/base/Dialog"
 import {UserError} from "../api/common/error/UserError"
+import type {MailboxDetail} from "../mail/MailModel"
+import type {CalendarInfo} from "./CalendarView"
 
 function getParsedEvent(fileData: DataFile): ?{method: CalendarMethodEnum, event: CalendarEvent, uid: string} {
 	try {
@@ -83,37 +85,67 @@ export function replyToEventInvitation(
 	event: CalendarEvent,
 	attendee: CalendarEventAttendee,
 	decision: CalendarAttendeeStatusEnum,
-	previousMail: Mail
-): Promise<void> {
+	previousMail: Mail): Promise<void> {
+
 	const eventClone = clone(event)
 	const foundAttendee = assertNotNull(eventClone.attendees.find((a) => a.address.address === attendee.address.address))
 	foundAttendee.status = decision
 
-	return Promise.all([
-		locator.calendarModel.loadOrCreateCalendarInfo().then(findPrivateCalendar),
-		locator.mailModel.getMailboxDetailsForMail(previousMail)
-	]).then(([calendar, mailboxDetails]) => {
-		const sendMailModel = new SendMailModel(worker, logins, locator.mailModel, locator.contactModel, locator.eventController, locator.entityClient, mailboxDetails)
-		return calendarUpdateDistributor
-			.sendResponse(eventClone, sendMailModel, foundAttendee.address.address, previousMail, decision)
-			.catch(UserError, (e) => Dialog.error(() => e.message))
-			.then(() => {
-				if (calendar) {
-					// if the owner group is set there is an existing event already so just update
-					if (event._ownerGroup) {
-						return locator.calendarModel.loadAlarms(event.alarmInfos, logins.getUserController().user)
-						              .then((alarms) => {
-								                    const alarmInfos = alarms.map((a) => a.alarmInfo)
-								              return locator.calendarModel.updateEvent(eventClone, alarmInfos, getTimeZone(), calendar.groupRoot, event)
-								                            .return()
-							                    }
-						                    )
-					} else {
-						return locator.calendarModel.createEvent(eventClone, [], getTimeZone(), calendar.groupRoot)
-					}
-				} else {
-					return Promise.resolve()
+	const mailboxPromise = locator.mailModel.getMailboxDetailsForMail(previousMail)
+
+	return sendEventResponse(eventClone, foundAttendee.address.address, mailboxPromise, previousMail)
+		.catch(UserError, e => Dialog.error(() => e.message))
+		.then(() => locator.calendarModel.loadOrCreateCalendarInfo())
+		.then(findPrivateCalendar)
+		.then(calendar => saveEventInPrivateCalendar(eventClone, calendar, event.alarmInfos))
+}
+
+/**
+ * Send a response to an event organizer regarding an event
+ * @param event: the event with updated fields to send
+ * @param senderAddress: which address to send the response with, should also be an attendee of the event
+ * @param mailboxPromise
+ * @param previousMail
+ * @returns Promise<void>
+ */
+export function sendEventResponse(
+	event: CalendarEvent,
+	senderAddress: string,
+	mailboxPromise: Promise<MailboxDetail>,
+	previousMail: ?Mail): Promise<void> {
+	return mailboxPromise
+		.then(mailboxDetails => defaultSendMailModel(mailboxDetails))
+		.then(sendMailModel => {
+			const organizer = event.organizer
+			if (organizer) {
+				if (!previousMail) {
+					sendMailModel.addOrGetRecipient("to", {name: organizer.name, address: organizer.address, contact: null})
 				}
-			})
-	})
+				return calendarUpdateDistributor.sendResponse(event, sendMailModel, senderAddress, previousMail)
+				                                .then(() => sendMailModel.dispose())
+			}
+		})
+}
+
+function saveEventInPrivateCalendar(
+	event: CalendarEvent,
+	calendar: ?CalendarInfo,
+	alarmIds: Array<IdTuple>): Promise<void> {
+
+	if (calendar) {
+		// if the owner group is set there is an existing event already so just update
+		if (event._ownerGroup) {
+			return locator.calendarModel.loadAlarms(alarmIds, logins.getUserController().user)
+			              .then((alarms) => {
+					              const alarmInfos = alarms.map((a) => a.alarmInfo)
+					              return locator.calendarModel.updateEvent(event, alarmInfos, getTimeZone(), calendar.groupRoot, event)
+					                            .return()
+				              }
+			              )
+		} else {
+			return locator.calendarModel.createEvent(event, [], getTimeZone(), calendar.groupRoot)
+		}
+	} else {
+		return Promise.resolve()
+	}
 }

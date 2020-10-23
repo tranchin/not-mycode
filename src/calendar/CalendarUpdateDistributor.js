@@ -24,8 +24,7 @@ export interface CalendarUpdateDistributor {
 
 	sendCancellation(event: CalendarEvent, sendMailModel: SendMailModel): Promise<void>;
 
-	sendResponse(event: CalendarEvent, sendMailModel: SendMailModel, sendAs: string, responseTo: ?Mail, status: CalendarAttendeeStatusEnum
-	): Promise<void>;
+	sendResponse(event: CalendarEvent, sendMailModel: SendMailModel, sendAs: string, responseTo: ?Mail): Promise<void>;
 }
 
 export class CalendarMailDistributor implements CalendarUpdateDistributor {
@@ -75,8 +74,7 @@ export class CalendarMailDistributor implements CalendarUpdateDistributor {
 		})
 	}
 
-	sendResponse(event: CalendarEvent, sendMailModel: SendMailModel, sendAs: string, responseTo: ?Mail, status: CalendarAttendeeStatusEnum
-	): Promise<void> {
+	sendResponse(event: CalendarEvent, sendMailModel: SendMailModel, sendAs: string, responseTo: ?Mail): Promise<void> {
 		const message = lang.get("repliedToEventInvite_msg", {"{sender}": sendAs, "{event}": event.summary})
 		const organizer = assertOrganizer(event)
 		const body = makeInviteEmailBody(organizer.address, event, message)

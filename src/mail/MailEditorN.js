@@ -57,6 +57,8 @@ import type {InlineImages} from "./MailViewer"
 import {FileOpenError} from "../api/common/error/FileOpenError"
 import {downcast, neverNull} from "../api/common/utils/Utils"
 import {showUpgradeWizard} from "../subscription/UpgradeSubscriptionWizard"
+import {size} from "../gui/size"
+import {TransparentOverlay} from "./TransparentOverlay"
 
 export type MailEditorAttrs = {
 	model: SendMailModel,
@@ -69,10 +71,11 @@ export type MailEditorAttrs = {
 	selectedNotificationLanguage: Stream<string>,
 	inlineImages?: Promise<InlineImages>,
 	_focusEditorOnLoad: () => void,
-	_onSend: () => void
+	_onSend: () => void,
+	dialog: lazy<Dialog>
 }
 
-export function createMailEditorAttrs(model: SendMailModel, doBlockExternalContent: boolean, doFocusEditorOnLoad: boolean, inlineImages?: Promise<InlineImages>): MailEditorAttrs {
+export function createMailEditorAttrs(model: SendMailModel, doBlockExternalContent: boolean, doFocusEditorOnLoad: boolean, inlineImages?: Promise<InlineImages>, dialog: lazy<Dialog>): MailEditorAttrs {
 	return {
 		model,
 		body: stream(""),
@@ -82,7 +85,8 @@ export function createMailEditorAttrs(model: SendMailModel, doBlockExternalConte
 		selectedNotificationLanguage: stream(""),
 		inlineImages: inlineImages,
 		_focusEditorOnLoad: () => {},
-		_onSend: () => {}
+		_onSend: () => {},
+		dialog
 	}
 }
 
@@ -95,10 +99,11 @@ export class MailEditorN implements MComponent<MailEditorAttrs> {
 	objectUrls: Array<string>
 	mentionedInlineImages: Array<string>
 	inlineImageElements: Array<HTMLElement>
-
+	dragoverCount: number // when 0, there is no dragover, because dragenter and dragleave get fired off like crazy so we can't track with a bool
+	editorOverlayOpacity: Stream<number>;
 
 	constructor(vnode: Vnode<MailEditorAttrs>) {
-
+		console.log("CTOR")
 		this.objectUrls = []
 		this.inlineImageElements = []
 		this.mentionedInlineImages = []
@@ -186,6 +191,7 @@ export class MailEditorN implements MComponent<MailEditorAttrs> {
 					})
 				})
 			})
+
 		}
 
 		model.onMailChanged.map(didChange => {
@@ -205,6 +211,9 @@ export class MailEditorN implements MComponent<MailEditorAttrs> {
 				throw new UserError(() => lang.get("invalidRecipients_msg") + "\n" + invalidText)
 			}
 		}
+
+		this.dragoverCount = 0
+		this.editorOverlayOpacity = stream(0)
 	}
 
 	view(vnode: Vnode<MailEditorAttrs>): Children {
@@ -297,8 +306,11 @@ export class MailEditorN implements MComponent<MailEditorAttrs> {
 			}
 		}
 
+		const isDraggingOver = this.dragoverCount > 0
 
-		return m("#mail-editor.full-height.text.touch-callout", {
+		return m("#mail-editor.full-height.text.touch-callout" + (isDraggingOver ? ".content-black" : ""), {
+			oncreate: ({dom}) => {
+			},
 			onremove: vnode => {
 				model.dispose()
 				this.objectUrls.forEach((url) => URL.revokeObjectURL(url))
@@ -313,7 +325,24 @@ export class MailEditorN implements MComponent<MailEditorAttrs> {
 				ev.stopPropagation()
 				ev.preventDefault()
 			},
+			ondragenter: (ev) => {
+				++this.dragoverCount
+				if (this.dragoverCount === 1) {
+					this.editorOverlayOpacity(0.2)
+					console.log("Drag enter", ev.dataTransfer, ev.currentTarget)
+				}
+			},
+			ondragleave: (ev) => {
+				--this.dragoverCount
+				if (this.dragoverCount === 0) {
+					this.editorOverlayOpacity(0)
+					console.log("Drag leave", ev.dataTransfer, ev.currentTarget)
+				}
+			},
 			ondrop: (ev) => {
+				console.log("drop!~")
+				this.dragoverCount = 0
+				this.editorOverlayOpacity(0)
 				if (ev.dataTransfer.files && ev.dataTransfer.files.length > 0) {
 					fileController.readLocalFiles(ev.dataTransfer.files).then(dataFiles => {
 						model.attachFiles((dataFiles: any))
@@ -329,6 +358,7 @@ export class MailEditorN implements MComponent<MailEditorAttrs> {
 			onload: (ev) => {
 			}
 		}, [
+			m(".full-height.half-width.rel.abs", m(TransparentOverlay, {opacity: this.editorOverlayOpacity})),
 			m(this.recipientFields.to.component),
 			m(ExpanderPanelN, {expanded: a.areDetailsExpanded},
 				m(".details", [
@@ -343,7 +373,6 @@ export class MailEditorN implements MComponent<MailEditorAttrs> {
 							}, m(DropDownSelectorN, lazyLanguageDropDownAttrs()))
 							: null
 						)
-
 					]),
 				])
 			),
@@ -363,7 +392,9 @@ export class MailEditorN implements MComponent<MailEditorAttrs> {
 					onbeforeremove: ({dom}) => this.toolbar._animate(dom.children[0], false)
 				}, [m(this.toolbar), m("hr.hr")])
 				: null,
-			m(".pt-s.text.scroll-x.break-word-links", {onclick: () => this.editor.focus()}, m(this.editor)),
+			m(".pt-s.text.scroll-x.break-word-links", {
+				onclick: () => this.editor.focus()
+			}, m(this.editor)),
 			m(".pb")
 		])
 	}
@@ -446,7 +477,7 @@ function createMailEditorDialog(model: SendMailModel, blockExternalContent: bool
 		}
 	}
 
-	mailEditorAttrs = createMailEditorAttrs(model, blockExternalContent, model.toRecipients().length !== 0, inlineImages);
+	mailEditorAttrs = createMailEditorAttrs(model, blockExternalContent, model.toRecipients().length !== 0, inlineImages, () => dialog);
 
 	dialog = Dialog.largeDialogN(headerBarAttrs, MailEditorN, mailEditorAttrs)
 	               .addShortcut({

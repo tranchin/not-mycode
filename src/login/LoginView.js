@@ -23,6 +23,9 @@ import {header} from "../gui/base/Header"
 import {AriaLandmarks, landmarkAttrs, liveDataAttrs} from "../api/common/utils/AriaUtils"
 import type {ILoginViewController} from "./LoginViewController"
 import {showTakeOverDialog} from "./TakeOverDeletedAddressDialog"
+import {getGiftCardIdFromHash, loadGiftCard} from "../subscription/GiftCardUtils"
+import {loadUseGiftCardWizard} from "../subscription/UseGiftCardWizard"
+import {loadSignupWizard} from "../subscription/UpgradeSubscriptionWizard"
 import {ExpanderButtonN, ExpanderPanelN} from "../gui/base/ExpanderN"
 import type {ButtonAttrs} from "../gui/base/ButtonN"
 
@@ -367,15 +370,28 @@ export class LoginView {
 	_signup() {
 		if (!this._showingSignup) {
 			this._showingSignup = true
-			showProgressDialog('loading_msg', this._viewController.then(c => c.loadSignupWizard())).then(dialog => dialog.show())
+			showProgressDialog('loading_msg', this._viewController.then(c => c.loadLoginScreenDialog(loadSignupWizard))).then(dialog => dialog.show())
 		}
 	}
 
 	updateUrl(args: Object, requestedPath: string) {
+		const giftCardId = getGiftCardIdFromHash(location.hash)
+
 		if (requestedPath.startsWith("/signup")) {
 			this._signup()
 			return
 		} else if (requestedPath.startsWith("/recover") || requestedPath.startsWith("/takeover")) {
+			return
+		} else if (requestedPath.startsWith("/giftcard") && giftCardId) {
+			// TODO
+			loadGiftCard(giftCardId).then((giftCard) => {
+				if (giftCard) {
+					showProgressDialog('loading_msg',
+						this._viewController.then(c => c.loadLoginScreenDialog(() => loadUseGiftCardWizard(giftCard))))
+						.then(dialog => dialog.show())
+
+				}
+			})
 			return
 		}
 		this._showingSignup = false
@@ -512,14 +528,14 @@ export function renderPrivacyAndImprintLinks(): Children {
 	return m("div.center.flex.flex-grow.items-end.justify-center.mb-l.mt-xl.wrap", [
 			(getPrivacyStatementLink())
 				? m("a.plr", {
-					href: getPrivacyStatementLink(),
-					target: "_blank"
+				href: getPrivacyStatementLink(),
+				target: "_blank"
 				}, lang.get("privacyLink_label"))
 				: null,
 			(getImprintLink())
 				? m("a.plr", {
-					href: getImprintLink(),
-					target: "_blank"
+				href: getImprintLink(),
+				target: "_blank"
 				}, lang.get("imprint_label"))
 				: null,
 			m(".mt.center.small.full-width", `v${env.versionNumber}`),

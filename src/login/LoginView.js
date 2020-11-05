@@ -256,6 +256,7 @@ export class LoginView {
 		this._viewController.then((viewController: ILoginViewController) => viewController.formLogin())
 	}
 
+	// TODO Replace this with LoginForm
 	renderLoginForm(): Children {
 		return m("form", {
 			onsubmit: (e) => {
@@ -336,6 +337,7 @@ export class LoginView {
 		])
 	}
 
+	// TODO Replace this with CredentialsSelector
 	renderCredentialsSelector(): Children {
 		return this._knownCredentials.map(c => {
 			const credentialButtons = [];

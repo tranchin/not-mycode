@@ -23,11 +23,11 @@ import {header} from "../gui/base/Header"
 import {AriaLandmarks, landmarkAttrs, liveDataAttrs} from "../api/common/utils/AriaUtils"
 import type {ILoginViewController} from "./LoginViewController"
 import {showTakeOverDialog} from "./TakeOverDeletedAddressDialog"
-import {getGiftCardIdFromHash, loadGiftCard} from "../subscription/GiftCardUtils"
+import {loadGiftCardFromHash} from "../subscription/GiftCardUtils"
 import {loadUseGiftCardWizard} from "../subscription/UseGiftCardWizard"
 import {loadSignupWizard} from "../subscription/UpgradeSubscriptionWizard"
+import {Dialog} from "../gui/base/Dialog"
 import {ExpanderButtonN, ExpanderPanelN} from "../gui/base/ExpanderN"
-import type {ButtonAttrs} from "../gui/base/ButtonN"
 
 assertMainOrNode()
 
@@ -377,21 +377,19 @@ export class LoginView {
 	}
 
 	updateUrl(args: Object, requestedPath: string) {
-		const giftCardId = getGiftCardIdFromHash(location.hash)
-
 		if (requestedPath.startsWith("/signup")) {
 			this._signup()
 			return
 		} else if (requestedPath.startsWith("/recover") || requestedPath.startsWith("/takeover")) {
 			return
-		} else if (requestedPath.startsWith("/giftcard") && giftCardId) {
-			// TODO
-			loadGiftCard(giftCardId).then((giftCard) => {
+		} else if (requestedPath.startsWith("/giftcard")) {
+			loadGiftCardFromHash(location.hash).then((giftCard) => {
 				if (giftCard) {
 					showProgressDialog('loading_msg',
 						this._viewController.then(c => c.loadLoginScreenDialog(() => loadUseGiftCardWizard(giftCard))))
 						.then(dialog => dialog.show())
-
+				} else {
+					Dialog.error(() => "Invalid gift card link").then(() => m.route.set("/login")) // TODO translate
 				}
 			})
 			return

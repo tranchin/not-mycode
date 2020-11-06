@@ -51,6 +51,7 @@ import type {WebsocketLeaderStatus} from "../entities/sys/WebsocketLeaderStatus"
 import {createWebsocketLeaderStatus} from "../entities/sys/WebsocketLeaderStatus"
 import type {Country} from "../common/CountryList"
 import type {SearchRestriction} from "../worker/search/SearchTypes"
+import type {GiftCard, GiftCardPackageEnum} from "../../subscription/GiftCardUtils"
 
 assertMainOrNode()
 
@@ -592,9 +593,14 @@ export class WorkerClient implements EntityRestInterface {
 		return this._queue.postMessage(new Request("getEventByUid", [uid]))
 	}
 
-	generateGiftCard(): Promise<void> {
-		return this._queue.postMessage(new Request("generateGiftCard", []))
+
+	// TODO maybe this is just a setup call?
+	generateGiftCard(message: string, giftCardPackage: GiftCardPackageEnum): Promise<?GiftCard> {
+		return this._queue.postMessage(new Request("generateGiftCard", [message, giftCardPackage]))
+		           .tap(giftCard => console.log("Generated Gift Card:", giftCard))
 	}
+
+	//TODO redeemGiftCard(userId, giftCardId)
 
 	isLeader(): boolean {
 		return this._leaderStatus.leaderStatus

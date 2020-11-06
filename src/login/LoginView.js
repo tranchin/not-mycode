@@ -389,7 +389,7 @@ export class LoginView {
 						this._viewController.then(c => c.loadLoginScreenDialog(() => loadUseGiftCardWizard(giftCard))))
 						.then(dialog => dialog.show())
 				} else {
-					Dialog.error(() => "Invalid gift card link").then(() => m.route.set("/login")) // TODO translate
+					Dialog.error(() => "Invalid gift card link").then(() => m.route.set("/login")) // Translate
 				}
 			})
 			return

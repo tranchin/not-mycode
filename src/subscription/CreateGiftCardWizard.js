@@ -12,10 +12,11 @@ import {logins} from "../api/main/LoginController"
 import {CustomerInfoTypeRef} from "../api/entities/sys/CustomerInfo"
 import type {AccountingInfo} from "../api/entities/sys/AccountingInfo"
 import {AccountingInfoTypeRef} from "../api/entities/sys/AccountingInfo"
-import type {GiftCard, GiftCardPackageEnum} from "./GiftCardUtils"
+import type {GiftCardPackageEnum} from "./GiftCardUtils"
 import {GiftCardPackage} from "./GiftCardUtils"
 import {worker} from "../api/main/WorkerClient"
 import {showProgressDialog} from "../gui/base/ProgressDialog"
+import type {GiftCard} from "../api/entities/sys/GiftCard"
 
 export type CreateGiftCardData = {
 	package: GiftCardPackageEnum;

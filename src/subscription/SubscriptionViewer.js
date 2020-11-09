@@ -64,14 +64,15 @@ import type {TableAttrs, TableLineAttrs} from "../gui/base/TableN"
 import type {ButtonAttrs} from "../gui/base/ButtonN"
 import {BootIcons} from "../gui/base/icons/BootIcons"
 import {showPurchaseGiftCardWizard} from "./CreateGiftCardWizard"
-import type {GiftCard} from "./GiftCardUtils"
 import {
 	createGiftCardTableLine,
-	getGiftCardStatusMessage, GiftCardTypeRef,
+	getGiftCardStatusMessage,
 	loadGiftCards,
 	showGiftCardPresentationDialog,
 	ValueToGiftCardStatus
 } from "./GiftCardUtils"
+import type {GiftCard} from "../api/entities/sys/GiftCard"
+import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
 
 assertMainOrNode()
 
@@ -636,9 +637,9 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 			})
 		} else if (isUpdateForTypeRef(CustomerTypeRef, update)) {
 			return load(CustomerTypeRef, instanceId).then(customer => this._updateOrderProcessingAgreement(customer))
-		} else if (false && isUpdateForTypeRef(GiftCardTypeRef, update)) { // TODO
+		} else if (isUpdateForTypeRef(GiftCardTypeRef, update)) {
 			return load(GiftCardTypeRef, instanceId).then(giftCard => {
-				this._giftCardTableLines.push(createGiftCardTableLine(giftCard))
+				this._giftCardTableLines.push(createGiftCardTableLine(giftCard)) // TODO
 			})
 		} else {
 			return Promise.resolve()

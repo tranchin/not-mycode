@@ -51,7 +51,8 @@ import type {WebsocketLeaderStatus} from "../entities/sys/WebsocketLeaderStatus"
 import {createWebsocketLeaderStatus} from "../entities/sys/WebsocketLeaderStatus"
 import type {Country} from "../common/CountryList"
 import type {SearchRestriction} from "../worker/search/SearchTypes"
-import type {GiftCard, GiftCardPackageEnum} from "../../subscription/GiftCardUtils"
+import type {GiftCardPackageEnum} from "../../subscription/GiftCardUtils"
+import type {GiftCard} from "../entities/sys/GiftCard"
 
 assertMainOrNode()
 
@@ -601,9 +602,9 @@ export class WorkerClient implements EntityRestInterface {
 	}
 
 	//TODO redeemGiftCard(userId, giftCardId)
-	redeemGiftCard(userId: Id, giftCardId: Id): Promise<boolean> {
-		return this._queue.postMessage(new Request("redeemGiftCard", [userId, giftCardId]))
-		           .tap(success => console.log(success ? "Successfully" : "Unsuccessfully", "redeemed gift card:", giftCardId, "for user", userId))
+	redeemGiftCard(giftCardId: IdTuple): Promise<boolean> {
+		return this._queue.postMessage(new Request("redeemGiftCard", [giftCardId]))
+		           .tap(success => console.log(success ? "Successfully" : "Unsuccessfully", "redeemed gift card:", giftCardId))
 
 	}
 

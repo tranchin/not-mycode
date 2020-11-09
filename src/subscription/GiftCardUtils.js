@@ -12,8 +12,14 @@ import {TypeRef} from "../api/common/EntityFunctions"
 import {formatDate} from "../misc/Formatter"
 import {showProgressDialog} from "../gui/base/ProgressDialog"
 import {worker} from "../api/main/WorkerClient"
-
-export const GiftCardTypeRef: TypeRef<GiftCard> = downcast({}) // TODO delete
+import {CustomerInfoTypeRef} from "../api/entities/sys/CustomerInfo"
+import {load} from "../api/worker/EntityWorker"
+import {CustomerTypeRef} from "../api/entities/sys/Customer"
+import {locator} from "../api/main/MainLocator"
+import {GiftCardsRefTypeRef} from "../api/entities/sys/GiftCardsRef"
+import type {CustomerInfo} from "../api/entities/sys/CustomerInfo"
+import type {GiftCard} from "../api/entities/sys/GiftCard"
+import {createGiftCard, GiftCardTypeRef} from "../api/entities/sys/GiftCard"
 
 export const GiftCardPackage =
 	Object.freeze
@@ -24,38 +30,13 @@ export const GiftCardPackage =
 	      })
 export type GiftCardPackageEnum = $Values<typeof GiftCardPackage>
 
-export const GiftCardStatus =
+export const GiftCardPaymentStatus =
 	Object.freeze({
-		PaymentPending: "0",
-		Purchased: "1",
-		Redeemed: "2"
+		Pending: "0",
+		Paid: "1",
 	})
-export type GiftCardStatusEnum = $Values<typeof GiftCardStatus>
-export const ValueToGiftCardStatus: {} = reverse(GiftCardStatus)
-
-export function createGiftCard(id: Id): GiftCard {
-	return {
-		_id: id,
-		package: "0",
-		status: "1",
-		message: "You go a gift card",
-		linkId: id,
-		ordered: new Date(new Date().getDate() - 1000 * 60 * 60 * 24 * 31),
-		redeemed: null
-	}
-}
-
-export type GiftCard = {
-	_id: Id,
-
-	package: NumberString,
-	status: NumberString,
-	message: string,
-	linkId: string,
-	ordered: Date,
-	redeemed: ?Date
-}
-
+export type GiftCardPaymentStatusEnum = $Values<typeof GiftCardPaymentStatus>
+export const ValueToGiftCardStatus: {} = reverse(GiftCardPaymentStatus)
 
 export const giftCardSelectorLabels: $ReadOnlyMap<GiftCardPackageEnum, string> = new Map([
 	[GiftCardPackage.Silver, "Silver"],
@@ -70,17 +51,16 @@ export const GiftCardPackagePrices: $ReadOnlyMap<GiftCardPackageEnum, number> = 
 	[GiftCardPackage.Platinum, 48],
 ])
 
-export const GiftCardStatusMessages: $ReadOnlyMap<GiftCardStatusEnum, string> = new Map([
-	[GiftCardStatus.PaymentPending, "Payment Pending"],
-	[GiftCardStatus.Purchased, "Paid"],
-	[GiftCardStatus.Redeemed, "Redeemed"]
+export const GiftCardStatusMessages: $ReadOnlyMap<GiftCardPaymentStatusEnum, string> = new Map([
+	[GiftCardPaymentStatus.Pending, "Payment Pending"],
+	[GiftCardPaymentStatus.Paid, "Paid"],
 ])
 
 export function getGiftCardPrice(giftCardPackage: GiftCardPackageEnum): number {
 	return neverNull(GiftCardPackagePrices.get(giftCardPackage))
 }
 
-export function getGiftCardStatusMessage(status: GiftCardStatusEnum): string {
+export function getGiftCardStatusMessage(status: GiftCardPaymentStatusEnum): string {
 	return neverNull(GiftCardStatusMessages.get(status))
 }
 
@@ -95,20 +75,22 @@ export function loadGiftCardFromHash(hash: string): Promise<?GiftCard> {
 	}
 
 	// TODO return locator.entityClient.load(GiftCardTypeRef, id)
-	return Promise.resolve({
-		_id: id,
-		package: "0",
-		status: "1",
-		message: "You got a gift card",
-		linkId: id,
-		ordered: new Date(),
-		redeemed: null
-	})
+	// return Promise.resolve({
+	// 	_id: id,
+	// 	package: "0",
+	// 	status: "1",
+	// 	message: "You got a gift card",
+	// 	linkId: id,
+	// 	ordered: new Date(),
+	// 	redeemed: null
+	// })
+
+	return Promise.resolve(createGiftCard())
 }
 
-export function redeemGiftCard(giftCard: GiftCard, user: User): Promise<boolean> {
+export function redeemGiftCard(giftCard: GiftCard): Promise<boolean> {
 	return showProgressDialog("loading_msg",
-		worker.redeemGiftCard(user._id, giftCard._id)
+		worker.redeemGiftCard(giftCard._id)
 	)
 }
 
@@ -132,22 +114,22 @@ export function showGiftCardPresentationDialog(giftCard: GiftCard): void {
 }
 
 export function loadGiftCards(): Promise<GiftCard[]> {
-	return Promise.resolve([
-		{
-			_id: "420",
-			package: "0",
-			status: "1",
-			message: "You got a gift card",
-			linkId: "420",
-			ordered: new Date(),
-			redeemed: null
-		}
-	])
+	const entityClient = locator.entityClient
+
+	return entityClient.load(CustomerTypeRef, neverNull(this._login.getLoggedInUser().customer))
+	                   .then(customer => entityClient.load(CustomerInfoTypeRef, customer.customerInfo))
+	                   .then((customerInfo: CustomerInfo) => {
+		                   if (customerInfo.giftCards) {
+			                   return entityClient.loadAll(GiftCardTypeRef, customerInfo.giftCards._id)
+		                   } else {
+			                   return Promise.resolve([])
+		                   }
+	                   })
 }
 
-export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs {
+export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { // TODO
 	return {
-		cells: [formatDate(giftCard.ordered), "TODO"],
+		cells: [formatDate(giftCard.orderDate), "TODO"],
 		actionButtonAttrs: {
 			label: () => "view",
 			click: () => showGiftCardPresentationDialog(giftCard),

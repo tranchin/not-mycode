@@ -2,7 +2,6 @@
 
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
-import type {GiftCard} from "./GiftCardUtils"
 import {redeemGiftCard} from "./GiftCardUtils"
 import {neverNull, noOp} from "../api/common/utils/Utils"
 import type {WizardPageAttrs, WizardPageN} from "../gui/base/WizardDialogN"
@@ -21,6 +20,7 @@ import {client} from "../misc/ClientDetector"
 import {ButtonN, ButtonType} from "../gui/base/ButtonN"
 import type {SignupFormAttrs} from "../api/main/SignupForm"
 import {SignupForm} from "../api/main/SignupForm"
+import type {GiftCard} from "../api/entities/sys/GiftCard"
 
 type GetCredentialsMethod = "login" | "signup"
 
@@ -182,7 +182,7 @@ class RedeemGiftCardPage implements WizardPageN<GiftCardRedeemData> {
 		const confirmButtonAttrs = {
 			label: () => "Redeem gift card", // Translate
 			click: () => {
-				redeemGiftCard(data.giftCard, logins.getUserController().user).then(
+				redeemGiftCard(data.giftCard).then(
 					redeemGiftCardSuccess => {
 						if (redeemGiftCardSuccess) {
 							Dialog.info(() => "Congratulations!", () => "You now have a premium account", "ok_action", DialogType.EditMedium).then(() => {

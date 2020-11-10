@@ -3,31 +3,32 @@
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
 import {redeemGiftCard} from "./GiftCardUtils"
-import {neverNull, noOp} from "../api/common/utils/Utils"
-import type {WizardPageAttrs, WizardPageN} from "../gui/base/WizardDialogN"
-import {createWizardDialog, emitWizardEvent, WizardEventType} from "../gui/base/WizardDialogN"
-import {logins} from "../api/main/LoginController"
-import type {NewAccountData} from "./UpgradeSubscriptionWizard"
-import {loadUpgradePrices} from "./UpgradeSubscriptionWizard"
-import {Dialog, DialogType} from "../gui/base/Dialog"
-import {LoginForm} from "../login/LoginForm"
-import type {CredentialsSelectorAttrs} from "../login/CredentialsSelector"
-import {CredentialsSelector} from "../login/CredentialsSelector"
-import {deviceConfig} from "../misc/DeviceConfig"
-import {showProgressDialog} from "../gui/base/ProgressDialog"
-import {worker} from "../api/main/WorkerClient"
-import {client} from "../misc/ClientDetector"
-import {ButtonN, ButtonType} from "../gui/base/ButtonN"
-import type {SignupFormAttrs} from "../api/main/SignupForm"
-import {SignupForm} from "../api/main/SignupForm"
-import type {GiftCard} from "../api/entities/sys/GiftCard"
+import {neverNull, noOp} from "../../api/common/utils/Utils"
+import type {WizardPageAttrs, WizardPageN} from "../../gui/base/WizardDialogN"
+import {createWizardDialog, emitWizardEvent, WizardEventType} from "../../gui/base/WizardDialogN"
+import {logins} from "../../api/main/LoginController"
+import type {NewAccountData} from "../UpgradeSubscriptionWizard"
+import {loadUpgradePrices} from "../UpgradeSubscriptionWizard"
+import {Dialog, DialogType} from "../../gui/base/Dialog"
+import {LoginForm} from "../../login/LoginForm"
+import type {CredentialsSelectorAttrs} from "../../login/CredentialsSelector"
+import {CredentialsSelector} from "../../login/CredentialsSelector"
+import {deviceConfig} from "../../misc/DeviceConfig"
+import {showProgressDialog} from "../../gui/base/ProgressDialog"
+import {worker} from "../../api/main/WorkerClient"
+import {client} from "../../misc/ClientDetector"
+import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
+import type {SignupFormAttrs} from "../../api/main/SignupForm"
+import {SignupForm} from "../../api/main/SignupForm"
+import type {GiftCard} from "../../api/entities/sys/GiftCard"
+import type {GiftCardInfo} from "./GiftCardUtils"
 
 type GetCredentialsMethod = "login" | "signup"
 
 type GiftCardRedeemData = {
 	mailAddress: Stream<string>,
 	password: Stream<string>,
-	giftCard: GiftCard,
+	giftCardInfo: GiftCardInfo,
 
 	credentialsMethod: GetCredentialsMethod,
 	credentials: Stream<?Credentials>,
@@ -49,7 +50,7 @@ class GiftCardWelcomePage implements WizardPageN<GiftCardRedeemData> {
 		}
 
 		return m(".flex-v-center", [
-			m("", a.data.giftCard.message),
+			m("", a.data.giftCardInfo.message),
 			m(ButtonN, {
 				label: () => "Use existing account",
 				click: () => nextPage("login"),
@@ -182,7 +183,7 @@ class RedeemGiftCardPage implements WizardPageN<GiftCardRedeemData> {
 		const confirmButtonAttrs = {
 			label: () => "Redeem gift card", // Translate
 			click: () => {
-				redeemGiftCard(data.giftCard).then(
+				redeemGiftCard(data.giftCardInfo).then(
 					redeemGiftCardSuccess => {
 						if (redeemGiftCardSuccess) {
 							Dialog.info(() => "Congratulations!", () => "You now have a premium account", "ok_action", DialogType.EditMedium).then(() => {
@@ -202,7 +203,7 @@ class RedeemGiftCardPage implements WizardPageN<GiftCardRedeemData> {
 }
 
 
-export function loadUseGiftCardWizard(giftCard: GiftCard): Promise<Dialog> {
+export function loadUseGiftCardWizard(giftCardInfo: GiftCardInfo): Promise<Dialog> {
 	return loadUpgradePrices().then(prices => {
 
 		const giftCardRedeemData: GiftCardRedeemData = {
@@ -210,7 +211,7 @@ export function loadUseGiftCardWizard(giftCard: GiftCard): Promise<Dialog> {
 			mailAddress: stream(""),
 			password: stream(""),
 			credentialsMethod: "signup",
-			giftCard: giftCard,
+			giftCardInfo: giftCardInfo,
 			credentials: stream(null),
 		}
 

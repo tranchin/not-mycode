@@ -1,13 +1,13 @@
 // @flow
 
 import m from "mithril"
-import type {BuyOptionBoxAttr} from "./BuyOptionBox"
-import {BuyOptionBox} from "./BuyOptionBox"
-import {ButtonN, ButtonType} from "../gui/base/ButtonN"
-import {formatPrice} from "./SubscriptionUtils"
+import type {BuyOptionBoxAttr} from "../BuyOptionBox"
+import {BuyOptionBox} from "../BuyOptionBox"
+import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
+import {formatPrice} from "../SubscriptionUtils"
 import type {GiftCardPackageEnum} from "./GiftCardUtils"
-import {getGiftCardPrice, GiftCardPackage, giftCardSelectorLabels} from "./GiftCardUtils"
-import {neverNull} from "../api/common/utils/Utils"
+import {getGiftCardPackageLabel, getGiftCardPrice, GiftCardPackage} from "./GiftCardUtils"
+import {neverNull} from "../../api/common/utils/Utils"
 
 export type GiftCardSelectorAttrs = {
 	selectedPackage: Stream<GiftCardPackageEnum>,
@@ -40,7 +40,7 @@ function createPremiumGiftCardBoxAttr(attrs: GiftCardSelectorAttrs, giftCardPack
 	const price = formatPrice(getGiftCardPrice(giftCardPackage), true)
 	const highlighted = giftCardPackage === attrs.selectedPackage()
 	return {
-		heading: neverNull(giftCardSelectorLabels.get(giftCardPackage)),
+		heading: neverNull(getGiftCardPackageLabel(giftCardPackage)),
 		actionButton: {
 			view: () => m(ButtonN, {
 				label: "pricing.select_action",

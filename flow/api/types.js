@@ -143,6 +143,7 @@ type WorkerRequestType = 'setup'
 	| 'getEventByUid'
 	| 'generateGiftCard'
 	| 'redeemGiftCard'
+	| 'getGiftCardInfo'
 
 
 type MainRequestType = 'execNative'

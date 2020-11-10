@@ -1,0 +1,77 @@
+// @flow
+
+import type {GiftCard} from "../../entities/sys/GiftCard"
+import {aes128Decrypt, aes128RandomKey} from "../crypto/Aes"
+import {locator} from "../WorkerLocator"
+import {GroupType} from "../../common/TutanotaConstants"
+import {firstThrow} from "../../common/utils/ArrayUtils"
+import {encryptKey} from "../crypto/KeyCryptoUtils"
+import {createGiftCardCreateData} from "../../entities/sys/GiftCardCreateData"
+import {serviceRequest} from "../EntityWorker"
+import {SysService} from "../../entities/sys/Services"
+import {HttpMethod} from "../../common/EntityFunctions"
+import {GiftCardCreateReturnTypeRef} from "../../entities/sys/GiftCardCreateReturn"
+import type {GiftCardCreateReturn} from "../../entities/sys/GiftCardCreateReturn"
+import type {LoginFacade} from "./LoginFacade"
+import type {GiftCardRedeemGetReturn} from "../../entities/sys/GiftCardRedeemGetReturn"
+import {createGiftCardRedeemGetData} from "../../entities/sys/GiftCardRedeemGetData"
+import {GiftCardRedeemGetReturnTypeRef} from "../../entities/sys/GiftCardRedeemGetReturn"
+import {stringToUtf8Uint8Array, utf8Uint8ArrayToString} from "../../common/utils/Encoding"
+import type {GiftCardInfo} from "../../../subscription/giftcards/GiftCardUtils"
+
+export class GiftCardFacade {
+
+	_logins: LoginFacade
+
+	constructor(logins: LoginFacade) {
+		this._logins = logins
+	}
+
+	generateGiftCard(message: string, packageOption: NumberString): Promise<IdTuple> {
+
+		const sessionKey = aes128RandomKey()
+		let adminGroupIds = this._logins.getGroupIds(GroupType.Admin)
+		if (adminGroupIds.length === 0) {
+			throw new Error("missing admin membership")
+		}
+		const ownerKey = this._logins.getGroupKey(firstThrow(adminGroupIds)) // adminGroupKey
+		const ownerEncSessionKey = encryptKey(ownerKey, sessionKey)
+
+		const data = createGiftCardCreateData({
+			message: message,
+			packageOption,
+			ownerEncSessionKey
+		})
+
+		return serviceRequest(SysService.GiftCardService, HttpMethod.POST, data, GiftCardCreateReturnTypeRef, null, sessionKey)
+			.then((returnData: GiftCardCreateReturn) => returnData.giftCard)
+	}
+
+	updateGiftCard() {
+
+	}
+
+	deleteGiftCard() {
+
+	}
+
+	getGiftCardInfo(giftCardId: IdTuple, key: BitArray): Promise<GiftCardInfo> {
+		const data = createGiftCardRedeemGetData({giftCard: giftCardId})
+		return serviceRequest(SysService.GiftCardRedeemService, HttpMethod.GET, data, GiftCardRedeemGetReturnTypeRef).then(
+			({encryptedMessage, packageOption, country}: GiftCardRedeemGetReturn) => {
+				return {
+					message: utf8Uint8ArrayToString(aes128Decrypt(key, encryptedMessage)),
+					packageOption,
+					country
+				}
+			}
+		)
+	}
+
+	redeemGiftCard() {
+		// resolveSessionKey(GiftCardTypeRef, giftCard) TODO??
+
+	}
+
+}
+

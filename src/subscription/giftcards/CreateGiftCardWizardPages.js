@@ -1,14 +1,14 @@
 // @flow
 
-import type {WizardPageAttrs, WizardPageN} from "../gui/base/WizardDialogN"
-import {emitWizardEvent, WizardEventType} from "../gui/base/WizardDialogN"
+import type {WizardPageAttrs, WizardPageN} from "../../gui/base/WizardDialogN"
+import {emitWizardEvent, WizardEventType} from "../../gui/base/WizardDialogN"
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
 import {CreateGiftCardSelector} from "./CreateGiftCardSelector"
 import type {CreateGiftCardData} from "./CreateGiftCardWizard"
 import {CreateGiftCardOverview} from "./CreateGiftCardOverview"
-import {HtmlEditor, Mode} from "../gui/base/HtmlEditor"
-import {ButtonN, ButtonType} from "../gui/base/ButtonN"
+import {HtmlEditor, Mode} from "../../gui/base/HtmlEditor"
+import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import type {GiftCardPackageEnum} from "./GiftCardUtils"
 
 type CreateGiftCardAttrs = WizardPageAttrs<CreateGiftCardData>

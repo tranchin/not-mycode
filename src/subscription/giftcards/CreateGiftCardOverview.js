@@ -2,10 +2,10 @@
 
 import m from "mithril"
 import type {CreateGiftCardData} from "./CreateGiftCardWizard"
-import {ButtonN, ButtonType} from "../gui/base/ButtonN"
-import {emitWizardEvent, WizardEventType} from "../gui/base/WizardDialogN"
-import {HtmlEditor, Mode} from "../gui/base/HtmlEditor"
-import {formatNameAndAddress} from "../misc/Formatter"
+import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
+import {emitWizardEvent, WizardEventType} from "../../gui/base/WizardDialogN"
+import {HtmlEditor, Mode} from "../../gui/base/HtmlEditor"
+import {formatNameAndAddress} from "../../misc/Formatter"
 
 export type GiftCardOverviewAttrs = {
 	data: CreateGiftCardData,

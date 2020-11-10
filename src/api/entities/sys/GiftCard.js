@@ -58,6 +58,15 @@ export const _TypeModel: TypeModel = {
 			"final": true,
 			"encrypted": false
 		},
+		"country": {
+			"name": "country",
+			"id": 1778,
+			"since": 64,
+			"type": "String",
+			"cardinality": "One",
+			"final": true,
+			"encrypted": false
+		},
 		"message": {
 			"name": "message",
 			"id": 1775,
@@ -122,6 +131,7 @@ export type GiftCard = {
 	_ownerEncSessionKey: ?Uint8Array;
 	_ownerGroup: ?Id;
 	_permissions: Id;
+	country: string;
 	message: string;
 	orderDate: Date;
 	packageOption: NumberString;

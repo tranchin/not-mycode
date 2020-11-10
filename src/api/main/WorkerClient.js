@@ -51,8 +51,7 @@ import type {WebsocketLeaderStatus} from "../entities/sys/WebsocketLeaderStatus"
 import {createWebsocketLeaderStatus} from "../entities/sys/WebsocketLeaderStatus"
 import type {Country} from "../common/CountryList"
 import type {SearchRestriction} from "../worker/search/SearchTypes"
-import type {GiftCardPackageEnum} from "../../subscription/GiftCardUtils"
-import type {GiftCard} from "../entities/sys/GiftCard"
+import type {GiftCardInfo, GiftCardPackageEnum} from "../../subscription/giftcards/GiftCardUtils"
 
 assertMainOrNode()
 
@@ -594,9 +593,8 @@ export class WorkerClient implements EntityRestInterface {
 		return this._queue.postMessage(new Request("getEventByUid", [uid]))
 	}
 
-
 	// TODO maybe this is just a setup call?
-	generateGiftCard(message: string, giftCardPackage: GiftCardPackageEnum): Promise<?GiftCard> {
+	generateGiftCard(message: string, giftCardPackage: GiftCardPackageEnum): Promise<IdTuple> {
 		return this._queue.postMessage(new Request("generateGiftCard", [message, giftCardPackage]))
 		           .tap(giftCard => console.log("Generated Gift Card:", giftCard))
 	}
@@ -611,6 +609,12 @@ export class WorkerClient implements EntityRestInterface {
 	isLeader(): boolean {
 		return this._leaderStatus.leaderStatus
 	}
+
+	getGiftCardInfo(giftCardId: IdTuple, key: string): Promise<GiftCardInfo> {
+		return this._queue.postMessage(new Request("getGiftCardInfo", arguments))
+		           .tap(giftCardInfo => console.log("Got gift card info:", giftCardInfo))
+	}
+
 }
 
 export const worker: WorkerClient = new WorkerClient()

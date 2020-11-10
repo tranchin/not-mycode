@@ -12,7 +12,7 @@ import {nativeApp} from "../../native/NativeWrapper"
 import {TotpVerifier} from "./crypto/TotpVerifier"
 import type {EntropySrcEnum} from "../common/TutanotaConstants"
 import {loadContactForm} from "./facades/ContactFormFacade"
-import {keyToBase64} from "./crypto/CryptoUtils"
+import {base64ToKey, keyToBase64} from "./crypto/CryptoUtils"
 import {aes256RandomKey} from "./crypto/Aes"
 import type {BrowserData} from "../../misc/ClientConstants"
 import type {InfoMessage} from "../common/CommonTypes"
@@ -342,21 +342,16 @@ export class WorkerImpl {
 			},
 
 			generateGiftCard: (message: Request) => {
-				const id = new Date().getDate().toString()
-				return Promise.resolve(
-					{
-						_id: id,
-						message: message.args[0],
-						package: message.args[1],
-						linkId: id,
-						purchased: new Date(),
-						redeemed: null
-					}) // TODO generate a gift card on server
+				return locator.giftCards.generateGiftCard(message.args[0], message.args[1])
 			},
 
 			redeemGiftCard: (message: Request) => {
 				const [userId, giftCardId] = message.args
 				return Promise.resolve(giftCardId !== 'used') // TODO contact server to redeem
+			},
+			
+			getGiftCardInfo: (message: Request) => {
+				return locator.giftCards.getGiftCardInfo(message.args[0], base64ToKey(message.args[1]))
 			}
 		})
 

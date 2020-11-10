@@ -1,22 +1,24 @@
 // @flow
 
 import m from "mithril"
-import {Dialog, DialogType} from "../gui/base/Dialog"
-import {createWizardDialog} from "../gui/base/WizardDialogN"
-import {loadUpgradePrices} from "./UpgradeSubscriptionWizard"
+import {Dialog, DialogType} from "../../gui/base/Dialog"
+import {createWizardDialog} from "../../gui/base/WizardDialogN"
+import {loadUpgradePrices} from "../UpgradeSubscriptionWizard"
 import {GiftCardConfirmationPage, GiftCardCreationPage} from "./CreateGiftCardWizardPages"
-import {load} from "../api/main/Entity"
-import {CustomerTypeRef} from "../api/entities/sys/Customer"
-import {neverNull} from "../api/common/utils/Utils"
-import {logins} from "../api/main/LoginController"
-import {CustomerInfoTypeRef} from "../api/entities/sys/CustomerInfo"
-import type {AccountingInfo} from "../api/entities/sys/AccountingInfo"
-import {AccountingInfoTypeRef} from "../api/entities/sys/AccountingInfo"
+import {load} from "../../api/main/Entity"
+import {CustomerTypeRef} from "../../api/entities/sys/Customer"
+import {neverNull} from "../../api/common/utils/Utils"
+import {logins} from "../../api/main/LoginController"
+import {CustomerInfoTypeRef} from "../../api/entities/sys/CustomerInfo"
+import type {AccountingInfo} from "../../api/entities/sys/AccountingInfo"
+import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
 import type {GiftCardPackageEnum} from "./GiftCardUtils"
 import {GiftCardPackage} from "./GiftCardUtils"
-import {worker} from "../api/main/WorkerClient"
-import {showProgressDialog} from "../gui/base/ProgressDialog"
-import type {GiftCard} from "../api/entities/sys/GiftCard"
+import {worker} from "../../api/main/WorkerClient"
+import {showProgressDialog} from "../../gui/base/ProgressDialog"
+import type {GiftCard} from "../../api/entities/sys/GiftCard"
+import {locator} from "../../api/main/MainLocator"
+import {GiftCardTypeRef} from "../../api/entities/sys/GiftCard"
 
 export type CreateGiftCardData = {
 	package: GiftCardPackageEnum;
@@ -70,6 +72,7 @@ export function showPurchaseGiftCardWizard(): Promise<?GiftCard> {
 						nextAction: (_) => {
 							return showProgressDialog("loading_msg",
 								worker.generateGiftCard(data.message, data.package)
+								      .then(createdGiftCardId => locator.entityClient.load(GiftCardTypeRef, createdGiftCardId)) // TODO dependency inject entityClient?
 								      .then(giftCard => {
 									      data.giftCard = giftCard
 									      return giftCard

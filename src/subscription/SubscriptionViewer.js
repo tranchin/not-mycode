@@ -5,7 +5,7 @@ import type {AccountTypeEnum} from "../api/common/TutanotaConstants"
 import {AccountType, AccountTypeNames, BookingItemFeatureType, Const} from "../api/common/TutanotaConstants"
 import type {Customer} from "../api/entities/sys/Customer"
 import {CustomerTypeRef} from "../api/entities/sys/Customer"
-import {downcast, neverNull, noOp} from "../api/common/utils/Utils"
+import {assertNotNull, downcast, neverNull, noOp} from "../api/common/utils/Utils"
 import type {CustomerInfo} from "../api/entities/sys/CustomerInfo"
 import {CustomerInfoTypeRef} from "../api/entities/sys/CustomerInfo"
 import {load, loadRange, serviceRequest} from "../api/main/Entity"
@@ -63,14 +63,14 @@ import {ColumnWidth, TableN} from "../gui/base/TableN"
 import type {TableAttrs, TableLineAttrs} from "../gui/base/TableN"
 import type {ButtonAttrs} from "../gui/base/ButtonN"
 import {BootIcons} from "../gui/base/icons/BootIcons"
-import {showPurchaseGiftCardWizard} from "./CreateGiftCardWizard"
+import {showPurchaseGiftCardWizard} from "./giftcards/CreateGiftCardWizard"
 import {
 	createGiftCardTableLine,
-	getGiftCardStatusMessage,
+	 GIFT_CARD_TABLE_HEADER,
 	loadGiftCards,
 	showGiftCardPresentationDialog,
 	ValueToGiftCardStatus
-} from "./GiftCardUtils"
+} from "./giftcards/GiftCardUtils"
 import type {GiftCard} from "../api/entities/sys/GiftCard"
 import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
 
@@ -235,24 +235,24 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 			),
 			icon: () => Icons.Add
 		}
-
 		this._giftCardTableLines = []
-		loadGiftCards().then(giftCards => {
+		loadGiftCards(assertNotNull(logins.getUserController().user.customer)).then(giftCards => {
 			this._giftCardTableLines = giftCards.map(giftCard => {
 				return createGiftCardTableLine(giftCard)
 			})
 			m.redraw()
 		})
 
-		let giftCardTableAttrs: TableAttrs = {
-			columnHeading: [() => "Purchase Date", () => "Status"],
-			columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Small],
-			showActionButtonColumn: true,
-			addButtonAttrs: purchaseGiftCardButtonAttrs,
-			lines: this._giftCardTableLines,
-		}
 
 		this.view = (): VirtualElement => {
+			let giftCardTableAttrs: TableAttrs = {
+				columnHeading: GIFT_CARD_TABLE_HEADER,
+				columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
+				showActionButtonColumn: true,
+				addButtonAttrs: purchaseGiftCardButtonAttrs,
+				lines: this._giftCardTableLines,
+			}
+
 			return m("#subscription-settings.fill-absolute.scroll.plr-l", [
 				m(".h4.mt-l", lang.get('currentlyBooked_label')),
 				m(TextFieldN, {
@@ -331,13 +331,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					})
 					: null,
 				m(".h4.mt-l", 'Gift cards'),
-				m(TableN, {
-					columnHeading: [() => "Purchase Date", () => "Status"],
-					columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Small],
-					showActionButtonColumn: true,
-					addButtonAttrs: purchaseGiftCardButtonAttrs,
-					lines: this._giftCardTableLines,
-				}),
+				m(TableN, giftCardTableAttrs),
 				m(".h4.mt-l", lang.get('adminPremiumFeatures_action')),
 				m(TextFieldN, {
 					label: "bookingItemUsers_label",
@@ -622,7 +616,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	}
 
 	processUpdate(update: EntityUpdateData): Promise<void> {
-		const {instanceId} = update
+		const {instanceListId, instanceId} = update
 		if (isUpdateForTypeRef(AccountingInfoTypeRef, update)) {
 			return load(AccountingInfoTypeRef, instanceId).then(accountingInfo => this._updateAccountInfoData(accountingInfo)).then(() => {
 				return this._updatePriceInfo()
@@ -638,7 +632,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		} else if (isUpdateForTypeRef(CustomerTypeRef, update)) {
 			return load(CustomerTypeRef, instanceId).then(customer => this._updateOrderProcessingAgreement(customer))
 		} else if (isUpdateForTypeRef(GiftCardTypeRef, update)) {
-			return load(GiftCardTypeRef, instanceId).then(giftCard => {
+			return load(GiftCardTypeRef, [instanceListId, instanceId]).then(giftCard => {
 				this._giftCardTableLines.push(createGiftCardTableLine(giftCard)) // TODO
 			})
 		} else {

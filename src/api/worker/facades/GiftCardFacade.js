@@ -1,8 +1,6 @@
 // @flow
 
-import type {GiftCard} from "../../entities/sys/GiftCard"
 import {aes128Decrypt, aes128RandomKey} from "../crypto/Aes"
-import {locator} from "../WorkerLocator"
 import {GroupType} from "../../common/TutanotaConstants"
 import {firstThrow} from "../../common/utils/ArrayUtils"
 import {encryptKey} from "../crypto/KeyCryptoUtils"
@@ -14,10 +12,10 @@ import {GiftCardCreateReturnTypeRef} from "../../entities/sys/GiftCardCreateRetu
 import type {GiftCardCreateReturn} from "../../entities/sys/GiftCardCreateReturn"
 import type {LoginFacade} from "./LoginFacade"
 import type {GiftCardRedeemGetReturn} from "../../entities/sys/GiftCardRedeemGetReturn"
-import {createGiftCardRedeemGetData} from "../../entities/sys/GiftCardRedeemGetData"
 import {GiftCardRedeemGetReturnTypeRef} from "../../entities/sys/GiftCardRedeemGetReturn"
-import {stringToUtf8Uint8Array, utf8Uint8ArrayToString} from "../../common/utils/Encoding"
+import {utf8Uint8ArrayToString} from "../../common/utils/Encoding"
 import type {GiftCardInfo} from "../../../subscription/giftcards/GiftCardUtils"
+import {createGiftCardRedeemData} from "../../entities/sys/GiftCardRedeemData"
 
 export class GiftCardFacade {
 
@@ -56,22 +54,17 @@ export class GiftCardFacade {
 	}
 
 	getGiftCardInfo(giftCardId: IdTuple, key: BitArray): Promise<GiftCardInfo> {
-		const data = createGiftCardRedeemGetData({giftCard: giftCardId})
-		return serviceRequest(SysService.GiftCardRedeemService, HttpMethod.GET, data, GiftCardRedeemGetReturnTypeRef).then(
-			({encryptedMessage, packageOption, country}: GiftCardRedeemGetReturn) => {
-				return {
-					message: utf8Uint8ArrayToString(aes128Decrypt(key, encryptedMessage)),
-					packageOption,
-					country
+		const data = createGiftCardRedeemData({giftCard: giftCardId})
+		return serviceRequest(SysService.GiftCardRedeemService, HttpMethod.GET, data, GiftCardRedeemGetReturnTypeRef)
+			.then(({encryptedMessage, packageOption, country}: GiftCardRedeemGetReturn) => {
+					return {
+						giftCardId,
+						message: utf8Uint8ArrayToString(aes128Decrypt(key, encryptedMessage)),
+						packageOption,
+						country
+					}
 				}
-			}
-		)
+			)
 	}
-
-	redeemGiftCard() {
-		// resolveSessionKey(GiftCardTypeRef, giftCard) TODO??
-
-	}
-
 }
 

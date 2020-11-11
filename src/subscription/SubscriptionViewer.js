@@ -16,7 +16,7 @@ import {Icons} from "../gui/base/icons/Icons"
 import type {AccountingInfo} from "../api/entities/sys/AccountingInfo"
 import {AccountingInfoTypeRef} from "../api/entities/sys/AccountingInfo"
 import {worker} from "../api/main/WorkerClient"
-import {GENERATED_MAX_ID, HttpMethod} from "../api/common/EntityFunctions"
+import {elementIdPart, GENERATED_MAX_ID, HttpMethod} from "../api/common/EntityFunctions"
 import {UserTypeRef} from "../api/entities/sys/User"
 import {createNotAvailableForFreeClickHandler, formatPriceDataWithInfo, getCurrentCount} from "./PriceUtils"
 import {formatDate, formatNameAndAddress, formatStorageSize} from "../misc/Formatter"
@@ -62,14 +62,11 @@ import {Dialog} from "../gui/base/Dialog"
 import {ColumnWidth, TableN} from "../gui/base/TableN"
 import type {TableAttrs, TableLineAttrs} from "../gui/base/TableN"
 import type {ButtonAttrs} from "../gui/base/ButtonN"
-import {BootIcons} from "../gui/base/icons/BootIcons"
 import {showPurchaseGiftCardWizard} from "./giftcards/CreateGiftCardWizard"
 import {
 	createGiftCardTableLine,
-	 GIFT_CARD_TABLE_HEADER,
-	loadGiftCards,
-	showGiftCardPresentationDialog,
-	ValueToGiftCardStatus
+	GIFT_CARD_TABLE_HEADER,
+	loadGiftCards, showGiftCardEditorDialog,
 } from "./giftcards/GiftCardUtils"
 import type {GiftCard} from "../api/entities/sys/GiftCard"
 import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
@@ -102,7 +99,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	_orderAgreement: ?OrderProcessingAgreement;
 	_currentSubscription: SubscriptionTypeEnum;
 	_isCancelled: boolean;
-	_giftCardTableLines: Array<TableLineAttrs>;
+	_giftCardTableLines: Map<Id, TableLineAttrs>;
 
 	constructor() {
 		let subscriptionAction = new Button("subscription_label", () => {
@@ -230,18 +227,19 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 			label: () => "Purchase a gift card",
 			click: () => showPurchaseGiftCardWizard().then(
 				(giftCard: ?GiftCard) => {
-					if (giftCard) showGiftCardPresentationDialog(giftCard)
+					if (giftCard) showGiftCardEditorDialog(giftCard, true)
 				}
 			),
 			icon: () => Icons.Add
 		}
-		this._giftCardTableLines = []
-		loadGiftCards(assertNotNull(logins.getUserController().user.customer)).then(giftCards => {
-			this._giftCardTableLines = giftCards.map(giftCard => {
-				return createGiftCardTableLine(giftCard)
+		this._giftCardTableLines = new Map()
+		loadGiftCards(assertNotNull(logins.getUserController().user.customer))
+			.then(giftCards => {
+				giftCards.forEach(giftCard => {
+					this._giftCardTableLines.set(elementIdPart(giftCard._id), createGiftCardTableLine(giftCard))
+				})
+				m.redraw()
 			})
-			m.redraw()
-		})
 
 
 		this.view = (): VirtualElement => {
@@ -250,7 +248,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 				columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
 				showActionButtonColumn: true,
 				addButtonAttrs: purchaseGiftCardButtonAttrs,
-				lines: this._giftCardTableLines,
+				lines: Array.from(this._giftCardTableLines.values()),
 			}
 
 			return m("#subscription-settings.fill-absolute.scroll.plr-l", [
@@ -633,7 +631,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 			return load(CustomerTypeRef, instanceId).then(customer => this._updateOrderProcessingAgreement(customer))
 		} else if (isUpdateForTypeRef(GiftCardTypeRef, update)) {
 			return load(GiftCardTypeRef, [instanceListId, instanceId]).then(giftCard => {
-				this._giftCardTableLines.push(createGiftCardTableLine(giftCard)) // TODO
+				this._giftCardTableLines.set(elementIdPart(giftCard._id), createGiftCardTableLine(giftCard))
 			})
 		} else {
 			return Promise.resolve()

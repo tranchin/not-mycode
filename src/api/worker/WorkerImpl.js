@@ -345,11 +345,6 @@ export class WorkerImpl {
 				return locator.giftCards.generateGiftCard(message.args[0], message.args[1])
 			},
 
-			redeemGiftCard: (message: Request) => {
-				const [userId, giftCardId] = message.args
-				return Promise.resolve(giftCardId !== 'used') // TODO contact server to redeem
-			},
-			
 			getGiftCardInfo: (message: Request) => {
 				return locator.giftCards.getGiftCardInfo(message.args[0], base64ToKey(message.args[1]))
 			}

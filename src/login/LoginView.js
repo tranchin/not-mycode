@@ -24,9 +24,10 @@ import {AriaLandmarks, landmarkAttrs, liveDataAttrs} from "../api/common/utils/A
 import type {ILoginViewController} from "./LoginViewController"
 import {showTakeOverDialog} from "./TakeOverDeletedAddressDialog"
 import {loadGiftCardInfoFromHash} from "../subscription/giftcards/GiftCardUtils"
-import {loadUseGiftCardWizard} from "../subscription/giftcards/UseGiftCardWizard"
 import {loadSignupWizard} from "../subscription/UpgradeSubscriptionWizard"
 import {Dialog} from "../gui/base/Dialog"
+import {loadRedeemGiftCardWizard} from "../subscription/giftcards/RedeemGiftCardWizard"
+import {NotAuthorizedError, NotFoundError} from "../api/common/error/RestError"
 import {ExpanderButtonN, ExpanderPanelN} from "../gui/base/ExpanderN"
 
 assertMainOrNode()
@@ -383,17 +384,20 @@ export class LoginView {
 		} else if (requestedPath.startsWith("/recover") || requestedPath.startsWith("/takeover")) {
 			return
 		} else if (requestedPath.startsWith("/giftcard")) {
-			loadGiftCardInfoFromHash(location.hash).then((giftCardInfo) => {
-				if (giftCardInfo) {
-					showProgressDialog('loading_msg',
-						this._viewController.then(c => c.loadLoginScreenDialog(() => loadUseGiftCardWizard(giftCardInfo))))
-						.then(dialog => dialog.show())
-				} else {
-					Dialog.error(() => "Invalid gift card link").then(() => m.route.set("/login")) // Translate
-				}
+
+			const showWizardPromise = this._viewController.then(controller => {
+				return loadGiftCardInfoFromHash(location.hash)
+					.then(giftCardInfo => controller.loadLoginScreenDialog(() => loadRedeemGiftCardWizard(giftCardInfo)))
 			})
+
+			showProgressDialog(() => "just a sec", showWizardPromise)
+				.then(dialog => dialog.show())
+				.catch(NotAuthorizedError, e => Dialog.error(() => "This gift card can't be used"))
+				.catch(NotFoundError, e => Dialog.error(() => "This gift card doesn't exist"))// TODO Translate
+				.then(() => m.route.set("/login"))
 			return
 		}
+
 		this._showingSignup = false
 
 

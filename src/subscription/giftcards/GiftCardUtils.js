@@ -1,13 +1,13 @@
 // @flow
 
 import m from "mithril"
+import stream from "mithril/stream/stream.js"
 import {downcast, neverNull} from "../../api/common/utils/Utils"
 import {Dialog, DialogType} from "../../gui/base/Dialog"
 import {reverse} from "../../api/common/TutanotaConstants"
 import {Icons} from "../../gui/base/icons/Icons"
 import type {TableLineAttrs} from "../../gui/base/TableN"
 import {formatDate} from "../../misc/Formatter"
-import {showProgressDialog} from "../../gui/base/ProgressDialog"
 import {worker} from "../../api/main/WorkerClient"
 import {CustomerInfoTypeRef} from "../../api/entities/sys/CustomerInfo"
 import {CustomerTypeRef} from "../../api/entities/sys/Customer"
@@ -17,8 +17,14 @@ import type {GiftCard} from "../../api/entities/sys/GiftCard"
 import {_TypeModel as GiftCardTypeModel, createGiftCard, GiftCardTypeRef} from "../../api/entities/sys/GiftCard"
 import type {TranslationKey} from "../../misc/LanguageViewModel"
 import {UserError} from "../../api/common/error/UserError"
+import {showUserError} from "../../misc/ErrorHandlerImpl"
+import {HtmlEditor, Mode} from "../../gui/base/HtmlEditor"
+import type {BuyOptionBoxAttr} from "../BuyOptionBox"
+import {formatPrice} from "../SubscriptionUtils"
+import {BuyOptionBox} from "../BuyOptionBox"
 
 export type GiftCardInfo = {
+	giftCardId: IdTuple,
 	message: string,
 	packageOption: NumberString,
 	country: string
@@ -32,7 +38,6 @@ export const GiftCardPackage =
 		      Platinum: "2"
 	      })
 export type GiftCardPackageEnum = $Values<typeof GiftCardPackage>
-export const ValueToGiftCardPackage: {} = reverse(GiftCardPackage)
 
 export const GiftCardPaymentStatus =
 	Object.freeze({
@@ -59,51 +64,69 @@ export function getGiftCardPackageLabel(option: GiftCardPackageEnum): string {
 	]).get(option))
 }
 
-export function loadGiftCardInfoFromHash(hash: string): Promise<GiftCardInfo> { // TODO type
+export function loadGiftCardInfoFromHash(hash: string): Promise<GiftCardInfo> {
 
+	let id: IdTuple, key: string;
 	const encodedToken = hash.startsWith("#") ? hash.substr(1) : null;
-
-	if (!encodedToken) {
-		throw new UserError(() => "Invalid gift card link") // TODO Throw UserError
+	try {
+		if (!encodedToken) {
+			throw new Error()
+		}
+		[id, key] = _decodeToken(encodedToken)
+	} catch (e) {
+		return Promise.reject(new UserError(() => "Invalid gift card link"))
 	}
-
-	const {id, key} = _resolveToken(encodedToken)
-
-	// TODO make worker call, get gift card from server
 	return worker.initialized.then(() => {
 		return worker.getGiftCardInfo(id, key)
 	})
 
 }
 
-export function redeemGiftCard(giftCardInfo: GiftCardInfo): Promise<boolean> {
-	return showProgressDialog("loading_msg",
-		// worker.redeemGiftCard(giftCard._id)
-		Promise.resolve(false)
-	)
+
+type GiftCardEditorAttrs = {
+	giftCard: GiftCard,
+	readonly: boolean
 }
 
+class GiftCardEditor implements MComponent<GiftCardEditorAttrs> {
+	editor: HtmlEditor
+	selectedPackage: Stream<GiftCardPackageEnum>
 
-// TODO
-class GiftCardPresentation implements MComponent<GiftCard> {
-	view(vnode: Vnode<GiftCard>): Children {
-		const giftCard = vnode.attrs
-		return m(".present-giftcard-page.pt", [
-			m("span", {
-				style: {
-					// fontSize: "0.5rem"
-				}
-			}, JSON.stringify(giftCard, null, 4))
+	constructor(vnode: Vnode<GiftCardEditorAttrs>) {
+		const a = vnode.attrs
+		this.editor = new HtmlEditor(() => a.readonly ? "Message" : "Edit message",) // TRANSLATE
+			.setMinHeight(300)
+			.setMode(Mode.WYSIWYG)
+			.showBorders()
+			.setValue(a.giftCard.message)
+			.setEnabled(!a.readonly || a.giftCard.redeemedDate !== null)
+
+		this.selectedPackage = stream(downcast(a.giftCard.packageOption))
+	}
+
+	view(vnode: Vnode<GiftCardEditorAttrs>): Children {
+		const a = vnode.attrs
+		const boxAttrs = {
+			selectedPackage: this.selectedPackage,
+			boxWidth: 230,
+			boxHeight: 250,
+		}
+		return m(".present-giftcard-page.pt.flex-v-center", [
+			m(BuyOptionBox, createGiftCardBoxAttrs(boxAttrs, this.selectedPackage())),
+			m(this.editor),
 		])
 	}
 }
 
-export function showGiftCardPresentationDialog(giftCard: GiftCard): void {
-	generateGiftCardLink(giftCard).then(link => {
-		const message = giftCard.message
-		const packageOption = giftCard.packageOption
-		Dialog.info(() => "ur giftcard", () => [m("", link), m(GiftCardPresentation, giftCard)], "ok_action", DialogType.EditLarger)
-	})
+export function showGiftCardEditorDialog(giftCard: GiftCard, readonly: boolean): void {
+	// TODO Add save and cancel options
+	generateGiftCardLink(giftCard)
+		.then(link => {
+			Dialog.info(() => readonly ? "Giftcard" : "Edit giftcard", () => [ // TODO Translate
+				m(GiftCardEditor, {giftCard, readonly})
+			], "ok_action", DialogType.EditLarger)
+		})
+		.catch(UserError, showUserError)
 }
 
 export function loadGiftCards(customerId: Id): Promise<GiftCard[]> {
@@ -124,8 +147,13 @@ export const GIFT_CARD_TABLE_HEADER: Array<lazy<string> | TranslationKey> = [() 
 
 export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { // TODO
 
-	const giftCardPackage = ValueToGiftCardPackage[giftCard.packageOption]
-	const statusLabel = ValueToGiftCardStatus[giftCard.paymentStatus]
+	const giftCardPackage = getGiftCardPackageLabel(downcast(giftCard.packageOption))
+
+	const statusLabel = giftCard.redeemedDate
+		? `Redeemed` // TODO Translate
+		: ValueToGiftCardStatus[giftCard.paymentStatus]
+
+
 	console.log("package", giftCardPackage, "status", statusLabel)
 	return {
 		cells: [
@@ -135,38 +163,56 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 		],
 		actionButtonAttrs: {
 			label: () => "view",
-			click: () => showGiftCardPresentationDialog(giftCard),
-			icon: () => Icons.Eye
+			click: () => showGiftCardEditorDialog(giftCard, false),
+			icon: () => Icons.Edit
 		}
 	}
 }
 
-function resolveGiftCardLink(token: Base64) {
-
+export type GiftCardBoxAttrs = {
+	selectedPackage: Stream<GiftCardPackageEnum>,
+	boxWidth: number,
+	boxHeight: number,
 }
 
-function generateGiftCardLink(giftCard: GiftCard): Promise<?string> {
+export function createGiftCardBoxAttrs(attrs: GiftCardBoxAttrs, giftCardPackage: GiftCardPackageEnum, button?: Component): BuyOptionBoxAttr {
+	console.log(giftCardPackage, attrs.selectedPackage())
+	const highlighted = giftCardPackage === attrs.selectedPackage()
+	const giftCardPrice = getGiftCardPrice(giftCardPackage)
+	console.log(giftCardPrice)
+	const price = formatPrice(giftCardPrice, true)
+	return {
+		heading: neverNull(getGiftCardPackageLabel(giftCardPackage)),
+		actionButton: button,
+		price: price,
+		originalPrice: price,
+		helpLabel: "pricing.basePriceIncludesTaxes_msg",
+		features: () => [],
+		width: attrs.boxWidth,
+		height: attrs.boxHeight,
+		paymentInterval: null,
+		highlighted: highlighted,
+		showReferenceDiscount: false,
+	}
+}
+
+function generateGiftCardLink(giftCard: GiftCard): Promise<string> {
 	return worker.resolveSessionKey(GiftCardTypeModel, giftCard).then(key => {
-		return key
-			? `https://tutanota.com/giftcard/#${_generateToken(giftCard._id, key)}`
-			: null
+
+		if (!key) {
+			throw new UserError(() => "Error with giftcard") // TODO Translate
+		}
+
+		return `http://localhost:9000/client/build/giftcard/#${_encodeToken(giftCard._id, key)}` // TODO BIG TODO generate actual link
 	})
 }
 
-function _generateToken(id: IdTuple, key: string): Base64 {
-	const tokenJSON = JSON.stringify({
-		id,
-		key
-	})
-	return btoa(tokenJSON) // TODO maybe this is breakable????
-
+function _encodeToken(id: IdTuple, key: string): Base64 {
+	const tokenJSON = JSON.stringify([id, key])
+	return btoa(tokenJSON) // TODO maybe this is breakable???? Maybe it generates invalid characters for a url
 }
 
-function _resolveToken(token: Base64): {
-	id: IdTuple,
-	key: string
-} {
+function _decodeToken(token: Base64): [IdTuple, string] {
 	const tokenJSON = atob(token)
 	return JSON.parse(tokenJSON)
-
 }

@@ -2,7 +2,6 @@
 
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
-import {redeemGiftCard} from "./GiftCardUtils"
 import {neverNull, noOp} from "../../api/common/utils/Utils"
 import type {WizardPageAttrs, WizardPageN} from "../../gui/base/WizardDialogN"
 import {createWizardDialog, emitWizardEvent, WizardEventType} from "../../gui/base/WizardDialogN"
@@ -22,10 +21,21 @@ import type {SignupFormAttrs} from "../../api/main/SignupForm"
 import {SignupForm} from "../../api/main/SignupForm"
 import type {GiftCard} from "../../api/entities/sys/GiftCard"
 import type {GiftCardInfo} from "./GiftCardUtils"
+import {NotAuthorizedError, NotFoundError} from "../../api/common/error/RestError"
+import {LocationServiceGetReturnTypeRef} from "../../api/entities/sys/LocationServiceGetReturn"
+import {serviceRequest, serviceRequestVoid} from "../../api/main/Entity"
+import {SysService} from "../../api/entities/sys/Services"
+import {HttpMethod} from "../../api/common/EntityFunctions"
+import {createGiftCardRedeemData} from "../../api/entities/sys/GiftCardRedeemData"
+import {UserError} from "../../api/common/error/UserError"
+import {showUserError} from "../../misc/ErrorHandlerImpl"
+import {CustomerInfoTypeRef} from "../../api/entities/sys/CustomerInfo"
+import {locator} from "../../api/main/MainLocator"
+import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
 
 type GetCredentialsMethod = "login" | "signup"
 
-type GiftCardRedeemData = {
+type RedeemGiftCardWizardData = {
 	mailAddress: Stream<string>,
 	password: Stream<string>,
 	giftCardInfo: GiftCardInfo,
@@ -35,9 +45,9 @@ type GiftCardRedeemData = {
 	newAccountData: Stream<?NewAccountData>
 }
 
-type GiftCardRedeemAttrs = WizardPageAttrs<GiftCardRedeemData>
+type GiftCardRedeemAttrs = WizardPageAttrs<RedeemGiftCardWizardData>
 
-class GiftCardWelcomePage implements WizardPageN<GiftCardRedeemData> {
+class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 
 	view(vnode: Vnode<GiftCardRedeemAttrs>): Children {
 		const a = vnode.attrs
@@ -65,7 +75,7 @@ class GiftCardWelcomePage implements WizardPageN<GiftCardRedeemData> {
 	}
 }
 
-class GiftCardCredentialsPage implements WizardPageN<GiftCardRedeemData> {
+class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 
 	_domElement: HTMLElement
 
@@ -83,24 +93,13 @@ class GiftCardCredentialsPage implements WizardPageN<GiftCardRedeemData> {
 		}
 	}
 
-	_renderLoginPage(data: GiftCardRedeemData): Children {
+	_renderLoginPage(data: RedeemGiftCardWizardData): Children {
 		const loginFormAttrs = {
 			onSubmit: (mailAddress, password) => {
-				console.log("login selected", mailAddress, password)
 				const loginPromise =
 					logins.logout(false)
 					      .then(() => logins.createSession(mailAddress, password, client.getIdentifier(), false, false))
-					      .then(credentials => {
-						      data.credentials(credentials)
-						      console.log(logins.getUserController())
-						      // TODO if a business account or a nonGlobalAdmin then deny
-						      emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
-					      })
-					      .catch(e => {
-						      console.log("Error on login submit", e)
-						      // TODO Error handling
-						      Dialog.error(() => "Error logging in")
-					      })
+					      .then(credentials => this._postLogin(data, credentials))
 				// If they try to login with a mail address that is stored, we want to swap out the old session with a new one
 				showProgressDialog("pleaseWait_msg", loginPromise)
 			},
@@ -108,24 +107,15 @@ class GiftCardCredentialsPage implements WizardPageN<GiftCardRedeemData> {
 			password: data.password,
 		}
 
-		const credentials = deviceConfig.getAllInternal()
 		const onCredentialsSelected = credentials => {
-			console.log("credentials selected", credentials)
 			showProgressDialog("pleaseWait_msg", worker.initialized.then(() => {
 				logins.logout(false)
 				      .then(() => logins.resumeSession(credentials))
-				      .then(() => {
-					      console.log(logins.getUserController())
-					      data.credentials(credentials)
-					      emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
-
-				      }).catch(e => {
-					// TODO handle errors better?
-					Dialog.error("loginFailed_msg")
-				})
+				      .then(() => this._postLogin(data, credentials))
 			}))
 		}
 
+		const credentials = deviceConfig.getAllInternal()
 		const credentialsSelectorAttrs: CredentialsSelectorAttrs = {
 			credentials: () => credentials,
 			isDeleteCredentials: stream(false),
@@ -144,7 +134,7 @@ class GiftCardCredentialsPage implements WizardPageN<GiftCardRedeemData> {
 		]
 	}
 
-	_renderSignupPage(data: GiftCardRedeemData): Children {
+	_renderSignupPage(data: RedeemGiftCardWizardData): Children {
 		const existingAccountData = data.newAccountData()
 		const isReadOnly = existingAccountData != null
 		const signupFormAttrs: SignupFormAttrs = {
@@ -160,9 +150,8 @@ class GiftCardCredentialsPage implements WizardPageN<GiftCardRedeemData> {
 					data.mailAddress(mailAddress)
 					logins.createSession(mailAddress, password, client.getIdentifier(), false, false).then(credentials => {
 						data.credentials(credentials)
-						console.log("logged in", credentials)
 						emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
-					})
+					}).catch(e => Dialog.error(() => "error signing up")) // Translate
 				}
 			},
 			readonly: isReadOnly,
@@ -174,26 +163,61 @@ class GiftCardCredentialsPage implements WizardPageN<GiftCardRedeemData> {
 
 		return m(SignupForm, signupFormAttrs)
 	}
+
+	_postLogin(data: RedeemGiftCardWizardData, credentials: Credentials): Promise<void> {
+		data.credentials(credentials)
+		return Promise.resolve()
+		              .then(() => {
+			              if (!logins.getUserController().isGlobalAdmin()) throw new UserError(() => "Only account admin can use gift cards"); // Translate
+		              })
+		              .then(() => logins.getUserController().loadCustomer())
+		              .then(customer => {
+			              return locator.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
+			                            .then(customerInfo => locator.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo))
+			                            .then(accountingInfo => {
+				                            if (customer.businessUse
+					                            || accountingInfo.business) {
+					                            throw new UserError(() => "Businesses cannot use gift cards"); // Translate
+				                            } //Translate
+			                            })
+		              })
+		              .then(() => {
+			              emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
+		              })
+		              .catch(UserError, showUserError)
+	}
 }
 
-class RedeemGiftCardPage implements WizardPageN<GiftCardRedeemData> {
+class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 	view(vnode: Vnode<GiftCardRedeemAttrs>): Children {
 		const data = vnode.attrs.data
 
 		const confirmButtonAttrs = {
 			label: () => "Redeem gift card", // Translate
 			click: () => {
-				redeemGiftCard(data.giftCardInfo).then(
-					redeemGiftCardSuccess => {
-						if (redeemGiftCardSuccess) {
-							Dialog.info(() => "Congratulations!", () => "You now have a premium account", "ok_action", DialogType.EditMedium).then(() => {
-								emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG)
-							}) // Translate
-						} else {
-							Dialog.error(() => "Could not redeem gift card") // Translate // TODO handle gift card errors
+
+				// Check that the country matches
+				serviceRequest(SysService.LocationService, HttpMethod.GET, null, LocationServiceGetReturnTypeRef)
+					.then(location => {
+						const validCountry = data.giftCardInfo.country
+
+						return location.country === validCountry
+							|| Dialog.confirm(() => `Country different: you ${location.country} but gift card ${validCountry}`) // Translate
+					})
+					.then(isValidCountry => {
+						if (isValidCountry) {
+							const requestEntity = createGiftCardRedeemData({giftCard: data.giftCardInfo.giftCardId})
+							serviceRequestVoid(SysService.GiftCardRedeemService, HttpMethod.POST, requestEntity)
+								.then(() => {
+									Dialog.info(() => "Congratulations!", () => "You now have a premium account", "ok_action", DialogType.EditMedium) // Translate
+									      .then(() => {
+										      emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG)
+									      }) // Translate
+								})
+								.catch(NotFoundError, () => Dialog.error(() => "Gift card not found")) // Translate
+								.catch(NotAuthorizedError, e => Dialog.error(() => e.message))
 						}
-					}
-				)
+					})
 			},
 			type: ButtonType.Login
 		}
@@ -203,10 +227,10 @@ class RedeemGiftCardPage implements WizardPageN<GiftCardRedeemData> {
 }
 
 
-export function loadUseGiftCardWizard(giftCardInfo: GiftCardInfo): Promise<Dialog> {
+export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardInfo): Promise<Dialog> {
 	return loadUpgradePrices().then(prices => {
 
-		const giftCardRedeemData: GiftCardRedeemData = {
+		const giftCardRedeemData: RedeemGiftCardWizardData = {
 			newAccountData: stream(null),
 			mailAddress: stream(""),
 			password: stream(""),
@@ -250,7 +274,7 @@ export function loadUseGiftCardWizard(giftCardInfo: GiftCardInfo): Promise<Dialo
 		]
 
 		const wizardBuilder = createWizardDialog(giftCardRedeemData, wizardPages, () => {
-			return Promise.resolve().tap(() => { m.route.set("/login") })
+			return Promise.resolve() // TODO delete
 		})
 		const wizard = wizardBuilder.dialog
 		const wizardAttrs = wizardBuilder.attrs

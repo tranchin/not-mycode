@@ -66,7 +66,7 @@ import {showPurchaseGiftCardWizard} from "./giftcards/CreateGiftCardWizard"
 import {
 	createGiftCardTableLine,
 	GIFT_CARD_TABLE_HEADER,
-	loadGiftCards, showGiftCardEditorDialog,
+	loadGiftCards, renderGiftCard,
 } from "./giftcards/GiftCardUtils"
 import type {GiftCard} from "../api/entities/sys/GiftCard"
 import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
@@ -227,7 +227,9 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 			label: () => "Purchase a gift card",
 			click: () => showPurchaseGiftCardWizard().then(
 				(giftCard: ?GiftCard) => {
-					if (giftCard) showGiftCardEditorDialog(giftCard, true)
+					if (giftCard) {
+						renderGiftCard(giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered))
+					}
 				}
 			),
 			icon: () => Icons.Add

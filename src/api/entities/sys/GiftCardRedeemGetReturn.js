@@ -8,14 +8,14 @@ export const _TypeModel: TypeModel = {
 	"name": "GiftCardRedeemGetReturn",
 	"since": 64,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1803,
-	"rootId": "A3N5cwAHCw",
+	"id": 1809,
+	"rootId": "A3N5cwAHEQ",
 	"versioned": false,
-	"encrypted": false,
+	"encrypted": true,
 	"values": {
 		"_format": {
 			"name": "_format",
-			"id": 1804,
+			"id": 1810,
 			"since": 64,
 			"type": "Number",
 			"cardinality": "One",
@@ -24,25 +24,25 @@ export const _TypeModel: TypeModel = {
 		},
 		"country": {
 			"name": "country",
-			"id": 1807,
+			"id": 1814,
 			"since": 64,
 			"type": "String",
 			"cardinality": "One",
 			"final": true,
 			"encrypted": false
 		},
-		"encryptedMessage": {
-			"name": "encryptedMessage",
-			"id": 1805,
+		"message": {
+			"name": "message",
+			"id": 1812,
 			"since": 64,
-			"type": "Bytes",
+			"type": "String",
 			"cardinality": "One",
 			"final": true,
-			"encrypted": false
+			"encrypted": true
 		},
-		"packageOption": {
-			"name": "packageOption",
-			"id": 1806,
+		"value": {
+			"name": "value",
+			"id": 1813,
 			"since": 64,
 			"type": "Number",
 			"cardinality": "One",
@@ -50,7 +50,18 @@ export const _TypeModel: TypeModel = {
 			"encrypted": false
 		}
 	},
-	"associations": {},
+	"associations": {
+		"giftCard": {
+			"name": "giftCard",
+			"id": 1811,
+			"since": 64,
+			"type": "LIST_ELEMENT_ASSOCIATION",
+			"cardinality": "One",
+			"refType": "GiftCard",
+			"final": true,
+			"external": false
+		}
+	},
 	"app": "sys",
 	"version": "64"
 }
@@ -61,9 +72,12 @@ export function createGiftCardRedeemGetReturn(values?: $Shape<$Exact<GiftCardRed
 
 export type GiftCardRedeemGetReturn = {
 	_type: TypeRef<GiftCardRedeemGetReturn>;
+	_errors: Object;
 
 	_format: NumberString;
 	country: string;
-	encryptedMessage: Uint8Array;
-	packageOption: NumberString;
+	message: string;
+	value: NumberString;
+
+	giftCard: IdTuple;
 }

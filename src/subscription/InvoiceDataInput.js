@@ -17,7 +17,6 @@ import type {Country} from "../api/common/CountryList"
 import {createCountryDropdown} from "../gui/base/GuiUtils"
 
 
-
 export class InvoiceDataInput {
 	view: Function;
 	oncreate: Function;
@@ -38,7 +37,7 @@ export class InvoiceDataInput {
 		this._vatNumberField = new TextField("invoiceVatIdNo_label", () => lang.get("invoiceVatIdNoInfoBusiness_msg"))
 
 		this.selectedCountry = stream(null)
-		const countryInput = createCountryDropdown(this.selectedCountry)
+		const countryInput = createCountryDropdown(this.selectedCountry, () => lang.get("invoiceCountryInfoConsumer_msg"))
 
 		this._invoiceAddressComponent.setValue(invoiceData.invoiceAddress)
 		this._vatNumberField.setValue(invoiceData.vatNumber)

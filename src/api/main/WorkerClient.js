@@ -51,7 +51,7 @@ import type {WebsocketLeaderStatus} from "../entities/sys/WebsocketLeaderStatus"
 import {createWebsocketLeaderStatus} from "../entities/sys/WebsocketLeaderStatus"
 import type {Country} from "../common/CountryList"
 import type {SearchRestriction} from "../worker/search/SearchTypes"
-import type {GiftCardInfo, GiftCardPackageEnum} from "../../subscription/giftcards/GiftCardUtils"
+import type {GiftCardRedeemGetReturn} from "../entities/sys/GiftCardRedeemGetReturn"
 
 assertMainOrNode()
 
@@ -65,6 +65,7 @@ type Message = {
 	type: string,
 	args: mixed[]
 }
+
 
 export class WorkerClient implements EntityRestInterface {
 	initialized: Promise<void>;
@@ -593,27 +594,18 @@ export class WorkerClient implements EntityRestInterface {
 		return this._queue.postMessage(new Request("getEventByUid", [uid]))
 	}
 
-	// TODO maybe this is just a setup call?
-	generateGiftCard(message: string, giftCardPackage: GiftCardPackageEnum): Promise<IdTuple> {
-		return this._queue.postMessage(new Request("generateGiftCard", [message, giftCardPackage]))
-		           .tap(giftCard => console.log("Generated Gift Card:", giftCard))
+	generateGiftCard(message: string, value: NumberString, countryCode: string): Promise<IdTuple> {
+		return this._queue.postMessage(new Request("generateGiftCard", arguments))
 	}
 
-	//TODO redeemGiftCard(userId, giftCardId)
-	redeemGiftCard(giftCardId: IdTuple): Promise<boolean> {
-		return this._queue.postMessage(new Request("redeemGiftCard", [giftCardId]))
-		           .tap(success => console.log(success ? "Successfully" : "Unsuccessfully", "redeemed gift card:", giftCardId))
-
+	getGiftCardInfo(giftCardId: IdTuple, key: string): Promise<GiftCardRedeemGetReturn> {
+		return this._queue.postMessage(new Request("getGiftCardInfo", arguments))
 	}
 
 	isLeader(): boolean {
 		return this._leaderStatus.leaderStatus
 	}
 
-	getGiftCardInfo(giftCardId: IdTuple, key: string): Promise<GiftCardInfo> {
-		return this._queue.postMessage(new Request("getGiftCardInfo", arguments))
-		           .tap(giftCardInfo => console.log("Got gift card info:", giftCardInfo))
-	}
 
 }
 

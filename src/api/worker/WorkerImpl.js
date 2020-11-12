@@ -342,7 +342,7 @@ export class WorkerImpl {
 			},
 
 			generateGiftCard: (message: Request) => {
-				return locator.giftCards.generateGiftCard(message.args[0], message.args[1])
+				return locator.giftCards.generateGiftCard(message.args[0], message.args[1], message.args[2])
 			},
 
 			getGiftCardInfo: (message: Request) => {

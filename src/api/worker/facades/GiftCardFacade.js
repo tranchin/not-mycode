@@ -13,8 +13,6 @@ import type {GiftCardCreateReturn} from "../../entities/sys/GiftCardCreateReturn
 import type {LoginFacade} from "./LoginFacade"
 import type {GiftCardRedeemGetReturn} from "../../entities/sys/GiftCardRedeemGetReturn"
 import {GiftCardRedeemGetReturnTypeRef} from "../../entities/sys/GiftCardRedeemGetReturn"
-import {utf8Uint8ArrayToString} from "../../common/utils/Encoding"
-import type {GiftCardInfo} from "../../../subscription/giftcards/GiftCardUtils"
 import {createGiftCardRedeemData} from "../../entities/sys/GiftCardRedeemData"
 
 export class GiftCardFacade {
@@ -25,7 +23,7 @@ export class GiftCardFacade {
 		this._logins = logins
 	}
 
-	generateGiftCard(message: string, packageOption: NumberString): Promise<IdTuple> {
+	generateGiftCard(message: string, value: NumberString, countryCode: string): Promise<IdTuple> {
 
 		const sessionKey = aes128RandomKey()
 		let adminGroupIds = this._logins.getGroupIds(GroupType.Admin)
@@ -37,7 +35,8 @@ export class GiftCardFacade {
 
 		const data = createGiftCardCreateData({
 			message: message,
-			packageOption,
+			value,
+			country: countryCode,
 			ownerEncSessionKey
 		})
 
@@ -53,18 +52,9 @@ export class GiftCardFacade {
 
 	}
 
-	getGiftCardInfo(giftCardId: IdTuple, key: BitArray): Promise<GiftCardInfo> {
+	getGiftCardInfo(giftCardId: IdTuple, key: Aes128Key): Promise<GiftCardRedeemGetReturn> {
 		const data = createGiftCardRedeemData({giftCard: giftCardId})
-		return serviceRequest(SysService.GiftCardRedeemService, HttpMethod.GET, data, GiftCardRedeemGetReturnTypeRef)
-			.then(({encryptedMessage, packageOption, country}: GiftCardRedeemGetReturn) => {
-					return {
-						giftCardId,
-						message: utf8Uint8ArrayToString(aes128Decrypt(key, encryptedMessage)),
-						packageOption,
-						country
-					}
-				}
-			)
+		return serviceRequest(SysService.GiftCardRedeemService, HttpMethod.GET, data, GiftCardRedeemGetReturnTypeRef, null, key)
 	}
 }
 

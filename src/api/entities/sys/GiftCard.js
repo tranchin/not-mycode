@@ -85,15 +85,6 @@ export const _TypeModel: TypeModel = {
 			"final": true,
 			"encrypted": false
 		},
-		"packageOption": {
-			"name": "packageOption",
-			"id": 1773,
-			"since": 64,
-			"type": "Number",
-			"cardinality": "One",
-			"final": true,
-			"encrypted": false
-		},
 		"paymentStatus": {
 			"name": "paymentStatus",
 			"id": 1774,
@@ -110,6 +101,15 @@ export const _TypeModel: TypeModel = {
 			"type": "Date",
 			"cardinality": "ZeroOrOne",
 			"final": false,
+			"encrypted": false
+		},
+		"value": {
+			"name": "value",
+			"id": 1773,
+			"since": 64,
+			"type": "Number",
+			"cardinality": "One",
+			"final": true,
 			"encrypted": false
 		}
 	},
@@ -134,7 +134,7 @@ export type GiftCard = {
 	country: string;
 	message: string;
 	orderDate: Date;
-	packageOption: NumberString;
 	paymentStatus: NumberString;
 	redeemedDate: ?Date;
+	value: NumberString;
 }

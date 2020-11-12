@@ -394,7 +394,6 @@ export class LoginView {
 				.then(dialog => dialog.show())
 				.catch(NotAuthorizedError, e => Dialog.error(() => "This gift card can't be used"))
 				.catch(NotFoundError, e => Dialog.error(() => "This gift card doesn't exist"))// TODO Translate
-				.then(() => m.route.set("/login"))
 			return
 		}
 

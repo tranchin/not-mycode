@@ -2,7 +2,7 @@
 
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
-import {neverNull, noOp} from "../../api/common/utils/Utils"
+import {assertNotNull, neverNull, noOp} from "../../api/common/utils/Utils"
 import type {WizardPageAttrs, WizardPageN} from "../../gui/base/WizardDialogN"
 import {createWizardDialog, emitWizardEvent, WizardEventType} from "../../gui/base/WizardDialogN"
 import {logins} from "../../api/main/LoginController"
@@ -19,8 +19,6 @@ import {client} from "../../misc/ClientDetector"
 import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import type {SignupFormAttrs} from "../../api/main/SignupForm"
 import {SignupForm} from "../../api/main/SignupForm"
-import type {GiftCard} from "../../api/entities/sys/GiftCard"
-import type {GiftCardInfo} from "./GiftCardUtils"
 import {NotAuthorizedError, NotFoundError} from "../../api/common/error/RestError"
 import {LocationServiceGetReturnTypeRef} from "../../api/entities/sys/LocationServiceGetReturn"
 import {serviceRequest, serviceRequestVoid} from "../../api/main/Entity"
@@ -32,13 +30,15 @@ import {showUserError} from "../../misc/ErrorHandlerImpl"
 import {CustomerInfoTypeRef} from "../../api/entities/sys/CustomerInfo"
 import {locator} from "../../api/main/MainLocator"
 import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
+import {getByAbbreviation} from "../../api/common/CountryList"
+import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
 
 type GetCredentialsMethod = "login" | "signup"
 
 type RedeemGiftCardWizardData = {
 	mailAddress: Stream<string>,
 	password: Stream<string>,
-	giftCardInfo: GiftCardInfo,
+	giftCardInfo: GiftCardRedeemGetReturn,
 
 	credentialsMethod: GetCredentialsMethod,
 	credentials: Stream<?Credentials>,
@@ -198,15 +198,23 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 
 				// Check that the country matches
 				serviceRequest(SysService.LocationService, HttpMethod.GET, null, LocationServiceGetReturnTypeRef)
-					.then(location => {
-						const validCountry = data.giftCardInfo.country
+					.then(userLocation => {
+						const validCountry = getByAbbreviation(data.giftCardInfo.country)
+						if (!validCountry) {
+							throw new UserError(() => "Invalid gift card")
+						}
+						const validCountryName = validCountry.n
 
-						return location.country === validCountry
-							|| Dialog.confirm(() => `Country different: you ${location.country} but gift card ${validCountry}`) // Translate
+						const userCountry = getByAbbreviation(userLocation.country)
+						const userCountryName = assertNotNull(userCountry).n
+
+						return userCountryName === validCountryName
+							|| Dialog.confirm(() => `Country different: you ${userCountryName} but gift card ${validCountryName}`) // Translate
+
 					})
 					.then(isValidCountry => {
 						if (isValidCountry) {
-							const requestEntity = createGiftCardRedeemData({giftCard: data.giftCardInfo.giftCardId})
+							const requestEntity = createGiftCardRedeemData({giftCard: data.giftCardInfo.giftCard})
 							serviceRequestVoid(SysService.GiftCardRedeemService, HttpMethod.POST, requestEntity)
 								.then(() => {
 									Dialog.info(() => "Congratulations!", () => "You now have a premium account", "ok_action", DialogType.EditMedium) // Translate
@@ -227,7 +235,7 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 }
 
 
-export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardInfo): Promise<Dialog> {
+export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardRedeemGetReturn): Promise<Dialog> {
 	return loadUpgradePrices().then(prices => {
 
 		const giftCardRedeemData: RedeemGiftCardWizardData = {
@@ -277,7 +285,8 @@ export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardInfo): Promise<Di
 			return Promise.resolve() // TODO delete
 		})
 		const wizard = wizardBuilder.dialog
-		const wizardAttrs = wizardBuilder.attrs
+		wizardBuilder.promise.then(() => m.route.set("/login"))
+
 		//we only return the dialog so that it can be shown
 		return wizard
 	})

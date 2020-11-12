@@ -8,14 +8,14 @@ export const _TypeModel: TypeModel = {
 	"name": "GiftCardCreateData",
 	"since": 64,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1783,
-	"rootId": "A3N5cwAG9w",
+	"id": 1789,
+	"rootId": "A3N5cwAG_Q",
 	"versioned": false,
 	"encrypted": true,
 	"values": {
 		"_format": {
 			"name": "_format",
-			"id": 1784,
+			"id": 1790,
 			"since": 64,
 			"type": "Number",
 			"cardinality": "One",
@@ -24,7 +24,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"country": {
 			"name": "country",
-			"id": 1788,
+			"id": 1794,
 			"since": 64,
 			"type": "String",
 			"cardinality": "One",
@@ -33,7 +33,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"message": {
 			"name": "message",
-			"id": 1785,
+			"id": 1791,
 			"since": 64,
 			"type": "String",
 			"cardinality": "One",
@@ -42,16 +42,16 @@ export const _TypeModel: TypeModel = {
 		},
 		"ownerEncSessionKey": {
 			"name": "ownerEncSessionKey",
-			"id": 1787,
+			"id": 1792,
 			"since": 64,
 			"type": "Bytes",
 			"cardinality": "One",
 			"final": false,
 			"encrypted": false
 		},
-		"packageOption": {
-			"name": "packageOption",
-			"id": 1786,
+		"value": {
+			"name": "value",
+			"id": 1793,
 			"since": 64,
 			"type": "Number",
 			"cardinality": "One",
@@ -76,5 +76,5 @@ export type GiftCardCreateData = {
 	country: string;
 	message: string;
 	ownerEncSessionKey: Uint8Array;
-	packageOption: NumberString;
+	value: NumberString;
 }

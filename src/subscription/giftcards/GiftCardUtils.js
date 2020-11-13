@@ -6,29 +6,29 @@ import {Icons} from "../../gui/base/icons/Icons"
 import type {TableLineAttrs} from "../../gui/base/TableN"
 import {formatDate} from "../../misc/Formatter"
 import {worker} from "../../api/main/WorkerClient"
+import type {CustomerInfo} from "../../api/entities/sys/CustomerInfo"
 import {CustomerInfoTypeRef} from "../../api/entities/sys/CustomerInfo"
 import {CustomerTypeRef} from "../../api/entities/sys/Customer"
 import {locator} from "../../api/main/MainLocator"
-import type {CustomerInfo} from "../../api/entities/sys/CustomerInfo"
 import type {GiftCard} from "../../api/entities/sys/GiftCard"
-import {_TypeModel as GiftCardTypeModel, createGiftCard, GiftCardTypeRef} from "../../api/entities/sys/GiftCard"
+import {_TypeModel as GiftCardTypeModel, GiftCardTypeRef} from "../../api/entities/sys/GiftCard"
 import type {TranslationKey} from "../../misc/LanguageViewModel"
 import {UserError} from "../../api/common/error/UserError"
-import type {BuyOptionBoxAttr} from "../BuyOptionBox"
 import {formatPrice} from "../SubscriptionUtils"
-import {showGiftCardEditorDialog} from "./GiftCardEditor"
 import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
 import {Dialog} from "../../gui/base/Dialog"
 import {attachDropdown} from "../../gui/base/DropdownN"
 import {getDifferenceInDays} from "../../api/common/utils/DateUtils"
+import {ButtonType} from "../../gui/base/ButtonN"
+import {HtmlEditor} from "../../gui/base/HtmlEditor"
 
-export const GiftCardPaymentStatus =
+export const MAX_PURCHASED_GIFTCARDS = 10
+
+export const GiftCardTranslateus =
 	Object.freeze({
 		Pending: "0",
 		Paid: "1",
 	})
-export type GiftCardPaymentStatusEnum = $Values<typeof GiftCardPaymentStatus>
-export const ValueToGiftCardStatus: {} = reverse(GiftCardPaymentStatus)
 
 export function loadGiftCardInfoFromHash(hash: string): Promise<GiftCardRedeemGetReturn> {
 
@@ -68,10 +68,24 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 
 	const statusLabel = giftCard.redeemedDate
 		? `Redeemed` // TODO Translate
-		: ValueToGiftCardStatus[giftCard.paymentStatus]
+		: `Available`
 
 
-	const showEditGiftCardMessageDialog = (giftCard) => {
+	const showEditGiftCardMessageDialog = () => {
+		const editor = new HtmlEditor()
+			.setMinHeight(350)
+			.setValue(giftCard.message)
+
+		Dialog.showActionDialog({
+			title: () => "Edit message", // Translate
+			child: () => m(editor),
+			okAction: dialog => {
+				giftCard.message = editor.getValue()
+				locator.entityClient.update(giftCard)
+				       .then(() => dialog.close())
+				       .catch(e => Dialog.error(() => "Failed to update" + e)) // TODO Translate
+			}
+		})
 
 	}
 
@@ -79,25 +93,27 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 		{
 			label: () => "view giftcard", // Translate
 			click: () => renderGiftCard(giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered)),
-			icon: () => Icons.Eye
+			type: ButtonType.Dropdown
 		},
 		{
 			label: () => "edit message", // Translate
-			click: () => showEditGiftCardMessageDialog(giftCard),
-			icon: () => Icons.Edit
-		},
-		giftCard.redeemedDate || getDifferenceInDays(new Date(), giftCard.orderDate) >= 14
-			? ""
-			: {
-				label: () => "cancel giftcard", // Translate
-				click: () => {}, // TODO
-				icon: () => Icons.Cancel
-			}
+			click: () => showEditGiftCardMessageDialog(),
+			type: ButtonType.Dropdown
+		}
 	]
+
+	if (!giftCard.redeemedDate && getDifferenceInDays(new Date(), giftCard.orderDate) <= 14) {
+		actionButtons.push({
+			label: () => "refund giftcard", // Translate
+			click: () => {}, // TODO,
+			type: ButtonType.Dropdown
+		})
+	}
 	const showMoreButtonAttrs = attachDropdown({
 			label: () => "options",
 			click: () => {},
-			icon: () => Icons.More
+			icon: () => Icons.More,
+			type: ButtonType.Dropdown
 		},
 		() => actionButtons)
 
@@ -138,6 +154,10 @@ export function renderGiftCard(giftCard: GiftCard): Promise<Children> {
 			!giftCard.redeemedDate
 				? m("a", {href: link}, link)
 				: "Gift card is redeemed", // TODO Translate
+			"<br />",
+			giftCard.message,
+			"<br />",
+			formatPrice(parseInt(giftCard.value), true)
 		]
 	})
 }

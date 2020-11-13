@@ -209,7 +209,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"giftCards": {
 			"name": "giftCards",
-			"id": 1782,
+			"id": 1781,
 			"since": 64,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",

@@ -2,13 +2,13 @@
 import m from "mithril"
 import {assertMainOrNode} from "../api/Env"
 import type {AccountTypeEnum} from "../api/common/TutanotaConstants"
-import {AccountType, AccountTypeNames, BookingItemFeatureType, Const} from "../api/common/TutanotaConstants"
+import {AccountType, AccountTypeNames, BookingItemFeatureType, Const, PaymentMethodType} from "../api/common/TutanotaConstants"
 import type {Customer} from "../api/entities/sys/Customer"
 import {CustomerTypeRef} from "../api/entities/sys/Customer"
 import {assertNotNull, downcast, neverNull, noOp} from "../api/common/utils/Utils"
 import type {CustomerInfo} from "../api/entities/sys/CustomerInfo"
 import {CustomerInfoTypeRef} from "../api/entities/sys/CustomerInfo"
-import {load, loadRange, serviceRequest} from "../api/main/Entity"
+import {serviceRequest} from "../api/main/Entity"
 import {logins} from "../api/main/LoginController"
 import {lang} from "../misc/LanguageViewModel.js"
 import {Button} from "../gui/base/Button"
@@ -66,14 +66,17 @@ import {showPurchaseGiftCardWizard} from "./giftcards/CreateGiftCardWizard"
 import {
 	createGiftCardTableLine,
 	GIFT_CARD_TABLE_HEADER,
-	loadGiftCards, renderGiftCard,
+	loadGiftCards, MAX_PURCHASED_GIFTCARDS, renderGiftCard,
 } from "./giftcards/GiftCardUtils"
 import type {GiftCard} from "../api/entities/sys/GiftCard"
 import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
+import {locator} from "../api/main/MainLocator"
+import {ExpandableTable} from "../settings/ExpandableTable"
 
 assertMainOrNode()
 
 const DAY = 1000 * 60 * 60 * 24;
+
 
 export class SubscriptionViewer implements UpdatableSettingsViewer {
 	view: () => Children;
@@ -133,8 +136,8 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		}
 		const showOrderAgreementActionAttrs = {
 			label: "show_action",
-			click: () => load(GroupInfoTypeRef, neverNull(this._orderAgreement).signerUserGroupInfo)
-				.then(signerUserGroupInfo => SignOrderAgreementDialog.showForViewing(neverNull(this._orderAgreement), signerUserGroupInfo)),
+			click: () => locator.entityClient.load(GroupInfoTypeRef, neverNull(this._orderAgreement).signerUserGroupInfo)
+			                    .then(signerUserGroupInfo => SignOrderAgreementDialog.showForViewing(neverNull(this._orderAgreement), signerUserGroupInfo)),
 			icon: () => Icons.Download,
 
 		}
@@ -223,17 +226,27 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 			view: () => m(".flex-center.mb-l", m("", {style: {"width": '200px'}}, m(ButtonN, deleteButtonAttrs)))
 		}), false)
 
+
 		const purchaseGiftCardButtonAttrs: ButtonAttrs = {
 			label: () => "Purchase a gift card",
-			click: () => showPurchaseGiftCardWizard().then(
-				(giftCard: ?GiftCard) => {
-					if (giftCard) {
-						renderGiftCard(giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered))
-					}
+			click: createNotAvailableForFreeClickHandler(false, () => {
+				if (!this._accountingInfo
+					|| !this._accountingInfo.paymentMethod
+					|| this._accountingInfo.paymentMethod === PaymentMethodType.Invoice) {
+					Dialog.error(() => "Your payment methods do not allow gift card purchase") // Translate
+				} else {
+					showPurchaseGiftCardWizard().then((giftCard: ?GiftCard) => {
+							if (giftCard) {
+								renderGiftCard(giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered))
+							}
+						}
+					)
 				}
-			),
+			}, isPremiumPredicate),
 			icon: () => Icons.Add
 		}
+
+
 		this._giftCardTableLines = new Map()
 		loadGiftCards(assertNotNull(logins.getUserController().user.customer))
 			.then(giftCards => {
@@ -245,14 +258,6 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 
 
 		this.view = (): VirtualElement => {
-			let giftCardTableAttrs: TableAttrs = {
-				columnHeading: GIFT_CARD_TABLE_HEADER,
-				columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
-				showActionButtonColumn: true,
-				addButtonAttrs: purchaseGiftCardButtonAttrs,
-				lines: Array.from(this._giftCardTableLines.values()),
-			}
-
 			return m("#subscription-settings.fill-absolute.scroll.plr-l", [
 				m(".h4.mt-l", lang.get('currentlyBooked_label')),
 				m(TextFieldN, {
@@ -330,8 +335,17 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 						disabled: true,
 					})
 					: null,
-				m(".h4.mt-l", 'Gift cards'),
-				m(TableN, giftCardTableAttrs),
+				m(ExpandableTable, {
+					title: () => "Gift cards",
+					infoMsg: () => `You have purchased ${this._giftCardTableLines.size} out of ${MAX_PURCHASED_GIFTCARDS} giftcards`, // TODO Translate
+					table: {
+						columnHeading: GIFT_CARD_TABLE_HEADER,
+						columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
+						showActionButtonColumn: true,
+						addButtonAttrs: purchaseGiftCardButtonAttrs,
+						lines: Array.from(this._giftCardTableLines.values()),
+					},
+				}),
 				m(".h4.mt-l", lang.get('adminPremiumFeatures_action')),
 				m(TextFieldN, {
 					label: "bookingItemUsers_label",
@@ -388,18 +402,18 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 			])
 		}
 
-		load(CustomerTypeRef, neverNull(logins.getUserController().user.customer))
-			.then(customer => {
-				this._updateOrderProcessingAgreement(customer)
-				return load(CustomerInfoTypeRef, customer.customerInfo)
-			})
-			.then(customerInfo => {
-				this._customerInfo = customerInfo
-				return load(AccountingInfoTypeRef, customerInfo.accountingInfo)
-			})
-			.then(accountingInfo => {
-				this._updateAccountInfoData(accountingInfo)
-			})
+		locator.entityClient.load(CustomerTypeRef, neverNull(logins.getUserController().user.customer))
+		       .then(customer => {
+			       this._updateOrderProcessingAgreement(customer)
+			       return locator.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
+		       })
+		       .then(customerInfo => {
+			       this._customerInfo = customerInfo
+			       return locator.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo)
+		       })
+		       .then(accountingInfo => {
+			       this._updateAccountInfoData(accountingInfo)
+		       })
 
 		const loadingString = lang.get("loading_msg")
 		this._currentPriceFieldValue = stream(loadingString)
@@ -430,7 +444,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		let p = Promise.resolve()
 		this._customer = customer
 		if (this._customer.orderProcessingAgreement) {
-			p = load(OrderProcessingAgreementTypeRef, this._customer.orderProcessingAgreement).then(a => {
+			p = locator.entityClient.load(OrderProcessingAgreementTypeRef, this._customer.orderProcessingAgreement).then(a => {
 				this._orderAgreement = a
 			})
 		} else {
@@ -505,32 +519,32 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	}
 
 	_updateBookings(): Promise<void> {
-		return load(CustomerTypeRef, neverNull(logins.getUserController().user.customer)).then(customer => {
-			return load(CustomerInfoTypeRef, customer.customerInfo)
-				.catch(NotFoundError, e => console.log("could not update bookings as customer info does not exist (moved between free/premium lists)"))
-				.then(customerInfo => {
-					if (!customerInfo) {
-						return
-					}
-					this._customerInfo = customerInfo
-					return loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
-						.then(bookings => {
-							this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
-							this._isCancelled = customer.canceledPremiumAccount
-							this._currentSubscription = getSubscriptionType(this._lastBooking, customer, customerInfo)
-							this._updateSubscriptionField(this._isCancelled)
-							return Promise.all([
-									this._updateUserField(),
-									this._updateStorageField(customer, customerInfo),
-									this._updateAliasField(customer, customerInfo),
-									this._updateGroupsField(),
-									this._updateWhitelabelField(),
-									this._updateSharingField(),
-									this._updateContactFormsField()
-								]
-							).then(() => m.redraw())
-						})
-				})
+		return locator.entityClient.load(CustomerTypeRef, neverNull(logins.getUserController().user.customer)).then(customer => {
+			return locator.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
+			              .catch(NotFoundError, e => console.log("could not update bookings as customer info does not exist (moved between free/premium lists)"))
+			              .then(customerInfo => {
+				              if (!customerInfo) {
+					              return
+				              }
+				              this._customerInfo = customerInfo
+				              return locator.entityClient.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
+				                            .then(bookings => {
+					                            this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
+					                            this._isCancelled = customer.canceledPremiumAccount
+					                            this._currentSubscription = getSubscriptionType(this._lastBooking, customer, customerInfo)
+					                            this._updateSubscriptionField(this._isCancelled)
+					                            return Promise.all([
+							                            this._updateUserField(),
+							                            this._updateStorageField(customer, customerInfo),
+							                            this._updateAliasField(customer, customerInfo),
+							                            this._updateGroupsField(),
+							                            this._updateWhitelabelField(),
+							                            this._updateSharingField(),
+							                            this._updateContactFormsField()
+						                            ]
+					                            ).then(() => m.redraw())
+				                            })
+			              })
 		})
 	}
 
@@ -618,7 +632,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	processUpdate(update: EntityUpdateData): Promise<void> {
 		const {instanceListId, instanceId} = update
 		if (isUpdateForTypeRef(AccountingInfoTypeRef, update)) {
-			return load(AccountingInfoTypeRef, instanceId).then(accountingInfo => this._updateAccountInfoData(accountingInfo)).then(() => {
+			return locator.entityClient.load(AccountingInfoTypeRef, instanceId).then(accountingInfo => this._updateAccountInfoData(accountingInfo)).then(() => {
 				return this._updatePriceInfo()
 			})
 		} else if (isUpdateForTypeRef(UserTypeRef, update)) {
@@ -630,9 +644,9 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 				return this._updatePriceInfo()
 			})
 		} else if (isUpdateForTypeRef(CustomerTypeRef, update)) {
-			return load(CustomerTypeRef, instanceId).then(customer => this._updateOrderProcessingAgreement(customer))
+			return locator.entityClient.load(CustomerTypeRef, instanceId).then(customer => this._updateOrderProcessingAgreement(customer))
 		} else if (isUpdateForTypeRef(GiftCardTypeRef, update)) {
-			return load(GiftCardTypeRef, [instanceListId, instanceId]).then(giftCard => {
+			return locator.entityClient.load(GiftCardTypeRef, [instanceListId, instanceId]).then(giftCard => {
 				this._giftCardTableLines.set(elementIdPart(giftCard._id), createGiftCardTableLine(giftCard))
 			})
 		} else {

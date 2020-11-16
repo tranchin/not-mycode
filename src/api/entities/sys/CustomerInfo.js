@@ -209,8 +209,8 @@ export const _TypeModel: TypeModel = {
 		},
 		"giftCards": {
 			"name": "giftCards",
-			"id": 1781,
-			"since": 64,
+			"id": 1784,
+			"since": 65,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"refType": "GiftCardsRef",
@@ -248,7 +248,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "sys",
-	"version": "64"
+	"version": "65"
 }
 
 export function createCustomerInfo(values?: $Shape<$Exact<CustomerInfo>>): CustomerInfo {

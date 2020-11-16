@@ -102,7 +102,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	_orderAgreement: ?OrderProcessingAgreement;
 	_currentSubscription: SubscriptionTypeEnum;
 	_isCancelled: boolean;
-	_giftCardTableLines: Map<Id, TableLineAttrs>;
+	_giftCards: Map<Id, GiftCard>;
 
 	constructor() {
 		let subscriptionAction = new Button("subscription_label", () => {
@@ -235,25 +235,17 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					|| this._accountingInfo.paymentMethod === PaymentMethodType.Invoice) {
 					Dialog.error(() => "Your payment methods do not allow gift card purchase") // Translate
 				} else {
-					showPurchaseGiftCardWizard().then((giftCard: ?GiftCard) => {
-							if (giftCard) {
-								renderGiftCard(giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered))
-							}
-						}
-					)
+					showPurchaseGiftCardWizard(Array.from(this._giftCards.values()))
 				}
 			}, isPremiumPredicate),
 			icon: () => Icons.Add
 		}
 
 
-		this._giftCardTableLines = new Map()
+		this._giftCards = new Map()
 		loadGiftCards(assertNotNull(logins.getUserController().user.customer))
 			.then(giftCards => {
-				giftCards.forEach(giftCard => {
-					this._giftCardTableLines.set(elementIdPart(giftCard._id), createGiftCardTableLine(giftCard))
-				})
-				m.redraw()
+				giftCards.forEach(giftCard => this._giftCards.set(elementIdPart(giftCard._id), giftCard))
 			})
 
 
@@ -337,13 +329,13 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					: null,
 				m(ExpandableTable, {
 					title: () => "Gift cards",
-					infoMsg: () => `You have purchased ${this._giftCardTableLines.size} out of ${MAX_PURCHASED_GIFTCARDS} giftcards`, // TODO Translate
+					infoMsg: () => `You have purchased ${this._giftCards.size} giftcards`, // TODO Translate
 					table: {
 						columnHeading: GIFT_CARD_TABLE_HEADER,
 						columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
 						showActionButtonColumn: true,
 						addButtonAttrs: purchaseGiftCardButtonAttrs,
-						lines: Array.from(this._giftCardTableLines.values()),
+						lines: Array.from(this._giftCards.values()).map(giftCard => createGiftCardTableLine(giftCard)),
 					},
 				}),
 				m(".h4.mt-l", lang.get('adminPremiumFeatures_action')),
@@ -647,7 +639,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 			return locator.entityClient.load(CustomerTypeRef, instanceId).then(customer => this._updateOrderProcessingAgreement(customer))
 		} else if (isUpdateForTypeRef(GiftCardTypeRef, update)) {
 			return locator.entityClient.load(GiftCardTypeRef, [instanceListId, instanceId]).then(giftCard => {
-				this._giftCardTableLines.set(elementIdPart(giftCard._id), createGiftCardTableLine(giftCard))
+				this._giftCards.set(elementIdPart(giftCard._id), giftCard)
 			})
 		} else {
 			return Promise.resolve()

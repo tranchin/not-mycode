@@ -6,17 +6,17 @@ import {create, TypeRef} from "../../common/EntityFunctions"
 export const GiftCardCreateReturnTypeRef: TypeRef<GiftCardCreateReturn> = new TypeRef("sys", "GiftCardCreateReturn")
 export const _TypeModel: TypeModel = {
 	"name": "GiftCardCreateReturn",
-	"since": 64,
+	"since": 65,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1797,
-	"rootId": "A3N5cwAHBQ",
+	"id": 1802,
+	"rootId": "A3N5cwAHCg",
 	"versioned": false,
 	"encrypted": false,
 	"values": {
 		"_format": {
 			"name": "_format",
-			"id": 1798,
-			"since": 64,
+			"id": 1803,
+			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
 			"final": false,
@@ -26,8 +26,8 @@ export const _TypeModel: TypeModel = {
 	"associations": {
 		"giftCard": {
 			"name": "giftCard",
-			"id": 1799,
-			"since": 64,
+			"id": 1804,
+			"since": 65,
 			"type": "LIST_ELEMENT_ASSOCIATION",
 			"cardinality": "One",
 			"refType": "GiftCard",
@@ -36,7 +36,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "sys",
-	"version": "64"
+	"version": "65"
 }
 
 export function createGiftCardCreateReturn(values?: $Shape<$Exact<GiftCardCreateReturn>>): GiftCardCreateReturn {

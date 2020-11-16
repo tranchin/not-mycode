@@ -152,7 +152,8 @@ export const PaymentMethodType = Object.freeze({
 	Invoice: '0',
 	CreditCard: '1',
 	Sepa: '2',
-	Paypal: '3'
+	Paypal: '3',
+	AccountBalance: '4'
 })
 export type PaymentMethodTypeEnum = $Values<typeof PaymentMethodType>;
 export const getPaymentMethodType = (accountingInfo: AccountingInfo): PaymentMethodTypeEnum => downcast(accountingInfo.paymentMethod)

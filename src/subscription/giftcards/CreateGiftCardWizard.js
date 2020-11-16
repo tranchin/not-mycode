@@ -29,6 +29,8 @@ import {BuyOptionBox} from "../BuyOptionBox"
 import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import {formatPrice} from "../SubscriptionUtils"
 import {formatNameAndAddress} from "../../misc/Formatter"
+import {getByAbbreviation} from "../../api/common/CountryList"
+import {renderGiftCard} from "./GiftCardUtils"
 
 export type CreateGiftCardData = {
 	availablePackages: Array<GiftCardOption>;
@@ -140,16 +142,27 @@ class GiftCardConfirmationPage implements WizardPageN<CreateGiftCardData> {
 }
 
 
-export function showPurchaseGiftCardWizard(): Promise<?GiftCard> {
+export function showPurchaseGiftCardWizard(existingGiftCards: GiftCard[]): Promise<void> {
 	return serviceRequest(SysService.GiftCardService, HttpMethod.GET, null, GiftCardGetReturnTypeRef)
-		.then(availablePackages => {
+		.then(info => {
+			const sixMonthsAgo = new Date()
+			sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - parseInt(info.period))
+			const numPurchasedGiftCards = existingGiftCards.filter(giftCard => giftCard.orderDate > sixMonthsAgo).length
+
+			if (numPurchasedGiftCards >= parseInt(info.maxPerPeriod)) {
+				Dialog.error(() => `You can only purchase ${info.maxPerPeriod} gift cards within ${info.period} months`) // Translate
+				return
+			}
+
 			return loadAccountingInfo().then((accountingInfo: AccountingInfo) => {
 				const data: CreateGiftCardData = {
-					availablePackages: availablePackages.options,
-					selectedPackageIndex: Math.floor(availablePackages.options.length / 2),
+					availablePackages: info.options,
+					selectedPackageIndex: Math.floor(info.options.length / 2),
 					message: "Hey, I bought you a gift card!<br />LG,<br />{name}", // Translate defaultGiftCardMessage_msg
 					giftCard: null,
-					country: null,
+					country: accountingInfo.invoiceCountry
+						? getByAbbreviation(accountingInfo.invoiceCountry)
+						: null,
 					invoiceAddress: accountingInfo.invoiceAddress,
 					invoiceCountry: accountingInfo.invoiceCountry || "",
 					invoiceName: accountingInfo.invoiceName,
@@ -199,7 +212,12 @@ export function showPurchaseGiftCardWizard(): Promise<?GiftCard> {
 				})
 
 				wizardBuilder.dialog.show()
-				return wizardBuilder.promise.then(() => data.giftCard)
+				return wizardBuilder.promise.then(() => {
+						if (data.giftCard) {
+							renderGiftCard(data.giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered))
+						}
+					}
+				)
 			})
 		})
 }

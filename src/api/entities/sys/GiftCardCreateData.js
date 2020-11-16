@@ -6,17 +6,17 @@ import {create, TypeRef} from "../../common/EntityFunctions"
 export const GiftCardCreateDataTypeRef: TypeRef<GiftCardCreateData> = new TypeRef("sys", "GiftCardCreateData")
 export const _TypeModel: TypeModel = {
 	"name": "GiftCardCreateData",
-	"since": 64,
+	"since": 65,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1788,
-	"rootId": "A3N5cwAG_A",
+	"id": 1793,
+	"rootId": "A3N5cwAHAQ",
 	"versioned": false,
 	"encrypted": true,
 	"values": {
 		"_format": {
 			"name": "_format",
-			"id": 1789,
-			"since": 64,
+			"id": 1794,
+			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
 			"final": false,
@@ -24,8 +24,8 @@ export const _TypeModel: TypeModel = {
 		},
 		"country": {
 			"name": "country",
-			"id": 1793,
-			"since": 64,
+			"id": 1798,
+			"since": 65,
 			"type": "String",
 			"cardinality": "One",
 			"final": false,
@@ -33,8 +33,8 @@ export const _TypeModel: TypeModel = {
 		},
 		"message": {
 			"name": "message",
-			"id": 1790,
-			"since": 64,
+			"id": 1795,
+			"since": 65,
 			"type": "String",
 			"cardinality": "One",
 			"final": false,
@@ -42,8 +42,8 @@ export const _TypeModel: TypeModel = {
 		},
 		"ownerEncSessionKey": {
 			"name": "ownerEncSessionKey",
-			"id": 1791,
-			"since": 64,
+			"id": 1796,
+			"since": 65,
 			"type": "Bytes",
 			"cardinality": "One",
 			"final": false,
@@ -51,8 +51,8 @@ export const _TypeModel: TypeModel = {
 		},
 		"value": {
 			"name": "value",
-			"id": 1792,
-			"since": 64,
+			"id": 1797,
+			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
 			"final": false,
@@ -61,7 +61,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {},
 	"app": "sys",
-	"version": "64"
+	"version": "65"
 }
 
 export function createGiftCardCreateData(values?: $Shape<$Exact<GiftCardCreateData>>): GiftCardCreateData {

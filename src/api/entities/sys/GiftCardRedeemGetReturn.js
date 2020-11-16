@@ -6,17 +6,17 @@ import {create, TypeRef} from "../../common/EntityFunctions"
 export const GiftCardRedeemGetReturnTypeRef: TypeRef<GiftCardRedeemGetReturn> = new TypeRef("sys", "GiftCardRedeemGetReturn")
 export const _TypeModel: TypeModel = {
 	"name": "GiftCardRedeemGetReturn",
-	"since": 64,
+	"since": 65,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1804,
-	"rootId": "A3N5cwAHDA",
+	"id": 1809,
+	"rootId": "A3N5cwAHEQ",
 	"versioned": false,
 	"encrypted": true,
 	"values": {
 		"_format": {
 			"name": "_format",
-			"id": 1805,
-			"since": 64,
+			"id": 1810,
+			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
 			"final": false,
@@ -24,8 +24,8 @@ export const _TypeModel: TypeModel = {
 		},
 		"country": {
 			"name": "country",
-			"id": 1809,
-			"since": 64,
+			"id": 1814,
+			"since": 65,
 			"type": "String",
 			"cardinality": "One",
 			"final": true,
@@ -33,8 +33,8 @@ export const _TypeModel: TypeModel = {
 		},
 		"message": {
 			"name": "message",
-			"id": 1807,
-			"since": 64,
+			"id": 1812,
+			"since": 65,
 			"type": "String",
 			"cardinality": "One",
 			"final": true,
@@ -42,8 +42,8 @@ export const _TypeModel: TypeModel = {
 		},
 		"value": {
 			"name": "value",
-			"id": 1808,
-			"since": 64,
+			"id": 1813,
+			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
 			"final": true,
@@ -53,8 +53,8 @@ export const _TypeModel: TypeModel = {
 	"associations": {
 		"giftCard": {
 			"name": "giftCard",
-			"id": 1806,
-			"since": 64,
+			"id": 1811,
+			"since": 65,
 			"type": "LIST_ELEMENT_ASSOCIATION",
 			"cardinality": "One",
 			"refType": "GiftCard",
@@ -63,7 +63,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "sys",
-	"version": "64"
+	"version": "65"
 }
 
 export function createGiftCardRedeemGetReturn(values?: $Shape<$Exact<GiftCardRedeemGetReturn>>): GiftCardRedeemGetReturn {

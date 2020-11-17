@@ -1,6 +1,7 @@
 // @flow
 
 import m from "mithril"
+import QRCode from "qrcode"
 import {reverse} from "../../api/common/TutanotaConstants"
 import {Icons} from "../../gui/base/icons/Icons"
 import type {TableLineAttrs} from "../../gui/base/TableN"
@@ -21,6 +22,7 @@ import {attachDropdown} from "../../gui/base/DropdownN"
 import {getDifferenceInDays} from "../../api/common/utils/DateUtils"
 import {ButtonType} from "../../gui/base/ButtonN"
 import {HtmlEditor} from "../../gui/base/HtmlEditor"
+import {htmlSanitizer} from "../../misc/HtmlSanitizer"
 
 export const MAX_PURCHASED_GIFTCARDS = 10
 
@@ -150,14 +152,26 @@ function _decodeToken(token: Base64): [IdTuple, string] {
 
 export function renderGiftCard(giftCard: GiftCard): Promise<Children> {
 	return generateGiftCardLink(giftCard).then(link => {
-		return [
-			!giftCard.redeemedDate
-				? m("a", {href: link}, link)
-				: "Gift card is redeemed", // TODO Translate
-			"<br />",
-			giftCard.message,
-			"<br />",
-			formatPrice(parseInt(giftCard.value), true)
-		]
+
+		let qrcodeGenerator = new QRCode({height: 150, width: 150, content: link})
+		const qrCode = htmlSanitizer.sanitize(qrcodeGenerator.svg(), false).text
+
+		return m(".flex-v-center", [
+			m(".flex", [
+				m(".b", formatPrice(parseInt(giftCard.value), true) + "€"),
+				giftCard.message
+			]),
+			m(".flex-center", m.trust(qrCode)), // sanitized above
+			m("a", { href: `mailto:?body=${link}` }, "email link to someone") // TODO Translate
+		])
+
+
+		// return m(".flex-v-center", [
+		// 	!giftCard.redeemedDate
+		// 		? m("a", {href: link}, link)
+		// 		: "Gift card is redeemed", // TODO Translate
+		// 	m(".pt-m", giftCard.message),
+		// 	formatPrice(parseInt(giftCard.value), true)
+		// ])
 	})
 }

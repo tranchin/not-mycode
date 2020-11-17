@@ -60,7 +60,7 @@ class GiftCardCreationPage implements WizardPageN<CreateGiftCardData> {
 
 		this._messageEditor = new HtmlEditor(() => "Type your message",) // TRANSLATE
 			.setMinHeight(300)
-			.setMode(Mode.WYSIWYG)
+			.setMode(Mode.HTML)
 			.showBorders()
 			.setValue(data.message)
 			.setEnabled(true)

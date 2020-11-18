@@ -60,7 +60,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"country": {
 			"name": "country",
-			"id": 1780,
+			"id": 1781,
 			"since": 65,
 			"type": "String",
 			"cardinality": "One",
@@ -87,6 +87,15 @@ export const _TypeModel: TypeModel = {
 		},
 		"redeemedDate": {
 			"name": "redeemedDate",
+			"id": 1780,
+			"since": 65,
+			"type": "Date",
+			"cardinality": "ZeroOrOne",
+			"final": true,
+			"encrypted": false
+		},
+		"refundedDate": {
+			"name": "refundedDate",
 			"id": 1779,
 			"since": 65,
 			"type": "Date",
@@ -126,5 +135,6 @@ export type GiftCard = {
 	message: string;
 	orderDate: Date;
 	redeemedDate: ?Date;
+	refundedDate: ?Date;
 	value: NumberString;
 }

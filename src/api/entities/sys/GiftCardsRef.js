@@ -8,14 +8,14 @@ export const _TypeModel: TypeModel = {
 	"name": "GiftCardsRef",
 	"since": 65,
 	"type": "AGGREGATED_TYPE",
-	"id": 1781,
-	"rootId": "A3N5cwAG9Q",
+	"id": 1782,
+	"rootId": "A3N5cwAG9g",
 	"versioned": false,
 	"encrypted": false,
 	"values": {
 		"_id": {
 			"name": "_id",
-			"id": 1782,
+			"id": 1783,
 			"since": 65,
 			"type": "CustomId",
 			"cardinality": "One",
@@ -26,7 +26,7 @@ export const _TypeModel: TypeModel = {
 	"associations": {
 		"items": {
 			"name": "items",
-			"id": 1783,
+			"id": 1784,
 			"since": 65,
 			"type": "LIST_ASSOCIATION",
 			"cardinality": "One",

@@ -60,7 +60,7 @@ class GiftCardCreationPage implements WizardPageN<CreateGiftCardData> {
 
 		this._messageEditor = new HtmlEditor(() => "Type your message",) // TRANSLATE
 			.setMinHeight(300)
-			.setMode(Mode.HTML)
+			.setMode(Mode.WYSIWYG)
 			.showBorders()
 			.setValue(data.message)
 			.setEnabled(true)
@@ -193,7 +193,7 @@ export function showPurchaseGiftCardWizard(existingGiftCards: GiftCard[]): Promi
 										      return true
 									      })
 									      .catch(e => {
-										      Dialog.error(() => "Unable to purchase gift Cards")
+										      Dialog.error(() => "Unable to purchase gift Cards") // Translate
 										      return false
 									      })
 								)
@@ -214,7 +214,7 @@ export function showPurchaseGiftCardWizard(existingGiftCards: GiftCard[]): Promi
 				wizardBuilder.dialog.show()
 				return wizardBuilder.promise.then(() => {
 						if (data.giftCard) {
-							renderGiftCard(data.giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered))
+							renderGiftCard(data.giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered)) // Translate
 						}
 					}
 				)

@@ -9,14 +9,14 @@ export const _TypeModel: TypeModel = {
 	"name": "GiftCardGetReturn",
 	"since": 65,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1788,
-	"rootId": "A3N5cwAG_A",
+	"id": 1789,
+	"rootId": "A3N5cwAG_Q",
 	"versioned": false,
-	"encrypted": true,
+	"encrypted": false,
 	"values": {
 		"_format": {
 			"name": "_format",
-			"id": 1789,
+			"id": 1790,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -25,7 +25,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"maxPerPeriod": {
 			"name": "maxPerPeriod",
-			"id": 1790,
+			"id": 1791,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -34,7 +34,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"period": {
 			"name": "period",
-			"id": 1791,
+			"id": 1792,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -45,7 +45,7 @@ export const _TypeModel: TypeModel = {
 	"associations": {
 		"options": {
 			"name": "options",
-			"id": 1792,
+			"id": 1793,
 			"since": 65,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
@@ -63,7 +63,6 @@ export function createGiftCardGetReturn(values?: $Shape<$Exact<GiftCardGetReturn
 
 export type GiftCardGetReturn = {
 	_type: TypeRef<GiftCardGetReturn>;
-	_errors: Object;
 
 	_format: NumberString;
 	maxPerPeriod: NumberString;

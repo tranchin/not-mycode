@@ -19,7 +19,7 @@ type GiftCardEditorAttrs = {
 	readonly: boolean
 }
 
-function renderGiftCard(giftCard: GiftCard) : Children {
+function renderGiftCard(giftCard: GiftCard): Children {
 	return []
 }
 
@@ -34,7 +34,7 @@ class GiftCardEditor implements MComponent<GiftCardEditorAttrs> {
 			.setMode(Mode.WYSIWYG)
 			.showBorders()
 			.setValue(a.giftCard.message)
-			.setEnabled(!a.readonly || a.giftCard.redeemedDate !== null)
+			.setEnabled(!a.readonly || a.giftCard.redeemingCustomer !== null)
 
 		this.value = stream(downcast(a.giftCard.value))
 	}

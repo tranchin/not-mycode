@@ -58,6 +58,15 @@ export const _TypeModel: TypeModel = {
 			"final": true,
 			"encrypted": false
 		},
+		"cancelled": {
+			"name": "cancelled",
+			"id": 1776,
+			"since": 65,
+			"type": "Boolean",
+			"cardinality": "One",
+			"final": true,
+			"encrypted": false
+		},
 		"country": {
 			"name": "country",
 			"id": 1781,
@@ -69,7 +78,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"message": {
 			"name": "message",
-			"id": 1777,
+			"id": 1778,
 			"since": 65,
 			"type": "String",
 			"cardinality": "One",
@@ -78,34 +87,25 @@ export const _TypeModel: TypeModel = {
 		},
 		"orderDate": {
 			"name": "orderDate",
-			"id": 1778,
+			"id": 1779,
 			"since": 65,
 			"type": "Date",
 			"cardinality": "One",
 			"final": true,
 			"encrypted": false
 		},
-		"redeemedDate": {
-			"name": "redeemedDate",
+		"transactionId": {
+			"name": "transactionId",
 			"id": 1780,
 			"since": 65,
-			"type": "Date",
-			"cardinality": "ZeroOrOne",
-			"final": true,
-			"encrypted": false
-		},
-		"refundedDate": {
-			"name": "refundedDate",
-			"id": 1779,
-			"since": 65,
-			"type": "Date",
-			"cardinality": "ZeroOrOne",
-			"final": true,
+			"type": "String",
+			"cardinality": "One",
+			"final": false,
 			"encrypted": false
 		},
 		"value": {
 			"name": "value",
-			"id": 1776,
+			"id": 1777,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -113,7 +113,18 @@ export const _TypeModel: TypeModel = {
 			"encrypted": false
 		}
 	},
-	"associations": {},
+	"associations": {
+		"redeemingCustomer": {
+			"name": "redeemingCustomer",
+			"id": 1782,
+			"since": 65,
+			"type": "ELEMENT_ASSOCIATION",
+			"cardinality": "ZeroOrOne",
+			"refType": "Customer",
+			"final": true,
+			"external": false
+		}
+	},
 	"app": "sys",
 	"version": "65"
 }
@@ -131,10 +142,12 @@ export type GiftCard = {
 	_ownerEncSessionKey: ?Uint8Array;
 	_ownerGroup: ?Id;
 	_permissions: Id;
+	cancelled: boolean;
 	country: string;
 	message: string;
 	orderDate: Date;
-	redeemedDate: ?Date;
-	refundedDate: ?Date;
+	transactionId: string;
 	value: NumberString;
+
+	redeemingCustomer: ?Id;
 }

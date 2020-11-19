@@ -73,11 +73,11 @@ export const GIFT_CARD_TABLE_HEADER: Array<lazy<string> | TranslationKey> = [() 
 
 export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { // TODO
 
-	const statusLabel = giftCard.refundedDate
-		? `Refunded`
-		: giftCard.redeemedDate
-			? `Redeemed` // TODO Translate
-			: `Available`
+	const statusLabel = giftCard.redeemingCustomer
+		? 'Used' // TODO Translate
+		: giftCard.cancelled ?
+			'Cancelled'
+			: 'Active'
 
 
 	const showEditGiftCardMessageDialog = () => {
@@ -116,7 +116,7 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 		}
 	]
 
-	if (!giftCard.refundedDate && !giftCard.redeemedDate && getDifferenceInDays(new Date(), giftCard.orderDate) <= 14) {
+	if (!giftCard.redeemingCustomer && getDifferenceInDays(new Date(), giftCard.orderDate) <= 14) {
 		actionButtons.push({
 			label: () => "refund giftcard", // Translate
 			click: () => {
@@ -184,6 +184,7 @@ export function renderGiftCard(giftCard: GiftCard): Promise<Children> {
 			}, m.trust(giftCardSvg)),
 			m.trust(htmlSanitizer.sanitize(giftCard.message, true).text),
 			m(".flex-center", m.trust(qrCode)), // sanitized above
+			m("a", {href: link}, "link"),
 			m("a", {href: `mailto:?body=${link}`}, "email link to someone") // TODO Translate
 		])
 	})

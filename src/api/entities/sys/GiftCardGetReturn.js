@@ -9,14 +9,14 @@ export const _TypeModel: TypeModel = {
 	"name": "GiftCardGetReturn",
 	"since": 65,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1790,
-	"rootId": "A3N5cwAG_g",
+	"id": 1797,
+	"rootId": "A3N5cwAHBQ",
 	"versioned": false,
 	"encrypted": false,
 	"values": {
 		"_format": {
 			"name": "_format",
-			"id": 1791,
+			"id": 1798,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -25,7 +25,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"maxPerPeriod": {
 			"name": "maxPerPeriod",
-			"id": 1792,
+			"id": 1799,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -34,7 +34,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"period": {
 			"name": "period",
-			"id": 1793,
+			"id": 1800,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -45,7 +45,7 @@ export const _TypeModel: TypeModel = {
 	"associations": {
 		"options": {
 			"name": "options",
-			"id": 1794,
+			"id": 1801,
 			"since": 65,
 			"type": "AGGREGATION",
 			"cardinality": "Any",

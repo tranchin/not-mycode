@@ -73,63 +73,50 @@ export const GIFT_CARD_TABLE_HEADER: Array<lazy<string> | TranslationKey> = [() 
 
 export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { // TODO
 
-	const statusLabel = giftCard.redeemingCustomer
-		? 'Used' // TODO Translate
-		: giftCard.cancelled ?
-			'Cancelled'
-			: 'Active'
+	const statusLabel = giftCard.usable
+		? 'Available' // TODO Translate
+		: 'Unavailable'
 
+
+	const showGiftCard = () => {
+		renderGiftCard(giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered))
+	}
 
 	const showEditGiftCardMessageDialog = () => {
-		const editor = new HtmlEditor()
+		const editor = new HtmlEditor(() => "Edit message", {enabled: true})
 			.setMinHeight(350)
 			.setValue(giftCard.message)
 
+
 		Dialog.showActionDialog({
 			title: () => "Edit message", // Translate
-			child: () => m(editor),
+			child: () => m(".gift-card-editor.pl-l.pr-l", m(editor)),
 			okAction: dialog => {
 				giftCard.message = editor.getValue()
 				locator.entityClient.update(giftCard)
 				       .then(() => dialog.close())
 				       .catch(e => Dialog.error(() => "Failed to update" + e)) // TODO Translate
-			}
+			},
+			type: DialogType.EditLarger
 		})
-
 	}
 
 	const actionButtons = [
 		{
 			label: () => "view giftcard", // Translate
-			click: () => renderGiftCard(giftCard).then(rendered => {
-				let dialog = new Dialog(DialogType.EditLarge, {
-					view: () => rendered,
-				})
-				dialog.show()
-			}),
+			click: showGiftCard,
 			type: ButtonType.Dropdown
 		},
 		{
 			label: () => "edit message", // Translate
-			click: () => showEditGiftCardMessageDialog(),
+			click: showEditGiftCardMessageDialog,
 			type: ButtonType.Dropdown
 		}
 	]
 
-	if (!giftCard.redeemingCustomer && getDifferenceInDays(new Date(), giftCard.orderDate) <= 14) {
-		actionButtons.push({
-			label: () => "refund giftcard", // Translate
-			click: () => {
-				serviceRequestVoid(SysService.GiftCardService, HttpMethod.DELETE, createGiftCardDeleteData({giftCard: giftCard._id}))
-					.then(() => Dialog.info(() => "Gift card deleted"))
-					.catch(e => Dialog.error(() => "Unable to refund gift card.")) // Todo translate
-			}, // TODO,
-			type: ButtonType.Dropdown
-		})
-	}
 	const showMoreButtonAttrs = attachDropdown({
 			label: () => "options",
-			click: () => {},
+			click: () => showGiftCard,
 			icon: () => Icons.More,
 			type: ButtonType.Dropdown
 		},

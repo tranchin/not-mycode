@@ -335,7 +335,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 						columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
 						showActionButtonColumn: true,
 						addButtonAttrs: purchaseGiftCardButtonAttrs,
-						lines: Array.from(this._giftCards.values()).map(giftCard => createGiftCardTableLine(giftCard)),
+						lines: Array.from(this._giftCards.values()).filter(giftCard => giftCard.usable).map(giftCard => createGiftCardTableLine(giftCard)),
 					},
 				}),
 				m(".h4.mt-l", lang.get('adminPremiumFeatures_action')),

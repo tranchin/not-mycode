@@ -8,14 +8,14 @@ export const _TypeModel: TypeModel = {
 	"name": "GiftCardRedeemGetReturn",
 	"since": 65,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 1811,
-	"rootId": "A3N5cwAHEw",
+	"id": 1818,
+	"rootId": "A3N5cwAHGg",
 	"versioned": false,
 	"encrypted": true,
 	"values": {
 		"_format": {
 			"name": "_format",
-			"id": 1812,
+			"id": 1819,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -24,7 +24,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"country": {
 			"name": "country",
-			"id": 1816,
+			"id": 1823,
 			"since": 65,
 			"type": "String",
 			"cardinality": "One",
@@ -33,7 +33,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"message": {
 			"name": "message",
-			"id": 1814,
+			"id": 1821,
 			"since": 65,
 			"type": "String",
 			"cardinality": "One",
@@ -42,7 +42,7 @@ export const _TypeModel: TypeModel = {
 		},
 		"value": {
 			"name": "value",
-			"id": 1815,
+			"id": 1822,
 			"since": 65,
 			"type": "Number",
 			"cardinality": "One",
@@ -53,7 +53,7 @@ export const _TypeModel: TypeModel = {
 	"associations": {
 		"giftCard": {
 			"name": "giftCard",
-			"id": 1813,
+			"id": 1820,
 			"since": 65,
 			"type": "LIST_ELEMENT_ASSOCIATION",
 			"cardinality": "One",

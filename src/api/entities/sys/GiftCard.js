@@ -58,18 +58,9 @@ export const _TypeModel: TypeModel = {
 			"final": true,
 			"encrypted": false
 		},
-		"cancelled": {
-			"name": "cancelled",
-			"id": 1776,
-			"since": 65,
-			"type": "Boolean",
-			"cardinality": "One",
-			"final": true,
-			"encrypted": false
-		},
 		"country": {
 			"name": "country",
-			"id": 1781,
+			"id": 1780,
 			"since": 65,
 			"type": "String",
 			"cardinality": "One",
@@ -94,13 +85,13 @@ export const _TypeModel: TypeModel = {
 			"final": true,
 			"encrypted": false
 		},
-		"transactionId": {
-			"name": "transactionId",
-			"id": 1780,
+		"usable": {
+			"name": "usable",
+			"id": 1776,
 			"since": 65,
-			"type": "String",
+			"type": "Boolean",
 			"cardinality": "One",
-			"final": false,
+			"final": true,
 			"encrypted": false
 		},
 		"value": {
@@ -113,18 +104,7 @@ export const _TypeModel: TypeModel = {
 			"encrypted": false
 		}
 	},
-	"associations": {
-		"redeemingCustomer": {
-			"name": "redeemingCustomer",
-			"id": 1782,
-			"since": 65,
-			"type": "ELEMENT_ASSOCIATION",
-			"cardinality": "ZeroOrOne",
-			"refType": "Customer",
-			"final": true,
-			"external": false
-		}
-	},
+	"associations": {},
 	"app": "sys",
 	"version": "65"
 }
@@ -142,12 +122,9 @@ export type GiftCard = {
 	_ownerEncSessionKey: ?Uint8Array;
 	_ownerGroup: ?Id;
 	_permissions: Id;
-	cancelled: boolean;
 	country: string;
 	message: string;
 	orderDate: Date;
-	transactionId: string;
+	usable: boolean;
 	value: NumberString;
-
-	redeemingCustomer: ?Id;
 }

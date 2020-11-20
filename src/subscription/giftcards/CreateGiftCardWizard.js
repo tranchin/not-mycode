@@ -58,7 +58,7 @@ class GiftCardCreationPage implements WizardPageN<CreateGiftCardData> {
 	constructor(vnode: Vnode<CreateGiftCardAttrs>) {
 		const data = vnode.attrs.data
 
-		this._messageEditor = new HtmlEditor(() => "Type your message",) // TRANSLATE
+		this._messageEditor = new HtmlEditor(() => "Type your message", {enabled: true}) // TRANSLATE
 			.setMinHeight(300)
 			.setMode(Mode.WYSIWYG)
 			.showBorders()
@@ -197,14 +197,12 @@ export function showPurchaseGiftCardWizard(existingGiftCards: GiftCard[]): Promi
 										      return false
 									      })
 								)
-
 							},
 							isSkipAvailable: () => false,
 							isEnabled: () => true
 						},
 						componentClass: GiftCardConfirmationPage
 					},
-
 				]
 
 				const wizardBuilder = createWizardDialog(data, wizardPages, () => {

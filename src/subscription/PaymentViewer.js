@@ -53,6 +53,7 @@ export class PaymentViewer implements UpdatableSettingsViewer {
 	_paymentMethodField: TextField;
 	_accountingInfo: ?AccountingInfo;
 	_postings: CustomerAccountPosting[]
+	_outstandingBookingsPrice: number
 	_lastBooking: ?Booking
 	_paymentBusy: boolean;
 	_invoiceVatNumber: TextField;
@@ -158,8 +159,13 @@ export class PaymentViewer implements UpdatableSettingsViewer {
 			return [
 				m(".h4.mt-l", lang.get('currentBalance_label')),
 				m(".flex.center-horizontally.center-vertically.col", [
-					m("div.h4.pt.pb"
-						+ (this._isAmountOwed() ? ".content-accent-fg" : ""), `${formatPrice(Number(this._postings[0].balance), true)}, (${formatPrice(this._accountBalance(), true)})`),
+					m("div.h4.pt.pb" + (this._isAmountOwed() ? ".content-accent-fg" : ""),
+						`${formatPrice(Number(this._postings[0].balance), true)}`),
+					this._accountBalance() != Number(this._postings[0].balance)
+						? m(".small" + (this._accountBalance() < 0 ? ".content-accent-fg" : ""),
+						`You have some unprocessed bookings with a total value of ${formatPrice(this._outstandingBookingsPrice, true)}.
+						This will be deducted from your balance or chosen payment method upon next invoice`) // TODO Translate // TODO Make separate messages for Paypal/CreditCard and other Payment Types
+						: null,
 					this._isPayButtonVisible()
 						? m(".pb", {style: {width: '200px'}}, m(ButtonN, {
 							label: "invoicePay_action",
@@ -225,29 +231,11 @@ export class PaymentViewer implements UpdatableSettingsViewer {
 	}
 
 	_accountBalance(): number {
-		let balance = 0
-
-		if (this._postings != null && this._postings.length > 0) {
-			balance = Number(this._postings[0].balance)
-		}
-
-		if (this._lastBooking) {
-			balance -= this._getPriceOfBooking(this._lastBooking)
-		}
-
-		return balance
-	}
-
-	_getPriceOfBooking(booking: Booking): number {
-		return booking.items.reduce((acc, item) => {
-			const months = booking.paymentInterval === "12" ? 10 : 12
-			const price = Number(item.price)
-			return acc + item.priceType === "0"
-				? price * Number(item.currentCount) * months
-				: (item.priceType === "1"
-				? price * months
-				: months)
-		}, 0)
+		const balance =
+			this._postings && this._postings.length > 0
+				? Number(this._postings[0].balance)
+				: 0
+		return balance - this._outstandingBookingsPrice
 	}
 
 	_amountOwed(): number {
@@ -281,6 +269,7 @@ export class PaymentViewer implements UpdatableSettingsViewer {
 		serviceRequest(AccountingService.CustomerAccountService, HttpMethod.GET, null, CustomerAccountReturnTypeRef)
 			.then(result => {
 				this._postings = result.postings
+				this._outstandingBookingsPrice = Number(result.outstandingBookingsPrice)
 				m.redraw()
 			})
 	}

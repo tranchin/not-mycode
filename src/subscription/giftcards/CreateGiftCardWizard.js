@@ -221,12 +221,10 @@ export function showPurchaseGiftCardWizard(existingGiftCards: GiftCard[]): Promi
 }
 
 
-// TODO maybe this is already written somewhere else?
-// TODO call entityClient.load
-function loadAccountingInfo(): Promise<AccountingInfo> {
-	const info = load(CustomerTypeRef, neverNull(logins.getUserController().user.customer))
-		.then(customer => load(CustomerInfoTypeRef, customer.customerInfo))
-		.then(customerInfo => load(AccountingInfoTypeRef, customerInfo.accountingInfo))
+export function loadAccountingInfo(): Promise<AccountingInfo> {
+	const info = locator.entityClient.load(CustomerTypeRef, neverNull(logins.getUserController().user.customer))
+	                    .then(customer => locator.entityClient.load(CustomerInfoTypeRef, customer.customerInfo))
+	                    .then(customerInfo => locator.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo))
 
 	return info
 }

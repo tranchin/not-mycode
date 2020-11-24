@@ -64,6 +64,7 @@ import type {TableAttrs, TableLineAttrs} from "../gui/base/TableN"
 import type {ButtonAttrs} from "../gui/base/ButtonN"
 import {showPurchaseGiftCardWizard} from "./giftcards/CreateGiftCardWizard"
 import {
+	canBuyGiftCards,
 	createGiftCardTableLine,
 	GIFT_CARD_TABLE_HEADER,
 	loadGiftCards, MAX_PURCHASED_GIFTCARDS, renderGiftCard,
@@ -230,13 +231,9 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		const purchaseGiftCardButtonAttrs: ButtonAttrs = {
 			label: () => "Purchase a gift card",
 			click: createNotAvailableForFreeClickHandler(false, () => {
-				if (!this._accountingInfo
-					|| !this._accountingInfo.paymentMethod
-					|| this._accountingInfo.paymentMethod === PaymentMethodType.Invoice) {
-					Dialog.error(() => "Your payment methods do not allow gift card purchase") // Translate
-				} else {
-					showPurchaseGiftCardWizard(Array.from(this._giftCards.values()))
-				}
+				return canBuyGiftCards().then(canBuy => canBuy
+					? showPurchaseGiftCardWizard(Array.from(this._giftCards.values()))
+					: Dialog.error(() => "Your payment methods do not allow gift card purchase")) // Translate
 			}, isPremiumPredicate),
 			icon: () => Icons.Add
 		}

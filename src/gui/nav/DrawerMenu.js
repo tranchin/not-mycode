@@ -1,6 +1,7 @@
 //@flow
 
 import m from "mithril"
+import stream from "mithril/stream/stream.js"
 import {ButtonColors, ButtonN, ButtonType} from "../base/ButtonN"
 import {BootIcons} from "../base/icons/BootIcons"
 import {LogoutUrl} from "../base/Header"
@@ -17,10 +18,15 @@ import {AriaLandmarks, landmarkAttrs} from "../../api/common/utils/AriaUtils"
 import {attachDropdown} from "../base/DropdownN"
 import {noOp} from "../../api/common/utils/Utils"
 import {keyManager} from "../../misc/KeyManager"
+import {showPurchaseGiftCardWizard} from "../../subscription/giftcards/CreateGiftCardWizard"
+import {canBuyGiftCards, loadGiftCards} from "../../subscription/giftcards/GiftCardUtils"
+import {createNotAvailableForFreeClickHandler} from "../../subscription/PriceUtils"
+import {Dialog} from "../base/Dialog"
 
 type Attrs = void
 
 export class DrawerMenu implements MComponent<Attrs> {
+
 	view(vnode: Vnode<Attrs>): Children {
 		return m("drawer-menu" + landmarkAttrs(AriaLandmarks.Contentinfo, "drawer menu"), {
 			style: {
@@ -28,6 +34,20 @@ export class DrawerMenu implements MComponent<Attrs> {
 			},
 		}, m(".flex.col.height-100p.items-center.pt.pb", [
 			m(".flex-grow"),
+			m(ButtonN, {
+				icon: () => Icons.Archive, // TODO Get giftbox icon
+				label: () => "Buy a giftcard", // TODO Translate
+				click: () => {
+					return createNotAvailableForFreeClickHandler(false, () => {
+						return canBuyGiftCards().then(canBuy => canBuy
+							? logins.getUserController()
+							        .loadCustomer()
+							        .then(c => loadGiftCards(c._id))
+							        .then(showPurchaseGiftCardWizard)
+							: Dialog.error(() => "Your payment methods do not allow gift card purchase")) // Translate
+					}, () => logins.getUserController().isPremiumAccount())
+				}
+			}),
 			isDesktop()
 				? m(ButtonN, {
 					icon: () => Icons.NewWindow,

@@ -2,7 +2,7 @@
 
 import m from "mithril"
 import QRCode from "qrcode"
-import {reverse} from "../../api/common/TutanotaConstants"
+import {PaymentMethodType, reverse} from "../../api/common/TutanotaConstants"
 import {Icons} from "../../gui/base/icons/Icons"
 import type {TableLineAttrs} from "../../gui/base/TableN"
 import {formatDate} from "../../misc/Formatter"
@@ -28,6 +28,8 @@ import {createGiftCardDeleteData, GiftCardDeleteDataTypeRef} from "../../api/ent
 import {HttpMethod} from "../../api/common/EntityFunctions"
 import {SysService} from "../../api/entities/sys/Services"
 import {px, size} from "../../gui/size"
+import {showPurchaseGiftCardWizard} from "./CreateGiftCardWizard"
+import {logins} from "../../api/main/LoginController"
 
 export const MAX_PURCHASED_GIFTCARDS = 10
 
@@ -53,6 +55,12 @@ export function loadGiftCardInfoFromHash(hash: string): Promise<GiftCardRedeemGe
 		return worker.getGiftCardInfo(id, key)
 	})
 
+}
+
+export function canBuyGiftCards(): Promise<boolean> {
+	return logins.getUserController()
+	             .loadAccountingInfo()
+	             .then(accountingInfo => accountingInfo.paymentMethod != null && accountingInfo.paymentMethod !== PaymentMethodType.Invoice)
 }
 
 export function loadGiftCards(customerId: Id): Promise<GiftCard[]> {

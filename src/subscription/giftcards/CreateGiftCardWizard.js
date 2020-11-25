@@ -78,7 +78,7 @@ class GiftCardCreationPage implements WizardPageN<CreateGiftCardData> {
 			m(".flex.center-horizontally.wrap",
 				a.data.availablePackages.map((option, index) =>
 					m(BuyOptionBox, {
-						heading: `Option ${index}`, // TODO make nice headings
+						heading: `Option ${index + 1}`, // TODO make nice headings
 						actionButton: {
 							view: () => m(ButtonN, {
 								label: "pricing.select_action",

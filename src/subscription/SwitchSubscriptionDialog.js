@@ -19,12 +19,9 @@ import {BadRequestError, InvalidDataError, PreconditionFailedError} from "../api
 import {worker} from "../api/main/WorkerClient"
 import {SubscriptionSelector} from "./SubscriptionSelector"
 import stream from "mithril/stream/stream.js"
-import {buyAliases} from "./EmailAliasOptionsDialog"
-import {buyStorage} from "./StorageCapacityOptionsDialog"
-import {buySharing, buyWhitelabel} from "./WhitelabelAndSharingBuyDialog"
 import {showProgressDialog} from "../gui/base/ProgressDialog"
 import type {SubscriptionTypeEnum} from "./SubscriptionUtils"
-import {SubscriptionType} from "./SubscriptionUtils"
+import {bookItem, buyAliases, buySharing, buyStorage, buyWhitelabel, SubscriptionType} from "./SubscriptionUtils"
 import type {DialogHeaderBarAttrs} from "../gui/base/DialogHeaderBar"
 import {createPlanPrices} from "../api/entities/sys/PlanPrices"
 import {neverNull} from "../api/common/utils/Utils"
@@ -477,7 +474,10 @@ function cancelAllAdditionalFeatures(targetSubscription: SubscriptionTypeEnum,
 		}
 	}).then(previousFailed => {
 		if (isDowngradeStorageNeeded(targetSubscription, currentAmountOfStorage, includedStorage)) {
-			return buyStorage(subscriptions[targetSubscription].orderStorageGb).then(thisFailed => thisFailed || previousFailed)
+			return bookItem(BookingItemFeatureType.Storage,
+				"storageCapacityTooManyUsedForBooking_msg",
+				subscriptions[targetSubscription].orderStorageGb)
+				.then(thisFailed => thisFailed || previousFailed)
 		} else {
 			return previousFailed
 		}

@@ -1,7 +1,8 @@
 //@flow
 import type {TranslationKey} from "../misc/LanguageViewModel"
 import {lang} from "../misc/LanguageViewModel"
-import {AccountType, BookingItemFeatureType} from "../api/common/TutanotaConstants"
+import type {BookingItemFeatureTypeEnum} from "../api/common/TutanotaConstants"
+import {AccountType, BookingItemFeatureType, Const} from "../api/common/TutanotaConstants"
 import {getCurrentCount} from "./PriceUtils"
 import {PreconditionFailedError} from "../api/common/error/RestError"
 import type {SegmentControlItem} from "../gui/base/SegmentControl"
@@ -9,6 +10,13 @@ import type {PlanPrices} from "../api/entities/sys/PlanPrices"
 import type {Customer} from "../api/entities/sys/Customer"
 import type {CustomerInfo} from "../api/entities/sys/CustomerInfo"
 import type {Booking} from "../api/entities/sys/Booking"
+import {createBookingServiceData} from "../api/entities/sys/BookingServiceData"
+import {serviceRequestVoid} from "../api/main/Entity"
+import {SysService} from "../api/entities/sys/Services"
+import {HttpMethod} from "../api/common/EntityFunctions"
+import {Dialog} from "../gui/base/Dialog"
+import {showProgressDialog} from "../gui/base/ProgressDialog"
+import * as BuyDialog from "./BuyDialog"
 
 export type SubscriptionOptions = {
 	businessUse: Stream<boolean>,
@@ -177,4 +185,87 @@ export function getPreconditionFailedPaymentMsg(e: PreconditionFailedError): Tra
 		default:
 			return "payContactUsError_msg"
 	}
+}
+
+/**
+ * @returns True if it failed, false otherwise
+ */
+export function bookItem(featureType: BookingItemFeatureTypeEnum, errorMessageId: TranslationKey | lazy<string>, amount: number): Promise<boolean> {
+	const bookingData = createBookingServiceData({
+		amount: amount.toString(),
+		featureType,
+		date: Const.CURRENT_DATE // TODO find out what's going on here?
+	})
+	return serviceRequestVoid(SysService.BookingService, HttpMethod.POST, bookingData).return(false).catch(PreconditionFailedError, error => {
+		console.log(error)
+		return Dialog.error(error.data === "balance.insufficient"
+			? () => "Insufficient balance" // TODO Translate
+			: errorMessageId).return(true)
+	})
+}
+
+
+export function buyAliases(amount: number): Promise<boolean> {
+	return bookItem(BookingItemFeatureType.Alias, "emailAliasesTooManyActivatedForBooking_msg", amount)
+}
+
+export function buyStorage(amount: number): Promise<boolean> {
+	return bookItem(BookingItemFeatureType.Storage, "storageCapacityTooManyUsedForBooking_msg", amount);
+}
+
+/**
+ * @returns True if it failed, false otherwise
+ */
+export function buyWhitelabel(enable: boolean): Promise<boolean> {
+	return bookSingleItemFeature(BookingItemFeatureType.Branding, "whitelabelDomainExisting_msg", enable)
+}
+
+/**
+ * @returns True if it failed, false otherwise
+ */
+export function buySharing(enable: boolean): Promise<boolean> {
+	return bookSingleItemFeature(BookingItemFeatureType.Sharing, "unknownError_msg", enable)
+}
+
+/**
+ * Shows the buy dialog to enable or disable the whitelabel package.
+ * @param enable true if the whitelabel package should be enabled otherwise false.
+ * @returns false if the execution was successfull. True if the action has been cancelled by user or the precondition has failed.
+ */
+export function showWhitelabelBuyDialog(enable: boolean): Promise<boolean> {
+	return showBuyDialog(BookingItemFeatureType.Branding, "whitelabelDomainExisting_msg", enable)
+}
+
+/**
+ * Shows the buy dialog to enable or disable the sharing package.
+ * @param enable true if the whitelabel package should be enabled otherwise false.
+ * @returns false if the execution was successfull. True if the action has been cancelled by user or the precondition has failed.
+ */
+export function showSharingBuyDialog(enable: boolean): Promise<boolean> {
+	return (enable ? Promise.resolve(true) : Dialog.confirm("sharingDeletionWarning_msg")).then(ok => {
+		if (ok) {
+			return showBuyDialog(BookingItemFeatureType.Sharing, "unknownError_msg", enable)
+		} else {
+			return true
+		}
+	})
+}
+
+/**
+ * @returns True if it failed, false otherwise
+ */
+export function showBuyDialog(bookingItemFeatureType: BookingItemFeatureTypeEnum, errorMessageId: TranslationKey, enable: boolean): Promise<boolean> {
+	const amount = enable ? 1 : 0
+	return showProgressDialog("pleaseWait_msg", BuyDialog.show(bookingItemFeatureType, amount, 0, false))
+		.then(accepted => {
+			if (accepted) {
+				return bookSingleItemFeature(bookingItemFeatureType, errorMessageId, enable)
+			} else {
+				return true
+			}
+		})
+}
+
+function bookSingleItemFeature(bookingItemFeatureType: BookingItemFeatureTypeEnum, errorMessageId: TranslationKey, enable: boolean): Promise<boolean> {
+	return bookItem(bookingItemFeatureType, errorMessageId, enable ? 1 : 0)
 }

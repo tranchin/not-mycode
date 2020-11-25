@@ -2,7 +2,7 @@
 import m from "mithril"
 import {assertMainOrNode} from "../api/Env"
 import type {AccountTypeEnum} from "../api/common/TutanotaConstants"
-import {AccountType, AccountTypeNames, BookingItemFeatureType, Const, PaymentMethodType} from "../api/common/TutanotaConstants"
+import {AccountType, AccountTypeNames, BookingItemFeatureType, Const} from "../api/common/TutanotaConstants"
 import type {Customer} from "../api/entities/sys/Customer"
 import {CustomerTypeRef} from "../api/entities/sys/Customer"
 import {assertNotNull, downcast, neverNull, noOp} from "../api/common/utils/Utils"
@@ -29,7 +29,6 @@ import * as AddUserDialog from "../settings/AddUserDialog"
 import * as EmailAliasOptionsDialog from "./EmailAliasOptionsDialog"
 import * as AddGroupDialog from "../settings/AddGroupDialog"
 import * as ContactFormEditor from "../settings/ContactFormEditor"
-import * as WhitelabelAndSharingBuyDialog from "./WhitelabelAndSharingBuyDialog"
 import * as StorageCapacityOptionsDialog from "./StorageCapacityOptionsDialog"
 import {showUpgradeWizard} from "./UpgradeSubscriptionWizard"
 import {showSwitchDialog} from "./SwitchSubscriptionDialog"
@@ -53,22 +52,18 @@ import {
 	getTotalAliases,
 	getTotalStorageCapacity,
 	isSharingActive,
-	isWhitelabelActive
+	isWhitelabelActive,
+	showSharingBuyDialog,
+	showWhitelabelBuyDialog
 } from "./SubscriptionUtils"
+import type {ButtonAttrs} from "../gui/base/ButtonN"
 import {ButtonN, ButtonType} from "../gui/base/ButtonN"
 import {TextFieldN} from "../gui/base/TextFieldN"
 import {DropDownSelectorN} from "../gui/base/DropDownSelectorN"
 import {Dialog} from "../gui/base/Dialog"
-import {ColumnWidth, TableN} from "../gui/base/TableN"
-import type {TableAttrs, TableLineAttrs} from "../gui/base/TableN"
-import type {ButtonAttrs} from "../gui/base/ButtonN"
+import {ColumnWidth} from "../gui/base/TableN"
 import {showPurchaseGiftCardWizard} from "./giftcards/CreateGiftCardWizard"
-import {
-	canBuyGiftCards,
-	createGiftCardTableLine,
-	GIFT_CARD_TABLE_HEADER,
-	loadGiftCards, MAX_PURCHASED_GIFTCARDS, renderGiftCard,
-} from "./giftcards/GiftCardUtils"
+import {canBuyGiftCards, createGiftCardTableLine, GIFT_CARD_TABLE_HEADER, loadGiftCards,} from "./giftcards/GiftCardUtils"
 import type {GiftCard} from "../api/entities/sys/GiftCard"
 import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
 import {locator} from "../api/main/MainLocator"
@@ -197,25 +192,25 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		const enableWhiteLabelActionAttrs = {
 			label: "whitelabelDomain_label",
 			click: createNotAvailableForFreeClickHandler(false,
-				() => WhitelabelAndSharingBuyDialog.showWhitelabelBuyDialog(true), isPremiumPredicate),
+				() => showWhitelabelBuyDialog(true), isPremiumPredicate),
 			icon: () => Icons.Edit,
 		}
 		const disableWhiteLabelActionAttrs = {
 			label: "whitelabelDomain_label",
 			click: createNotAvailableForFreeClickHandler(false,
-				() => WhitelabelAndSharingBuyDialog.showWhitelabelBuyDialog(false), isPremiumPredicate),
+				() => showWhitelabelBuyDialog(false), isPremiumPredicate),
 			icon: () => Icons.Cancel,
 		}
 		const enableSharingActionAttrs = {
 			label: "sharingFeature_label",
 			click: createNotAvailableForFreeClickHandler(false,
-				() => WhitelabelAndSharingBuyDialog.showSharingBuyDialog(true), isPremiumPredicate),
+				() => showSharingBuyDialog(true), isPremiumPredicate),
 			icon: () => Icons.Edit,
 		}
 		const disableSharingActionAttrs = {
 			label: "sharingFeature_label",
 			click: createNotAvailableForFreeClickHandler(false,
-				() => WhitelabelAndSharingBuyDialog.showSharingBuyDialog(false), isPremiumPredicate),
+				() => showSharingBuyDialog(false), isPremiumPredicate),
 			icon: () => Icons.Cancel,
 		}
 		const deleteButtonAttrs = {

@@ -32,6 +32,9 @@ import {locator} from "../../api/main/MainLocator"
 import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
 import {getByAbbreviation} from "../../api/common/CountryList"
 import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
+import {renderGiftCard, renderGiftCardSvg} from "./GiftCardUtils"
+import {px, size} from "../../gui/size"
+import {htmlSanitizer} from "../../misc/HtmlSanitizer"
 
 type GetCredentialsMethod = "login" | "signup"
 
@@ -59,15 +62,15 @@ class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 			})
 		}
 
-		return m(".flex-v-center", [
-			m("", a.data.giftCardInfo.message),
+		return m(".flex-v-center", {style: {padding: px(size.vpad_large)}}, [
+			renderGiftCard(parseInt(a.data.giftCardInfo.value), a.data.giftCardInfo.message),
 			m(ButtonN, {
-				label: () => "Use existing account",
+				label: () => "Use existing account", // TODO Translate
 				click: () => nextPage("login"),
 				type: ButtonType.Login
 			}),
 			m(ButtonN, {
-				label: () => "Create account",
+				label: () => "Create account", // TODO Translate
 				click: () => nextPage("signup"),
 				type: ButtonType.Login
 			})
@@ -252,7 +255,7 @@ export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardRedeemGetReturn):
 			{
 				attrs: {
 					data: giftCardRedeemData,
-					headerTitle: () => "You got a Gift Card :-)",
+					headerTitle: () => "You got a Gift Card :-)", // TODO Translate
 					nextAction: (_) => Promise.resolve(true),
 					isSkipAvailable: () => false,
 					isEnabled: () => true
@@ -262,7 +265,7 @@ export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardRedeemGetReturn):
 			{
 				attrs: {
 					data: giftCardRedeemData,
-					headerTitle: () => giftCardRedeemData.credentialsMethod === "signup" ? "Create account" : "Select account", // Translate
+					headerTitle: () => giftCardRedeemData.credentialsMethod === "signup" ? "Create account" : "Select account", // TODO Translate
 					nextAction: (showErrorDialog: boolean) => Promise.resolve(true),
 					isSkipAvailable: () => false,
 					isEnabled: () => true

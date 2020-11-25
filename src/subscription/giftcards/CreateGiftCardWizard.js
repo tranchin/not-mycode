@@ -30,7 +30,8 @@ import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import {formatPrice} from "../SubscriptionUtils"
 import {formatNameAndAddress} from "../../misc/Formatter"
 import {getByAbbreviation} from "../../api/common/CountryList"
-import {renderGiftCard} from "./GiftCardUtils"
+import {generateGiftCardLink, renderGiftCard, renderGiftCardLinks, showGiftCardToShare} from "./GiftCardUtils"
+import {px, size} from "../../gui/size"
 
 export type CreateGiftCardData = {
 	availablePackages: Array<GiftCardOption>;
@@ -173,7 +174,7 @@ export function showPurchaseGiftCardWizard(existingGiftCards: GiftCard[]): Promi
 					{
 						attrs: {
 							data: data,
-							headerTitle: () => "Select type", // Translate
+							headerTitle: () => "Create a gift card", // Translate
 							nextAction: (showErrorDialog: boolean) => Promise.resolve(true),
 							isSkipAvailable: () => false,
 							isEnabled: () => true,
@@ -212,7 +213,7 @@ export function showPurchaseGiftCardWizard(existingGiftCards: GiftCard[]): Promi
 				wizardBuilder.dialog.show()
 				return wizardBuilder.promise.then(() => {
 						if (data.giftCard) {
-							renderGiftCard(data.giftCard).then(rendered => Dialog.info(() => "giftcard", () => rendered)) // Translate
+							showGiftCardToShare(data.giftCard)
 						}
 					}
 				)

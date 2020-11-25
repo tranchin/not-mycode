@@ -37,16 +37,18 @@ export class DrawerMenu implements MComponent<Attrs> {
 			m(ButtonN, {
 				icon: () => Icons.Archive, // TODO Get giftbox icon
 				label: () => "Buy a giftcard", // TODO Translate
-				click: () => {
-					return createNotAvailableForFreeClickHandler(false, () => {
-						return canBuyGiftCards().then(canBuy => canBuy
+				click: createNotAvailableForFreeClickHandler(false,
+					() => {
+						canBuyGiftCards().then(canBuy => canBuy
 							? logins.getUserController()
 							        .loadCustomer()
 							        .then(c => loadGiftCards(c._id))
 							        .then(showPurchaseGiftCardWizard)
 							: Dialog.error(() => "Your payment methods do not allow gift card purchase")) // Translate
-					}, () => logins.getUserController().isPremiumAccount())
-				}
+					},
+					() => logins.getUserController().isPremiumAccount()),
+				type: ButtonType.ActionLarge,
+				colors: ButtonColors.DrawerNav
 			}),
 			isDesktop()
 				? m(ButtonN, {

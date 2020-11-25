@@ -179,8 +179,8 @@ function getPrices(currentSubscription: SubscriptionTypeEnum, currentNbrOfUsers:
 		worker.getPrice(BookingItemFeatureType.Storage, 0, false),
 		worker.getPrice(BookingItemFeatureType.Sharing, 1, false),
 		worker.getPrice(BookingItemFeatureType.Sharing, 0, false),
-		worker.getPrice(BookingItemFeatureType.Branding, 1, false),
-		worker.getPrice(BookingItemFeatureType.Branding, 0, false),
+		worker.getPrice(BookingItemFeatureType.Whitelabel, 1, false),
+		worker.getPrice(BookingItemFeatureType.Whitelabel, 0, false),
 		worker.getPrice(BookingItemFeatureType.ContactForm, 1, false),
 
 		(addUserPrice, upgrade20AliasesPrice, downgrade5AliasesPrice, upgrade10GbStoragePrice, downgrade1GbStoragePrice, upgradeSharingPrice, downgradeSharingPrice, upgradeWhitelabelPrice, downgradeWhitelabelPrice, contactFormPrice) => {
@@ -211,7 +211,7 @@ function getPrice(currentSubscription: SubscriptionTypeEnum, targetSubscription:
 	let contactFormPrice = getMonthlySinglePrice(contactFormReturn, BookingItemFeatureType.ContactForm, paymentIntervalFactor)
 	let singleUserPriceMonthly = getMonthlySinglePrice(addUserReturn, BookingItemFeatureType.Users, paymentIntervalFactor)
 	let currentSharingPerUserMonthly = getMonthlySinglePrice(addUserReturn, BookingItemFeatureType.Sharing, paymentIntervalFactor)
-	let currentWhitelabelPerUserMonthly = getMonthlySinglePrice(addUserReturn, BookingItemFeatureType.Branding, paymentIntervalFactor)
+	let currentWhitelabelPerUserMonthly = getMonthlySinglePrice(addUserReturn, BookingItemFeatureType.Whitelabel, paymentIntervalFactor)
 
 	prices.contactFormPriceMonthly = subscriptions[targetSubscription].whitelabel ? String(contactFormPrice) : "0"
 	prices.firstYearDiscount = "0"
@@ -250,7 +250,7 @@ function getPrice(currentSubscription: SubscriptionTypeEnum, targetSubscription:
 		prices.monthlyPrice = String(monthlyPrice)
 		prices.monthlyReferencePrice = String(monthlyPrice)
 		prices.additionalUserPriceMonthly = String(singleUserPriceMonthly
-			+ (isUpgradeWhitelabelNeeded(targetSubscription, currentlyWhitelabelOrdered) ? getMonthlySinglePrice(upgradeWhitelabelPrice, BookingItemFeatureType.Branding, paymentIntervalFactor) : currentWhitelabelPerUserMonthly)
+			+ (isUpgradeWhitelabelNeeded(targetSubscription, currentlyWhitelabelOrdered) ? getMonthlySinglePrice(upgradeWhitelabelPrice, BookingItemFeatureType.Whitelabel, paymentIntervalFactor) : currentWhitelabelPerUserMonthly)
 			+ (isUpgradeSharingNeeded(targetSubscription, currentlySharingOrdered) ? getMonthlySinglePrice(upgradeSharingPrice, BookingItemFeatureType.Sharing, paymentIntervalFactor) : currentSharingPerUserMonthly))
 	} else {
 		// downgrade. show the current prices minus all features not in the target subscription (keep users as is)

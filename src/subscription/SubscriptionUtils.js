@@ -140,7 +140,7 @@ export function getNbrOfUsers(lastBooking: ?Booking): number {
 }
 
 export function isWhitelabelActive(lastBooking: ?Booking): boolean {
-	return getCurrentCount(BookingItemFeatureType.Branding, lastBooking) !== 0
+	return getCurrentCount(BookingItemFeatureType.Whitelabel, lastBooking) !== 0
 }
 
 export function isSharingActive(lastBooking: ?Booking): boolean {
@@ -204,7 +204,6 @@ export function bookItem(featureType: BookingItemFeatureTypeEnum, errorMessageId
 	})
 }
 
-
 export function buyAliases(amount: number): Promise<boolean> {
 	return bookItem(BookingItemFeatureType.Alias, "emailAliasesTooManyActivatedForBooking_msg", amount)
 }
@@ -217,14 +216,14 @@ export function buyStorage(amount: number): Promise<boolean> {
  * @returns True if it failed, false otherwise
  */
 export function buyWhitelabel(enable: boolean): Promise<boolean> {
-	return bookSingleItemFeature(BookingItemFeatureType.Branding, "whitelabelDomainExisting_msg", enable)
+	return bookItem(BookingItemFeatureType.Whitelabel, "whitelabelDomainExisting_msg", enable ? 1 : 0)
 }
 
 /**
  * @returns True if it failed, false otherwise
  */
 export function buySharing(enable: boolean): Promise<boolean> {
-	return bookSingleItemFeature(BookingItemFeatureType.Sharing, "unknownError_msg", enable)
+	return bookItem(BookingItemFeatureType.Sharing, "unknownError_msg", enable ? 1 : 0)
 }
 
 /**
@@ -233,7 +232,7 @@ export function buySharing(enable: boolean): Promise<boolean> {
  * @returns false if the execution was successfull. True if the action has been cancelled by user or the precondition has failed.
  */
 export function showWhitelabelBuyDialog(enable: boolean): Promise<boolean> {
-	return showBuyDialog(BookingItemFeatureType.Branding, "whitelabelDomainExisting_msg", enable)
+	return showBuyDialog(BookingItemFeatureType.Whitelabel, "whitelabelDomainExisting_msg", enable)
 }
 
 /**
@@ -259,13 +258,9 @@ export function showBuyDialog(bookingItemFeatureType: BookingItemFeatureTypeEnum
 	return showProgressDialog("pleaseWait_msg", BuyDialog.show(bookingItemFeatureType, amount, 0, false))
 		.then(accepted => {
 			if (accepted) {
-				return bookSingleItemFeature(bookingItemFeatureType, errorMessageId, enable)
+				return bookItem(bookingItemFeatureType, errorMessageId, enable ? 1 : 0)
 			} else {
 				return true
 			}
 		})
-}
-
-function bookSingleItemFeature(bookingItemFeatureType: BookingItemFeatureTypeEnum, errorMessageId: TranslationKey, enable: boolean): Promise<boolean> {
-	return bookItem(bookingItemFeatureType, errorMessageId, enable ? 1 : 0)
 }

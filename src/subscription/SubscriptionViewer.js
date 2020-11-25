@@ -359,7 +359,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					label: "whitelabel_label",
 					value: this._whitelabelFieldValue,
 					disabled: true,
-					injectionsRight: () => (getCurrentCount(BookingItemFeatureType.Branding, this._lastBooking) === 0)
+					injectionsRight: () => (getCurrentCount(BookingItemFeatureType.Whitelabel, this._lastBooking) === 0)
 						? m(ButtonN, enableWhiteLabelActionAttrs)
 						: m(ButtonN, disableWhiteLabelActionAttrs),
 				}),

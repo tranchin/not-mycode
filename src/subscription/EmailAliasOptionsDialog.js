@@ -8,7 +8,7 @@ import {load} from "../api/main/Entity"
 import {worker} from "../api/main/WorkerClient"
 import {getCountFromPriceData, getPriceFromPriceData} from "./PriceUtils"
 import {neverNull} from "../api/common/utils/Utils"
-import {buyAliases, formatPrice} from "../subscription/SubscriptionUtils"
+import {bookItem, buyAliases, formatPrice} from "../subscription/SubscriptionUtils"
 import {CustomerTypeRef} from "../api/entities/sys/Customer"
 import {CustomerInfoTypeRef} from "../api/entities/sys/CustomerInfo"
 import {logins} from "../api/main/LoginController"
@@ -27,7 +27,7 @@ export function show(): Promise<void> {
 					dialog.close()
 					BuyDialog.show(BookingItemFeatureType.Alias, amount, freeEmailAliases, false).then(confirm => {
 						if (confirm) {
-							return buyAliases(amount)
+							return bookItem(BookingItemFeatureType.Alias, "emailAliasesTooManyActivatedForBooking_msg", amount)
 						} else {
 							show()
 						}

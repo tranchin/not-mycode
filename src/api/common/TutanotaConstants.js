@@ -137,7 +137,7 @@ export const BookingItemFeatureType = Object.freeze({
 	Storage: '1',
 	Alias: '2',
 	SharedMailGroup: '3',
-	Branding: '4',
+	Whitelabel: '4',
 	ContactForm: '5',
 	WhitelabelChild: '6',
 	LocalAdminGroup: '7',

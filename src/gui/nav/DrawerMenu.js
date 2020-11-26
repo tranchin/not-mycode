@@ -35,7 +35,7 @@ export class DrawerMenu implements MComponent<Attrs> {
 		}, m(".flex.col.height-100p.items-center.pt.pb", [
 			m(".flex-grow"),
 			m(ButtonN, {
-				icon: () => Icons.Cube, // TODO Get giftbox icon
+				icon: () => Icons.Gift, // TODO Get giftbox icon
 				label: () => "Buy a giftcard", // TODO Translate
 				click: createNotAvailableForFreeClickHandler(false,
 					() => {

@@ -30,8 +30,7 @@ import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import {formatPrice} from "../SubscriptionUtils"
 import {formatNameAndAddress} from "../../misc/Formatter"
 import {getByAbbreviation} from "../../api/common/CountryList"
-import {generateGiftCardLink, renderGiftCard, renderGiftCardLinks, showGiftCardToShare} from "./GiftCardUtils"
-import {px, size} from "../../gui/size"
+import {showGiftCardToShare} from "./GiftCardUtils"
 
 export type CreateGiftCardData = {
 	availablePackages: Array<GiftCardOption>;
@@ -59,8 +58,8 @@ class GiftCardCreationPage implements WizardPageN<CreateGiftCardData> {
 	constructor(vnode: Vnode<CreateGiftCardAttrs>) {
 		const data = vnode.attrs.data
 
-		this._messageEditor = new HtmlEditor(() => "Type your message", {enabled: true}) // TRANSLATE
-			.setMinHeight(300)
+		this._messageEditor = new HtmlEditor(() => "Type your message", {enabled: true}) // TODO TRANSLATE
+			.setMinHeight(150)
 			.setMode(Mode.WYSIWYG)
 			.showBorders()
 			.setValue(data.message)
@@ -89,8 +88,8 @@ class GiftCardCreationPage implements WizardPageN<CreateGiftCardData> {
 								type: ButtonType.Login,
 							})
 						},
-						price: formatPrice(parseInt(option.value), true),
-						originalPrice: formatPrice(parseInt(option.value), true),
+						price: formatPrice(parseFloat(option.value), true),
+						originalPrice: formatPrice(parseFloat(option.value), true),
 						helpLabel: "pricing.basePriceIncludesTaxes_msg",
 						features: () => [],
 						width: 230,
@@ -102,19 +101,22 @@ class GiftCardCreationPage implements WizardPageN<CreateGiftCardData> {
 				)),
 			m(this._messageEditor),
 			m(this.countrySelector),
-			m(ButtonN, {
-				label: "next_action",
-				click: () => {
-					if (!this._selectedCountry()) {
-						Dialog.error(() => "Select recipients country") // TODO Translate
-						return
-					}
-					a.data.message = this._messageEditor.getValue()
-					a.data.country = this._selectedCountry()
-					emitWizardEvent(vnode.dom, WizardEventType.SHOWNEXTPAGE)
-				},
-				type: ButtonType.Login,
-			})
+			m(".flex-center.pt-l",
+				m(".flex-grow-shrink-auto.max-width-m.pt.pb.plr-l", m(ButtonN, {
+						label: "next_action",
+						click: () => {
+							if (!this._selectedCountry()) {
+								Dialog.error(() => "Select recipients country") // TODO Translate
+								return
+							}
+							a.data.message = this._messageEditor.getValue()
+							a.data.country = this._selectedCountry()
+							emitWizardEvent(vnode.dom, WizardEventType.SHOWNEXTPAGE)
+						},
+						type: ButtonType.Login,
+					})
+				)
+			)
 		]
 	}
 }
@@ -159,7 +161,7 @@ export function showPurchaseGiftCardWizard(existingGiftCards: GiftCard[]): Promi
 				const data: CreateGiftCardData = {
 					availablePackages: info.options,
 					selectedPackageIndex: Math.floor(info.options.length / 2),
-					message: "Hey, I bought you a gift card!<br />LG,<br />{name}", // Translate defaultGiftCardMessage_msg
+					message: "Hey, I bought you a gift card!<br /> Visit tutanota.com to redeem", // Translate defaultGiftCardMessage_msg
 					giftCard: null,
 					country: accountingInfo.invoiceCountry
 						? getByAbbreviation(accountingInfo.invoiceCountry)

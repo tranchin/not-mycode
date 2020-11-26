@@ -1200,6 +1200,10 @@ module.exports = {
 		"yourCalendars_label": "Your calendars",
 		"yourFolders_action": "YOUR FOLDERS",
 		"yourMessage_label": "Your message",
-		"you_label": "You"
+		"you_label": "You",
+		"giftCard_label": "Gift card",
+		"giftCards_label": "Gift cards",
+		"defaultShareGiftCardSubject_msg": "You received a Tutanota gift card",
+		"defaultShareGiftCardBody_msg": "Hi, <br /><br /> i bought you a gift card for Tutanota, <a href='{urlBase}/#{token}'>click here to redeem it!</a><br /><br />If you do not have an account yet, you can use the link to sign up and reclaim your privacy.<br /><br />  Happy Holidays, {username}"
 	}
 }

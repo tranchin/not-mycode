@@ -54,8 +54,7 @@ export interface ILoginViewController {
 
 	migrateDeviceConfig(oldCredentials: Object[]): Promise<void>;
 
-	loadLoginScreenDialog(wizardFunction: () => Promise<Dialog>): Promise<{+show: Function}>;
-
+	loadSignupWizard(): Promise<{+show: Function}>;
 }
 
 export class LoginViewController implements ILoginViewController {
@@ -335,7 +334,7 @@ export class LoginViewController implements ILoginViewController {
 		})
 	}
 
-	loadLoginScreenDialog(wizardFunction: () => Promise<Dialog>): Promise<{+show: () => any}> {
-		return worker.initialized.then(wizardFunction)
+	loadSignupWizard(): Promise<{+show: () => any}> {
+		return worker.initialized.then(() => loadSignupWizard())
 	}
 }

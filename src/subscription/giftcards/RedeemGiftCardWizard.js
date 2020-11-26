@@ -32,9 +32,12 @@ import {locator} from "../../api/main/MainLocator"
 import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
 import {getByAbbreviation} from "../../api/common/CountryList"
 import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
-import {renderGiftCard, renderGiftCardSvg} from "./GiftCardUtils"
+import {redeemGiftCard, renderGiftCard, renderGiftCardSvg, showGiftCardConfirmationDialog} from "./GiftCardUtils"
 import {px, size} from "../../gui/size"
 import {htmlSanitizer} from "../../misc/HtmlSanitizer"
+import {CancelledError} from "../../api/common/error/CancelledError"
+import {lang} from "../../misc/LanguageViewModel"
+import {getLoginErrorMessage} from "../../misc/LoginUtils"
 
 type GetCredentialsMethod = "login" | "signup"
 
@@ -62,25 +65,39 @@ class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 			})
 		}
 
-		return m(".flex-v-center", {style: {padding: px(size.vpad_large)}}, [
-			renderGiftCard(parseInt(a.data.giftCardInfo.value), a.data.giftCardInfo.message),
-			m(ButtonN, {
-				label: () => "Use existing account", // TODO Translate
-				click: () => nextPage("login"),
-				type: ButtonType.Login
-			}),
-			m(ButtonN, {
-				label: () => "Create account", // TODO Translate
-				click: () => nextPage("signup"),
-				type: ButtonType.Login
-			})
-		])
+		return [
+			m(".flex-center.full-width.pt-l",
+				m("", {style: {width: "480px"}}, renderGiftCard(parseFloat(a.data.giftCardInfo.value), a.data.giftCardInfo.message))
+			),
+			m(".flex-center.full-width.pt-l",
+				m("", {style: {width: "260px"}},
+					m(ButtonN, {
+						label: () => "Use existing account", // TODO Translate
+						click: () => nextPage("login"),
+						type: ButtonType.Login
+					})
+				)
+			),
+			m(".flex-center.full-width.pt-l.pb-m",
+				m("", {style: {width: "260px"}},
+					m(ButtonN, {
+						label: "register_label",
+						click: () => nextPage("signup"),
+						type: ButtonType.Login
+					})
+				))
+		]
 	}
 }
 
 class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 
 	_domElement: HTMLElement
+	_loginFormHelpText: string
+
+	oninit() {
+		this._loginFormHelpText = lang.get("emptyString_msg")
+	}
 
 	oncreate(vnode: Vnode<GiftCardRedeemAttrs>) {
 		this._domElement = vnode.dom
@@ -99,15 +116,21 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 	_renderLoginPage(data: RedeemGiftCardWizardData): Children {
 		const loginFormAttrs = {
 			onSubmit: (mailAddress, password) => {
-				const loginPromise =
-					logins.logout(false)
-					      .then(() => logins.createSession(mailAddress, password, client.getIdentifier(), false, false))
-					      .then(credentials => this._postLogin(data, credentials))
-				// If they try to login with a mail address that is stored, we want to swap out the old session with a new one
-				showProgressDialog("pleaseWait_msg", loginPromise)
+				if (mailAddress === "" || password === "") {
+					this._loginFormHelpText = lang.get("loginFailed_msg")
+				} else {
+					const loginPromise =
+						logins.logout(false)
+						      .then(() => logins.createSession(mailAddress, password, client.getIdentifier(), false, false))
+						      .then(credentials => this._postLogin(data, credentials))
+						      .catch(e => { this._loginFormHelpText = lang.get(getLoginErrorMessage(e))})
+					// If they try to login with a mail address that is stored, we want to swap out the old session with a new one
+					showProgressDialog("pleaseWait_msg", loginPromise)
+				}
 			},
 			mailAddress: data.mailAddress,
 			password: data.password,
+			helpText: () => this._loginFormHelpText
 		}
 
 		const onCredentialsSelected = credentials => {
@@ -127,13 +150,13 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 		}
 
 		return [
-			m(LoginForm, loginFormAttrs),
-			credentials.length > 0
-				? [
-					m(".flex-space-between.mt-l", [m(".hr"), "or", m(".hr")]), // TODO styling
-					m(CredentialsSelector, credentialsSelectorAttrs)
-				]
-				: null
+			m(".flex-grow.flex-center.scroll", m(".flex-grow-shrink-auto.max-width-s.pt.plr-l",
+				m(LoginForm, loginFormAttrs),
+				credentials.length > 0
+					? m(CredentialsSelector, credentialsSelectorAttrs)
+					: null
+				)
+			)
 		]
 	}
 
@@ -191,6 +214,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 	}
 }
 
+
 class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 	view(vnode: Vnode<GiftCardRedeemAttrs>): Children {
 		const data = vnode.attrs.data
@@ -198,42 +222,23 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 		const confirmButtonAttrs = {
 			label: () => "Redeem gift card", // Translate
 			click: () => {
-
-				// Check that the country matches
-				serviceRequest(SysService.LocationService, HttpMethod.GET, null, LocationServiceGetReturnTypeRef)
-					.then(userLocation => {
-						const validCountry = getByAbbreviation(data.giftCardInfo.country)
-						if (!validCountry) {
-							throw new UserError(() => "Invalid gift card")
-						}
-						const validCountryName = validCountry.n
-
-						const userCountry = getByAbbreviation(userLocation.country)
-						const userCountryName = assertNotNull(userCountry).n
-
-						return userCountryName === validCountryName
-							|| Dialog.confirm(() => `Country different: you ${userCountryName} but gift card ${validCountryName}`) // Translate
-
+				const wasFree = logins.getUserController().isFreeAccount()
+				redeemGiftCard(data.giftCardInfo.giftCard, data.giftCardInfo.country, Dialog.confirm)
+					.then(() => {
+						showGiftCardConfirmationDialog(wasFree, () => emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG))
 					})
-					.then(isValidCountry => {
-						if (isValidCountry) {
-							const requestEntity = createGiftCardRedeemData({giftCard: data.giftCardInfo.giftCard})
-							serviceRequestVoid(SysService.GiftCardRedeemService, HttpMethod.POST, requestEntity)
-								.then(() => {
-									Dialog.info(() => "Congratulations!", () => "You now have a premium account", "ok_action", DialogType.EditMedium) // Translate
-									      .then(() => {
-										      emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG)
-									      }) // Translate
-								})
-								.catch(NotFoundError, () => Dialog.error(() => "Gift card not found")) // Translate
-								.catch(NotAuthorizedError, e => Dialog.error(() => e.message))
-						}
-					})
+					.catch(UserError, showUserError)
+					.catch(CancelledError, noOp)
 			},
 			type: ButtonType.Login
 		}
 
-		return m(ButtonN, confirmButtonAttrs)
+		return m(".flex-center.full-width.pt-l",
+			[
+				m("", {style: {width: "480px"}}, renderGiftCardSvg(parseFloat(data.giftCardInfo.value))),
+				m(".pt-l", {style: {width: "260px"}}, m(ButtonN, confirmButtonAttrs))
+			]
+		)
 	}
 }
 

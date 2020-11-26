@@ -61,13 +61,26 @@ import {ButtonN, ButtonType} from "../gui/base/ButtonN"
 import {TextFieldN} from "../gui/base/TextFieldN"
 import {DropDownSelectorN} from "../gui/base/DropDownSelectorN"
 import {Dialog} from "../gui/base/Dialog"
-import {ColumnWidth} from "../gui/base/TableN"
+import {ColumnWidth, TableN} from "../gui/base/TableN"
 import {showPurchaseGiftCardWizard} from "./giftcards/CreateGiftCardWizard"
-import {canBuyGiftCards, createGiftCardTableLine, GIFT_CARD_TABLE_HEADER, loadGiftCards,} from "./giftcards/GiftCardUtils"
+import {
+	canBuyGiftCards,
+	createGiftCardTableLine,
+	getTokenFromUrl,
+	GIFT_CARD_TABLE_HEADER,
+	loadGiftCards,
+	redeemGiftCard, showGiftCardConfirmationDialog,
+} from "./giftcards/GiftCardUtils"
 import type {GiftCard} from "../api/entities/sys/GiftCard"
 import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
 import {locator} from "../api/main/MainLocator"
-import {ExpandableTable} from "../settings/ExpandableTable"
+import {UserError} from "../api/common/error/UserError"
+import {showUserError} from "../misc/ErrorHandlerImpl"
+import {CancelledError} from "../api/common/error/CancelledError"
+import {Expandable} from "../settings/Expandable"
+import type {ExpandableAttrs} from "../settings/Expandable"
+import {px, size} from "../gui/size"
+import {theme} from "../gui/theme"
 
 assertMainOrNode()
 
@@ -223,17 +236,6 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		}), false)
 
 
-		const purchaseGiftCardButtonAttrs: ButtonAttrs = {
-			label: () => "Purchase a gift card",
-			click: createNotAvailableForFreeClickHandler(false, () => {
-				return canBuyGiftCards().then(canBuy => canBuy
-					? showPurchaseGiftCardWizard(Array.from(this._giftCards.values()))
-					: Dialog.error(() => "Your payment methods do not allow gift card purchase")) // Translate
-			}, isPremiumPredicate),
-			icon: () => Icons.Add
-		}
-
-
 		this._giftCards = new Map()
 		loadGiftCards(assertNotNull(logins.getUserController().user.customer))
 			.then(giftCards => {
@@ -319,17 +321,14 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 						disabled: true,
 					})
 					: null,
-				m(ExpandableTable, {
-					title: () => "Gift cards",
-					infoMsg: () => `You have purchased ${this._giftCards.size} giftcards`, // TODO Translate
-					table: {
-						columnHeading: GIFT_CARD_TABLE_HEADER,
-						columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
-						showActionButtonColumn: true,
-						addButtonAttrs: purchaseGiftCardButtonAttrs,
-						lines: Array.from(this._giftCards.values()).filter(giftCard => giftCard.usable).map(giftCard => createGiftCardTableLine(giftCard)),
-					},
+				m(".h4.mt-l", lang.get('adminPremiumFeatures_action')),
+				m(TextFieldN, {
+					label: "bookingItemUsers_label",
+					value: this._usersFieldValue,
+					disabled: true,
+					injectionsRight: () => [m(ButtonN, addUserButtonAttrs), m(ButtonN, editUsersButtonAttrs)]
 				}),
+				m(Expandable, renderGiftCardExpandable(Array.from(this._giftCards.values()), isPremiumPredicate)),
 				m(".h4.mt-l", lang.get('adminPremiumFeatures_action')),
 				m(TextFieldN, {
 					label: "bookingItemUsers_label",
@@ -668,3 +667,69 @@ function changeSubscriptionInterval(accountingInfo: AccountingInfo, paymentInter
 		})
 	}
 }
+
+function renderGiftCardExpandable(giftCards: GiftCard[], isPremiumPredicate: () => boolean): ExpandableAttrs {
+	const purchaseGiftCardButtonAttrs: ButtonAttrs = {
+		label: () => "Purchase a gift card",
+		click: createNotAvailableForFreeClickHandler(false, () => {
+			return canBuyGiftCards().then(canBuy => canBuy
+				? showPurchaseGiftCardWizard(giftCards)
+				: Dialog.error(() => "Your payment methods do not allow gift card purchase")) // Translate
+		}, isPremiumPredicate),
+		icon: () => Icons.Add
+	}
+
+	return {
+		title: "giftCards_label",
+		infoMsg: () => "Purchase, redeem and manage gift cards", // TODO Translate
+		children: [
+			m(TableN, {
+				columnHeading: GIFT_CARD_TABLE_HEADER,
+				columnWidths: [ColumnWidth.Small, ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
+				showActionButtonColumn: true,
+				addButtonAttrs: purchaseGiftCardButtonAttrs,
+				lines: giftCards.filter(giftCard => giftCard.usable).map(giftCard => createGiftCardTableLine(giftCard)),
+			}),
+			m(TextFieldN, {
+				label: "emptyString_msg",
+				value: () => "Redeem a gift card",
+				disabled: true,
+				injectionsRight: makeRedeemGiftCardButton
+			})
+		]
+	}
+}
+
+function makeRedeemGiftCardButton(): Children {
+	return m(ButtonN, {
+		label: () => "Redeem",
+		click: () => {
+			const giftCardCode = stream("")
+			const wasFree = logins.getUserController().isFreeAccount()
+			let dialog
+			dialog = Dialog.showActionDialog({
+				title: "Redeem a gift card code!", // TODO Translate
+				child: {
+					view: () => m(TextFieldN, {
+						value: giftCardCode,
+						label: () => "Enter the code",
+					})
+				},
+				okAction: () => {
+					dialog.close()
+					Promise.resolve()
+					       .then(() => getTokenFromUrl(giftCardCode()))
+					       .spread((id, key) => worker.getGiftCardInfo(id, key))
+					       .catch(NotFoundError, () => { throw new UserError(() => "Gift card not found")}) // TODO Translate
+					       .then(info => redeemGiftCard(info.giftCard, info.country, Dialog.confirm))
+					       .then(() => showGiftCardConfirmationDialog(wasFree))
+					       .catch(UserError, showUserError)
+					       .catch(CancelledError, noOp)
+				}
+			})
+		},
+		icon: () => Icons.Gift,
+	})
+}
+
+

@@ -23,12 +23,14 @@ import {header} from "../gui/base/Header"
 import {AriaLandmarks, landmarkAttrs, liveDataAttrs} from "../api/common/utils/AriaUtils"
 import type {ILoginViewController} from "./LoginViewController"
 import {showTakeOverDialog} from "./TakeOverDeletedAddressDialog"
-import {loadGiftCardInfoFromHash} from "../subscription/giftcards/GiftCardUtils"
-import {loadSignupWizard} from "../subscription/UpgradeSubscriptionWizard"
+import {getTokenFromUrl} from "../subscription/giftcards/GiftCardUtils"
 import {Dialog} from "../gui/base/Dialog"
 import {loadRedeemGiftCardWizard} from "../subscription/giftcards/RedeemGiftCardWizard"
 import {NotAuthorizedError, NotFoundError} from "../api/common/error/RestError"
 import {ExpanderButtonN, ExpanderPanelN} from "../gui/base/ExpanderN"
+import {worker} from "../api/main/WorkerClient"
+import {UserError} from "../api/common/error/UserError"
+import {showUserError} from "../misc/ErrorHandlerImpl"
 
 assertMainOrNode()
 
@@ -373,7 +375,7 @@ export class LoginView {
 	_signup() {
 		if (!this._showingSignup) {
 			this._showingSignup = true
-			showProgressDialog('loading_msg', this._viewController.then(c => c.loadLoginScreenDialog(loadSignupWizard))).then(dialog => dialog.show())
+			showProgressDialog('loading_msg', this._viewController.then(c => c.loadSignupWizard())).then(dialog => dialog.show())
 		}
 	}
 
@@ -385,18 +387,22 @@ export class LoginView {
 			return
 		} else if (requestedPath.startsWith("/giftcard")) {
 
-			const showWizardPromise = this._viewController.then(controller => {
-				return loadGiftCardInfoFromHash(location.hash)
-					.then(giftCardInfo => controller.loadLoginScreenDialog(() => loadRedeemGiftCardWizard(giftCardInfo)))
-			})
+			const showWizardPromise =
+				Promise.resolve()
+				       .then(() => getTokenFromUrl(location.hash))
+				       .spread((id, key) => {
+					       return worker.initialized
+					                    .then(() => worker.getGiftCardInfo(id, key))
+					                    .then(giftCardInfo => loadRedeemGiftCardWizard(giftCardInfo))
+				       })
 
 			showProgressDialog(() => "just a sec", showWizardPromise)
 				.then(dialog => dialog.show())
 				.catch(NotAuthorizedError, e => Dialog.error(() => "This gift card can't be used"))
 				.catch(NotFoundError, e => Dialog.error(() => "This gift card doesn't exist"))// TODO Translate
+				.catch(UserError, showUserError)
 			return
 		}
-
 		this._showingSignup = false
 
 

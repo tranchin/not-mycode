@@ -12,6 +12,8 @@ import {checkApprovalStatus} from "../misc/LoginUtils"
 import {
 	appendEmailSignature,
 	conversationTypeString,
+	createInlineImage, getDefaultSignature,
+	getEmailSignature,
 	createInlineImage,
 	getEnabledMailAddressesWithUser,
 	getSupportMailSignature,
@@ -622,6 +624,25 @@ export function writeInviteMail(mailboxDetails?: MailboxDetail) {
 			'{githubLink}': "https://github.com/tutao/tutanota"
 		})
 		newMailEditorFromTemplate(mailbox, {}, lang.get("invitationMailSubject_msg"), body, [], false)
+			.then(dialog => dialog.show())
+	})
+}
+
+/**
+ * Create and show a new mail editor with an invite message
+ * @param mailboxDetails
+ * @returns {*}
+ */
+export function writeGiftCardMail(token: string, mailboxDetails?: MailboxDetail) {
+	_mailboxPromise(mailboxDetails).then(mailbox => {
+		const username = logins.getUserController().userGroupInfo.name;
+		const body = lang.get("defaultShareGiftCardBody_msg", {
+			'{urlBase}': "https://mail.tutanota.com/giftcard",
+			'{token}': token,
+			'{username}': logins.getUserController().userGroupInfo.name,
+		})
+		const subject = lang.get("defaultShareGiftCardSubject_msg")// TODO Translate
+		newMailEditorFromTemplate(mailbox, {}, subject, body + getDefaultSignature(), [], false)
 			.then(dialog => dialog.show())
 	})
 }

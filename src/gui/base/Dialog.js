@@ -356,56 +356,6 @@ export class Dialog {
 		})
 	}
 
-	static info(title: TranslationKey | lazy<string>, children?: () => Children, confirmId: TranslationKey = "ok_action", type?: DialogTypeEnum): Promise<void> {
-		const onClosePromise = defer()
-		let dialog
-
-		const closeAction = () => {
-			dialog.close()
-			setTimeout(() => onClosePromise.resolve(), DefaultAnimationTime)
-		}
-
-		const buttonAttrs: ButtonAttrs =
-			{label: confirmId, click: () => closeAction(), type: ButtonType.Primary}
-
-
-		const headerBarAttrs: DialogHeaderBarAttrs = {
-			right: [
-				{
-					label: "close_alt",
-					click: closeAction,
-					type: ButtonType.Primary
-				}
-			],
-			middle: () => lang.getMaybeLazy(title)
-
-		}
-		dialog = new Dialog(type || DialogType.EditMedium, {
-			view: () => [
-				m(".dialog-header.plr-l", m(DialogHeaderBar, headerBarAttrs)),
-				m("#dialog-message.dialog-contentButtonsBottom.text-break.text-prewrap.selectable",
-					[
-						children ? children() : null,
-						m(".flex-center.dialog-buttons", m(ButtonN, buttonAttrs))
-					])
-			]
-		}).setCloseHandler(closeAction)
-		  .addShortcut({
-			  key: Keys.ESC,
-			  shift: false,
-			  exec: closeAction,
-			  help: "close_alt"
-		  })
-		  .addShortcut({
-			  key: Keys.RETURN,
-			  shift: false,
-			  exec: closeAction,
-			  help: "ok_action",
-		  })
-		  .show()
-
-		return onClosePromise.promise
-	}
 
 	/**
 	 * Show a dialog with multiple selection options below the message.

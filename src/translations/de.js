@@ -1204,6 +1204,10 @@ module.exports = {
 		"yourCalendars_label": "Deine Kalender",
 		"yourFolders_action": "DEINE ORDNER",
 		"yourMessage_label": "Deine Nachricht",
-		"you_label": "Du"
+		"you_label": "Du",
+		"giftCard_label": "Gutschein",
+		"giftCards_label": "Gutscheine",
+		"defaultShareGiftCardBody_msg": "Guten Tag,<br /> ich habe dir einen Gutschein für Tutanota gekauft, <a href='{urlBase}/#{token}'>klicke hier um sie einzulösen!</a><br />Falls du noch keinen Account bei Tutanota hast, kannst du dich anmelden.<br /><br />  Schöne Feiertage, {username}",
+		"defaultShareGiftCardSubject_msg": "Du hast einen Gutschein für Tutanota erhalten"
 	}
 }

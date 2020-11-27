@@ -1205,7 +1205,7 @@ module.exports = {
 		"you_label": "Sie",
 		"giftCard_label": "Gutschein",
 		"giftCards_label": "Gutscheine",
-		"defaultShareGiftCardBody_msg": "Guten Tag,<br />ich habe einen Gutschein für Tutanota für Sie gekauft, <a href='{urlBase}/#{token}'>klicken Sie hier um sie einzulösen!</a><br />Falls Sie noch keinen Account bei Tutanota haben, können Sie sich direkt anmelden.<br /><br />  Mit besten Grüßen, {username}",
+		"defaultShareGiftCardBody_msg": "Guten Tag,<br />ich habe einen Gutschein für Tutanota für Sie gekauft, <a href='{link}'>klicken Sie hier um sie einzulösen!</a><br />Falls Sie noch keinen Account bei Tutanota haben, können Sie sich direkt anmelden.<br /><br />  Mit besten Grüßen, {username}",
 		"defaultShareGiftCardSubject_msg": "Sie haben einen Gutschein für Tutanota erhalten"
 	}
 }

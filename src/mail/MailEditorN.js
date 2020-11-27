@@ -633,12 +633,11 @@ export function writeInviteMail(mailboxDetails?: MailboxDetail) {
  * @param mailboxDetails
  * @returns {*}
  */
-export function writeGiftCardMail(token: string, mailboxDetails?: MailboxDetail) {
+export function writeGiftCardMail(link: string, mailboxDetails?: MailboxDetail) {
 	_mailboxPromise(mailboxDetails).then(mailbox => {
 		const username = logins.getUserController().userGroupInfo.name;
 		const body = lang.get("defaultShareGiftCardBody_msg", {
-			'{urlBase}': "https://mail.tutanota.com/giftcard",
-			'{token}': token,
+			'{link}': link,
 			'{username}': logins.getUserController().userGroupInfo.name,
 		})
 		const subject = lang.get("defaultShareGiftCardSubject_msg")// TODO Translate

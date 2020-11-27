@@ -2,7 +2,6 @@
 
 import m from "mithril"
 import QRCode from "qrcode"
-import {PaymentMethodType, reverse} from "../../api/common/TutanotaConstants"
 import {Icons} from "../../gui/base/icons/Icons"
 import type {TableLineAttrs} from "../../gui/base/TableN"
 import {formatDate} from "../../misc/Formatter"
@@ -14,36 +13,31 @@ import {locator} from "../../api/main/MainLocator"
 import type {GiftCard} from "../../api/entities/sys/GiftCard"
 import {_TypeModel as GiftCardTypeModel, GiftCardTypeRef} from "../../api/entities/sys/GiftCard"
 import type {TranslationKey} from "../../misc/LanguageViewModel"
+import {lang} from "../../misc/LanguageViewModel"
 import {UserError} from "../../api/common/error/UserError"
 import {formatPrice} from "../SubscriptionUtils"
-import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
 import {Dialog, DialogType} from "../../gui/base/Dialog"
 import {attachDropdown} from "../../gui/base/DropdownN"
-import {getDifferenceInDays} from "../../api/common/utils/DateUtils"
 import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import {HtmlEditor} from "../../gui/base/HtmlEditor"
 import {htmlSanitizer} from "../../misc/HtmlSanitizer"
 import {serviceRequest, serviceRequestVoid} from "../../api/main/Entity"
-import {createGiftCardDeleteData, GiftCardDeleteDataTypeRef} from "../../api/entities/sys/GiftCardDeleteData"
 import {HttpMethod} from "../../api/common/EntityFunctions"
 import {SysService} from "../../api/entities/sys/Services"
 import {px, size} from "../../gui/size"
-import {showPurchaseGiftCardWizard} from "./CreateGiftCardWizard"
-import {logins} from "../../api/main/LoginController"
-import {assertNotNull, neverNull} from "../../api/common/utils/Utils"
+import {assertNotNull} from "../../api/common/utils/Utils"
 import {LocationServiceGetReturnTypeRef} from "../../api/entities/sys/LocationServiceGetReturn"
 import {getByAbbreviation} from "../../api/common/CountryList"
 import {createGiftCardRedeemData} from "../../api/entities/sys/GiftCardRedeemData"
-import {emitWizardEvent, WizardEventType} from "../../gui/base/WizardDialogN"
 import {NotAuthorizedError, NotFoundError} from "../../api/common/error/RestError"
 import {CancelledError} from "../../api/common/error/CancelledError"
-import type {Theme} from "../../gui/theme"
 import {theme} from "../../gui/theme"
 import {writeGiftCardMail} from "../../mail/MailEditorN"
 import {DefaultAnimationTime} from "../../gui/animation/Animations"
 import {copyToClipboard} from "../../misc/ClipboardUtils"
 import {BootIcons} from "../../gui/base/icons/BootIcons"
-import {lang} from "../../misc/LanguageViewModel"
+import {base64ToBase64Url, base64UrlToBase64} from "../../api/common/utils/Encoding"
+import {getWebRoot} from "../../api/Env"
 
 export const MAX_PURCHASED_GIFTCARDS = 10
 
@@ -86,12 +80,6 @@ export function redeemGiftCard(id: IdTuple, validCountryCode: string, getConfirm
 				.catch(NotFoundError, () => { throw new UserError(() => "Gift card was not found") }) // TODO Translate
 				.catch(NotAuthorizedError, e => { throw new UserError(() => e.message) })
 		})
-}
-
-export function canBuyGiftCards(): Promise<boolean> {
-	return logins.getUserController()
-	             .loadAccountingInfo()
-	             .then(accountingInfo => accountingInfo.paymentMethod != null && accountingInfo.paymentMethod !== PaymentMethodType.Invoice)
 }
 
 export function loadGiftCards(customerId: Id): Promise<GiftCard[]> {
@@ -167,32 +155,27 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 
 export function generateGiftCardLink(giftCard: GiftCard): Promise<string> {
 	return worker.resolveSessionKey(GiftCardTypeModel, giftCard).then(key => {
-
 		if (!key) {
 			throw new UserError(() => "Error with giftcard") // TODO Translate
 		}
-
-		return `http://localhost:9000/client/build/giftcard/#${_encodeToken(giftCard._id, key)}` // TODO BIG TODO generate actual link
+		return getWebRoot() + `/giftcard/#${_encodeToken(giftCard._id, key)}`
 	})
 }
 
 function _encodeToken(id: IdTuple, key: string): Base64 {
 	const tokenJSON = JSON.stringify([id, key])
-	return btoa(tokenJSON) // TODO maybe this is breakable???? Maybe it generates invalid characters for a url
+	return base64ToBase64Url(btoa(tokenJSON))
 }
 
 function _decodeToken(token: Base64): [IdTuple, string] {
-	const tokenJSON = atob(token)
+	const tokenJSON = atob(base64UrlToBase64(token))
 	return JSON.parse(tokenJSON)
 }
 
 export function showGiftCardToShare(giftCard: GiftCard) {
-
 	generateGiftCardLink(giftCard)
 		.then(link => {
-			let qrcodeGenerator = new QRCode({height: 150, width: 150, content: link})
-			const qrCode = htmlSanitizer.sanitize(qrcodeGenerator.svg(), false).text
-			let linkCopied = ""
+			let infoMessage = ""
 			let dialog: Dialog
 			dialog = Dialog.largeDialog(
 				{
@@ -210,9 +193,8 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 						m("", {style: {padding: px(size.vpad_large)}},
 							[
 								m(".flex-center.full-width.pt-l",
-									m("", {style: {width: "480px"}}, renderGiftCard(parseFloat(giftCard.value), giftCard.message))
+									m("", {style: {width: "480px"}}, renderGiftCard(parseFloat(giftCard.value), giftCard.message, link))
 								),
-								m(".flex-center", m.trust(qrCode)), // sanitized above
 								m(".flex-center", [
 										m(ButtonN, {
 											click: () => {
@@ -220,40 +202,98 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 												setTimeout(() => writeGiftCardMail(link), DefaultAnimationTime)
 											},
 											label: () => "Share via email", // TODO Translate
-											icon: () => BootIcons.Share
+											icon: () => BootIcons.Mail
 										}),
 										m(ButtonN, {
 											click: () => {
 												copyToClipboard(link)
-												linkCopied = "Gift card link copied to clipboard!" // TODO Translate
+												infoMessage = "Gift card link copied to clipboard!" // TODO Translate
 											},
 											label: () => "Copy link", // TODO Translate
-											icon: () => Icons.Send
+											icon: () => Icons.Clipboard
 										}),
-
+										m(ButtonN, {
+											click: () => {
+												infoMessage = ""
+												window.print()
+											},
+											label: () => "Print gift card", // TODO Translate
+											icon: () => Icons.Print
+										}),
 									]
 								),
-								m(".flex-center", m("small", linkCopied))
+								m(".flex-center", m("small.noprint", infoMessage))
 							]
 						)
 				}).show()
 		})
 }
 
-export function renderGiftCardSvg(price: number): Children {
+export function renderGiftCardSvg(price: number, link: ?string, message: ?string, portrait: boolean = true): Children {
+	let qrCode = null
+	const qrcodeSize = portrait ? 120 : 60
+	if (link) {
+		let qrcodeGenerator = new QRCode({
+			height: qrcodeSize,
+			width: qrcodeSize,
+			content: link,
+			background: theme.content_accent,
+			color: theme.content_bg
+		})
+		qrCode = htmlSanitizer.sanitize(qrcodeGenerator.svg({container: null}), false).text
+	}
+
+	console.log("qrCode", qrCode)
 	const formattedPrice = formatPrice(price, true)
-	return m("", {style: {maxWidth: "480px"}}, m.trust(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 243.653 152.991"><path d="M6.911 0A6.896 6.896 0 000 6.91v139.17a6.896 6.896 0 006.911 6.91h109.124c3.778-1.31 7.43-3.004 11.147-4.488 34.047-13.59 61.882-25.146 61.907-38.193 0-.418-.029-.84-.088-1.262-1.76-12.881-32.544-16.875-32.501-22.778.005-.314.092-.642.281-.97 3.698-6.476 18.345-6.166 23.74-6.624 5.398-.469 18.069-.372 18.68-4.231.019-.12.03-.238.03-.357.015-3.586-8.713-4.992-8.713-4.992s10.59 1.582 10.562 5.702c0 .202-.025.41-.081.623-1.14 4.426-10.46 5.259-16.623 5.561-5.828.292-14.703.956-14.733 3.802-.005.166.025.34.085.516 1.39 4.162 33.92 6.166 54.732 16.968 10.165 5.27 15.992 13.582 19.193 22.564V6.911A6.896 6.896 0 00236.743 0z" fill="${theme.content_accent}"/><path d="M24.996 18.992h-9.332v-1.767h20.585v1.767h-9.333v26.653h-1.92V18.992zM35.75 40.115V25.482h1.843v14.402c0 3.073 1.344 4.57 4.417 4.57 2.803 0 5.146-1.459 7.642-3.84V25.482h1.844v20.163H49.65v-3.341c-2.227 2.112-4.839 3.764-7.796 3.764-4.186 0-6.106-2.305-6.106-5.953zm23.85 1.037V27.133h-3.534v-1.651h3.533v-7.335h1.844v7.335h5.261v1.652h-5.261v13.748c0 2.151.73 3.38 3.264 3.38.768 0 1.536-.077 2.112-.268v1.728c-.652.115-1.42.192-2.265.192-3.342 0-4.955-1.344-4.955-4.762zm11.136-.154c0-3.84 3.264-6.721 13.865-8.488v-1.229c0-3.072-1.614-4.608-4.379-4.608-3.341 0-5.569 1.305-7.835 3.341l-1.075-1.152c2.497-2.304 5.07-3.802 8.948-3.802 4.187 0 6.184 2.38 6.184 6.106v9.486c0 2.458.154 3.956.576 4.993H85.06a9.82 9.82 0 01-.46-2.996c-2.459 2.113-5.147 3.342-8.181 3.342-3.687 0-5.684-1.92-5.684-4.993zm13.864-.154v-6.951c-9.831 1.728-12.02 4.147-12.02 6.99 0 2.265 1.497 3.494 3.993 3.494 2.996 0 5.723-1.305 8.027-3.533zm8.143 4.801V25.367h3.34V28.4c1.768-1.728 4.302-3.456 7.605-3.456 3.88 0 5.991 2.227 5.991 6.068v14.632h-3.302V31.742c0-2.688-1.152-3.955-3.726-3.955-2.419 0-4.455 1.267-6.567 3.264v14.594h-3.341zm21.775-10.14c0-6.989 4.455-10.56 9.448-10.56 4.954 0 9.41 3.571 9.41 10.56 0 6.952-4.456 10.562-9.41 10.562-4.955 0-9.448-3.61-9.448-10.561zm15.516 0c0-4.224-2.036-7.719-6.068-7.719-3.88 0-6.107 3.15-6.107 7.72 0 4.301 1.997 7.758 6.107 7.758 3.84 0 6.068-3.111 6.068-7.758zm9.83 5.224V28.094h-3.532v-2.727h3.533v-7.22h3.303v7.22h5.261v2.727h-5.262V40c0 2.15.692 3.226 3.15 3.226.73 0 1.536-.116 2.074-.27v2.728c-.577.115-1.844.23-2.88.23-4.264 0-5.646-1.651-5.646-5.185zm12.137.115c0-4.11 3.495-7.028 13.557-8.45v-.92c0-2.536-1.344-3.764-3.84-3.764-3.073 0-5.339 1.344-7.336 3.072l-1.728-2.074c2.342-2.15 5.377-3.764 9.41-3.764 4.838 0 6.758 2.535 6.758 6.76v8.948c0 2.458.154 3.956.577 4.993h-3.38c-.269-.845-.46-1.652-.46-2.804-2.267 2.113-4.801 3.111-7.836 3.111-3.495 0-5.722-1.843-5.722-5.108zm13.557-.46V34.7c-7.72 1.229-10.293 3.11-10.293 5.645 0 1.959 1.306 2.996 3.418 2.996 2.689 0 4.993-1.114 6.875-2.958z" fill="${theme.content_bg}"/><text style="line-height:1.25" x="-119.522" y="203.681" font-weight="400" font-size="22.462" letter-spacing="0" word-spacing="0" font-family="sans-serif" fill="${theme.content_bg}" stroke-width=".562" transform="translate(143.75 -74.606)"><tspan x="-119.522" y="203.681">${formattedPrice}</tspan></text><text style="line-height:1.25" x="-118.577" y="135.988" font-weight="400" font-size="11.073" letter-spacing="0" word-spacing="0" font-family="sans-serif" fill="${theme.content_bg}" stroke-width=".277" transform="translate(143.75 -74.606)"><tspan x="-118.577" y="135.988">${lang.get("giftCard_label")}</tspan></text></svg>`))
+	const height = portrait ? 300 : 140
+	const width = 240
+
+	return m("svg", {
+			style: {
+				maxWidth: "960px", minwidth: "480px", background: theme.content_accent, borderRadius: px(20),
+				"-webkit-print-color-adjust": "exact",
+				"color-adjust": "exact"
+			},
+			viewBox: `0 0 ${width} ${height}`
+		},
+		[
+			m("path", { /* tutanota logo text */
+				fill: theme.elevated_bg,
+				d: "M24.996 18.992h-9.332v-1.767h20.585v1.767h-9.333v26.653h-1.92V18.992zM35.75 40.115V25.482h1.843v14.402c0 3.073 1.344 4.57 4.417 4.57 2.803 0 5.146-1.459 7.642-3.84V25.482h1.844v20.163H49.65v-3.341c-2.227 2.112-4.839 3.764-7.796 3.764-4.186 0-6.106-2.305-6.106-5.953zm23.85 1.037V27.133h-3.534v-1.651h3.533v-7.335h1.844v7.335h5.261v1.652h-5.261v13.748c0 2.151.73 3.38 3.264 3.38.768 0 1.536-.077 2.112-.268v1.728c-.652.115-1.42.192-2.265.192-3.342 0-4.955-1.344-4.955-4.762zm11.136-.154c0-3.84 3.264-6.721 13.865-8.488v-1.229c0-3.072-1.614-4.608-4.379-4.608-3.341 0-5.569 1.305-7.835 3.341l-1.075-1.152c2.497-2.304 5.07-3.802 8.948-3.802 4.187 0 6.184 2.38 6.184 6.106v9.486c0 2.458.154 3.956.576 4.993H85.06a9.82 9.82 0 01-.46-2.996c-2.459 2.113-5.147 3.342-8.181 3.342-3.687 0-5.684-1.92-5.684-4.993zm13.864-.154v-6.951c-9.831 1.728-12.02 4.147-12.02 6.99 0 2.265 1.497 3.494 3.993 3.494 2.996 0 5.723-1.305 8.027-3.533zm8.143 4.801V25.367h3.34V28.4c1.768-1.728 4.302-3.456 7.605-3.456 3.88 0 5.991 2.227 5.991 6.068v14.632h-3.302V31.742c0-2.688-1.152-3.955-3.726-3.955-2.419 0-4.455 1.267-6.567 3.264v14.594h-3.341zm21.775-10.14c0-6.989 4.455-10.56 9.448-10.56 4.954 0 9.41 3.571 9.41 10.56 0 6.952-4.456 10.562-9.41 10.562-4.955 0-9.448-3.61-9.448-10.561zm15.516 0c0-4.224-2.036-7.719-6.068-7.719-3.88 0-6.107 3.15-6.107 7.72 0 4.301 1.997 7.758 6.107 7.758 3.84 0 6.068-3.111 6.068-7.758zm9.83 5.224V28.094h-3.532v-2.727h3.533v-7.22h3.303v7.22h5.261v2.727h-5.262V40c0 2.15.692 3.226 3.15 3.226.73 0 1.536-.116 2.074-.27v2.728c-.577.115-1.844.23-2.88.23-4.264 0-5.646-1.651-5.646-5.185zm12.137.115c0-4.11 3.495-7.028 13.557-8.45v-.92c0-2.536-1.344-3.764-3.84-3.764-3.073 0-5.339 1.344-7.336 3.072l-1.728-2.074c2.342-2.15 5.377-3.764 9.41-3.764 4.838 0 6.758 2.535 6.758 6.76v8.948c0 2.458.154 3.956.577 4.993h-3.38c-.269-.845-.46-1.652-.46-2.804-2.267 2.113-4.801 3.111-7.836 3.111-3.495 0-5.722-1.843-5.722-5.108zm13.557-.46V34.7c-7.72 1.229-10.293 3.11-10.293 5.645 0 1.959 1.306 2.996 3.418 2.996 2.689 0 4.993-1.114 6.875-2.958z"
+			}),
+			m("text", { /* price */
+				"text-anchor": "end",
+				x: 230, y: 30,
+				fill: theme.elevated_bg,
+				"font-size": "1.6rem"
+			}, formattedPrice),
+			m("text", { /* translation of "gift card" */
+				"text-anchor": "end",
+				x: 170, y: 65,
+				fill: theme.elevated_bg
+			}, lang.get("giftCard_label")),
+			qrCode
+				? m("g", {
+					transform: portrait ? `translate(${width / 2 - qrcodeSize / 2} 90)` : "translate(20 73)"
+				}, m.trust(qrCode))
+				: null,
+			m("path", {
+				fill: theme.elevated_bg,
+				transform: `translate(117 ${height - 80})`,
+				d: "M74.483 0s8.728 1.406 8.713 4.992c0 .12-.011.237-.029.357-.612 3.86-13.283 3.762-18.682 4.23-5.394.459-20.04.149-23.739 6.625a1.996 1.996 0 00-.28.97c-.043 5.903 30.74 9.897 32.5 22.778.06.422.088.844.088 1.262-.025 13.047-27.86 24.602-61.907 38.193C7.43 80.891 3.78 82.585 0 83.896h127.618v-28.16c-3.2-8.982-9.027-17.293-19.193-22.564C87.613 22.37 55.084 20.366 53.693 16.204c-.06-.177-.09-.35-.085-.516.03-2.846 8.905-3.51 14.734-3.802 6.162-.302 15.481-1.135 16.622-5.56.056-.213.08-.422.08-.624C85.075 1.582 74.484 0 74.484 0z"
+			})
+		]
+	)
 }
 
-export function renderGiftCard(value: number, message: string): Children {
-
+export function renderGiftCard(value: number, message: string, link: ?string, portrait: boolean = true): Children {
 	return [
-		m(".flex-center.full-width.pt-l.editor-border",
+		m(".flex-center.full-width.pt-l.editor-border.noprint",
 			m(".pt-s.pb-s", {style: {width: "260px"}},
 				m.trust(htmlSanitizer.sanitize(message, true).text),
 			),
 		),
-		m(".pt-l", renderGiftCardSvg(parseFloat(value))),
+		m(".pt-l", renderGiftCardSvg(parseFloat(value), link, message, portrait)),
 	]
 }
 

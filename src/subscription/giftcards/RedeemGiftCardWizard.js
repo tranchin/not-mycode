@@ -2,13 +2,13 @@
 
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
-import {assertNotNull, neverNull, noOp} from "../../api/common/utils/Utils"
+import {neverNull, noOp} from "../../api/common/utils/Utils"
 import type {WizardPageAttrs, WizardPageN} from "../../gui/base/WizardDialogN"
 import {createWizardDialog, emitWizardEvent, WizardEventType} from "../../gui/base/WizardDialogN"
 import {logins} from "../../api/main/LoginController"
 import type {NewAccountData} from "../UpgradeSubscriptionWizard"
 import {loadUpgradePrices} from "../UpgradeSubscriptionWizard"
-import {Dialog, DialogType} from "../../gui/base/Dialog"
+import {Dialog} from "../../gui/base/Dialog"
 import {LoginForm} from "../../login/LoginForm"
 import type {CredentialsSelectorAttrs} from "../../login/CredentialsSelector"
 import {CredentialsSelector} from "../../login/CredentialsSelector"
@@ -19,22 +19,15 @@ import {client} from "../../misc/ClientDetector"
 import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import type {SignupFormAttrs} from "../../api/main/SignupForm"
 import {SignupForm} from "../../api/main/SignupForm"
-import {NotAuthorizedError, NotFoundError} from "../../api/common/error/RestError"
-import {LocationServiceGetReturnTypeRef} from "../../api/entities/sys/LocationServiceGetReturn"
-import {serviceRequest, serviceRequestVoid} from "../../api/main/Entity"
-import {SysService} from "../../api/entities/sys/Services"
-import {HttpMethod} from "../../api/common/EntityFunctions"
-import {createGiftCardRedeemData} from "../../api/entities/sys/GiftCardRedeemData"
+import {NotAuthorizedError} from "../../api/common/error/RestError"
+import {isSameId} from "../../api/common/EntityFunctions"
 import {UserError} from "../../api/common/error/UserError"
 import {showUserError} from "../../misc/ErrorHandlerImpl"
 import {CustomerInfoTypeRef} from "../../api/entities/sys/CustomerInfo"
 import {locator} from "../../api/main/MainLocator"
 import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
-import {getByAbbreviation} from "../../api/common/CountryList"
 import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
 import {redeemGiftCard, renderGiftCard, renderGiftCardSvg, showGiftCardConfirmationDialog} from "./GiftCardUtils"
-import {px, size} from "../../gui/size"
-import {htmlSanitizer} from "../../misc/HtmlSanitizer"
 import {CancelledError} from "../../api/common/error/CancelledError"
 import {lang} from "../../misc/LanguageViewModel"
 import {getLoginErrorMessage} from "../../misc/LoginUtils"
@@ -67,7 +60,7 @@ class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 
 		return [
 			m(".flex-center.full-width.pt-l",
-				m("", {style: {width: "480px"}}, renderGiftCard(parseFloat(a.data.giftCardInfo.value), a.data.giftCardInfo.message))
+				m("", {style: {width: "480px"}}, renderGiftCard(parseFloat(a.data.giftCardInfo.value), a.data.giftCardInfo.message, null, false))
 			),
 			m(".flex-center.full-width.pt-l",
 				m("", {style: {width: "260px"}},
@@ -134,11 +127,22 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 		}
 
 		const onCredentialsSelected = credentials => {
-			showProgressDialog("pleaseWait_msg", worker.initialized.then(() => {
-				logins.logout(false)
-				      .then(() => logins.resumeSession(credentials))
-				      .then(() => this._postLogin(data, credentials))
-			}))
+
+			// If the user is loggedin already (because they selected credentials and then went back) we dont have to do
+			// anthing, so just move on
+			if (logins.isUserLoggedIn() && isSameId(logins.getUserController().user._id, credentials.userId)) {
+				this._postLogin(data, credentials)
+			} else {
+				showProgressDialog("pleaseWait_msg", worker.initialized.then(() => {
+					logins.logout(false)
+					      .then(() => logins.resumeSession(credentials))
+					      .then(() => this._postLogin(data, credentials))
+					      .catch(NotAuthorizedError, e => {
+						      Dialog.error(() => "Failed to use saved credentials") // TODO Translate
+					      })
+				}))
+
+			}
 		}
 
 		const credentials = deviceConfig.getAllInternal()
@@ -233,12 +237,12 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 			type: ButtonType.Login
 		}
 
-		return m(".flex-center.full-width.pt-l",
-			[
-				m("", {style: {width: "480px"}}, renderGiftCardSvg(parseFloat(data.giftCardInfo.value))),
-				m(".pt-l", {style: {width: "260px"}}, m(ButtonN, confirmButtonAttrs))
-			]
-		)
+		return m("", [
+			m(".flex-center.full-width.pt-l",
+				m("", {style: {width: "480px"}}, renderGiftCardSvg(parseFloat(data.giftCardInfo.value), null, null, false))),
+			m(".flex-center.full-width.pt-l",
+				m(".pt-l", {style: {width: "260px"}}, m(ButtonN, confirmButtonAttrs)))
+		])
 	}
 }
 
@@ -260,7 +264,7 @@ export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardRedeemGetReturn):
 			{
 				attrs: {
 					data: giftCardRedeemData,
-					headerTitle: () => "You got a Gift Card :-)", // TODO Translate
+					headerTitle: () => "You got a Gift Card :{", // TODO Translate
 					nextAction: (_) => Promise.resolve(true),
 					isSkipAvailable: () => false,
 					isEnabled: () => true

@@ -1,7 +1,6 @@
 //@flow
 
 import m from "mithril"
-import stream from "mithril/stream/stream.js"
 import {ButtonColors, ButtonN, ButtonType} from "../base/ButtonN"
 import {BootIcons} from "../base/icons/BootIcons"
 import {LogoutUrl} from "../base/Header"
@@ -18,10 +17,8 @@ import {AriaLandmarks, landmarkAttrs} from "../../api/common/utils/AriaUtils"
 import {attachDropdown} from "../base/DropdownN"
 import {noOp} from "../../api/common/utils/Utils"
 import {keyManager} from "../../misc/KeyManager"
-import {showPurchaseGiftCardWizard} from "../../subscription/giftcards/CreateGiftCardWizard"
-import {canBuyGiftCards, loadGiftCards} from "../../subscription/giftcards/GiftCardUtils"
+import {showPurchaseGiftCardDialog} from "../../subscription/giftcards/CreateGiftCardDialog"
 import {createNotAvailableForFreeClickHandler} from "../../subscription/PriceUtils"
-import {Dialog} from "../base/Dialog"
 
 type Attrs = void
 
@@ -38,14 +35,7 @@ export class DrawerMenu implements MComponent<Attrs> {
 				icon: () => Icons.Gift, // TODO Get giftbox icon
 				label: () => "Buy a giftcard", // TODO Translate
 				click: createNotAvailableForFreeClickHandler(false,
-					() => {
-						canBuyGiftCards().then(canBuy => canBuy
-							? logins.getUserController()
-							        .loadCustomer()
-							        .then(c => loadGiftCards(c._id))
-							        .then(showPurchaseGiftCardWizard)
-							: Dialog.error(() => "Your payment methods do not allow gift card purchase")) // Translate
-					},
+					() => showPurchaseGiftCardDialog,
 					() => logins.getUserController().isPremiumAccount()),
 				type: ButtonType.ActionLarge,
 				colors: ButtonColors.DrawerNav

@@ -62,9 +62,8 @@ import {TextFieldN} from "../gui/base/TextFieldN"
 import {DropDownSelectorN} from "../gui/base/DropDownSelectorN"
 import {Dialog} from "../gui/base/Dialog"
 import {ColumnWidth, TableN} from "../gui/base/TableN"
-import {showPurchaseGiftCardWizard} from "./giftcards/CreateGiftCardWizard"
+import {showPurchaseGiftCardDialog} from "./giftcards/CreateGiftCardDialog"
 import {
-	canBuyGiftCards,
 	createGiftCardTableLine,
 	getTokenFromUrl,
 	GIFT_CARD_TABLE_HEADER,
@@ -671,11 +670,7 @@ function changeSubscriptionInterval(accountingInfo: AccountingInfo, paymentInter
 function renderGiftCardExpandable(giftCards: GiftCard[], isPremiumPredicate: () => boolean): ExpandableAttrs {
 	const purchaseGiftCardButtonAttrs: ButtonAttrs = {
 		label: () => "Purchase a gift card",
-		click: createNotAvailableForFreeClickHandler(false, () => {
-			return canBuyGiftCards().then(canBuy => canBuy
-				? showPurchaseGiftCardWizard(giftCards)
-				: Dialog.error(() => "Your payment methods do not allow gift card purchase")) // Translate
-		}, isPremiumPredicate),
+		click: createNotAvailableForFreeClickHandler(false, () => showPurchaseGiftCardDialog(), isPremiumPredicate),
 		icon: () => Icons.Add
 	}
 

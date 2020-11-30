@@ -39,8 +39,6 @@ import {BootIcons} from "../../gui/base/icons/BootIcons"
 import {base64ToBase64Url, base64UrlToBase64} from "../../api/common/utils/Encoding"
 import {getWebRoot} from "../../api/Env"
 
-export const MAX_PURCHASED_GIFTCARDS = 10
-
 export function getTokenFromUrl(url: string): [IdTuple, string] {
 	let id: IdTuple, key: string;
 	const token = url.substr(url.indexOf("#") + 1)
@@ -69,15 +67,18 @@ export function redeemGiftCard(giftCardId: IdTuple, validCountryCode: string, ge
 			const userCountryName = assertNotNull(userCountry).n
 
 			return userCountryName === validCountryName
-				|| getConfirmation(() => `Country different: you ${userCountryName} but gift card ${validCountryName}`) // TODO Translate
+				|| getConfirmation(() => lang.get("validGiftCardCountry_msg", {
+					"{valid}": validCountryName,
+					"{actual}": userCountryName
+				}))
 		})
 		.then(confirmed => {
-			if (!confirmed) throw new CancelledError("") // TODO is this the right error?
+			if (!confirmed) throw new CancelledError("")
 		})
 		.then(() => {
 			const requestEntity = createGiftCardRedeemData({giftCardInfo: listIdPart(giftCardId)})
 			return serviceRequestVoid(SysService.GiftCardRedeemService, HttpMethod.POST, requestEntity)
-				.catch(NotFoundError, () => { throw new UserError(() => "Gift card was not found") }) // TODO Translate
+				.catch(NotFoundError, () => { throw new UserError("invalidGiftCard_msg") })
 				.catch(NotAuthorizedError, e => { throw new UserError(() => e.message) })
 		})
 }
@@ -96,27 +97,28 @@ export function loadGiftCards(customerId: Id): Promise<GiftCard[]> {
 	                   })
 }
 
-export const GIFT_CARD_TABLE_HEADER: Array<lazy<string> | TranslationKey> = [() => "Purchase Date", () => "Package", () => "Status"]
+export const GIFT_CARD_TABLE_HEADER:
+	Array<lazy<string> | TranslationKey> = ["purchaseDate_label", "value_label", "state_label"]
 
 export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { // TODO
 
 	const statusLabel = giftCard.usable
-		? 'Available' // TODO Translate
-		: 'Unavailable'
+		? "available_label"
+		: "unavailable_label"
 
 	const showEditGiftCardMessageDialog = () => {
-		const editor = new HtmlEditor(() => "Edit message", {enabled: true})
+		const editor = new HtmlEditor("editMessage_label", {enabled: true})
 			.setMinHeight(350)
 			.setValue(giftCard.message)
 
 		Dialog.showActionDialog({
-			title: () => "Edit message", // Translate
+			title: "editMessage_label",
 			child: () => m(".gift-card-editor.pl-l.pr-l", m(editor)),
 			okAction: dialog => {
 				giftCard.message = editor.getValue()
 				locator.entityClient.update(giftCard)
 				       .then(() => dialog.close())
-				       .catch(e => Dialog.error(() => "Failed to update" + e)) // TODO Translate
+				       .catch(e => Dialog.error("giftCardUpdateError_msg"))
 			},
 			type: DialogType.EditLarger
 		})
@@ -124,19 +126,19 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 
 	const actionButtons = [
 		{
-			label: () => "view giftcard", // Translate
+			label: "view_action",
 			click: () => showGiftCardToShare(giftCard),
 			type: ButtonType.Dropdown
 		},
 		{
-			label: () => "edit message", // Translate
+			label: "edit_action",
 			click: showEditGiftCardMessageDialog,
 			type: ButtonType.Dropdown
 		}
 	]
 
 	const showMoreButtonAttrs = attachDropdown({
-			label: () => "options",
+			label: "options_action",
 			click: () => showGiftCardToShare(giftCard),
 			icon: () => Icons.More,
 			type: ButtonType.Dropdown
@@ -146,8 +148,8 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 	return {
 		cells: [
 			formatDate(giftCard.orderDate),
-			formatPrice(parseFloat(giftCard.value), true), // TODO Why is it necessary to be parsing numberstrings instead of just having numbers
-			statusLabel
+			formatPrice(parseFloat(giftCard.value), true),
+			lang.get(statusLabel)
 		],
 		actionButtonAttrs: showMoreButtonAttrs
 	}
@@ -155,9 +157,8 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 
 export function generateGiftCardLink(giftCard: GiftCard): Promise<string> {
 	return worker.resolveSessionKey(GiftCardTypeModel, giftCard).then(key => {
-		if (!key) {
-			throw new UserError(() => "Error with giftcard") // TODO Translate
-		}
+		// This should not assert false and if it does we want to know about it
+		key = assertNotNull(key)
 		return getWebRoot() + `/giftcard/#${_encodeToken(giftCard._id, key)}`
 	})
 }
@@ -175,7 +176,7 @@ function _decodeToken(token: Base64): [IdTuple, string] {
 export function showGiftCardToShare(giftCard: GiftCard) {
 	generateGiftCardLink(giftCard)
 		.then(link => {
-			let infoMessage = ""
+			let infoMessage: TranslationKey = "emptyString_msg"
 			let dialog: Dialog
 			dialog = Dialog.largeDialog(
 				{
@@ -201,28 +202,29 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 												dialog.close()
 												setTimeout(() => writeGiftCardMail(link), DefaultAnimationTime)
 											},
-											label: () => "Share via email", // TODO Translate
+											label: "shareViaEmail_action",
 											icon: () => BootIcons.Mail
 										}),
+										// TODO Use native sharing for apps instead of copy to clipboard
 										m(ButtonN, {
 											click: () => {
 												copyToClipboard(link)
-												infoMessage = "Gift card link copied to clipboard!" // TODO Translate
+												infoMessage = "giftCardCopied_msg"
 											},
-											label: () => "Copy link", // TODO Translate
+											label: "copyToClipboard_action",
 											icon: () => Icons.Clipboard
 										}),
 										m(ButtonN, {
 											click: () => {
-												infoMessage = ""
+												infoMessage = "emptyString_msg"
 												window.print()
 											},
-											label: () => "Print gift card", // TODO Translate
+											label: "print_action",
 											icon: () => Icons.Print
 										}),
 									]
 								),
-								m(".flex-center", m("small.noprint", infoMessage))
+								m(".flex-center", m("small.noprint", lang.get(infoMessage)))
 							]
 						)
 				}).show()
@@ -297,11 +299,11 @@ export function renderGiftCard(value: number, message: string, link: ?string, po
 	]
 }
 
-export function showGiftCardConfirmationDialog(wasFree: boolean, okAction?: () => void) {
+export function showGiftCardWasRedeemedDialog(wasFree: boolean, okAction?: () => void) {
 	let dialog
 	dialog = Dialog.showActionDialog({
-		title: () => "You got a gift card!",
-		child: () => m(".pt.pb", "The gift card has been redeemed." + (wasFree ? "You account was upgraded to premium." : "")),
+		title: "success_label",
+		child: () => m(".pt.pb", [m("p", lang.get("giftCardRedeemed_msg")), wasFree ? m("p", lang.get("redeemedToPremium_msg")) : null]),
 		allowCancel: false,
 		okAction: () => {
 			okAction && okAction()

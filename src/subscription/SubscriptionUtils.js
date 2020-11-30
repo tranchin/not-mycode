@@ -194,12 +194,12 @@ export function bookItem(featureType: BookingItemFeatureTypeEnum, errorMessageId
 	const bookingData = createBookingServiceData({
 		amount: amount.toString(),
 		featureType,
-		date: Const.CURRENT_DATE // TODO find out what's going on here?
+		date: Const.CURRENT_DATE
 	})
 	return serviceRequestVoid(SysService.BookingService, HttpMethod.POST, bookingData).return(false).catch(PreconditionFailedError, error => {
 		console.log(error)
 		return Dialog.error(error.data === "balance.insufficient"
-			? () => "Insufficient balance" // TODO Translate
+			? "insufficientBalanceError_msg"
 			: errorMessageId).return(true)
 	})
 }

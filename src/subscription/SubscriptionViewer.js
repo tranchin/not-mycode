@@ -68,7 +68,7 @@ import {
 	getTokenFromUrl,
 	GIFT_CARD_TABLE_HEADER,
 	loadGiftCards,
-	redeemGiftCard, showGiftCardConfirmationDialog,
+	redeemGiftCard, showGiftCardWasRedeemedDialog,
 } from "./giftcards/GiftCardUtils"
 import type {GiftCard} from "../api/entities/sys/GiftCard"
 import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
@@ -676,7 +676,7 @@ function renderGiftCardExpandable(giftCards: GiftCard[], isPremiumPredicate: () 
 
 	return {
 		title: "giftCards_label",
-		infoMsg: () => "Purchase, redeem and manage gift cards", // TODO Translate
+		infoMsg: "giftCardSection_label",
 		children: [
 			m(TableN, {
 				columnHeading: GIFT_CARD_TABLE_HEADER,
@@ -697,17 +697,17 @@ function renderGiftCardExpandable(giftCards: GiftCard[], isPremiumPredicate: () 
 
 function makeRedeemGiftCardButton(): Children {
 	return m(ButtonN, {
-		label: () => "Redeem",
+		label: "redeem_label",
 		click: () => {
 			const giftCardCode = stream("")
 			const wasFree = logins.getUserController().isFreeAccount()
 			let dialog
 			dialog = Dialog.showActionDialog({
-				title: "Redeem a gift card code!", // TODO Translate
+				title: "redeem_label",
 				child: {
 					view: () => m(TextFieldN, {
 						value: giftCardCode,
-						label: () => "Enter the code",
+						label: "codeInput_msg",
 					})
 				},
 				okAction: () => {
@@ -715,9 +715,9 @@ function makeRedeemGiftCardButton(): Children {
 					Promise.resolve()
 					       .then(() => getTokenFromUrl(giftCardCode()))
 					       .spread((id, key) => worker.getGiftCardInfo(id, key))
-					       .catch(NotFoundError, () => { throw new UserError(() => "Gift card not found")}) // TODO Translate
+					       .catch(NotFoundError, () => { throw new UserError("invalidGiftCard_msg")})
 					       .then(info => redeemGiftCard(info.giftCard, info.country, Dialog.confirm))
-					       .then(() => showGiftCardConfirmationDialog(wasFree))
+					       .then(() => showGiftCardWasRedeemedDialog(wasFree))
 					       .catch(UserError, showUserError)
 					       .catch(CancelledError, noOp)
 				}

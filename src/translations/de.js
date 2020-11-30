@@ -1205,9 +1205,37 @@ module.exports = {
 		"yourFolders_action": "DEINE ORDNER",
 		"yourMessage_label": "Deine Nachricht",
 		"you_label": "Du",
+
 		"giftCard_label": "Gutschein",
 		"giftCards_label": "Gutscheine",
 		"defaultShareGiftCardBody_msg": "Guten Tag,<br /> ich habe dir einen Gutschein für Tutanota gekauft, <a href='{link}'>klicke hier um sie einzulösen!</a><br />Falls du noch keinen Account bei Tutanota hast, kannst du dich anmelden.<br /><br />  Schöne Feiertage, {username}",
-		"defaultShareGiftCardSubject_msg": "Du hast einen Gutschein für Tutanota erhalten"
+		"defaultShareGiftCardSubject_msg": "Du hast einen Gutschein für Tutanota erhalten",
+		"buyGiftCard_label": "Gutschein kaufen",
+		"invalidGiftCard_msg": "Dieser Gutschein kann nicht verwendet werden",
+		"unprocessedBookings_msg": "In deinem Konto sind unbearbeitete Buchungen in Höhe von insgesamt {amount}.\nDiese werden mit der nächsten Rechnung von ihrem Kontostand bzw. ihrem Zahlungsmittel eingezogen.",
+		"insufficientBalanceError_msg": "Dein Kontostand ist nicht ausreichend um diese Buchung durchzuführen.",
+		"giftCardSection_label": "Gutscheine kaufen, einlösen und verwalten",
+		"redeem_label": "Einlösen",
+		"codeInput_msg": "Gutscheincode eingeben",
+		"validGiftCardCountry_msg": "Dieser Gutschein ist nur in {valid} gültig, du befindest dich in ${actual}",
+		"purchaseDate_label": "Gekauft am",
+		"value_label": "Wert",
+		"available_label": "Verfügbar",
+		"unavailable_label": "Nicht verfügbar",
+		"editMessage_label": "Nachricht bearbeiten",
+		"giftCardUpdateError_msg": "Gutschein konnte nicht aktualisiert werden",
+		"view_action": "Ansehen",
+		"options_action": "Optionen",
+		"shareViaEmail_action": "Per E-Mail verschicken",
+		"copyToClipboard_action": "In die Zwischenablage kopieren",
+		"giftCardCopied_msg": "Der Gutscheinlink wurde in die Zwischenablage kopiert!",
+		"giftCardRedeemed_msg": "Der Gutschein wurde erfolgreich eingelöst.",
+		"redeemedToPremium_msg": "Dein .",
+		"success_label": "Success",
+		"shareLink_action": "Link teilen",
+		"selectRecipientCountry_msg": "Wähle das Land des Empfängers aus",
+		"message_label": "Nachricht"
+
+
 	}
 }

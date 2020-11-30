@@ -28,8 +28,12 @@ import type {DialogHeaderBarAttrs} from "../../gui/base/DialogHeaderBar"
 import {showUserError} from "../../misc/ErrorHandlerImpl"
 import {UserError} from "../../api/common/error/UserError"
 import {PaymentMethodType} from "../../api/common/TutanotaConstants"
+import {lang} from "../../misc/LanguageViewModel"
+import {NotAuthorizedError, PreconditionFailedError} from "../../api/common/error/RestError"
 
 export type CreateGiftCardViewAttrs = {
+	purchaseLimit: number,
+	purchasePeriodMonths: number,
 	availablePackages: Array<GiftCardOption>;
 	selectedPackageIndex: number;
 	message: string;
@@ -49,7 +53,7 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 		const a = vnode.attrs
 		this.selectedPackage = stream(a.selectedPackageIndex)
 		this.selectedCountry = stream(a.country)
-		this.messageEditor = new HtmlEditor(() => "Message", {enabled: true}) // TODO TRANSLATE
+		this.messageEditor = new HtmlEditor("message_label", {enabled: true})
 			.setMinHeight(150)
 			.setMode(Mode.WYSIWYG)
 			.showBorders()
@@ -58,8 +62,8 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 
 		this.countrySelector = createCountryDropdown(
 			this.selectedCountry,
-			() => "This card can only be redeemed in the selected country",
-			() => "Select recipient's country") // TODO Translate
+			() => lang.get("invoiceCountryInfoConsumer_msg"),
+			"selectRecipientCountry_msg")
 	}
 
 	view(vnode: Vnode<CreateGiftCardViewAttrs>): Children {
@@ -71,7 +75,7 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 						heading: `Option ${index + 1}`, // TODO make nice headings
 						actionButton: {
 							view: () => m(ButtonN, {
-								label: "pricing.select_action", // TODO list package information
+								label: "pricing.select_action",
 								click: () => {
 									a.selectedPackageIndex = index
 								},
@@ -101,7 +105,7 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 							const country = this.selectedCountry()
 
 							if (!country) {
-								Dialog.error(() => "Select recipients country") // TODO Translate
+								Dialog.error("selectRecipientCountry_msg")
 								return
 							}
 
@@ -112,7 +116,25 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 									a.outerDialog().close()
 									showGiftCardToShare(giftCard)
 								})
-								.catch(e => Dialog.error(() => "Unable to purchase gift Cards")) // TODO Translate + better errorhandling
+								.catch(PreconditionFailedError, e => {
+									switch (e.data) {
+										case "giftcard.limitreached":
+											throw new UserError(() => lang.get("tooManyGiftCards_msg", {
+												"{amount}": `${a.purchaseLimit}`,
+												"{period}": `${a.purchasePeriodMonths} months`
+											}))
+										case "giftcard.noaccountinginfo":
+											throw new UserError("providePaymentDetails_msg")
+										case "giftcard.invalidpaymentmethod":
+											throw new UserError("invalidGiftCardPaymentMethod_msg")
+										default:
+											throw e // If this happens then we need to handle it
+									}
+								})
+								.catch(NotAuthorizedError, e => {
+									throw new UserError("giftCardPurchaseFailed_msg")
+								})
+								.catch(UserError, showUserError)
 						},
 						type: ButtonType.Login,
 					})
@@ -135,7 +157,7 @@ export function showPurchaseGiftCardDialog(): Promise<void> {
 			      // Only allow purchase with supported payment methods
 			      if (!accountingInfo || accountingInfo.paymentMethod === PaymentMethodType.Invoice || accountingInfo.paymentMethod
 				      === PaymentMethodType.AccountBalance) {
-				      throw new UserError(() => "Your payment method doesn't support purchasing gift cards") // TODO Translate
+				      throw new UserError("invalidGiftCardPaymentMethod_msg")
 			      }
 		      })
 		      .then(() => Promise.all([
@@ -155,16 +177,21 @@ export function showPurchaseGiftCardDialog(): Promise<void> {
 				      const numPurchasedGiftCards = existingGiftCards.filter(giftCard => giftCard.orderDate > sixMonthsAgo).length
 
 				      if (numPurchasedGiftCards >= parseInt(giftCardInfo.maxPerPeriod)) {
-					      throw new UserError(() => `You can only purchase ${giftCardInfo.maxPerPeriod} gift cards within ${giftCardInfo.period} months`) // Translate
+					      throw new UserError(() => lang.get("tooManyGiftCards_msg", {
+						      amount: giftCardInfo.maxPerPeriod,
+						      period: `${giftCardInfo.period} months`
+					      }))
 				      }
 
 				      return logins.getUserController().loadAccountingInfo().then((accountingInfo: AccountingInfo) => {
 					      let dialog
 
 					      const attrs: CreateGiftCardViewAttrs = {
+						      purchaseLimit: giftCardInfo.maxPerPeriod,
+						      purchasePeriodMonths: giftCardInfo.period,
 						      availablePackages: giftCardInfo.options,
 						      selectedPackageIndex: Math.floor(giftCardInfo.options.length / 2),
-						      message: "Hey, I bought you a gift card!<br /> Visit tutanota.com to redeem", // TODO Translate defaultGiftCardMessage_msg
+						      message: lang.get("defaultGiftCardMessage_msg"),
 						      country: accountingInfo.invoiceCountry
 							      ? getByAbbreviation(accountingInfo.invoiceCountry)
 							      : null,

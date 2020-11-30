@@ -162,9 +162,9 @@ export class PaymentViewer implements UpdatableSettingsViewer {
 					m("div.h4.pt.pb" + (this._isAmountOwed() ? ".content-accent-fg" : ""),
 						`${formatPrice(Number(this._postings[0].balance), true)}`),
 					this._accountBalance() !== Number(this._postings[0].balance)
-						? m(".small" + (this._accountBalance() < 0 ? ".content-accent-fg" : ""),
-						`You have some unprocessed bookings with a total value of ${formatPrice(this._outstandingBookingsPrice, true)}.
-						This will be deducted from your balance and/or chosen payment method upon next invoice`) // TODO Translate
+						? m(".small" + (this._accountBalance()
+						< 0 ? ".content-accent-fg" : ""),
+						lang.get("unprocessedBookings_msg", {"{amount}": formatPrice(this._outstandingBookingsPrice, true)}))
 						: null,
 					this._isPayButtonVisible()
 						? m(".pb", {style: {width: '200px'}}, m(ButtonN, {

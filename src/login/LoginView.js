@@ -396,10 +396,9 @@ export class LoginView {
 					                    .then(giftCardInfo => loadRedeemGiftCardWizard(giftCardInfo))
 				       })
 
-			showProgressDialog(() => "just a sec", showWizardPromise)
+			showProgressDialog("loading_msg", showWizardPromise)
 				.then(dialog => dialog.show())
-				.catch(NotAuthorizedError, e => Dialog.error(() => "This gift card can't be used"))
-				.catch(NotFoundError, e => Dialog.error(() => "This gift card doesn't exist"))// TODO Translate
+				.catch(NotAuthorizedError, NotFoundError, () => { throw new UserError("invalidGiftCard_msg") })
 				.catch(UserError, showUserError)
 			return
 		}
@@ -537,14 +536,14 @@ export function renderPrivacyAndImprintLinks(): Children {
 	return m("div.center.flex.flex-grow.items-end.justify-center.mb-l.mt-xl.wrap", [
 			(getPrivacyStatementLink())
 				? m("a.plr", {
-				href: getPrivacyStatementLink(),
-				target: "_blank"
+					href: getPrivacyStatementLink(),
+					target: "_blank"
 				}, lang.get("privacyLink_label"))
 				: null,
 			(getImprintLink())
 				? m("a.plr", {
-				href: getImprintLink(),
-				target: "_blank"
+					href: getImprintLink(),
+					target: "_blank"
 				}, lang.get("imprint_label"))
 				: null,
 			m(".mt.center.small.full-width", `v${env.versionNumber}`),

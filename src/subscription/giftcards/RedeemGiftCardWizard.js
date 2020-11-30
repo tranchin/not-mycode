@@ -27,7 +27,7 @@ import {CustomerInfoTypeRef} from "../../api/entities/sys/CustomerInfo"
 import {locator} from "../../api/main/MainLocator"
 import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
 import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
-import {redeemGiftCard, renderGiftCard, renderGiftCardSvg, showGiftCardConfirmationDialog} from "./GiftCardUtils"
+import {redeemGiftCard, renderGiftCard, renderGiftCardSvg, showGiftCardWasRedeemedDialog} from "./GiftCardUtils"
 import {CancelledError} from "../../api/common/error/CancelledError"
 import {lang} from "../../misc/LanguageViewModel"
 import {getLoginErrorMessage} from "../../misc/LoginUtils"
@@ -65,7 +65,7 @@ class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 			m(".flex-center.full-width.pt-l",
 				m("", {style: {width: "260px"}},
 					m(ButtonN, {
-						label: () => "Use existing account", // TODO Translate
+						label: "existingAccount_label",
 						click: () => nextPage("login"),
 						type: ButtonType.Login
 					})
@@ -138,7 +138,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 					      .then(() => logins.resumeSession(credentials))
 					      .then(() => this._postLogin(data, credentials))
 					      .catch(NotAuthorizedError, e => {
-						      Dialog.error(() => "Failed to use saved credentials") // TODO Translate
+						      Dialog.error("savedCredentialsError_msg")
 					      })
 				}))
 
@@ -169,8 +169,6 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 		const isReadOnly = existingAccountData != null
 		const signupFormAttrs: SignupFormAttrs = {
 			newSignupHandler: newAccountData => {
-				// TODO cleanup?
-				console.log("new account data: ", newAccountData)
 				if (newAccountData || existingAccountData) {
 					if (!existingAccountData) {
 						data.newAccountData(newAccountData)
@@ -178,10 +176,12 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 					const {mailAddress, password} = neverNull(newAccountData || existingAccountData)
 					data.password(password)
 					data.mailAddress(mailAddress)
-					logins.createSession(mailAddress, password, client.getIdentifier(), false, false).then(credentials => {
-						data.credentials(credentials)
-						emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
-					}).catch(e => Dialog.error(() => "error signing up")) // Translate
+					logins.createSession(mailAddress, password, client.getIdentifier(), false, false)
+					      .then(credentials => {
+						      data.credentials(credentials)
+						      emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
+					      })
+					      .catch(e => Dialog.error(() => "error signing up")) // TODO Translate // TODO How to handle failure to login after account was newly created? will this happen?
 				}
 			},
 			readonly: isReadOnly,
@@ -198,7 +198,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 		data.credentials(credentials)
 		return Promise.resolve()
 		              .then(() => {
-			              if (!logins.getUserController().isGlobalAdmin()) throw new UserError(() => "Only account admin can use gift cards"); // Translate
+			              if (!logins.getUserController().isGlobalAdmin()) throw new UserError("onlyAccountAdminFeature_msg");
 		              })
 		              .then(() => logins.getUserController().loadCustomer())
 		              .then(customer => {
@@ -207,7 +207,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 			                            .then(accountingInfo => {
 				                            if (customer.businessUse
 					                            || accountingInfo.business) {
-					                            throw new UserError(() => "Businesses cannot use gift cards"); // Translate
+					                            throw new UserError("onlyPrivateAccountFeature_msg");
 				                            } //Translate
 			                            })
 		              })
@@ -224,12 +224,12 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 		const data = vnode.attrs.data
 
 		const confirmButtonAttrs = {
-			label: () => "Redeem gift card", // Translate
+			label: "redeem_label",
 			click: () => {
 				const wasFree = logins.getUserController().isFreeAccount()
 				redeemGiftCard(data.giftCardInfo.giftCard, data.giftCardInfo.country, Dialog.confirm)
 					.then(() => {
-						showGiftCardConfirmationDialog(wasFree, () => emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG))
+						showGiftCardWasRedeemedDialog(wasFree, () => emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG))
 					})
 					.catch(UserError, showUserError)
 					.catch(CancelledError, noOp)
@@ -264,7 +264,7 @@ export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardRedeemGetReturn):
 			{
 				attrs: {
 					data: giftCardRedeemData,
-					headerTitle: () => "You got a Gift Card :{", // TODO Translate
+					headerTitle: () => lang.get("giftCard_label"),
 					nextAction: (_) => Promise.resolve(true),
 					isSkipAvailable: () => false,
 					isEnabled: () => true
@@ -274,7 +274,7 @@ export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardRedeemGetReturn):
 			{
 				attrs: {
 					data: giftCardRedeemData,
-					headerTitle: () => giftCardRedeemData.credentialsMethod === "signup" ? "Create account" : "Select account", // TODO Translate
+					headerTitle: () => lang.get(giftCardRedeemData.credentialsMethod === "signup" ? "register_label" : "login_label"),
 					nextAction: (showErrorDialog: boolean) => Promise.resolve(true),
 					isSkipAvailable: () => false,
 					isEnabled: () => true
@@ -284,7 +284,7 @@ export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardRedeemGetReturn):
 			{
 				attrs: {
 					data: giftCardRedeemData,
-					headerTitle: () => "Confirm", // Translate
+					headerTitle: () => lang.get("redeem_label"),
 					nextAction: (_) => Promise.resolve(true),
 					isSkipAvailable: () => false,
 					isEnabled: () => true
@@ -292,14 +292,6 @@ export function loadRedeemGiftCardWizard(giftCardInfo: GiftCardRedeemGetReturn):
 				componentClass: RedeemGiftCardPage
 			}
 		]
-
-		const wizardBuilder = createWizardDialog(giftCardRedeemData, wizardPages, () => {
-			return Promise.resolve() // TODO delete
-		})
-		const wizard = wizardBuilder.dialog
-		wizardBuilder.promise.then(() => m.route.set("/login"))
-
-		//we only return the dialog so that it can be shown
-		return wizard
+		return createWizardDialog(giftCardRedeemData, wizardPages, () => Promise.resolve(m.route.set("/login"))).dialog
 	})
 }

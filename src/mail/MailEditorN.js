@@ -645,7 +645,7 @@ export function writeGiftCardMail(link: string, mailboxDetails?: MailboxDetail) 
 			'{link}': link,
 			'{username}': logins.getUserController().userGroupInfo.name,
 		})
-		const subject = lang.get("defaultShareGiftCardSubject_msg")// TODO Translate
+		const subject = lang.get("defaultShareGiftCardSubject_msg")
 		newMailEditorFromTemplate(mailbox, {}, subject, body + getDefaultSignature(), [], false)
 			.then(dialog => dialog.show())
 	})

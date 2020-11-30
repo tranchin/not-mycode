@@ -10,7 +10,6 @@ import {getContentButtonIconBackground, theme} from "../theme"
 import {lang} from "../../misc/LanguageViewModel"
 import type {DialogHeaderBarAttrs} from "./DialogHeaderBar"
 import {Keys} from "../../api/common/TutanotaConstants"
-import {defer} from "../../api/common/utils/Utils"
 
 assertMainOrNode()
 
@@ -53,7 +52,6 @@ export function emitWizardEvent(dom: ?HTMLElement, eventType: WizardEventTypeEnu
 	if (dom) {
 		const event = new Event(eventType, {bubbles: true, cancelable: true})
 		dom.dispatchEvent(event)
-		m.redraw()
 	}
 }
 
@@ -226,22 +224,17 @@ export class WizardPagingButton {
 
 export type WizardDialogAttrsBuilder<T> = {
 	dialog: Dialog,
-	attrs: WizardDialogAttrs<T>,
-	promise: Promise<void>
+	attrs: WizardDialogAttrs<T>
 }
 
 // Use to generate a new wizard
-export function createWizardDialog<T>(data: T, pages: Array<WizardPageWrapper<T>>, beforeClose?: () => Promise<void>): WizardDialogAttrsBuilder<T> {
+export function createWizardDialog<T>(data: T, pages: Array<WizardPageWrapper<T>>, closeAction?: () => Promise<void>): WizardDialogAttrsBuilder<T> {
 
 	// We need the close action of the dialog before we can create the proper attributes
 	const headerBarAttrs = {}
 	const child = {view: () => null}
 	const wizardDialog = Dialog.largeDialog(headerBarAttrs, child)
-	const afterClosePromise = defer()
-	const closeAction = beforeClose ? beforeClose : () => Promise.resolve()
-	const dialogClose = () => closeAction().then(wizardDialog.close()).then(() => afterClosePromise.resolve())
-
-	const wizardDialogAttrs = new WizardDialogAttrs(data, pages, () => closeAction().then(dialogClose))
+	const wizardDialogAttrs = new WizardDialogAttrs(data, pages, closeAction ? () => closeAction().then(wizardDialog.close()) : () => Promise.resolve(wizardDialog.close()))
 
 	// We replace the dummy values from dialog creation
 	const wizardDialogHeaderBarAttrs = wizardDialogAttrs.getHeaderBarAttrs()
@@ -257,7 +250,6 @@ export function createWizardDialog<T>(data: T, pages: Array<WizardPageWrapper<T>
 	}).setCloseHandler(() => wizardDialogAttrs.goToPreviousPageOrClose())
 	return {
 		dialog: wizardDialog,
-		attrs: wizardDialogAttrs,
-		promise: afterClosePromise.promise
+		attrs: wizardDialogAttrs
 	}
 }

@@ -14,7 +14,6 @@ import {
 	conversationTypeString,
 	createInlineImage, getDefaultSignature,
 	getEmailSignature,
-	createInlineImage,
 	getEnabledMailAddressesWithUser,
 	getSupportMailSignature,
 	parseMailtoUrl,

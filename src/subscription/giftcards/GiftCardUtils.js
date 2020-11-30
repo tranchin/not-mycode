@@ -22,7 +22,7 @@ import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import {HtmlEditor} from "../../gui/base/HtmlEditor"
 import {htmlSanitizer} from "../../misc/HtmlSanitizer"
 import {serviceRequest, serviceRequestVoid} from "../../api/main/Entity"
-import {HttpMethod} from "../../api/common/EntityFunctions"
+import {HttpMethod, listIdPart} from "../../api/common/EntityFunctions"
 import {SysService} from "../../api/entities/sys/Services"
 import {px, size} from "../../gui/size"
 import {assertNotNull} from "../../api/common/utils/Utils"
@@ -55,7 +55,7 @@ export function getTokenFromUrl(url: string): [IdTuple, string] {
 	return [id, key]
 }
 
-export function redeemGiftCard(id: IdTuple, validCountryCode: string, getConfirmation: (TranslationKey | lazy<string>) => Promise<boolean>): Promise<void> {
+export function redeemGiftCard(giftCardId: IdTuple, validCountryCode: string, getConfirmation: (TranslationKey | lazy<string>) => Promise<boolean>): Promise<void> {
 	// Check that the country matches
 	return serviceRequest(SysService.LocationService, HttpMethod.GET, null, LocationServiceGetReturnTypeRef)
 		.then(userLocation => {
@@ -75,7 +75,7 @@ export function redeemGiftCard(id: IdTuple, validCountryCode: string, getConfirm
 			if (!confirmed) throw new CancelledError("") // TODO is this the right error?
 		})
 		.then(() => {
-			const requestEntity = createGiftCardRedeemData({giftCard: id})
+			const requestEntity = createGiftCardRedeemData({giftCardInfo: listIdPart(giftCardId)})
 			return serviceRequestVoid(SysService.GiftCardRedeemService, HttpMethod.POST, requestEntity)
 				.catch(NotFoundError, () => { throw new UserError(() => "Gift card was not found") }) // TODO Translate
 				.catch(NotAuthorizedError, e => { throw new UserError(() => e.message) })

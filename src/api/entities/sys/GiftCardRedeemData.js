@@ -24,13 +24,13 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"associations": {
-		"giftCard": {
-			"name": "giftCard",
+		"giftCardInfo": {
+			"name": "giftCardInfo",
 			"id": 1817,
 			"since": 65,
-			"type": "LIST_ELEMENT_ASSOCIATION",
+			"type": "ELEMENT_ASSOCIATION",
 			"cardinality": "One",
-			"refType": "GiftCard",
+			"refType": "GiftCardInfo",
 			"final": true,
 			"external": false
 		}
@@ -48,5 +48,5 @@ export type GiftCardRedeemData = {
 
 	_format: NumberString;
 
-	giftCard: IdTuple;
+	giftCardInfo: Id;
 }

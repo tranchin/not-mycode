@@ -7,7 +7,7 @@ import {encryptKey} from "../crypto/KeyCryptoUtils"
 import {createGiftCardCreateData} from "../../entities/sys/GiftCardCreateData"
 import {serviceRequest} from "../EntityWorker"
 import {SysService} from "../../entities/sys/Services"
-import {HttpMethod} from "../../common/EntityFunctions"
+import {HttpMethod, listIdPart} from "../../common/EntityFunctions"
 import {GiftCardCreateReturnTypeRef} from "../../entities/sys/GiftCardCreateReturn"
 import type {GiftCardCreateReturn} from "../../entities/sys/GiftCardCreateReturn"
 import type {LoginFacade} from "./LoginFacade"
@@ -53,7 +53,7 @@ export class GiftCardFacade {
 	}
 
 	getGiftCardInfo(giftCardId: IdTuple, key: Aes128Key): Promise<GiftCardRedeemGetReturn> {
-		const data = createGiftCardRedeemData({giftCard: giftCardId})
+		const data = createGiftCardRedeemData({giftCardInfo: listIdPart(giftCardId)})
 		return serviceRequest(SysService.GiftCardRedeemService, HttpMethod.GET, data, GiftCardRedeemGetReturnTypeRef, null, key)
 	}
 }

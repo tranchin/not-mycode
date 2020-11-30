@@ -52,8 +52,8 @@ export class GiftCardFacade {
 
 	}
 
-	getGiftCardInfo(giftCardId: IdTuple, key: Aes128Key): Promise<GiftCardRedeemGetReturn> {
-		const data = createGiftCardRedeemData({giftCardInfo: listIdPart(giftCardId)})
+	getGiftCardInfo(id: Id, key: Aes128Key): Promise<GiftCardRedeemGetReturn> {
+		const data = createGiftCardRedeemData({giftCardInfo: id})
 		return serviceRequest(SysService.GiftCardRedeemService, HttpMethod.GET, data, GiftCardRedeemGetReturnTypeRef, null, key)
 	}
 }

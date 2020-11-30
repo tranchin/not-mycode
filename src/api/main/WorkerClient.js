@@ -598,7 +598,7 @@ export class WorkerClient implements EntityRestInterface {
 		return this._queue.postMessage(new Request("generateGiftCard", arguments))
 	}
 
-	getGiftCardInfo(giftCardId: IdTuple, key: string): Promise<GiftCardRedeemGetReturn> {
+	getGiftCardInfo(id: Id, key: string): Promise<GiftCardRedeemGetReturn> {
 		return this._queue.postMessage(new Request("getGiftCardInfo", arguments))
 	}
 

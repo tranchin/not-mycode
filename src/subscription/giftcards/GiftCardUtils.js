@@ -22,7 +22,7 @@ import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import {HtmlEditor} from "../../gui/base/HtmlEditor"
 import {htmlSanitizer} from "../../misc/HtmlSanitizer"
 import {serviceRequest, serviceRequestVoid} from "../../api/main/Entity"
-import {HttpMethod, listIdPart} from "../../api/common/EntityFunctions"
+import {elementIdPart, HttpMethod} from "../../api/common/EntityFunctions"
 import {SysService} from "../../api/entities/sys/Services"
 import {px, size} from "../../gui/size"
 import {assertNotNull} from "../../api/common/utils/Utils"
@@ -38,9 +38,10 @@ import {copyToClipboard} from "../../misc/ClipboardUtils"
 import {BootIcons} from "../../gui/base/icons/BootIcons"
 import {base64ToBase64Url, base64UrlToBase64} from "../../api/common/utils/Encoding"
 import {getWebRoot} from "../../api/Env"
+import {splitAt} from "../../api/common/utils/StringUtils"
 
-export function getTokenFromUrl(url: string): [IdTuple, string] {
-	let id: IdTuple, key: string;
+export function getTokenFromUrl(url: string): [Id, string] {
+	let id: Id, key: string;
 	const token = url.substr(url.indexOf("#") + 1)
 	try {
 		if (!token) {
@@ -48,7 +49,7 @@ export function getTokenFromUrl(url: string): [IdTuple, string] {
 		}
 		[id, key] = _decodeToken(token)
 	} catch (e) {
-		throw new UserError(() => "Invalid gift card link")
+		throw new UserError("invalidGiftCard_msg")
 	}
 	return [id, key]
 }
@@ -59,7 +60,7 @@ export function redeemGiftCard(giftCardId: IdTuple, validCountryCode: string, ge
 		.then(userLocation => {
 			const validCountry = getByAbbreviation(validCountryCode)
 			if (!validCountry) {
-				throw new UserError(() => "Invalid gift card")
+				throw new UserError("invalidGiftCard_msg")
 			}
 			const validCountryName = validCountry.n
 
@@ -76,7 +77,7 @@ export function redeemGiftCard(giftCardId: IdTuple, validCountryCode: string, ge
 			if (!confirmed) throw new CancelledError("")
 		})
 		.then(() => {
-			const requestEntity = createGiftCardRedeemData({giftCardInfo: listIdPart(giftCardId)})
+			const requestEntity = createGiftCardRedeemData({giftCardInfo: elementIdPart(giftCardId)})
 			return serviceRequestVoid(SysService.GiftCardRedeemService, HttpMethod.POST, requestEntity)
 				.catch(NotFoundError, () => { throw new UserError("invalidGiftCard_msg") })
 				.catch(NotAuthorizedError, e => { throw new UserError(() => e.message) })
@@ -97,8 +98,7 @@ export function loadGiftCards(customerId: Id): Promise<GiftCard[]> {
 	                   })
 }
 
-export const GIFT_CARD_TABLE_HEADER:
-	Array<lazy<string> | TranslationKey> = ["purchaseDate_label", "value_label", "state_label"]
+export const GIFT_CARD_TABLE_HEADER: Array<lazy<string> | TranslationKey> = ["purchaseDate_label", "value_label", "state_label"]
 
 export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { // TODO
 
@@ -157,20 +157,22 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 
 export function generateGiftCardLink(giftCard: GiftCard): Promise<string> {
 	return worker.resolveSessionKey(GiftCardTypeModel, giftCard).then(key => {
+		console.log("key", key, key && key.length)
 		// This should not assert false and if it does we want to know about it
 		key = assertNotNull(key)
-		return getWebRoot() + `/giftcard/#${_encodeToken(giftCard._id, key)}`
+		return getWebRoot() + `/giftcard/#${_encodeToken(elementIdPart(giftCard._id), key)}`
 	})
 }
 
-function _encodeToken(id: IdTuple, key: string): Base64 {
-	const tokenJSON = JSON.stringify([id, key])
-	return base64ToBase64Url(btoa(tokenJSON))
+function _encodeToken(id: Id, key: string): Base64 {
+	const str = key + btoa(id)
+	return base64ToBase64Url(str)
 }
 
-function _decodeToken(token: Base64): [IdTuple, string] {
-	const tokenJSON = atob(base64UrlToBase64(token))
-	return JSON.parse(tokenJSON)
+function _decodeToken(token: Base64): [Id, string] {
+	const keyLength = 24
+	const [key, b64Id] = splitAt(base64UrlToBase64(token), keyLength)
+	return [atob(b64Id), key]
 }
 
 export function showGiftCardToShare(giftCard: GiftCard) {
@@ -245,7 +247,6 @@ export function renderGiftCardSvg(price: number, link: ?string, message: ?string
 		qrCode = htmlSanitizer.sanitize(qrcodeGenerator.svg({container: null}), false).text
 	}
 
-	console.log("qrCode", qrCode)
 	const formattedPrice = formatPrice(price, true)
 	const height = portrait ? 300 : 140
 	const width = 240
@@ -302,7 +303,7 @@ export function renderGiftCard(value: number, message: string, link: ?string, po
 export function showGiftCardWasRedeemedDialog(wasFree: boolean, okAction?: () => void) {
 	let dialog
 	dialog = Dialog.showActionDialog({
-		title: "success_label",
+		title: lang.get("success_label"),
 		child: () => m(".pt.pb", [m("p", lang.get("giftCardRedeemed_msg")), wasFree ? m("p", lang.get("redeemedToPremium_msg")) : null]),
 		allowCancel: false,
 		okAction: () => {

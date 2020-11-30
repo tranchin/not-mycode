@@ -13,6 +13,9 @@ export function openLinkNative(uri: string): Promise<boolean> {
 	return nativeApp.invokeNative(new Request("openLink", [uri]))
 }
 
+export function shareTextNative(text: string): Promise<boolean> {
+	return nativeApp.invokeNative(new Request("shareText", [text]))
+}
 
 export function reloadNative(queryParameters: string): Promise<void> {
 	return nativeApp.invokeNative(new Request('reload', [queryParameters]))

@@ -217,6 +217,9 @@ public final class Native {
 				case "openLink":
 					promise.resolve(openLink(args.getString(0)));
 					break;
+				case "shareText":
+                	promise.resolve(shareText(args.getString(0)));
+                 	break;
 				case "getPushIdentifier":
 					promise.resolve(sseStorage.getPushIdentifier());
 					break;
@@ -300,6 +303,17 @@ public final class Native {
 		boolean resolved = intent.resolveActivity(pm) != null;
 		if (resolved) {
 			activity.startActivity(intent);
+		}
+		return resolved;
+	}
+
+	private boolean shareText(@Nullable String string) {
+		Intent sendIntent = new Intent(Intent.ACTION_SEND);
+        sendIntent.putExtra(Intent.EXTRA_TEXT, string);
+        sendIntent.setType("text/plain");
+        Intent shareIntent = Intent.createChooser(sendIntent, null);
+        if(resolved) {
+        	startActivity(shareIntent);
 		}
 		return resolved;
 	}

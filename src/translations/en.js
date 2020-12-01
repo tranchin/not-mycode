@@ -904,7 +904,6 @@ module.exports = {
 		"reloadPage_action": "Reload page",
 		"reminderBeforeEvent_label": "Reminder before event",
 		"remindersUsageDescription_msg": "Shows notification when new email arrives.",
-		"reminder_label": "Reminder",
 		"removeCalendarParticipantConfirm_msg": "Are you sure you want to remove {participant} from the calendar \"{calendarName}\"?",
 		"removeDNSValue_label": "Remove value",
 		"removeFormatting_action": "Remove formatting from selection",

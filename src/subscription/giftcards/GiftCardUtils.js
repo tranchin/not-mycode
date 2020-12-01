@@ -37,8 +37,9 @@ import {DefaultAnimationTime} from "../../gui/animation/Animations"
 import {copyToClipboard} from "../../misc/ClipboardUtils"
 import {BootIcons} from "../../gui/base/icons/BootIcons"
 import {base64ToBase64Url, base64UrlToBase64} from "../../api/common/utils/Encoding"
-import {getWebRoot} from "../../api/Env"
+import {getWebRoot, isApp} from "../../api/Env"
 import {splitAt} from "../../api/common/utils/StringUtils"
+import {shareTextNative} from "../../native/SystemApp"
 
 export function getTokenFromUrl(url: string): [Id, string] {
 	let id: Id, key: string;
@@ -178,8 +179,8 @@ function _decodeToken(token: Base64): [Id, string] {
 export function showGiftCardToShare(giftCard: GiftCard) {
 	generateGiftCardLink(giftCard)
 		.then(link => {
-			let infoMessage: TranslationKey = "emptyString_msg"
 			let dialog: Dialog
+			let infoMessage = "emptyString_msg"
 			dialog = Dialog.largeDialog(
 				{
 					right: [
@@ -198,7 +199,8 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 								m(".flex-center.full-width.pt-l",
 									m("", {style: {width: "480px"}}, renderGiftCard(parseFloat(giftCard.value), giftCard.message, link))
 								),
-								m(".flex-center", [
+								m(".flex-center",
+									[
 										m(ButtonN, {
 											click: () => {
 												dialog.close()
@@ -207,26 +209,36 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 											label: "shareViaEmail_action",
 											icon: () => BootIcons.Mail
 										}),
-										// TODO Use native sharing for apps instead of copy to clipboard
-										m(ButtonN, {
-											click: () => {
-												copyToClipboard(link)
-												infoMessage = "giftCardCopied_msg"
-											},
-											label: "copyToClipboard_action",
-											icon: () => Icons.Clipboard
-										}),
-										m(ButtonN, {
-											click: () => {
-												infoMessage = "emptyString_msg"
-												window.print()
-											},
-											label: "print_action",
-											icon: () => Icons.Print
-										}),
+										isApp()
+											? m(ButtonN, {
+												click: () => {
+													shareTextNative(link, lang.get("giftCard_label"))
+												},
+												label: "share_action",
+												icon: () => BootIcons.Share
+											})
+											: [
+												m(ButtonN, {
+													click: () => {
+														copyToClipboard(link)
+															.then(() => {infoMessage = "giftCardCopied_msg"})
+															.catch(() => {infoMessage = () => "failed to copy link"}) // TODO Translate
+													},
+													label: "copyToClipboard_action",
+													icon: () => Icons.Clipboard
+												}),
+												m(ButtonN, {
+													click: () => {
+														infoMessage = "emptyString_msg"
+														window.print()
+													},
+													label: "print_action",
+													icon: () => Icons.Print
+												})
+											]
 									]
 								),
-								m(".flex-center", m("small.noprint", lang.get(infoMessage)))
+								m(".flex-center", m("small.noprint", lang.getMaybeLazy(infoMessage)))
 							]
 						)
 				}).show()

@@ -1238,6 +1238,6 @@ module.exports = {
 		"savedCredentialsError_msg": "Failed to use saved credentials",
 		"onlyAccountAdminFeature_msg": "Only the account admin may do that",
 		"onlyPrivateAccountFeature_msg": "Only private accounts may do that",
-
+		"share_action": "Share"
 	}
 }

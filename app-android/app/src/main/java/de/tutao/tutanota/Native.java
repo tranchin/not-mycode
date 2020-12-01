@@ -1,14 +1,19 @@
 package de.tutao.tutanota;
 
 import android.app.NotificationManager;
+import android.content.ClipData;
+import android.content.ContentProvider;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 
 import androidx.annotation.Nullable;
+import androidx.core.content.FileProvider;
 
 import org.jdeferred.Deferred;
 import org.jdeferred.Promise;
@@ -18,6 +23,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -218,7 +225,7 @@ public final class Native {
 					promise.resolve(openLink(args.getString(0)));
 					break;
 				case "shareText":
-                	promise.resolve(shareText(args.getString(0)));
+                	promise.resolve(shareText(args.getString(0), args.getString(1)));
                  	break;
 				case "getPushIdentifier":
 					promise.resolve(sseStorage.getPushIdentifier());
@@ -307,10 +314,49 @@ public final class Native {
 		return resolved;
 	}
 
-	private boolean shareText(@Nullable String string) {
+	private Uri getUriFromResource(int resourceId) {
+		return new Uri.Builder()
+				.scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
+				.authority(activity.getResources().getResourcePackageName(resourceId))
+				.appendPath(activity.getResources().getResourceTypeName(resourceId))
+				.appendPath(activity.getResources().getResourceEntryName(resourceId))
+				.build();
+	}
+
+
+	private boolean shareText(String string, @Nullable String title) {
 		Intent sendIntent = new Intent(Intent.ACTION_SEND);
-        sendIntent.putExtra(Intent.EXTRA_TEXT, string);
-        sendIntent.setType("text/plain");
+//		sendIntent.setType("text/plain");
+
+		sendIntent.putExtra(Intent.EXTRA_TEXT, string);
+
+        if(title != null){
+			sendIntent.putExtra(Intent.EXTRA_TITLE, title);
+        }
+		Uri logoUri;
+        try {
+			InputStream logoInputStream = activity.getAssets().open("tutanota/images/logo.png");
+			File logoFile = this.files.writeFileToUnencryptedDir("screen.png", logoInputStream);
+			logoUri = FileProvider.getUriForFile(activity, BuildConfig.FILE_PROVIDER_AUTHORITY, logoFile);
+		} catch (IOException e) {
+        	throw new RuntimeException(e);
+		}
+
+
+        /*
+		ClipData thumbnail = ClipData.newUri(
+				activity.getContentResolver(),
+				"tutanota_logo",
+				logoUri
+		);
+
+		sendIntent.setClipData(thumbnail);
+		*/
+
+		sendIntent.setData(logoUri);
+		sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+
         Intent intent = Intent.createChooser(sendIntent, null);
         boolean resolved = intent.resolveActivity(activity.getPackageManager()) != null;
         if(resolved) {

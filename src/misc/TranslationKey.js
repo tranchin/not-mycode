@@ -1227,3 +1227,5 @@ export type TranslationKeyType = "about_label"
 	| "failedToLogin"
 	| "onlyAccountAdminFeature_msg"
 	| "onlyPrivateAccountFeature_msg"
+
+	| "share_action"

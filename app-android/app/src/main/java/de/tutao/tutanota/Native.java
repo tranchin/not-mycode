@@ -311,9 +311,10 @@ public final class Native {
 		Intent sendIntent = new Intent(Intent.ACTION_SEND);
         sendIntent.putExtra(Intent.EXTRA_TEXT, string);
         sendIntent.setType("text/plain");
-        Intent shareIntent = Intent.createChooser(sendIntent, null);
+        Intent intent = Intent.createChooser(sendIntent, null);
+        boolean resolved = intent.resolveActivity(activity.getPackageManager()) != null;
         if(resolved) {
-        	startActivity(shareIntent);
+        	activity.startActivity(intent);
 		}
 		return resolved;
 	}

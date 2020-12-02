@@ -225,8 +225,8 @@ public final class Native {
 					promise.resolve(openLink(args.getString(0)));
 					break;
 				case "shareText":
-                	promise.resolve(shareText(args.getString(0), args.getString(1)));
-                 	break;
+					promise.resolve(shareText(args.getString(0), args.getString(1)));
+					break;
 				case "getPushIdentifier":
 					promise.resolve(sseStorage.getPushIdentifier());
 					break;
@@ -326,41 +326,37 @@ public final class Native {
 
 	private boolean shareText(String string, @Nullable String title) {
 		Intent sendIntent = new Intent(Intent.ACTION_SEND);
-//		sendIntent.setType("text/plain");
-
+		sendIntent.setType("text/plain");
 		sendIntent.putExtra(Intent.EXTRA_TEXT, string);
 
-        if(title != null){
+		// Shows a text title in the app chooser
+		if (title != null) {
 			sendIntent.putExtra(Intent.EXTRA_TITLE, title);
-        }
-		Uri logoUri;
-        try {
-			InputStream logoInputStream = activity.getAssets().open("tutanota/images/logo.png");
-			File logoFile = this.files.writeFileToUnencryptedDir("screen.png", logoInputStream);
-			logoUri = FileProvider.getUriForFile(activity, BuildConfig.FILE_PROVIDER_AUTHORITY, logoFile);
-		} catch (IOException e) {
-        	throw new RuntimeException(e);
 		}
 
-
-        /*
+		// In order to show a logo thumbnail with the app chooser we need to pass a URI of a file in the filesystem
+		// we just save one of our resources to the temp directory and then pass that as ClipData
+		// because you can't share non 'content' URIs with other apps
+		Uri logoUri;
+		try {
+			InputStream logoInputStream = activity.getAssets().open("tutanota/images/logo-solo-red.png");
+			File logoFile = this.files.writeFileToUnencryptedDir("logo-solo-red.png", logoInputStream);
+			logoUri = FileProvider.getUriForFile(activity, BuildConfig.FILE_PROVIDER_AUTHORITY, logoFile);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		ClipData thumbnail = ClipData.newUri(
 				activity.getContentResolver(),
 				"tutanota_logo",
 				logoUri
 		);
-
 		sendIntent.setClipData(thumbnail);
-		*/
-
-		sendIntent.setData(logoUri);
 		sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-
-        Intent intent = Intent.createChooser(sendIntent, null);
-        boolean resolved = intent.resolveActivity(activity.getPackageManager()) != null;
-        if(resolved) {
-        	activity.startActivity(intent);
+		Intent intent = Intent.createChooser(sendIntent, null);
+		boolean resolved = intent.resolveActivity(activity.getPackageManager()) != null;
+		if (resolved) {
+			activity.startActivity(intent);
 		}
 		return resolved;
 	}

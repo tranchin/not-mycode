@@ -1234,7 +1234,6 @@ module.exports = {
 		"success_label": "Success",
 		"shareLink_action": "Link teilen",
 		"selectRecipientCountry_msg": "Wähle das Land des Empfängers aus",
-		"message_label": "Nachricht",
 		"giftCardPurchaseFailed_msg": "Gutschein konnte nicht bestellt werden",
 		"tooManyGiftCards_msg": "Du hast das Limit von {amount} gekauften Gutscheinen innerhalb von {period} erreicht",
 		"providePaymentDetails_msg": "Bitte Zahlungsmittel einrichten",

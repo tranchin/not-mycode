@@ -1219,7 +1219,6 @@ module.exports = {
 		"unavailable_label": "Unavailable",
 		"editMessage_label": "Edit message",
 		"giftCardUpdateError_msg": "Unable to update gift card",
-		"view_action": "View",
 		"options_action": "Options",
 		"shareViaEmail_action": "Share via email",
 		"copyToClipboard_action": "Copy to clipboard",

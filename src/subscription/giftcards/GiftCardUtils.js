@@ -125,26 +125,24 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 		})
 	}
 
-	const actionButtons = [
-		{
-			label: "view_action",
-			click: () => showGiftCardToShare(giftCard),
-			type: ButtonType.Dropdown
-		},
-		{
-			label: "edit_action",
-			click: showEditGiftCardMessageDialog,
-			type: ButtonType.Dropdown
-		}
-	]
-
 	const showMoreButtonAttrs = attachDropdown({
 			label: "options_action",
 			click: () => showGiftCardToShare(giftCard),
 			icon: () => Icons.More,
 			type: ButtonType.Dropdown
 		},
-		() => actionButtons)
+		() => [
+			{
+				label: "view_label",
+				click: () => showGiftCardToShare(giftCard),
+				type: ButtonType.Dropdown
+			},
+			{
+				label: "edit_action",
+				click: showEditGiftCardMessageDialog,
+				type: ButtonType.Dropdown
+			}
+		])
 
 	return {
 		cells: [

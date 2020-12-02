@@ -1,5 +1,8 @@
 //@flow
 
+import {shareTextNative} from "../native/SystemApp"
+import {lang} from "./LanguageViewModel"
+
 export type TranslationKeyType = "about_label"
 	| "acceptInvitation_action"
 	| "acceptPrivacyPolicyReminder_msg"
@@ -1227,5 +1230,8 @@ export type TranslationKeyType = "about_label"
 	| "failedToLogin"
 	| "onlyAccountAdminFeature_msg"
 	| "onlyPrivateAccountFeature_msg"
-
 	| "share_action"
+	| "nativeShareGiftCard_msg"
+	| "nativeShareGiftCard_label"
+	| "copyLinkError_msg"
+	| "errorLoggingIn_msg"

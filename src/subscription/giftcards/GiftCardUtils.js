@@ -113,7 +113,7 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 			.setValue(giftCard.message)
 
 		Dialog.showActionDialog({
-			title: "editMessage_label",
+			title: lang.get("editMessage_label"),
 			child: () => m(".gift-card-editor.pl-l.pr-l", m(editor)),
 			okAction: dialog => {
 				giftCard.message = editor.getValue()
@@ -158,7 +158,6 @@ export function createGiftCardTableLine(giftCard: GiftCard): TableLineAttrs { //
 
 export function generateGiftCardLink(giftCard: GiftCard): Promise<string> {
 	return worker.resolveSessionKey(GiftCardTypeModel, giftCard).then(key => {
-		console.log("key", key, key && key.length)
 		// This should not assert false and if it does we want to know about it
 		key = assertNotNull(key)
 		return getWebRoot() + `/giftcard/#${_encodeToken(elementIdPart(giftCard._id), key)}`
@@ -166,14 +165,13 @@ export function generateGiftCardLink(giftCard: GiftCard): Promise<string> {
 }
 
 function _encodeToken(id: Id, key: string): Base64 {
-	const str = key + btoa(id)
-	return base64ToBase64Url(str)
+	const tokenJSON = JSON.stringify([id, key])
+	return base64ToBase64Url(btoa(tokenJSON))
 }
 
 function _decodeToken(token: Base64): [Id, string] {
-	const keyLength = 24
-	const [key, b64Id] = splitAt(base64UrlToBase64(token), keyLength)
-	return [atob(b64Id), key]
+	const tokenJSON = atob(base64UrlToBase64(token))
+	return JSON.parse(tokenJSON)
 }
 
 export function showGiftCardToShare(giftCard: GiftCard) {
@@ -212,7 +210,7 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 										isApp()
 											? m(ButtonN, {
 												click: () => {
-													shareTextNative(link, lang.get("giftCard_label"))
+													shareTextNative(lang.get("nativeShareGiftCard_msg", {"{link}": link}), lang.get("nativeShareGiftCard_label"))
 												},
 												label: "share_action",
 												icon: () => BootIcons.Share
@@ -222,7 +220,7 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 													click: () => {
 														copyToClipboard(link)
 															.then(() => {infoMessage = "giftCardCopied_msg"})
-															.catch(() => {infoMessage = () => "failed to copy link"}) // TODO Translate
+															.catch(() => {infoMessage = "copyLinkError_msg"})
 													},
 													label: "copyToClipboard_action",
 													icon: () => Icons.Clipboard

@@ -1211,7 +1211,7 @@ module.exports = {
 		"giftCardSection_label": "Purchase, redeem and manage gift cards",
 		"redeem_label": "Redeem",
 		"codeInput_msg": "Enter the code",
-		"validGiftCardCountry_msg": "This gift card is only valid for use in {valid} but we have detected that you are in ${actual}",
+		"validGiftCardCountry_msg": "This gift card is only valid for use in {valid} but we have detected that you are in {actual}",
 		"purchaseDate_label": "Purchase date",
 		"value_label": "Value",
 		"available_label": "Available",
@@ -1233,11 +1233,15 @@ module.exports = {
 		"tooManyGiftCards_msg": "You have reached the purchase limit of {amount} gift cards in the last {period}",
 		"providePaymentDetails_msg": "Please provide payment details",
 		"invalidGiftCardPaymentMethod_msg": "Your payment method does not support the purchasing of gift cards",
-		"defaultGiftCardMessage_msg": "Hey! Hope you enjoy this gift card", // TODO this is bad
+		"defaultGiftCardMessage_msg": "Hey! Hope you enjoy this gift card",
 		"existingAccount_label": "Use existing account",
 		"savedCredentialsError_msg": "Failed to use saved credentials",
 		"onlyAccountAdminFeature_msg": "Only the account admin may do that",
 		"onlyPrivateAccountFeature_msg": "Only private accounts may do that",
-		"share_action": "Share"
+		"share_action": "Share",
+		"nativeShareGiftCard_msg": "Hey, I got you a gift card for Tutanota, the secure encrypted email service! click this link to redeem it! {link}",
+		"nativeShareGiftCard_label": "Share Tutanota Gift Card",
+		"copyLinkError_msg": "Failed to copy link",
+		"errorLoggingIn_msg": "Your account was created successfully but there was an error logging you in. Please login and go to Subscription settings to redeem the gift card link"
 	}
 }

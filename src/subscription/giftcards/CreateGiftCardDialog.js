@@ -109,6 +109,8 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 								return
 							}
 
+							const confirmed = Dialog.confirm("paymentDataValidation_action",)
+
 							showProgressDialog("loading_msg",
 								worker.generateGiftCard(message, value, country.a)
 								      .then(createdGiftCardId => locator.entityClient.load(GiftCardTypeRef, createdGiftCardId)))
@@ -128,7 +130,7 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 										case "giftcard.invalidpaymentmethod":
 											throw new UserError("invalidGiftCardPaymentMethod_msg")
 										default:
-											throw e // If this happens then we need to handle it
+											throw e // If this happens then the server changed and we need to handle it
 									}
 								})
 								.catch(NotAuthorizedError, e => {
@@ -145,7 +147,7 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 }
 
 /**
- * Create a dialog to buy a giftcard or fail if the user cannot do so
+ * Create a dialog to buy a giftcard or show error if the user cannot do so
  * @returns {Promise<unknown>|Promise<void>|Promise<Promise<void>>}
  */
 export function showPurchaseGiftCardDialog(): Promise<void> {
@@ -214,6 +216,6 @@ export function showPurchaseGiftCardDialog(): Promise<void> {
 		      })
 
 	return showProgressDialog("loading_msg", loadDialogPromise)
-		.then(dialog => dialog && dialog.show()) // TODOshow the giftcard
+		.then(dialog => dialog && dialog.show())
 		.catch(UserError, showUserError)
 }

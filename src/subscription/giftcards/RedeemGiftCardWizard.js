@@ -46,6 +46,7 @@ type RedeemGiftCardWizardData = {
 
 type GiftCardRedeemAttrs = WizardPageAttrs<RedeemGiftCardWizardData>
 
+// This page gives the user the option to either signup or login to an account with which to redeem their gift card
 class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 
 	view(vnode: Vnode<GiftCardRedeemAttrs>): Children {
@@ -83,6 +84,8 @@ class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 	}
 }
 
+// This page will either show a signup or login form depending on how they choose to select their credentials
+// When they go to the next page the will be logged in
 class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 
 	_domElement: HTMLElement
@@ -168,6 +171,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 		const existingAccountData = data.newAccountData()
 		const isReadOnly = existingAccountData != null
 		const signupFormAttrs: SignupFormAttrs = {
+			// After having an account created we log them in to be in the same state as if they had selected an existing account
 			newSignupHandler: newAccountData => {
 				if (newAccountData || existingAccountData) {
 					if (!existingAccountData) {
@@ -181,7 +185,11 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 						      data.credentials(credentials)
 						      emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
 					      })
-					      .catch(e => Dialog.error(() => "error signing up")) // TODO Translate // TODO How to handle failure to login after account was newly created? will this happen?
+					      .catch(e => {
+						      // If login fails after signup they get directed to log back in
+						      Dialog.error("errorLoggingIn_msg")
+						      m.route.set("/login")
+					      })
 				}
 			},
 			readonly: isReadOnly,

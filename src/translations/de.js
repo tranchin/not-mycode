@@ -1212,7 +1212,7 @@ module.exports = {
 		"defaultShareGiftCardSubject_msg": "Du hast einen Gutschein für Tutanota erhalten",
 		"buyGiftCard_label": "Gutschein kaufen",
 		"invalidGiftCard_msg": "Dieser Gutschein kann nicht verwendet werden",
-		"unprocessedBookings_msg": "In deinem Konto sind unbearbeitete Buchungen in Höhe von insgesamt {amount}.\nDiese werden mit der nächsten Rechnung von ihrem Kontostand bzw. ihrem Zahlungsmittel eingezogen.",
+		"unprocessedBookings_msg": "In deinem Konto sind unbearbeitete Buchungen in Höhe von insgesamt {amount}.\nDiese werden mit der nächsten Rechnung von deinem Kontostand bzw. deinem Zahlungsmittel eingezogen.",
 		"insufficientBalanceError_msg": "Dein Kontostand ist nicht ausreichend um diese Buchung durchzuführen.",
 		"giftCardSection_label": "Gutscheine kaufen, einlösen und verwalten",
 		"redeem_label": "Einlösen",
@@ -1230,12 +1230,22 @@ module.exports = {
 		"copyToClipboard_action": "In die Zwischenablage kopieren",
 		"giftCardCopied_msg": "Der Gutscheinlink wurde in die Zwischenablage kopiert!",
 		"giftCardRedeemed_msg": "Der Gutschein wurde erfolgreich eingelöst.",
-		"redeemedToPremium_msg": "Dein .",
+		"redeemedToPremium_msg": "Dein Account wurde auf einen Premium Account umgestellt.",
 		"success_label": "Success",
 		"shareLink_action": "Link teilen",
 		"selectRecipientCountry_msg": "Wähle das Land des Empfängers aus",
-		"message_label": "Nachricht"
-
-
+		"message_label": "Nachricht",
+		"giftCardPurchaseFailed_msg": "Gutschein konnte nicht bestellt werden",
+		"tooManyGiftCards_msg": "Du hast das Limit von {amount} gekauften Gutscheinen innerhalb von {period} erreicht",
+		"providePaymentDetails_msg": "Bitte Zahlungsmittel einrichten",
+		"invalidGiftCardPaymentMethod_msg": "Dein Zahlungsmittel erlaubt keine Bestellung von Gutscheinen",
+		"defaultGiftCardMessage_msg": "Hi, viel Spaß mit diesem Gutschein",
+		"existingAccount_label": "Bestehenden Account verwenden",
+		"savedCredentialsError_msg": "Fehler beim Einloggen mit gespeicherten Zugangsdaten",
+		"onlyAccountAdminFeature_msg": "Dieses Feature ist nur für Administratoren freigeschaltet",
+		"onlyPrivateAccountFeature_msg": "Dieses Feature ist für private Accounts möglich",
+		"share_action": "Teilen",
+		"nativeShareGiftCard_msg": "Hi, ich habe dir einen Gutschein für Tutanota besorgt, dein verschlüsseltes Postfach. Klicke hier um ihn einzulösen!",
+		"nativeShareGiftCard_label": "Tutanota Gutschein teilen"
 	}
 }

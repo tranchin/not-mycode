@@ -648,6 +648,14 @@ export class MailViewer {
 							type: ButtonType.Dropdown,
 						})
 					}
+					if (isAndroidApp() && !logins.isEnabled(FeatureType.DisableMailExport)) {
+						moreButtons.push({
+							label: "print_action",
+							click: () => nativeApp.invokeNative(new Request('printCurrentWebView', ["Tutanota E-Mail"])),
+							icon: () => Icons.Print,
+							type: ButtonType.Dropdown,
+						})
+					}
 					if (this.mail.listUnsubscribe) {
 						moreButtons.push({
 							label: "unsubscribe_action",

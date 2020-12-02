@@ -5,6 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintJob;
+import android.print.PrintManager;
 import android.util.Log;
 import android.webkit.JavascriptInterface;
 
@@ -217,6 +221,9 @@ public final class Native {
 				case "openLink":
 					promise.resolve(openLink(args.getString(0)));
 					break;
+				case "printCurrentWebView":
+					printCurrentWebView(args.getString(0));
+					break;
 				case "getPushIdentifier":
 					promise.resolve(sseStorage.getPushIdentifier());
 					break;
@@ -302,6 +309,13 @@ public final class Native {
 			activity.startActivity(intent);
 		}
 		return resolved;
+	}
+
+	private void printCurrentWebView(String jobName) {
+		PrintManager printManager = (PrintManager) activity.getSystemService(Context.PRINT_SERVICE);
+		PrintDocumentAdapter printAdapter = activity.getWebView().createPrintDocumentAdapter(jobName);
+		PrintJob printJob = printManager.print(jobName, printAdapter,
+				new PrintAttributes.Builder().build());
 	}
 
 	private Promise<Object, Exception, Void> initPushNotifications() {

@@ -14,6 +14,10 @@ export function openLinkNative(uri: string): Promise<boolean> {
 }
 
 
+export function printCurrentWebViewNative(jobName: string): void {
+	nativeApp.invokeNative(new Request("printCurrentWebView", [jobName]))
+}
+
 export function reloadNative(queryParameters: string): Promise<void> {
 	return nativeApp.invokeNative(new Request('reload', [queryParameters]))
 }

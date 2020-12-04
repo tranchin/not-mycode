@@ -27,7 +27,13 @@ import {CustomerInfoTypeRef} from "../../api/entities/sys/CustomerInfo"
 import {locator} from "../../api/main/MainLocator"
 import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
 import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
-import {redeemGiftCard, renderGiftCard, renderGiftCardSvg, showGiftCardWasRedeemedDialog} from "./GiftCardUtils"
+import {
+	redeemGiftCard,
+	renderAcceptGiftCardTermsCheckbox,
+	renderGiftCard,
+	renderGiftCardSvg,
+	showGiftCardWasRedeemedDialog
+} from "./GiftCardUtils"
 import {CancelledError} from "../../api/common/error/CancelledError"
 import {lang} from "../../misc/LanguageViewModel"
 import {getLoginErrorMessage} from "../../misc/LoginUtils"
@@ -228,12 +234,22 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 
 
 class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
+	isConfirmed: Stream<boolean>
+
+	constructor() {
+		this.isConfirmed = stream(false)
+	}
+
 	view(vnode: Vnode<GiftCardRedeemAttrs>): Children {
 		const data = vnode.attrs.data
 
 		const confirmButtonAttrs = {
 			label: "redeem_label",
 			click: () => {
+				if (!this.isConfirmed()) {
+					Dialog.error(() => "gotta confirm my man") // TODO
+					return
+				}
 				const wasFree = logins.getUserController().isFreeAccount()
 				redeemGiftCard(data.giftCardInfo.giftCard, data.giftCardInfo.country, Dialog.confirm)
 					.then(() => {
@@ -249,7 +265,10 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 			m(".flex-center.full-width.pt-l",
 				m("", {style: {width: "480px"}}, renderGiftCardSvg(parseFloat(data.giftCardInfo.value), null, null, false))),
 			m(".flex-center.full-width.pt-l",
-				m(".pt-l", {style: {width: "260px"}}, m(ButtonN, confirmButtonAttrs)))
+				m("flex-v-center", [
+					renderAcceptGiftCardTermsCheckbox(this.isConfirmed),
+					m(".pt-l", {style: {width: "260px"}}, m(ButtonN, confirmButtonAttrs))
+				]))
 		])
 	}
 }

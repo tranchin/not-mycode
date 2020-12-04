@@ -40,6 +40,7 @@ import {base64ToBase64Url, base64UrlToBase64} from "../../api/common/utils/Encod
 import {getWebRoot, isApp} from "../../api/Env"
 import {splitAt} from "../../api/common/utils/StringUtils"
 import {shareTextNative} from "../../native/SystemApp"
+import {CheckboxN} from "../../gui/base/CheckboxN"
 
 export function getTokenFromUrl(url: string): [Id, string] {
 	let id: Id, key: string;
@@ -318,5 +319,13 @@ export function showGiftCardWasRedeemedDialog(wasFree: boolean, okAction?: () =>
 			okAction && okAction()
 			dialog.close()
 		}
+	})
+}
+
+export function renderAcceptGiftCardTermsCheckbox(confirmed: Stream<boolean>): Children {
+	return m(CheckboxN, { // TODO
+		label: () => "Agree to terms",
+		checked: confirmed,
+		helpLabel: () => "agree to the terms and conditions of gifty acards",
 	})
 }

@@ -23,13 +23,15 @@ import {createCountryDropdown} from "../../gui/base/GuiUtils"
 import {BuyOptionBox} from "../BuyOptionBox"
 import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import {formatPrice} from "../SubscriptionUtils"
-import {showGiftCardToShare} from "./GiftCardUtils"
+import {renderAcceptGiftCardTermsCheckbox, showGiftCardToShare} from "./GiftCardUtils"
 import type {DialogHeaderBarAttrs} from "../../gui/base/DialogHeaderBar"
 import {showUserError} from "../../misc/ErrorHandlerImpl"
 import {UserError} from "../../api/common/error/UserError"
 import {PaymentMethodType} from "../../api/common/TutanotaConstants"
 import {lang} from "../../misc/LanguageViewModel"
 import {NotAuthorizedError, PreconditionFailedError} from "../../api/common/error/RestError"
+import type {TranslationKey} from "../../misc/LanguageViewModel"
+import {CheckboxN} from "../../gui/base/CheckboxN"
 
 export type CreateGiftCardViewAttrs = {
 	purchaseLimit: number,
@@ -49,6 +51,8 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 	selectedPackage: Stream<number>
 	selectedCountry: Stream<?Country>
 
+	isConfirmed: Stream<boolean>
+
 	constructor(vnode: Vnode<CreateGiftCardViewAttrs>) {
 		const a = vnode.attrs
 		this.selectedPackage = stream(a.selectedPackageIndex)
@@ -64,6 +68,8 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 			this.selectedCountry,
 			() => lang.get("invoiceCountryInfoConsumer_msg"),
 			"selectRecipientCountry_msg")
+
+		this.isConfirmed = stream(false)
 	}
 
 	view(vnode: Vnode<CreateGiftCardViewAttrs>): Children {
@@ -96,53 +102,60 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 			m(this.messageEditor),
 			m(this.countrySelector),
 			m(".flex-center.pt-l",
-				m(".flex-grow-shrink-auto.max-width-m.pt.pb.plr-l", m(ButtonN, {
-						label: "buy_action",
-						click: () => {
-
-							const value = a.availablePackages[this.selectedPackage()].value
-							const message = this.messageEditor.getValue()
-							const country = this.selectedCountry()
-
-							if (!country) {
-								Dialog.error("selectRecipientCountry_msg")
-								return
-							}
-
-							const confirmed = Dialog.confirm("paymentDataValidation_action",)
-
-							showProgressDialog("loading_msg",
-								worker.generateGiftCard(message, value, country.a)
-								      .then(createdGiftCardId => locator.entityClient.load(GiftCardTypeRef, createdGiftCardId)))
-								.then(giftCard => {
-									a.outerDialog().close()
-									showGiftCardToShare(giftCard)
-								})
-								.catch(PreconditionFailedError, e => {
-									switch (e.data) {
-										case "giftcard.limitreached":
-											throw new UserError(() => lang.get("tooManyGiftCards_msg", {
-												"{amount}": `${a.purchaseLimit}`,
-												"{period}": `${a.purchasePeriodMonths} months`
-											}))
-										case "giftcard.noaccountinginfo":
-											throw new UserError("providePaymentDetails_msg")
-										case "giftcard.invalidpaymentmethod":
-											throw new UserError("invalidGiftCardPaymentMethod_msg")
-										default:
-											throw e // If this happens then the server changed and we need to handle it
-									}
-								})
-								.catch(NotAuthorizedError, e => {
-									throw new UserError("giftCardPurchaseFailed_msg")
-								})
-								.catch(UserError, showUserError)
-						},
-						type: ButtonType.Login,
-					})
-				)
+				m("flex-v-center", [
+					renderAcceptGiftCardTermsCheckbox(this.isConfirmed),
+					m(".flex-grow-shrink-auto.max-width-m.pt.pb.plr-l", m(ButtonN, {
+							label: "buy_action",
+							click: () => this.buyButtonPressed(a),
+							type: ButtonType.Login,
+						})
+					)
+				])
 			)
 		]
+	}
+
+	buyButtonPressed(attrs: CreateGiftCardViewAttrs) {
+		if (!this.isConfirmed()) { // TODO
+			Dialog.error(() => "Agree to the terms dawg");
+			return
+		}
+
+		const value = attrs.availablePackages[this.selectedPackage()].value
+		const message = this.messageEditor.getValue()
+		const country = this.selectedCountry()
+
+		if (!country) {
+			Dialog.error("selectRecipientCountry_msg")
+			return
+		}
+
+		showProgressDialog("loading_msg",
+			worker.generateGiftCard(message, value, country.a)
+			      .then(createdGiftCardId => locator.entityClient.load(GiftCardTypeRef, createdGiftCardId)))
+			.then(giftCard => {
+				attrs.outerDialog().close()
+				showGiftCardToShare(giftCard)
+			})
+			.catch(PreconditionFailedError, e => {
+				switch (e.data) {
+					case "giftcard.limitreached":
+						throw new UserError(() => lang.get("tooManyGiftCards_msg", {
+							"{amount}": `${attrs.purchaseLimit}`,
+							"{period}": `${attrs.purchasePeriodMonths} months`
+						}))
+					case "giftcard.noaccountinginfo":
+						throw new UserError("providePaymentDetails_msg")
+					case "giftcard.invalidpaymentmethod":
+						throw new UserError("invalidGiftCardPaymentMethod_msg")
+					default:
+						throw e // If this happens then the server changed and we need to handle it
+				}
+			})
+			.catch(NotAuthorizedError, e => {
+				throw new UserError("giftCardPurchaseFailed_msg")
+			})
+			.catch(UserError, showUserError)
 	}
 }
 

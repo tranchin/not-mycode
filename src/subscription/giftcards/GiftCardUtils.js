@@ -36,7 +36,7 @@ import {writeGiftCardMail} from "../../mail/MailEditorN"
 import {DefaultAnimationTime} from "../../gui/animation/Animations"
 import {copyToClipboard} from "../../misc/ClipboardUtils"
 import {BootIcons} from "../../gui/base/icons/BootIcons"
-import {base64ToBase64Url, base64UrlToBase64} from "../../api/common/utils/Encoding"
+import {base64ExtToBase64, base64ToBase64Ext, base64ToBase64Url, base64UrlToBase64} from "../../api/common/utils/Encoding"
 import {getWebRoot, isApp} from "../../api/Env"
 import {splitAt} from "../../api/common/utils/StringUtils"
 import {shareTextNative} from "../../native/SystemApp"
@@ -164,13 +164,17 @@ export function generateGiftCardLink(giftCard: GiftCard): Promise<string> {
 }
 
 function _encodeToken(id: Id, key: string): Base64 {
-	const tokenJSON = JSON.stringify([id, key])
-	return base64ToBase64Url(btoa(tokenJSON))
+	const idPart = base64ToBase64Url(base64ExtToBase64(id))
+	console.log("encoded id length", idPart.length)
+	const keyPart = base64ToBase64Url(key)
+	return idPart + "-" + keyPart
 }
 
 function _decodeToken(token: Base64): [Id, string] {
-	const tokenJSON = atob(base64UrlToBase64(token))
-	return JSON.parse(tokenJSON)
+	const idLength = 12;
+	const id = base64ToBase64Ext(base64UrlToBase64(token.slice(0, idLength)))
+	const key = base64UrlToBase64(token.slice(idLength, token.length))
+	return [id, key]
 }
 
 export function showGiftCardToShare(giftCard: GiftCard) {

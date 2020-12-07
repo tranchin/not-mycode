@@ -164,7 +164,6 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
  * @returns {Promise<unknown>|Promise<void>|Promise<Promise<void>>}
  */
 export function showPurchaseGiftCardDialog(): Promise<void> {
-	let customerInfo: CustomerInfo
 	const loadDialogPromise =
 		logins.getUserController()
 		      .loadAccountingInfo()

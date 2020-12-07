@@ -23,7 +23,7 @@ import {worker} from "./WorkerClient"
 import {AccessDeactivatedError, AccessExpiredError, InvalidDataError} from "../common/error/RestError"
 import {createRegistrationCaptchaServiceGetData} from "../entities/sys/RegistrationCaptchaServiceGetData"
 import {deviceConfig} from "../../misc/DeviceConfig"
-import {SubscriptionType} from "../../subscription/SubscriptionUtils"
+import {showServiceTerms, SubscriptionType} from "../../subscription/SubscriptionUtils"
 import {serviceRequest, serviceRequestVoid} from "./Entity"
 import {SysService} from "../entities/sys/Services"
 import {HttpMethod} from "../common/EntityFunctions"
@@ -138,7 +138,7 @@ function renderTermsLabel(): Children {
 		m("div", m(`a[href=${lang.getInfoLink("termsFree_link")}][target=_blank]`, {
 			onclick: e => {
 				if (isApp()) {
-					showTerms("terms")
+					showServiceTerms("terms")
 					e.preventDefault()
 				}
 			}
@@ -146,41 +146,12 @@ function renderTermsLabel(): Children {
 		m("div", m(`a[href=${lang.getInfoLink("termsPrivacy_link")}][target=_blank]`, {
 			onclick: e => {
 				if (isApp()) {
-					showTerms("privacy")
+					showServiceTerms("privacy")
 					e.preventDefault()
 				}
 			}
 		}, lang.get("privacyLink_label")))
 	]
-}
-
-function showTerms(section: string) {
-	asyncImport(typeof module !== "undefined"
-		? module.id : __moduleName, `${env.rootPathPrefix}src/subscription/terms.js`)
-		.then(terms => {
-			let dialog: Dialog
-			let visibleLang = lang.code
-			let sanitizedTerms: string
-			let headerBarAttrs: DialogHeaderBarAttrs = {
-				left: [
-					{
-						label: () => "EN/DE",
-						click: () => {
-							visibleLang = visibleLang === "de" ? "en" : "de"
-							sanitizedTerms = htmlSanitizer.sanitize(terms[section + "_" + visibleLang], false).text
-							m.redraw()
-						},
-						type: ButtonType.Secondary
-					}
-				],
-				right: [{label: 'ok_action', click: () => dialog.close(), type: ButtonType.Primary}]
-			}
-
-			sanitizedTerms = htmlSanitizer.sanitize(terms[section + "_" + visibleLang], false).text
-			dialog = Dialog.largeDialog(headerBarAttrs, {
-				view: () => m(".text-break", m.trust(sanitizedTerms))
-			}).show()
-		})
 }
 
 /**

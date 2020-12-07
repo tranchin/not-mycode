@@ -1,4 +1,5 @@
 //@flow
+import m from "mithril"
 import type {TranslationKey} from "../misc/LanguageViewModel"
 import {lang} from "../misc/LanguageViewModel"
 import type {BookingItemFeatureTypeEnum} from "../api/common/TutanotaConstants"
@@ -17,6 +18,11 @@ import {HttpMethod} from "../api/common/EntityFunctions"
 import {Dialog} from "../gui/base/Dialog"
 import {showProgressDialog} from "../gui/base/ProgressDialog"
 import * as BuyDialog from "./BuyDialog"
+import {asyncImport} from "../api/common/utils/Utils"
+import type {DialogHeaderBarAttrs} from "../gui/base/DialogHeaderBar"
+import {htmlSanitizer} from "../misc/HtmlSanitizer"
+import {ButtonType} from "../gui/base/ButtonN"
+
 
 export type SubscriptionOptions = {
 	businessUse: Stream<boolean>,
@@ -264,3 +270,34 @@ export function showBuyDialog(bookingItemFeatureType: BookingItemFeatureTypeEnum
 			}
 		})
 }
+
+
+export function showServiceTerms(section: "terms" | "privacy" | "giftCards") {
+	asyncImport(typeof module !== "undefined"
+		? module.id : __moduleName, `${env.rootPathPrefix}src/subscription/terms.js`)
+		.then(terms => {
+			let dialog: Dialog
+			let visibleLang = lang.code
+			let sanitizedTerms: string
+			let headerBarAttrs: DialogHeaderBarAttrs = {
+				left: [
+					{
+						label: () => "EN/DE",
+						click: () => {
+							visibleLang = visibleLang === "de" ? "en" : "de"
+							sanitizedTerms = htmlSanitizer.sanitize(terms[section + "_" + visibleLang], false).text
+							m.redraw()
+						},
+						type: ButtonType.Secondary
+					}
+				],
+				right: [{label: 'ok_action', click: () => dialog.close(), type: ButtonType.Primary}]
+			}
+
+			sanitizedTerms = htmlSanitizer.sanitize(terms[section + "_" + visibleLang], false).text
+			dialog = Dialog.largeDialog(headerBarAttrs, {
+				view: () => m(".text-break", m.trust(sanitizedTerms))
+			}).show()
+		})
+}
+

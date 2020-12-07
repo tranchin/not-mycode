@@ -15,7 +15,7 @@ import {_TypeModel as GiftCardTypeModel, GiftCardTypeRef} from "../../api/entiti
 import type {TranslationKey} from "../../misc/LanguageViewModel"
 import {lang} from "../../misc/LanguageViewModel"
 import {UserError} from "../../api/common/error/UserError"
-import {formatPrice} from "../SubscriptionUtils"
+import {formatPrice, showServiceTerms} from "../SubscriptionUtils"
 import {Dialog, DialogType} from "../../gui/base/Dialog"
 import {attachDropdown} from "../../gui/base/DropdownN"
 import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
@@ -324,8 +324,17 @@ export function showGiftCardWasRedeemedDialog(wasFree: boolean, okAction?: () =>
 
 export function renderAcceptGiftCardTermsCheckbox(confirmed: Stream<boolean>): Children {
 	return m(CheckboxN, { // TODO
-		label: () => "Agree to terms",
 		checked: confirmed,
-		helpLabel: () => "agree to the terms and conditions of gifty acards",
+		label: () => [
+			m("div", lang.get("giftCardsTerms_label")),
+			m("div", m(`a[href=${lang.getInfoLink("giftCardsTerms_link")}][target=_blank]`, {
+				onclick: e => {
+					if (isApp()) {
+						showServiceTerms("giftCards")
+						e.preventDefault()
+					}
+				}
+			}, lang.get("giftCardsTermsLink_label"))),
+		],
 	})
 }

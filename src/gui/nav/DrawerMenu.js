@@ -35,7 +35,7 @@ export class DrawerMenu implements MComponent<Attrs> {
 				icon: () => Icons.Gift,
 				label: "buyGiftCard_label",
 				click: createNotAvailableForFreeClickHandler(false,
-					() => showPurchaseGiftCardDialog,
+					showPurchaseGiftCardDialog,
 					() => logins.getUserController().isPremiumAccount()),
 				type: ButtonType.ActionLarge,
 				colors: ButtonColors.DrawerNav

@@ -1241,6 +1241,8 @@ module.exports = {
 		"nativeShareGiftCard_msg": "Hey, I got you a gift card for Tutanota, the secure encrypted email service! click this link to redeem it! {link}",
 		"nativeShareGiftCard_label": "Share Tutanota Gift Card",
 		"copyLinkError_msg": "Failed to copy link",
-		"giftCardSignupErrorLoggingIn_msg": "Your account was created successfully but there was an error logging you in. Please login and go to Subscription settings to redeem the gift card link"
+		"giftCardSignupErrorLoggingIn_msg": "Your account was created successfully but there was an error logging you in. Please login and go to Subscription settings to redeem the gift card link",
+		"giftCardsTerms_label": "Agree to the following  terms and conditions",
+		"giftCardsTermsLink_label": "Gift card terms and conditions",
 	}
 }

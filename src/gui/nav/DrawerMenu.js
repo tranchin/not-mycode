@@ -31,15 +31,15 @@ export class DrawerMenu implements MComponent<Attrs> {
 			},
 		}, m(".flex.col.height-100p.items-center.pt.pb", [
 			m(".flex-grow"),
-			m(ButtonN, {
-				icon: () => Icons.Gift,
-				label: "buyGiftCard_label",
-				click: createNotAvailableForFreeClickHandler(false,
-					showPurchaseGiftCardDialog,
-					() => logins.getUserController().isPremiumAccount()),
-				type: ButtonType.ActionLarge,
-				colors: ButtonColors.DrawerNav
-			}),
+			logins.getUserController().isPremiumAccount()
+				? m(ButtonN, {
+					icon: () => Icons.Gift,
+					label: "buyGiftCard_label",
+					click: showPurchaseGiftCardDialog,
+					type: ButtonType.ActionLarge,
+					colors: ButtonColors.DrawerNav
+				})
+				: null,
 			isDesktop()
 				? m(ButtonN, {
 					icon: () => Icons.NewWindow,

@@ -315,3 +315,7 @@ export function base64ToUint8Array(base64: Base64): Uint8Array {
 	}
 	return result
 }
+
+export function stringToBase64(str: string): string {
+	return uint8ArrayToBase64(stringToUtf8Uint8Array(str))
+}

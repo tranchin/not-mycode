@@ -29,14 +29,13 @@ import {AccountingInfoTypeRef} from "../../api/entities/sys/AccountingInfo"
 import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedeemGetReturn"
 import {
 	redeemGiftCard,
-	renderAcceptGiftCardTermsCheckbox,
-	renderGiftCard,
-	renderGiftCardSvg,
+	renderAcceptGiftCardTermsCheckbox, renderGiftCardSvg,
 	showGiftCardWasRedeemedDialog
 } from "./GiftCardUtils"
 import {CancelledError} from "../../api/common/error/CancelledError"
 import {lang} from "../../misc/LanguageViewModel"
 import {getLoginErrorMessage} from "../../misc/LoginUtils"
+import {htmlSanitizer} from "../../misc/HtmlSanitizer"
 
 type GetCredentialsMethod = "login" | "signup"
 
@@ -67,7 +66,15 @@ class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 
 		return [
 			m(".flex-center.full-width.pt-l",
-				m("", {style: {width: "480px"}}, renderGiftCard(parseFloat(a.data.giftCardInfo.value), a.data.giftCardInfo.message, null, false))
+				m("", {style: {width: "480px"}},
+					[
+						m(".flex-center.full-width.pt-l.editor-border.noprint",
+							m(".pt-s.pb-s", {style: {width: "260px"}},
+								m.trust(htmlSanitizer.sanitize(a.data.giftCardInfo.message, true).text),
+							),
+						),
+						m(".pt-l", renderGiftCardSvg(parseFloat(a.data.giftCardInfo.value), null)),
+					])
 			),
 			m(".flex-center.full-width.pt-l",
 				m("", {style: {width: "260px"}},
@@ -262,8 +269,6 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 		}
 
 		return m("", [
-			m(".flex-center.full-width.pt-l",
-				m("", {style: {width: "480px"}}, renderGiftCardSvg(parseFloat(data.giftCardInfo.value), null, null, false))),
 			m(".flex-center.full-width.pt-l",
 				m("flex-v-center", [
 					renderAcceptGiftCardTermsCheckbox(this.isConfirmed),

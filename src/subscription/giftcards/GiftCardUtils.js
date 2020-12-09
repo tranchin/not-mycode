@@ -41,6 +41,13 @@ import {getWebRoot, isApp} from "../../api/Env"
 import {splitAt} from "../../api/common/utils/StringUtils"
 import {shareTextNative} from "../../native/SystemApp"
 import {CheckboxN} from "../../gui/base/CheckboxN"
+import {ParserError} from "../../misc/parsing"
+import {Keys} from "../../api/common/TutanotaConstants"
+
+
+const ID_LENGTH = 12;
+const KEY_LENGTH = 24;
+
 
 export function getTokenFromUrl(url: string): [Id, string] {
 	let id: Id, key: string;
@@ -50,6 +57,7 @@ export function getTokenFromUrl(url: string): [Id, string] {
 			throw new Error()
 		}
 		[id, key] = _decodeToken(token)
+
 	} catch (e) {
 		throw new UserError("invalidGiftCard_msg")
 	}
@@ -163,17 +171,23 @@ export function generateGiftCardLink(giftCard: GiftCard): Promise<string> {
 	})
 }
 
-function _encodeToken(id: Id, key: string): Base64 {
+export function _encodeToken(id: Id, key: string): Base64 {
+	if (id.length !== ID_LENGTH || key.length !== KEY_LENGTH) {
+		throw new Error("invalid input")
+	}
+
 	const idPart = base64ToBase64Url(base64ExtToBase64(id))
 	console.log("encoded id length", idPart.length)
 	const keyPart = base64ToBase64Url(key)
-	return idPart + "-" + keyPart
+	return idPart + keyPart
 }
 
-function _decodeToken(token: Base64): [Id, string] {
-	const idLength = 12;
-	const id = base64ToBase64Ext(base64UrlToBase64(token.slice(0, idLength)))
-	const key = base64UrlToBase64(token.slice(idLength, token.length))
+export function _decodeToken(token: Base64): [Id, string] {
+	const id = base64ToBase64Ext(base64UrlToBase64(token.slice(0, ID_LENGTH)))
+	const key = base64UrlToBase64(token.slice(ID_LENGTH, token.length))
+	if (id.length !== ID_LENGTH || key.length !== KEY_LENGTH) {
+		throw new ParserError("invalid token")
+	}
 	return [id, key]
 }
 
@@ -182,6 +196,7 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 		.then(link => {
 			let dialog: Dialog
 			let infoMessage = "emptyString_msg"
+			let giftCardDomElement: HTMLElement
 			dialog = Dialog.largeDialog(
 				{
 					right: [
@@ -198,14 +213,27 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 						m("", {style: {padding: px(size.vpad_large)}},
 							[
 								m(".flex-center.full-width.pt-l",
-									m("", {style: {width: "480px"}}, renderGiftCard(parseFloat(giftCard.value), giftCard.message, link))
+									m("", {style: {width: "480px"}},
+										[
+											m(".flex-center.full-width.pt-l.editor-border.noprint",
+												m(".pt-s.pb-s", {style: {width: "260px"}},
+													m.trust(htmlSanitizer.sanitize(giftCard.message, true).text),
+												),
+											),
+											m(".pt-l", {
+												oncreate: (vnode) => {
+													giftCardDomElement = vnode.dom
+												}
+											}, renderGiftCardSvg(parseFloat(giftCard.value), link))
+										]
+									)
 								),
 								m(".flex-center",
 									[
 										m(ButtonN, {
 											click: () => {
 												dialog.close()
-												setTimeout(() => writeGiftCardMail(link), DefaultAnimationTime)
+												setTimeout(() => writeGiftCardMail(link, giftCardDomElement.innerHTML), DefaultAnimationTime)
 											},
 											label: "shareViaEmail_action",
 											icon: () => BootIcons.Mail
@@ -242,11 +270,15 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 								m(".flex-center", m("small.noprint", lang.getMaybeLazy(infoMessage)))
 							]
 						)
-				}).show()
+				}).addShortcut({
+				key: Keys.ESC,
+				exec: () => dialog.close(),
+				help: "close_alt"
+			}).show()
 		})
 }
 
-export function renderGiftCardSvg(price: number, link: ?string, message: ?string, portrait: boolean = true): Children {
+export function renderGiftCardSvg(price: number, link: ?string, portrait: boolean = true): Children {
 	let qrCode = null
 	const qrcodeSize = portrait ? 120 : 60
 	if (link) {
@@ -264,7 +296,12 @@ export function renderGiftCardSvg(price: number, link: ?string, message: ?string
 	const height = portrait ? 300 : 140
 	const width = 240
 
+	// Needs to remain consistent with the SVG path data
+	const logoTextWidth = 153
+	const centered = (elementWidth, totalWidth = width) => totalWidth / 2 - elementWidth / 2
+
 	return m("svg", {
+			xmlns: "http://www.w3.org/2000/svg",
 			style: {
 				maxWidth: "960px", minwidth: "480px", background: theme.content_accent, borderRadius: px(20),
 				"-webkit-print-color-adjust": "exact",
@@ -273,24 +310,28 @@ export function renderGiftCardSvg(price: number, link: ?string, message: ?string
 			viewBox: `0 0 ${width} ${height}`
 		},
 		[
-			m("path", { /* tutanota logo text */
-				fill: theme.elevated_bg,
-				d: "M24.996 18.992h-9.332v-1.767h20.585v1.767h-9.333v26.653h-1.92V18.992zM35.75 40.115V25.482h1.843v14.402c0 3.073 1.344 4.57 4.417 4.57 2.803 0 5.146-1.459 7.642-3.84V25.482h1.844v20.163H49.65v-3.341c-2.227 2.112-4.839 3.764-7.796 3.764-4.186 0-6.106-2.305-6.106-5.953zm23.85 1.037V27.133h-3.534v-1.651h3.533v-7.335h1.844v7.335h5.261v1.652h-5.261v13.748c0 2.151.73 3.38 3.264 3.38.768 0 1.536-.077 2.112-.268v1.728c-.652.115-1.42.192-2.265.192-3.342 0-4.955-1.344-4.955-4.762zm11.136-.154c0-3.84 3.264-6.721 13.865-8.488v-1.229c0-3.072-1.614-4.608-4.379-4.608-3.341 0-5.569 1.305-7.835 3.341l-1.075-1.152c2.497-2.304 5.07-3.802 8.948-3.802 4.187 0 6.184 2.38 6.184 6.106v9.486c0 2.458.154 3.956.576 4.993H85.06a9.82 9.82 0 01-.46-2.996c-2.459 2.113-5.147 3.342-8.181 3.342-3.687 0-5.684-1.92-5.684-4.993zm13.864-.154v-6.951c-9.831 1.728-12.02 4.147-12.02 6.99 0 2.265 1.497 3.494 3.993 3.494 2.996 0 5.723-1.305 8.027-3.533zm8.143 4.801V25.367h3.34V28.4c1.768-1.728 4.302-3.456 7.605-3.456 3.88 0 5.991 2.227 5.991 6.068v14.632h-3.302V31.742c0-2.688-1.152-3.955-3.726-3.955-2.419 0-4.455 1.267-6.567 3.264v14.594h-3.341zm21.775-10.14c0-6.989 4.455-10.56 9.448-10.56 4.954 0 9.41 3.571 9.41 10.56 0 6.952-4.456 10.562-9.41 10.562-4.955 0-9.448-3.61-9.448-10.561zm15.516 0c0-4.224-2.036-7.719-6.068-7.719-3.88 0-6.107 3.15-6.107 7.72 0 4.301 1.997 7.758 6.107 7.758 3.84 0 6.068-3.111 6.068-7.758zm9.83 5.224V28.094h-3.532v-2.727h3.533v-7.22h3.303v7.22h5.261v2.727h-5.262V40c0 2.15.692 3.226 3.15 3.226.73 0 1.536-.116 2.074-.27v2.728c-.577.115-1.844.23-2.88.23-4.264 0-5.646-1.651-5.646-5.185zm12.137.115c0-4.11 3.495-7.028 13.557-8.45v-.92c0-2.536-1.344-3.764-3.84-3.764-3.073 0-5.339 1.344-7.336 3.072l-1.728-2.074c2.342-2.15 5.377-3.764 9.41-3.764 4.838 0 6.758 2.535 6.758 6.76v8.948c0 2.458.154 3.956.577 4.993h-3.38c-.269-.845-.46-1.652-.46-2.804-2.267 2.113-4.801 3.111-7.836 3.111-3.495 0-5.722-1.843-5.722-5.108zm13.557-.46V34.7c-7.72 1.229-10.293 3.11-10.293 5.645 0 1.959 1.306 2.996 3.418 2.996 2.689 0 4.993-1.114 6.875-2.958z"
-			}),
+			m("g", {transform: `translate(${centered(logoTextWidth)}, 20)`},
+				[
+					m("path", { /* tutanota logo text */
+						fill: theme.elevated_bg,
+						d: "M9.332 1.767H0V0h20.585v1.767h-9.333V28.42h-1.92zM20.086 22.89V8.257h1.843v14.402c0 3.073 1.344 4.57 4.417 4.57 2.803 0 5.146-1.459 7.642-3.84V8.257h1.844V28.42h-1.846v-3.341c-2.227 2.112-4.839 3.764-7.796 3.764-4.186 0-6.106-2.305-6.106-5.953zm23.85 1.037V9.908h-3.534V8.257h3.533V.922h1.844v7.335h5.261v1.652h-5.261v13.748c0 2.151.73 3.38 3.264 3.38.768 0 1.536-.077 2.112-.268v1.728c-.652.115-1.42.192-2.265.192-3.342 0-4.955-1.344-4.955-4.762zm11.136-.154c0-3.84 3.264-6.721 13.865-8.488v-1.229c0-3.072-1.614-4.608-4.379-4.608-3.341 0-5.569 1.305-7.835 3.341l-1.075-1.152c2.497-2.304 5.07-3.802 8.948-3.802 4.187 0 6.184 2.38 6.184 6.106v9.486c0 2.458.154 3.956.576 4.993h-1.96a9.82 9.82 0 01-.46-2.996c-2.459 2.113-5.147 3.342-8.181 3.342-3.687 0-5.684-1.92-5.684-4.993zm13.864-.154v-6.951c-9.831 1.728-12.02 4.147-12.02 6.99 0 2.265 1.497 3.494 3.993 3.494 2.996 0 5.723-1.305 8.027-3.533zm8.143 4.801V8.142h3.34v3.033c1.768-1.728 4.302-3.456 7.605-3.456 3.88 0 5.991 2.227 5.991 6.068v14.632h-3.302V14.517c0-2.688-1.152-3.955-3.726-3.955-2.419 0-4.455 1.267-6.567 3.264V28.42zm21.775-10.14c0-6.989 4.455-10.56 9.448-10.56 4.954 0 9.41 3.571 9.41 10.56 0 6.952-4.456 10.562-9.41 10.562-4.955 0-9.448-3.61-9.448-10.561zm15.516 0c0-4.224-2.036-7.719-6.068-7.719-3.88 0-6.107 3.15-6.107 7.72 0 4.301 1.997 7.758 6.107 7.758 3.84 0 6.068-3.111 6.068-7.758zm9.83 5.224V10.869h-3.532V8.142h3.533V.922h3.303v7.22h5.261v2.727h-5.262v11.906c0 2.15.692 3.226 3.15 3.226.73 0 1.536-.116 2.074-.27v2.728c-.577.115-1.844.23-2.88.23-4.264 0-5.646-1.651-5.646-5.185zm12.137.115c0-4.11 3.495-7.028 13.557-8.45v-.92c0-2.536-1.344-3.764-3.84-3.764-3.073 0-5.339 1.344-7.336 3.072l-1.728-2.074c2.342-2.15 5.377-3.764 9.41-3.764 4.838 0 6.758 2.535 6.758 6.76v8.948c0 2.458.154 3.956.577 4.993h-3.38c-.269-.845-.46-1.652-.46-2.804-2.267 2.113-4.801 3.111-7.836 3.111-3.495 0-5.722-1.843-5.722-5.108zm13.557-.46v-5.684c-7.72 1.229-10.293 3.11-10.293 5.645 0 1.959 1.306 2.996 3.418 2.996 2.689 0 4.993-1.114 6.875-2.958z"
+					}),
+					m("text", { /* translation of "gift card" */
+						"text-anchor": "end",
+						x: logoTextWidth, y: 43,
+						fill: theme.elevated_bg
+					}, lang.get("giftCard_label")),
+				]),
 			m("text", { /* price */
-				"text-anchor": "end",
-				x: 230, y: 30,
+				"text-anchor": "start",
+				x: portrait ? 25 : qrcodeSize + 20 + 10,
+				y: portrait ? 270 : height - 20,
 				fill: theme.elevated_bg,
 				"font-size": "1.6rem"
 			}, formattedPrice),
-			m("text", { /* translation of "gift card" */
-				"text-anchor": "end",
-				x: 170, y: 65,
-				fill: theme.elevated_bg
-			}, lang.get("giftCard_label")),
 			qrCode
 				? m("g", {
-					transform: portrait ? `translate(${width / 2 - qrcodeSize / 2} 90)` : "translate(20 73)"
+					transform: portrait ? `translate(${centered(qrcodeSize)} 90)` : `translate(20 ${height - qrcodeSize - 20})`
 				}, m.trust(qrCode))
 				: null,
 			m("path", {
@@ -302,16 +343,6 @@ export function renderGiftCardSvg(price: number, link: ?string, message: ?string
 	)
 }
 
-export function renderGiftCard(value: number, message: string, link: ?string, portrait: boolean = true): Children {
-	return [
-		m(".flex-center.full-width.pt-l.editor-border.noprint",
-			m(".pt-s.pb-s", {style: {width: "260px"}},
-				m.trust(htmlSanitizer.sanitize(message, true).text),
-			),
-		),
-		m(".pt-l", renderGiftCardSvg(parseFloat(value), link, message, portrait)),
-	]
-}
 
 export function showGiftCardWasRedeemedDialog(wasFree: boolean, okAction?: () => void) {
 	let dialog

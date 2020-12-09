@@ -27,7 +27,7 @@ import {renderAcceptGiftCardTermsCheckbox, showGiftCardToShare} from "./GiftCard
 import type {DialogHeaderBarAttrs} from "../../gui/base/DialogHeaderBar"
 import {showUserError} from "../../misc/ErrorHandlerImpl"
 import {UserError} from "../../api/common/error/UserError"
-import {PaymentMethodType} from "../../api/common/TutanotaConstants"
+import {Keys, PaymentMethodType} from "../../api/common/TutanotaConstants"
 import {lang} from "../../misc/LanguageViewModel"
 import {NotAuthorizedError, PreconditionFailedError} from "../../api/common/error/RestError"
 import type {TranslationKey} from "../../misc/LanguageViewModel"
@@ -37,7 +37,7 @@ export type CreateGiftCardViewAttrs = {
 	purchaseLimit: number,
 	purchasePeriodMonths: number,
 	availablePackages: Array<GiftCardOption>;
-	selectedPackageIndex: number;
+	initiallySelectedPackage: number;
 	message: string;
 	country: ?Country;
 	outerDialog: lazy<Dialog>
@@ -55,9 +55,9 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 
 	constructor(vnode: Vnode<CreateGiftCardViewAttrs>) {
 		const a = vnode.attrs
-		this.selectedPackage = stream(a.selectedPackageIndex)
+		this.selectedPackage = stream(a.initiallySelectedPackage)
 		this.selectedCountry = stream(a.country)
-		this.messageEditor = new HtmlEditor("yourMessage_label", {enabled: true})
+		this.messageEditor = new HtmlEditor("yourMessage_label", {enabled: false})
 			.setMinHeight(150)
 			.setMode(Mode.WYSIWYG)
 			.showBorders()
@@ -83,7 +83,7 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 							view: () => m(ButtonN, {
 								label: "pricing.select_action",
 								click: () => {
-									a.selectedPackageIndex = index
+									this.selectedPackage(index)
 								},
 								type: ButtonType.Login,
 							})
@@ -95,7 +95,7 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 						width: 230,
 						height: 250,
 						paymentInterval: null,
-						highlighted: a.selectedPackageIndex === index,
+						highlighted: this.selectedPackage() === index,
 						showReferenceDiscount: false,
 					})
 				)),
@@ -204,7 +204,7 @@ export function showPurchaseGiftCardDialog(): Promise<void> {
 						      purchaseLimit: giftCardInfo.maxPerPeriod,
 						      purchasePeriodMonths: giftCardInfo.period,
 						      availablePackages: giftCardInfo.options,
-						      selectedPackageIndex: Math.floor(giftCardInfo.options.length / 2),
+						      initiallySelectedPackage: Math.floor(giftCardInfo.options.length / 2),
 						      message: lang.get("defaultGiftCardMessage_msg"),
 						      country: accountingInfo.invoiceCountry
 							      ? getByAbbreviation(accountingInfo.invoiceCountry)
@@ -222,6 +222,11 @@ export function showPurchaseGiftCardDialog(): Promise<void> {
 						      ]
 					      }
 					      dialog = Dialog.largeDialogN(headerBarAttrs, GiftCardCreateView, attrs)
+					                     .addShortcut({
+						                     key: Keys.ESC,
+						                     exec: () => dialog.close(),
+						                     help: "close_alt"
+					                     })
 					      return dialog
 				      })
 			      })

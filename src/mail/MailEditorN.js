@@ -60,6 +60,8 @@ import {FileOpenError} from "../api/common/error/FileOpenError"
 import {downcast} from "../api/common/utils/Utils"
 import {showUpgradeWizard} from "../subscription/UpgradeSubscriptionWizard"
 import {showUserError} from "../misc/ErrorHandlerImpl"
+import {stringToBase64} from "../api/common/utils/Encoding"
+import {renderGiftCardSvg} from "../subscription/giftcards/GiftCardUtils"
 
 export type MailEditorAttrs = {
 	model: SendMailModel,
@@ -638,15 +640,17 @@ export function writeInviteMail(mailboxDetails?: MailboxDetail) {
  * @param mailboxDetails
  * @returns {*}
  */
-export function writeGiftCardMail(link: string, mailboxDetails?: MailboxDetail) {
+export function writeGiftCardMail(link: string, svg: string, mailboxDetails?: MailboxDetail) {
 	_mailboxPromise(mailboxDetails).then(mailbox => {
+
 		const username = logins.getUserController().userGroupInfo.name;
+		let imgTag = `<img src="data:image/svg+xml,${encodeURIComponent(svg)}">`
 		const body = lang.get("defaultShareGiftCardBody_msg", {
 			'{link}': link,
 			'{username}': logins.getUserController().userGroupInfo.name,
 		})
 		const subject = lang.get("defaultShareGiftCardSubject_msg")
-		newMailEditorFromTemplate(mailbox, {}, subject, body + getDefaultSignature(), [], false)
+		newMailEditorFromTemplate(mailbox, {}, subject, imgTag + body + getDefaultSignature(), [], false)
 			.then(dialog => dialog.show())
 	})
 }

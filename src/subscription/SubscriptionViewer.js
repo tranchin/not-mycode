@@ -684,12 +684,6 @@ function renderGiftCardExpandable(giftCards: GiftCard[], isPremiumPredicate: () 
 				showActionButtonColumn: true,
 				addButtonAttrs: purchaseGiftCardButtonAttrs,
 				lines: giftCards.filter(giftCard => giftCard.usable).map(giftCard => createGiftCardTableLine(giftCard)),
-			}),
-			m(TextFieldN, {
-				label: "emptyString_msg",
-				value: () => "Redeem a gift card",
-				disabled: true,
-				injectionsRight: makeRedeemGiftCardButton
 			})
 		]
 	}
@@ -703,7 +697,7 @@ function makeRedeemGiftCardButton(): Children {
 			const wasFree = logins.getUserController().isFreeAccount()
 			let dialog
 			dialog = Dialog.showActionDialog({
-				title: "redeem_label",
+				title: lang.get("redeem_label"),
 				child: {
 					view: () => m(TextFieldN, {
 						value: giftCardCode,

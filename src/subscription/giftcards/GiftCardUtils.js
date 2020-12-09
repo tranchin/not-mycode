@@ -343,25 +343,11 @@ export function renderGiftCardSvg(price: number, link: ?string, portrait: boolea
 	)
 }
 
-
-export function showGiftCardWasRedeemedDialog(wasFree: boolean, okAction?: () => void) {
-	let dialog
-	dialog = Dialog.showActionDialog({
-		title: lang.get("success_label"),
-		child: () => m(".pt.pb", [m("p", lang.get("giftCardRedeemed_msg")), wasFree ? m("p", lang.get("redeemedToPremium_msg")) : null]),
-		allowCancel: false,
-		okAction: () => {
-			okAction && okAction()
-			dialog.close()
-		}
-	})
-}
-
 export function renderAcceptGiftCardTermsCheckbox(confirmed: Stream<boolean>): Children {
 	return m(CheckboxN, { // TODO
 		checked: confirmed,
 		label: () => [
-			m("div", lang.get("giftCardsTerms_label")),
+			m(".pt-l", lang.get("giftCardsTerms_label")),
 			m("div", m(`a[href=${lang.getInfoLink("giftCardsTerms_link")}][target=_blank]`, {
 				onclick: e => {
 					if (isApp()) {
@@ -369,7 +355,7 @@ export function renderAcceptGiftCardTermsCheckbox(confirmed: Stream<boolean>): C
 						e.preventDefault()
 					}
 				}
-			}, lang.get("giftCardsTermsLink_label"))),
+			}, lang.get("acceptPrivacyPolicy_msg", {"{privacyPolicy}": "gift card terms"}))),
 		],
 	})
 }

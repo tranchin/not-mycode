@@ -68,7 +68,7 @@ import {
 	getTokenFromUrl,
 	GIFT_CARD_TABLE_HEADER,
 	loadGiftCards,
-	redeemGiftCard, showGiftCardWasRedeemedDialog,
+	redeemGiftCard
 } from "./giftcards/GiftCardUtils"
 import type {GiftCard} from "../api/entities/sys/GiftCard"
 import {GiftCardTypeRef} from "../api/entities/sys/GiftCard"
@@ -688,37 +688,4 @@ function renderGiftCardExpandable(giftCards: GiftCard[], isPremiumPredicate: () 
 		]
 	}
 }
-
-function makeRedeemGiftCardButton(): Children {
-	return m(ButtonN, {
-		label: "redeem_label",
-		click: () => {
-			const giftCardCode = stream("")
-			const wasFree = logins.getUserController().isFreeAccount()
-			let dialog
-			dialog = Dialog.showActionDialog({
-				title: lang.get("redeem_label"),
-				child: {
-					view: () => m(TextFieldN, {
-						value: giftCardCode,
-						label: "codeInput_msg",
-					})
-				},
-				okAction: () => {
-					dialog.close()
-					Promise.resolve()
-					       .then(() => getTokenFromUrl(giftCardCode()))
-					       .spread((id, key) => worker.getGiftCardInfo(id, key))
-					       .catch(NotFoundError, () => { throw new UserError("invalidGiftCard_msg")})
-					       .then(info => redeemGiftCard(info.giftCard, info.country, Dialog.confirm))
-					       .then(() => showGiftCardWasRedeemedDialog(wasFree))
-					       .catch(UserError, showUserError)
-					       .catch(CancelledError, noOp)
-				}
-			})
-		},
-		icon: () => Icons.Gift,
-	})
-}
-
 

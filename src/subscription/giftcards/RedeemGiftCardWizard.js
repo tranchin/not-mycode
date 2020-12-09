@@ -1,5 +1,4 @@
 //@flow
-
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
 import {neverNull, noOp} from "../../api/common/utils/Utils"
@@ -30,12 +29,15 @@ import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/GiftCardRedee
 import {
 	redeemGiftCard,
 	renderAcceptGiftCardTermsCheckbox, renderGiftCardSvg,
-	showGiftCardWasRedeemedDialog
 } from "./GiftCardUtils"
 import {CancelledError} from "../../api/common/error/CancelledError"
 import {lang} from "../../misc/LanguageViewModel"
 import {getLoginErrorMessage} from "../../misc/LoginUtils"
 import {htmlSanitizer} from "../../misc/HtmlSanitizer"
+import {RecoverCodeField} from "../../settings/RecoverCodeDialog"
+import {HabReminderImage} from "../../gui/base/icons/Icons"
+import {BookingItemFeatureType} from "../../api/common/TutanotaConstants"
+import {formatPrice} from "../SubscriptionUtils"
 
 type GetCredentialsMethod = "login" | "signup"
 
@@ -187,21 +189,23 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 			// After having an account created we log them in to be in the same state as if they had selected an existing account
 			newSignupHandler: newAccountData => {
 				if (newAccountData || existingAccountData) {
+					// if there's an existing account it means the signup form was readonly
+					// because we came back from the next page after having already signed up
 					if (!existingAccountData) {
 						data.newAccountData(newAccountData)
 					}
-					const {mailAddress, password} = neverNull(newAccountData || existingAccountData)
+					const {mailAddress, password, recoverCode} = neverNull(newAccountData || existingAccountData)
 					data.password(password)
 					data.mailAddress(mailAddress)
 					logins.createSession(mailAddress, password, client.getIdentifier(), false, false)
 					      .then(credentials => {
 						      data.credentials(credentials)
 						      emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
+						      m.redraw()
 					      })
 					      .catch(e => {
-						      // If login fails after signup they get directed to log back in
-						      Dialog.error("errorLoggingIn_msg")
-						      m.route.set("/login")
+						      // TODO when would login fail here and how does it get handled? can we attempt to login again?
+						      throw e
 					      })
 				}
 			},
@@ -229,7 +233,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 				                            if (customer.businessUse
 					                            || accountingInfo.business) {
 					                            throw new UserError("onlyPrivateAccountFeature_msg");
-				                            } //Translate
+				                            }
 			                            })
 		              })
 		              .then(() => {
@@ -242,26 +246,31 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 
 class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 	isConfirmed: Stream<boolean>
+	premiumPrice: number
 
 	constructor() {
 		this.isConfirmed = stream(false)
+		worker.getPrice(BookingItemFeatureType.Users, 1, false).then(price => {
+			this.premiumPrice = price.currentPriceThisPeriod ? parseFloat(price.currentPriceThisPeriod.price) : 0
+			m.redraw()
+		})
 	}
 
 	view(vnode: Vnode<GiftCardRedeemAttrs>): Children {
 		const data = vnode.attrs.data
 
+		const wasFree = logins.getUserController().isFreeAccount()
 		const confirmButtonAttrs = {
 			label: "redeem_label",
 			click: () => {
 				if (!this.isConfirmed()) {
-					Dialog.error(() => "gotta confirm my man") // TODO
+					Dialog.error("termsAcceptedNeutral_msg")
 					return
 				}
-				const wasFree = logins.getUserController().isFreeAccount()
 				redeemGiftCard(data.giftCardInfo.giftCard, data.giftCardInfo.country, Dialog.confirm)
-					.then(() => {
-						showGiftCardWasRedeemedDialog(wasFree, () => emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG))
-					})
+					.then(() => Dialog.error("success_label", lang.get("giftCardRedeemed_msg") + (wasFree ? "\n"
+						+ lang.get("redeemedToPremium_msg") : "")))
+					.then(() => emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG))
 					.catch(UserError, showUserError)
 					.catch(CancelledError, noOp)
 			},
@@ -269,6 +278,15 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 		}
 
 		return m("", [
+			data.newAccountData()
+				? m(RecoverCodeField, {showMessage: true, recoverCode: neverNull(data.newAccountData()).recoverCode})
+				: null,
+			m(".flex-grow-shrink-half.plr-l.flex-center.items-end",
+				m("img[src=" + HabReminderImage + "].pt.bg-white.border-radius", {style: {width: "200px"}})),
+			data.newAccountData() || wasFree
+				? m("div", "You will automatically be upgraded up to a Premium account yearly subscription."
+				+ ` The cost of the first year of (${formatPrice(this.premiumPrice, true)}) will be payed for with your gift card and the remaining value will be credited to your account.`)
+				: null,
 			m(".flex-center.full-width.pt-l",
 				m("flex-v-center", [
 					renderAcceptGiftCardTermsCheckbox(this.isConfirmed),

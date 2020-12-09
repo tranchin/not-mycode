@@ -156,13 +156,14 @@ export class PaymentViewer implements UpdatableSettingsViewer {
 		if (!this._postings || this._postings.length === 0) {
 			return null
 		} else {
-			const balance = Number(this._postings[0].balance)
+			const balance = Number.parseFloat(this._postings[0].balance)
 			return [
 				m(".h4.mt-l", lang.get('currentBalance_label')),
 				m(".flex.center-horizontally.center-vertically.col", [
 					m("div.h4.pt.pb" + (this._isAmountOwed() ? ".content-accent-fg" : ""),
-						`${formatPrice(balance, true)}`
-						+ this._accountBalance() !== balance ? `(${formatPrice(this._accountBalance(), true)})` : ""),
+						formatPrice(balance, true) + (this._accountBalance()
+						!== balance ? ` (${formatPrice(this._accountBalance(), true)})` : "")
+					),
 					this._accountBalance() !== balance
 						? m(".small" + (this._accountBalance() < 0 ? ".content-accent-fg" : ""),
 						lang.get("unprocessedBookings_msg", {"{amount}": formatPrice(this._outstandingBookingsPrice, true)}))

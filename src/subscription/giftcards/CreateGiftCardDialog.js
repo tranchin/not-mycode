@@ -58,7 +58,7 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 		this.selectedPackage = stream(a.initiallySelectedPackage)
 		this.selectedCountry = stream(a.country)
 		this.messageEditor = new HtmlEditor("yourMessage_label", {enabled: false})
-			.setMinHeight(150)
+			.setMinHeight(100)
 			.setMode(Mode.WYSIWYG)
 			.showBorders()
 			.setValue(a.message)
@@ -75,10 +75,13 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 	view(vnode: Vnode<CreateGiftCardViewAttrs>): Children {
 		const a = vnode.attrs
 		return [
+			m(".flex-center",
+				m(".pt-l", {style: {maxWidth: "620px"}},
+					lang.get("buyGiftCardDescription_msg"))),
 			m(".flex.center-horizontally.wrap",
 				a.availablePackages.map((option, index) =>
 					m(BuyOptionBox, {
-						heading: `Option ${index + 1}`, // TODO make nice headings
+						heading: formatPrice(parseFloat(option.value), true),
 						actionButton: {
 							view: () => m(ButtonN, {
 								label: "pricing.select_action",
@@ -88,7 +91,6 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 								type: ButtonType.Login,
 							})
 						},
-						price: formatPrice(parseFloat(option.value), true),
 						originalPrice: formatPrice(parseFloat(option.value), true),
 						helpLabel: "pricing.basePriceIncludesTaxes_msg",
 						features: () => [],
@@ -99,12 +101,15 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 						showReferenceDiscount: false,
 					})
 				)),
-			m(this.messageEditor),
-			m(this.countrySelector),
-			m(".flex-center.pt-l",
-				m("flex-v-center", [
+			m(".flex-center",
+				m(".flex-grow", {style: {maxWidth: "620px"}}, [
+					m(this.messageEditor),
+					m(this.countrySelector)
+				])),
+			m(".flex-center",
+				m(".pt", [
 					renderAcceptGiftCardTermsCheckbox(this.isConfirmed),
-					m(".flex-grow-shrink-auto.max-width-m.pt.pb.plr-l", m(ButtonN, {
+					m(".flex-grow-shrink-auto.max-width-m.pt-l.pb.plr-l", m(ButtonN, {
 							label: "buy_action",
 							click: () => this.buyButtonPressed(a),
 							type: ButtonType.Login,
@@ -116,14 +121,22 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
 	}
 
 	buyButtonPressed(attrs: CreateGiftCardViewAttrs) {
-		if (!this.isConfirmed()) { // TODO
-			Dialog.error(() => "Agree to the terms dawg");
+		if (!this.isConfirmed()) {
+			Dialog.error("termsAcceptedNeutral_msg");
 			return
 		}
 
 		const value = attrs.availablePackages[this.selectedPackage()].value
-		const message = this.messageEditor.getValue()
+		// replace multiple new lines
+		const message = this.messageEditor.getValue().replace(/[\r\n]{2,}/g, "\n")
 		const country = this.selectedCountry()
+
+		// only allow 400 characters as message, longer breaks the Giftcard layout
+		const maxLetters = 200
+		if (message.length > maxLetters) {
+			Dialog.error(() => lang.get("messageTooLong_msg", {"{length}": maxLetters}))
+			return
+		}
 
 		if (!country) {
 			Dialog.error("selectRecipientCountry_msg")
@@ -163,7 +176,9 @@ class GiftCardCreateView implements MComponent<CreateGiftCardViewAttrs> {
  * Create a dialog to buy a giftcard or show error if the user cannot do so
  * @returns {Promise<unknown>|Promise<void>|Promise<Promise<void>>}
  */
-export function showPurchaseGiftCardDialog(): Promise<void> {
+export function
+
+showPurchaseGiftCardDialog(): Promise<void> {
 	const loadDialogPromise =
 		logins.getUserController()
 		      .loadAccountingInfo()
@@ -219,7 +234,8 @@ export function showPurchaseGiftCardDialog(): Promise<void> {
 								      type: ButtonType.Secondary,
 								      click: () => dialog.close()
 							      }
-						      ]
+						      ],
+						      middle: () => lang.get("buyGiftCard_label")
 					      }
 					      dialog = Dialog.largeDialogN(headerBarAttrs, GiftCardCreateView, attrs)
 					                     .addShortcut({

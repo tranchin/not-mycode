@@ -1206,7 +1206,7 @@ module.exports = {
 		"defaultShareGiftCardBody_msg": "Hi, <br /><br /> i bought you a gift card for Tutanota, <a href='{link}'>click here to redeem it!</a><br /><br />If you do not have an account yet, you can use the link to sign up and reclaim your privacy.<br /><br />  Happy Holidays, {username}",
 		"defaultShareGiftCardSubject_msg": "You have received a Tutanota gift card!",
 		"buyGiftCard_label": "Buy a gift card",
-		"invalidGiftCard_msg": "This gift card cannot be used",
+		"invalidGiftCard_msg": "Invalid giftcard link or this giftcard has been used already.",
 		"unprocessedBookings_msg": "You have some unprocessed bookings with a total value of {amount}.\nThis will be deducted from your balance and/or chosen payment method upon next invoice",
 		"insufficientBalanceError_msg": "Could not complete transaction due to insufficient account balance. Please provide another payment method",
 		"giftCardSection_label": "Purchase, redeem and manage gift cards",
@@ -1241,8 +1241,8 @@ module.exports = {
 		"nativeShareGiftCard_msg": "Hey, I got you a gift card for Tutanota, the secure encrypted email service! click this link to redeem it! {link}",
 		"nativeShareGiftCard_label": "Share Tutanota Gift Card",
 		"copyLinkError_msg": "Failed to copy link",
-		"giftCardSignupErrorLoggingIn_msg": "Your account was created successfully but there was an error logging you in. Please login and go to Subscription settings to redeem the gift card link",
-		"giftCardsTerms_label": "Agree to the following  terms and conditions",
-		"giftCardsTermsLink_label": "Gift card terms and conditions",
+		"giftCardsTerms_label": "Please agree to the gift card terms and condition",
+		"buyGiftCardDescription_msg": "Buy a gift card for your loved ones! When redeeming a gift card, they can sign up for a new Premium account or upgrade their existing account to a Premium subscription and/or get credit to order additional features. You can choose from the following options and leave a messege which will be shown on the gift card. The message is - of course - end to end encrypted.",
+		"messageTooLong_msg": "The message is too long. A maximum of {length} characters is allowed"
 	}
 }

@@ -195,7 +195,7 @@ export class EditSecondFactorsForm {
 						let qrCode = getQRCodeSvg({
 							typeNumber: 0,
 							background: "#fff",
-							color: "#000",
+							fill: "#000",
 							container: "svg",
 							ecl: "M",
 							padding: 10,

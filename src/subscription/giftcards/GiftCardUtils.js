@@ -281,7 +281,7 @@ export function renderGiftCardSvg(price: number, country: Country, link: ?string
 			width: qrCodeSize,
 			content: link,
 			background: theme.content_accent,
-			color: theme.content_bg,
+			fill: theme.content_bg,
 			container: "none",
 			padding: 4,
 			ecl: "M",

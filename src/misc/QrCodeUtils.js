@@ -1,39 +1,56 @@
 // @flow
+
+// flowlint untyped-import:off
 import qrcode from "../../libs/qrcode"
+// flowlint untyped-import:error
 
 export type qrCodeOptions = {
-	padding: number,
-	width: number,
-	height: number,
-	typeNumber: number, // Use 0 for auto detect depending on input data length (size)
-	fill: string,
-	background: string,
-	ecl: string,
-	container: string,
+	size: number,
 	content: string,
+	padding?: number,
+	typeNumber?: number, // Use 0 for auto detect depending on input data length (size)
+	fill?: string,
+	background?: string,
+	ecl?: 'L' | 'M' | 'Q' | 'H',
+	scalable?: boolean;
 };
+
+/** Generates QR Code as SVG image */
+export function getQRCodeSvgPath(options: qrCodeOptions): string {
+
+	let content = options.content
+	let padding = options.padding || 0
+	let qrcodeGenerator = qrcode(options.typeNumber || 0, options.ecl || "M")
+	qrcodeGenerator.addData(content)
+	qrcodeGenerator.make()
+
+	let cellSize = (options.size) / (qrcodeGenerator.getModuleCount())
+
+	return qrcodeGenerator.createSvgPath({
+		// Round to two decimals
+		cellSize: Math.round(cellSize * 100 - 50) / 100,
+		background: options.background,
+		fill: options.fill,
+	})
+}
+
 
 /** Generates QR Code as SVG image */
 export function getQRCodeSvg(options: qrCodeOptions): string {
 
-
-	//Gets text length
-	function _getUTF8Length(content) {
-		var result = encodeURI(content).toString().replace(/\%[0-9a-fA-F]{2}/g, 'a');
-		return result.length + (result.length != content ? 3 : 0);
-	}
-
-	//Generate QR Code matrix
 	var content = options.content
-	var qrcodeGenerator = qrcode(options.typeNumber, options.ecl)
+	let padding = options.padding || 0
+	var qrcodeGenerator = qrcode(options.typeNumber || 0, options.ecl || "M")
 	qrcodeGenerator.addData(content)
 	qrcodeGenerator.make()
-	return qrcodeGenerator.createSvgPath({
+	let cellSize = (options.size - 2 * padding) / (qrcodeGenerator.getModuleCount())
+
+	return qrcodeGenerator.createSvgTag({
 		// Round to two decimals
-		cellSize: Math.round(options.width / (qrcodeGenerator.getModuleCount() + 2 * options.padding) * 100) / 100,
-		background: null,
+		cellSize: Math.round(cellSize * 100 - 50) / 100,
+		background: options.background,
 		fill: options.fill,
-		scalable: true,
+		scalable: options.scalable || false,
 		padding: options.padding
 	})
 }

@@ -2,7 +2,6 @@
 
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
-import QRCode from "qrcode"
 import {Icons} from "../../gui/base/icons/Icons"
 import type {ColumnWidthEnum, TableLineAttrs} from "../../gui/base/TableN"
 import {formatDate} from "../../misc/Formatter"
@@ -46,7 +45,7 @@ import {replaceHtmlEntities} from "../../mail/MailUtils"
 import {getFonts} from "../../gui/main-styles"
 import {ColumnWidth} from "../../gui/base/TableN"
 import {GiftCardMessageEditorField} from "./GiftCardMessageEditorField"
-import {getQRCodeSvg} from "../../misc/QrCodeUtils"
+import {getQRCodeSvg, getQRCodeSvgPath} from "../../misc/QrCodeUtils"
 
 const ID_LENGTH = GENERATED_MAX_ID.length
 const KEY_LENGTH = 24
@@ -276,16 +275,10 @@ export function renderGiftCardSvg(price: number, country: Country, link: ?string
 	let qrCode = null
 	const qrCodeSize = 80
 	if (link) {
-		let qrcodeSvg = getQRCodeSvg({
-			height: qrCodeSize,
-			width: qrCodeSize,
+		let qrcodeSvg = getQRCodeSvgPath({
+			size: qrCodeSize,
 			content: link,
-			background: theme.content_accent,
 			fill: theme.content_bg,
-			container: "none",
-			padding: 4,
-			ecl: "M",
-			typeNumber: 0
 		})
 		qrCode = htmlSanitizer.sanitize(qrcodeSvg, false).text
 	}
@@ -368,8 +361,11 @@ export function renderGiftCardSvg(price: number, country: Country, link: ?string
 				"font-size": ".4rem"
 			}, lang.get("validInCountry_msg", {"{country}": country.n})),
 			qrCode
-				? m("g", {
-					transform: `translate(${qrCodeLeft - qrCodePadding} ${messageBoxTop + messageBoxHeight + qrCodeTopPadding})`
+				? m("svg", {
+					width: qrCodeSize,
+					height: qrCodeSize,
+					x: qrCodeLeft - qrCodePadding,
+					y: messageBoxTop + messageBoxHeight + qrCodeTopPadding
 				}, m.trust(qrCode))
 				: null,
 			m("path", {

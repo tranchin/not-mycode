@@ -193,14 +193,8 @@ export class EditSecondFactorsForm {
 				this._getOtpAuthUrl(totpKeys.readableKey).then(optAuthUrl => {
 					if (!isApp()) {
 						let qrCode = getQRCodeSvg({
-							typeNumber: 0,
-							background: "#fff",
-							fill: "#000",
-							container: "svg",
-							ecl: "M",
 							padding: 10,
-							height: 150,
-							width: 150,
+							size: 150,
 							content: optAuthUrl
 						})
 						totpQRCodeSvg = htmlSanitizer.sanitize(qrCode, false).text

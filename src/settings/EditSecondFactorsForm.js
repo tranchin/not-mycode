@@ -17,7 +17,6 @@ import {theme} from "../gui/theme"
 import {appIdToLoginDomain} from "../login/SecondFactorHandler"
 import {contains} from "../api/common/utils/ArrayUtils"
 import {worker} from "../api/main/WorkerClient"
-import QRCode from "qrcode"
 import {GroupInfoTypeRef} from "../api/entities/sys/GroupInfo"
 import {showProgressDialog} from "../gui/base/ProgressDialog"
 import {openLinkNative} from "../native/SystemApp"
@@ -39,6 +38,8 @@ import type {EntityUpdateData} from "../api/main/EventController"
 import {getEtId, isSameId} from "../api/common/EntityFunctions"
 import {nativeApp} from "../native/NativeWrapper"
 import {Request} from "../api/common/WorkerProtocol"
+import {getQRCodeSvg} from "../misc/QrCodeUtils"
+
 
 assertMainOrNode()
 
@@ -191,8 +192,18 @@ export class EditSecondFactorsForm {
 				let authUrl
 				this._getOtpAuthUrl(totpKeys.readableKey).then(optAuthUrl => {
 					if (!isApp()) {
-						let qrcodeGenerator = new QRCode({height: 150, width: 150, content: optAuthUrl})
-						totpQRCodeSvg = htmlSanitizer.sanitize(qrcodeGenerator.svg(), false).text
+						let qrCode = getQRCodeSvg({
+							typeNumber: 0,
+							background: "#fff",
+							color: "#000",
+							container: "svg",
+							ecl: "M",
+							padding: 10,
+							height: 150,
+							width: 150,
+							content: optAuthUrl
+						})
+						totpQRCodeSvg = htmlSanitizer.sanitize(qrCode, false).text
 					}
 					authUrl = optAuthUrl
 				})

@@ -46,6 +46,7 @@ import {replaceHtmlEntities} from "../../mail/MailUtils"
 import {getFonts} from "../../gui/main-styles"
 import {ColumnWidth} from "../../gui/base/TableN"
 import {GiftCardMessageEditorField} from "./GiftCardMessageEditorField"
+import {getQRCodeSvg} from "../../misc/QrCodeUtils"
 
 const ID_LENGTH = GENERATED_MAX_ID.length
 const KEY_LENGTH = 24
@@ -275,14 +276,18 @@ export function renderGiftCardSvg(price: number, country: Country, link: ?string
 	let qrCode = null
 	const qrCodeSize = 80
 	if (link) {
-		let qrcodeGenerator = new QRCode({
+		let qrcodeSvg = getQRCodeSvg({
 			height: qrCodeSize,
 			width: qrCodeSize,
 			content: link,
 			background: theme.content_accent,
-			color: theme.content_bg
+			color: theme.content_bg,
+			container: "none",
+			padding: 4,
+			ecl: "M",
+			typeNumber: 0
 		})
-		qrCode = htmlSanitizer.sanitize(qrcodeGenerator.svg({container: null}), false).text
+		qrCode = htmlSanitizer.sanitize(qrcodeSvg, false).text
 	}
 
 	const formattedPrice = formatPrice(price, true)

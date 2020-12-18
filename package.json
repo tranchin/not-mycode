@@ -21,7 +21,7 @@
 		"keytar": "7.0.0",
 		"luxon": "^1.22.0",
 		"mithril": "2.0.4",
-		"qrcode-svg": "1.0.0",
+		"qrcode-generator": "1.4.4",
 		"squire-rte": "1.9.0",
 		"systemjs": "0.20.19"
 	},

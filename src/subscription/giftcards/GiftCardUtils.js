@@ -65,7 +65,7 @@ export function getTokenFromUrl(url: string): [Id, string] {
 	return [id, key]
 }
 
-export function redeemGiftCard(giftCardId: IdTuple, key: string, validCountryCode: string, getConfirmation: (TranslationKey | lazy<string>) => Promise<boolean>): Promise<void> {
+export function redeemGiftCard(giftCardId: IdTuple, key: string, validCountryCode: string, isSignup: boolean, getConfirmation: (TranslationKey | lazy<string>) => Promise<boolean>): Promise<void> {
 	// Check that the country matches
 	return serviceRequest(SysService.LocationService, HttpMethod.GET, null, LocationServiceGetReturnTypeRef)
 		.then(userLocation => {
@@ -88,7 +88,7 @@ export function redeemGiftCard(giftCardId: IdTuple, key: string, validCountryCod
 			if (!confirmed) throw new CancelledError("")
 		})
 		.then(() => {
-			return worker.redeemGiftCard(elementIdPart(giftCardId), key)
+			return worker.redeemGiftCard(elementIdPart(giftCardId), key, isSignup)
 			             .catch(NotFoundError, () => { throw new UserError("invalidGiftCard_msg") })
 			             .catch(NotAuthorizedError, e => { throw new UserError(() => e.message) })
 		})

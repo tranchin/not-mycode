@@ -278,7 +278,8 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 					Dialog.error("termsAcceptedNeutral_msg")
 					return
 				}
-				redeemGiftCard(data.giftCardInfo.giftCard, data.key, data.giftCardInfo.country, Dialog.confirm)
+				redeemGiftCard(data.giftCardInfo.giftCard, data.key, data.giftCardInfo.country, data.credentialsMethod
+					=== "signup", Dialog.confirm)
 					.then(() => Dialog.error("success_label", lang.get("giftCardRedeemed_msg") + (wasFree ? "\n"
 						+ lang.get("redeemedToPremium_msg") : "")))
 					.then(() => emitWizardEvent(vnode.dom, WizardEventType.CLOSEDIALOG))

@@ -352,7 +352,7 @@ export class WorkerImpl {
 			},
 
 			redeemGiftCard: (message: Request) => {
-				return locator.giftCards.redeemGiftCard(message.args[0], base64ToKey(message.args[1]))
+				return locator.giftCards.redeemGiftCard(message.args[0], base64ToKey(message.args[1]), message.args[2])
 			}
 		})
 

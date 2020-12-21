@@ -22,6 +22,15 @@ export const _TypeModel: TypeModel = {
 			"final": false,
 			"encrypted": false
 		},
+		"isSignup": {
+			"name": "isSignup",
+			"id": 1848,
+			"since": 66,
+			"type": "Boolean",
+			"cardinality": "ZeroOrOne",
+			"final": false,
+			"encrypted": false
+		},
 		"keyHash": {
 			"name": "keyHash",
 			"id": 1820,
@@ -56,6 +65,7 @@ export type GiftCardRedeemData = {
 	_type: TypeRef<GiftCardRedeemData>;
 
 	_format: NumberString;
+	isSignup: ?boolean;
 	keyHash: Uint8Array;
 
 	giftCardInfo: Id;

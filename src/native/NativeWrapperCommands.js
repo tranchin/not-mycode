@@ -158,14 +158,14 @@ type Credentials = {
 */
 
 function setCredentials(msg: Request): Promise<void> {
-	return _asyncImport('src/misc/DeviceConfig.js').then(module => {
-		return module.deviceConfig.set({
-			mailAddress: msg.args[0],
-			encryptedPassword: msg.args[1],
-			accessToken: msg.args[2],
-			userId: msg.args[3]
-		})
-	})
+	const creds = {
+		mailAddress: msg.args[0],
+		encryptedPassword: msg.args[1],
+		accessToken: msg.args[2],
+		userId: msg.args[3]
+	}
+	return _asyncImport('src/api/main/LoginController.js')
+		.then(({logins}) => logins.resumeSession(creds))
 }
 
 function appUpdateDownloaded(msg: Request): Promise<void> {

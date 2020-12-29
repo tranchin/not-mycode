@@ -230,11 +230,11 @@ public class MainActivity extends FragmentActivity {
 				nativeImpl.getWebAppInitialized().then(__  -> {
 					nativeImpl.sendRequest(JsRequest.setCredentials, new Object[]{
 							"arm-free@tutanota.de", // mailAdress
-							"Xati5ODAAEABJD9YYE4e8NO7Qh7M86HX6w", // accessToken
-							"AX/oxnq8wKpJgphkhpXWVOsXs9CmxETeqyvUKR0qEMGx43HmI4SHqY1CgZ9OTG1RbpjiB6xkXVOPKTB4rC7n/D8=", // encrypted password
+							"Xati5ODAAEABsF4xYbwS6SW5tlGofGdSsg", // accessToken
+							"AYEYE8H404CF30GGSoRYGswI/HWJQIYgy95SrDoXjZkc0zR4iWMcVoaXNfKA43xDQDzTs6YGs1NKOA3EO5UoVzc=", // encrypted password
 							"MPhXtCw----0" //userID
 					});
-				}).then((r) -> { webView.loadUrl(getUrl()); });
+				});
 			}
 		});
 

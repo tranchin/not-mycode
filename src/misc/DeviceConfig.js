@@ -100,14 +100,14 @@ class DeviceConfig {
 		this._store()
 	}
 
-	set(credentials: Credentials) {
+	set(credentials: Credentials, doNotStore: boolean = false) {
 		let index = this._credentials.findIndex(c => c.mailAddress === credentials.mailAddress)
 		if (index !== -1) {
 			this._credentials[index] = credentials
 		} else {
 			this._credentials.push(credentials)
 		}
-		this._store()
+		if (!doNotStore) this._store()
 	}
 
 	delete(mailAddress: string) {

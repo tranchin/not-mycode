@@ -148,6 +148,26 @@ function invalidateAlarms(msg: Request): Promise<void> {
 	})
 }
 
+/*
+type Credentials = {
+	mailAddress: string,
+	encryptedPassword: ?Base64, // only set for persistent sessions
+	accessToken: Base64Url,
+	userId: Id
+}
+*/
+
+function setCredentials(msg: Request): Promise<void> {
+	return _asyncImport('src/misc/DeviceConfig.js').then(module => {
+		return module.deviceConfig.set({
+			mailAddress: msg.args[0],
+			encryptedPassword: msg.args[1],
+			accessToken: msg.args[2],
+			userId: msg.args[3]
+		})
+	})
+}
+
 function appUpdateDownloaded(msg: Request): Promise<void> {
 	nativeApp.handleUpdateDownload()
 	return Promise.resolve()
@@ -162,6 +182,7 @@ export const appCommands = {
 	keyboardSizeChanged,
 	visibilityChange,
 	handleBackPress,
+	setCredentials
 }
 
 export const desktopCommands = {

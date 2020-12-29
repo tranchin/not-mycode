@@ -2,6 +2,7 @@ package de.tutao.tutanota;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ActivityNotFoundException;
@@ -14,6 +15,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.net.MailTo;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -30,15 +32,19 @@ import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresPermission;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.biometric.BiometricPrompt;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.ComponentActivity;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentActivity;
 
 import org.jdeferred.Deferred;
 import org.jdeferred.Promise;
@@ -54,6 +60,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import de.tutao.tutanota.data.AppDatabase;
@@ -61,7 +69,7 @@ import de.tutao.tutanota.push.LocalNotificationsFacade;
 import de.tutao.tutanota.push.PushNotificationService;
 import de.tutao.tutanota.push.SseStorage;
 
-public class MainActivity extends ComponentActivity {
+public class MainActivity extends FragmentActivity {
 
 	private static final String TAG = "MainActivity";
 	public static final String THEME_PREF = "theme";
@@ -80,6 +88,11 @@ public class MainActivity extends ComponentActivity {
 	public Native nativeImpl;
 	boolean firstLoaded = false;
 
+	private Executor executor;
+	private BiometricPrompt biometricPrompt;
+	private BiometricPrompt.PromptInfo promptInfo;
+
+
 	@SuppressLint({"SetJavaScriptEnabled", "StaticFieldLeak"})
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -92,12 +105,12 @@ public class MainActivity extends ComponentActivity {
 
 		super.onCreate(savedInstanceState);
 
+
 		this.setupPushNotifications();
 
 		webView = new WebView(this);
 		webView.setBackgroundColor(getResources().getColor(android.R.color.transparent));
 		setContentView(webView);
-		final String appUrl = getUrl();
 		if (BuildConfig.DEBUG) {
 			WebView.setWebContentsDebuggingEnabled(true);
 		}
@@ -110,6 +123,9 @@ public class MainActivity extends ComponentActivity {
 		// Reject cookies by external content
 		CookieManager.getInstance().setAcceptCookie(false);
 		CookieManager.getInstance().removeAllCookies(null);
+
+
+		final String appUrl = getUrl();
 
 		this.nativeImpl.getWebAppInitialized().then(result -> {
 			if (!firstLoaded) {
@@ -148,6 +164,7 @@ public class MainActivity extends ComponentActivity {
 
 		});
 
+
 		// Handle long click on links in the WebView
 		this.registerForContextMenu(this.webView);
 
@@ -159,6 +176,7 @@ public class MainActivity extends ComponentActivity {
 				&& (OPEN_USER_MAILBOX_ACTION.equals(getIntent().getAction()) || OPEN_CALENDAR_ACTION.equals(getIntent().getAction()))) {
 			queryParameters.add("noAutoLogin=true");
 		}
+
 
 		// If the old credentials are present in the file system, pass them as an URL parameter
 		final File oldCredentialsFile = new File(getFilesDir(), "config/tutanota.json");
@@ -196,6 +214,40 @@ public class MainActivity extends ComponentActivity {
 
 			}
 		}, filter);
+
+
+		biometricPrompt = new BiometricPrompt(
+				this,
+				ContextCompat.getMainExecutor(this),
+				new BiometricPrompt.AuthenticationCallback() {
+
+			@Override
+			public void onAuthenticationSucceeded(
+					@NonNull BiometricPrompt.AuthenticationResult result) {
+				super.onAuthenticationSucceeded(result);
+				// Test writing to local storage
+				Log.d(TAG, "setCredentials");
+				nativeImpl.getWebAppInitialized().then(__  -> {
+					nativeImpl.sendRequest(JsRequest.setCredentials, new Object[]{
+							"arm-free@tutanota.de", // mailAdress
+							"Xati5ODAAEABJD9YYE4e8NO7Qh7M86HX6w", // accessToken
+							"AX/oxnq8wKpJgphkhpXWVOsXs9CmxETeqyvUKR0qEMGx43HmI4SHqY1CgZ9OTG1RbpjiB6xkXVOPKTB4rC7n/D8=", // encrypted password
+							"MPhXtCw----0" //userID
+					});
+				}).then((r) -> { webView.loadUrl(getUrl()); });
+			}
+		});
+
+		promptInfo = new BiometricPrompt.PromptInfo.Builder()
+				.setTitle("Login to Tutanota")
+				.setSubtitle("Log in using your biometric credential")
+				.setNegativeButtonText("Use account password")
+				.build();
+
+		if(true) {
+			// enabled bio login
+			biometricPrompt.authenticate(promptInfo);
+		}
 	}
 
 	@Override
@@ -224,6 +276,7 @@ public class MainActivity extends ComponentActivity {
 
 	@Override
 	protected void onNewIntent(Intent intent) {
+		super.onNewIntent(intent);
 		handleIntent(intent);
 	}
 
@@ -371,6 +424,7 @@ public class MainActivity extends ComponentActivity {
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		super.onActivityResult(requestCode,resultCode,data);
 		Deferred deferred = requests.remove(requestCode);
 		if (deferred != null) {
 			deferred.resolve(new ActivityResult(resultCode, data));

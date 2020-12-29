@@ -53,6 +53,8 @@ import type {Country} from "../common/CountryList"
 import type {SearchRestriction} from "../worker/search/SearchTypes"
 import type {GiftCardRedeemGetReturn} from "../entities/sys/GiftCardRedeemGetReturn"
 import {ProgressMonitor} from "../common/utils/ProgressMonitor"
+import {deviceConfig} from "../../misc/DeviceConfig"
+
 
 assertMainOrNode()
 
@@ -134,7 +136,7 @@ export class WorkerClient implements EntityRestInterface {
 				const monitor = locator.progressTracker.getMonitor(reference)
 				monitor && monitor.workDone(workDone)
 				return Promise.resolve()
-			}
+			},
 		})
 	}
 

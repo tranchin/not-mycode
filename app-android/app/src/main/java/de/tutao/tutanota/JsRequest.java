@@ -9,8 +9,8 @@ public enum JsRequest {
 	openMailbox("openMailbox"),
 	openCalendar("openCalendar"),
 	visibilityChange("visibilityChange"),
-	invalidateAlarms("invalidateAlarms");
-
+	invalidateAlarms("invalidateAlarms"),
+	setCredentials("setCredentials");
 
 	private final String name;
 

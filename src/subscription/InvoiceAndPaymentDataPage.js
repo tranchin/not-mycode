@@ -31,7 +31,6 @@ import type {Braintree3ds2Request} from "../api/entities/sys/Braintree3ds2Reques
 import {isUpdateForTypeRef} from "../api/main/EventController"
 import {locator} from "../api/main/MainLocator"
 import {ClientType, getClientType, getWebRoot} from "../api/Env"
-import {getWebRoot} from "../api/Env"
 import {InvoiceInfoTypeRef} from "../api/entities/sys/InvoiceInfo"
 
 /**

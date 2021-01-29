@@ -9,6 +9,7 @@ pipeline {
 
 	parameters {
         booleanParam(name: 'RELEASE', defaultValue: false, description: '')
+        choice(name: 'BUILD', choices: ['web', 'desktop', 'both'], description: 'Which release to build and tag')
     }
 
     agent {
@@ -33,9 +34,9 @@ pipeline {
             }
         }
 
-        stage('Build Desktop clients'){
+        stage('Build Desktop clients') {
 			when {
-				expression { params.RELEASE }
+				expression { params.BUILD == 'desktop' || params.BUILD == 'both' }
 			}
             parallel {
                 stage('desktop-win') {
@@ -112,7 +113,7 @@ pipeline {
 
         stage('Build deb and publish') {
             when {
-            	expression { params.RELEASE }
+            	expression { params.RELEASE && (params.BUILD == 'web' || params.BUILD == 'both') }
             }
             agent {
                 label 'linux'
@@ -125,20 +126,40 @@ pipeline {
 				sh 'rm -rf ./build/*'
 				unstash 'web_base'
 				unstash 'web_add'
-				dir('build') {
-					unstash 'linux_installer'
-					unstash 'mac_installer'
-					unstash 'win_installer'
-					unstash 'linux_installer_test'
-                    unstash 'mac_installer_test'
-                    unstash 'win_installer_test'
-				}
-				withCredentials([string(credentialsId: 'HSM_USER_PIN', variable: 'PW')]){
 					sh '''
-					export HSM_USER_PIN=${PW};
-					node dist -edp release '''
-				}
+					node dist -e --publish-web release '''
+
             }
         }
+
+        stage('Build desktop deb and publish') {
+                    when {
+                    	expression { params.RELEASE && (params.BUILD == 'desktop' || params.BUILD == 'both') }
+                    }
+                    agent {
+                        label 'linux'
+                    }
+        			environment {
+        				PATH="${env.NODE_PATH}:${env.PATH}"
+        			}
+                    steps {
+                    	sh 'npm ci'
+        				sh 'rm -rf ./build/*'
+        				unstash 'web_base'
+        				dir('build') {
+        					unstash 'linux_installer'
+        					unstash 'mac_installer'
+        					unstash 'win_installer'
+        					unstash 'linux_installer_test'
+                            unstash 'mac_installer_test'
+                            unstash 'win_installer_test'
+        				}
+        				withCredentials([string(credentialsId: 'HSM_USER_PIN', variable: 'PW')]) {
+        					sh '''
+        					export HSM_USER_PIN=${PW};
+        					node dist -e --publish-desktop release '''
+        				}
+                    }
+                }
     }
 }

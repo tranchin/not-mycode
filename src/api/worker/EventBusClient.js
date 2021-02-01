@@ -10,7 +10,7 @@ import {
 	AccessDeactivatedError,
 	ConnectionError,
 	handleRestError,
-	NotAuthorizedError,
+	NotAuthorizedError, NotFoundError,
 	ServiceUnavailableError,
 	SessionExpiredError
 } from "../common/error/RestError"
@@ -461,7 +461,7 @@ export class EventBusClient {
 						           }
 					           )
 					           .catch(NotAuthorizedError, () => {
-						           console.log("could not download entity updates => lost permission")
+						           this._progressMonitor.workDone(1)
 					           })
 				}).then(() => {
 					this._lastUpdateTime = Date.now()

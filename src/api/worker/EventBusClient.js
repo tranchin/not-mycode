@@ -130,6 +130,9 @@ export class EventBusClient {
 
 		this._eventQueue = new EventQueue(true, (modification) => {
 			return this._processEventBatch(modification)
+			           .catch(NotAuthorizedError, e => {
+				           console.log("tried to process an event for a group that you don't belong to?", e)
+			           })
 			           .catch((e) => {
 				           console.log("Error while processing event batches", e)
 				           this._worker.sendError(e)

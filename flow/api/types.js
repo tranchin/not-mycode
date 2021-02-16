@@ -208,6 +208,10 @@ type NativeRequestType = 'init'
 	| 'isUpdateAvailable' // check if update is ready to install
 	| 'manualUpdate' // progress update process (check, dl, install)
 	| 'mailBundleExport'
+	| 'queryAvailableMsgs'
+	| 'dragExportedMails'
+	| 'saveBundleAsMsg'
+	| "focusApplicationWindow"
 
 type JsRequestType = 'createMailEditor'
 	| 'handleBackPress'

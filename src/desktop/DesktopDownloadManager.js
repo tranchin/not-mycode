@@ -12,6 +12,7 @@ import {log} from "./DesktopLog";
 import {looksExecutable, nonClobberingFilename} from "./PathUtils"
 import type {DesktopUtils} from "./DesktopUtils"
 import type {DownloadItem} from "electron"
+import {isWindows} from "../api/common/Env"
 
 export class DesktopDownloadManager {
 	_conf: DesktopConfig;
@@ -103,10 +104,18 @@ export class DesktopDownloadManager {
 		const downloadItem: DownloadItem = new EventEmitter()
 		downloadItem.getFilename = () => filename
 
+		let extension = path.extname(filename)
 		this._handleDownloadItem(downloadItem)
 		const writePromise = downloadItem.savePath
 			? write({canceled: false, filePath: downloadItem.savePath})
 			: this._electron.dialog.showSaveDialog(win.browserWindow, {defaultPath: path.join(this._electron.app.getPath('downloads'), filename)})
+			      .then(saveDialogReturn => {
+				      // Append file extension on windows if removed in Dialog
+				      if (isWindows() && saveDialogReturn.filePath && !saveDialogReturn.filePath.endsWith(extension)) {
+					      saveDialogReturn.filePath += extension
+				      }
+				      return saveDialogReturn
+			      })
 			      .then(write)
 		return writePromise.then(() => downloadItem.emit('done', undefined, 'completed'))
 		                   .catch(e => {downloadItem.emit('done', e, 'cancelled')})

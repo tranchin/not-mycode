@@ -62,6 +62,10 @@ export function isBrowser(): boolean {
 	return env.mode === Mode.Browser
 }
 
+export function isWindows(): boolean {
+	return env.mode === Mode.Desktop && env.platformId === "win32"
+}
+
 export function ifDesktop<T>(obj: T | null): T | null {
 	return isDesktop()
 		? obj

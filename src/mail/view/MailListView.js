@@ -119,7 +119,7 @@ export class MailListView implements Component {
 
 				// show a message if it looks like it'll take a while for all of the contents to be downloaded
 				const notificationTimeout = setTimeout(() => showNotificationOverlay({
-					view: () => m("", "First we need to download everything...")
+					view: () => m("", lang.get("haveToDownload_msg"))
 				}, {label: "ok_action"}, []), 1000)
 
 				fileApp.queryAvailableMsg(draggedMails)
@@ -141,7 +141,7 @@ export class MailListView implements Component {
 							              fileApp.dragExportedMails(draggedMails.map(getLetId))
 						              } else {
 							              nativeApp.invokeNative(new Request("focusApplicationWindow", []))
-							                       .then(() => Dialog.error(() => "The drag and drop was unsuccessful because the data was not finished downloading. You may try again."))
+							                       .then(() => Dialog.error("unsuccessfulDrop_msg"))
 						              }
 						              neverNull(document.body).style.cursor = "default"
 					              })

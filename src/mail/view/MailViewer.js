@@ -597,16 +597,6 @@ export class MailViewer {
 			icon: () => Icons.Trash,
 			colors,
 		}))
-		if (canDoDragAndDropExport()) {
-			actions.push(m(ButtonN, {
-				label: "dragAndDropExport_action",
-				click: () => {
-					showProgressDialog("pleaseWait_msg", bundleMail(mail))
-						.then(bundle => import("../../native/common/FileApp").then(({fileApp}) => fileApp.mailBundleExport([bundle])))
-				},
-				icon: () => Icons.Open,
-			}))
-		}
 		if (mail.state !== MailState.DRAFT) {
 			actions.push(m(ButtonN, {
 				label: "more_label",
@@ -1563,9 +1553,4 @@ export class MailViewer {
 		}
 		this._lastBodyTouchEndTime = now
 	}
-}
-
-export function canDoDragAndDropExport(): boolean {
-	return isDesktop() && (logins.getUserController().user.accountType === AccountType.STARTER
-		|| logins.isEnabled(FeatureType.ExternalEmailProvider))
 }

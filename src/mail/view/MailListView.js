@@ -9,7 +9,7 @@ import type {MailView} from "./MailView"
 import type {Mail} from "../../api/entities/tutanota/Mail"
 import {MailTypeRef} from "../../api/entities/tutanota/Mail"
 import {assertMainOrNode, isDesktop} from "../../api/common/Env"
-import {getArchiveFolder, getFolderName, getInboxFolder} from "../model/MailUtils"
+import {canDoDragAndDropExport, getArchiveFolder, getFolderName, getInboxFolder} from "../model/MailUtils"
 import {findAndApplyMatchingRule, isInboxList} from "../model/InboxRuleHandler"
 import {NotFoundError} from "../../api/common/error/RestError"
 import {size} from "../../gui/size"
@@ -30,10 +30,8 @@ import {MailRow} from "./MailRow"
 import {uniqueInsert} from "../../api/common/utils/ArrayUtils"
 import {fileApp} from "../../native/common/FileApp"
 import {makeTrackedProgressMonitor, NoopProgressMonitor, ProgressMonitor} from "../../api/common/utils/ProgressMonitor"
-import {canDoDragAndDropExport} from "./MailViewer"
 import {nativeApp} from "../../native/common/NativeWrapper"
 import {Request} from "../../api/common/WorkerProtocol"
-import {show as showNotificationOverlay} from "../../gui/base/NotificationOverlay"
 
 assertMainOrNode()
 
@@ -117,16 +115,8 @@ export class MailListView implements Component {
 					document.addEventListener("mouseup", resolve, {once: true})
 				})
 
-				// show a message if it looks like it'll take a while for all of the contents to be downloaded
-				const notificationTimeout = setTimeout(() => showNotificationOverlay({
-					view: () => m("", lang.get("haveToDownload_msg"))
-				}, {label: "ok_action"}, []), 1000)
-
 				fileApp.queryAvailableMsg(draggedMails)
-				       .then(notDownloaded => {
-					       const notDownloadedMails =
-						       draggedMails.filter(mail => notDownloaded.find(m => haveSameId(m, mail)))
-
+				       .then(notDownloadedMails => {
 					       const downloadPromise = this._downloadAndBundleMails(notDownloadedMails)
 
 					       // if we need to download any mails, first we check if any have been started downloading already (by a previous incomplete drag operation)
@@ -136,7 +126,6 @@ export class MailListView implements Component {
 					       // otherwise we have to give some kind of feedback to the user that the drop was unsuccessful
 					       Promise.race([downloadPromise.then(() => true), mouseupPromise.then(() => false)])
 					              .then(didComplete => {
-						              window.clearTimeout(notificationTimeout)
 						              if (didComplete) {
 							              fileApp.dragExportedMails(draggedMails.map(getLetId))
 						              } else {
@@ -157,13 +146,16 @@ export class MailListView implements Component {
 		}
 
 		const progressMonitor =
-			makeTrackedProgressMonitor(locator.progressTracker, 2 * notDownloadedMails.length)
+			makeTrackedProgressMonitor(locator.progressTracker, 2 * notDownloadedMails.length + 1)
 
+		// Show that something is happening at first, in the case of very large attachments
+		progressMonitor.workDone(1)
 		return Promise.all(notDownloadedMails.map(mail => {
 			// If a mail was started downloading in the last drag, and we try to drag it again while it's not yet finished,
 			// then we should grab the promise that has already been created for it, otherwise make a new one
 			const id = mail._id.join()
 			if (this.mailsBeingBundled.has(id)) {
+				progressMonitor.workDone(2)
 				return neverNull(this.mailsBeingBundled.get(id))
 			} else {
 				const bundlePromise = bundleMail(mail)

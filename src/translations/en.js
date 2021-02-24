@@ -1298,7 +1298,7 @@ export default {
 		"yourFolders_action": "YOUR FOLDERS",
 		"yourMessage_label": "Your message",
 		"you_label": "You",
-		"haveToDownload_msg": "We need to download everything first.",
-		"unsuccessfulDrop_msg": "The drag and drop was unsuccessful because the data was not finished downloading. You may try again."
+		"unsuccessfulDrop_msg": "The drag & drop was unsuccessful because the data had not finished downloading. You may try again once the progress bar is finished.",
+		"dragAndDrop_action": "Drag selected mails to the file system or other applications."
 	}
 }

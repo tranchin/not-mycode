@@ -7,19 +7,20 @@ import {createContact} from "../../api/entities/tutanota/Contact"
 import {createContactMailAddress} from "../../api/entities/tutanota/ContactMailAddress"
 import type {ConversationTypeEnum, MailFolderTypeEnum} from "../../api/common/TutanotaConstants"
 import {
+	AccountType,
 	ContactAddressType,
-	ConversationType,
+	ConversationType, FeatureType,
 	getMailFolderType,
 	GroupType,
 	MailFolderType,
 	MailState
 } from "../../api/common/TutanotaConstants"
 import {assertNotNull, neverNull, noOp} from "../../api/common/utils/Utils"
-import {assertMainOrNode} from "../../api/common/Env"
+import {assertMainOrNode, isDesktop} from "../../api/common/Env"
 import {LockedError, NotFoundError} from "../../api/common/error/RestError"
 import {contains} from "../../api/common/utils/ArrayUtils"
 import type {LoginController} from "../../api/main/LoginController"
-import {logins as globalLogins} from "../../api/main/LoginController"
+import {logins, logins as globalLogins} from "../../api/main/LoginController"
 import type {Language} from "../../misc/LanguageViewModel"
 import {lang} from "../../misc/LanguageViewModel"
 import {Icons} from "../../gui/base/icons/Icons"
@@ -461,4 +462,9 @@ export function conversationTypeString(conversationType: ConversationTypeEnum): 
 
 export function getExistingRuleForType(props: TutanotaProperties, cleanValue: string, type: string): ?InboxRule {
 	return props.inboxRules.find(rule => (type === rule.type && cleanValue === rule.value))
+}
+
+export function canDoDragAndDropExport(): boolean {
+	return isDesktop() && (logins.getUserController().user.accountType === AccountType.STARTER
+		|| logins.isEnabled(FeatureType.ExternalEmailProvider))
 }

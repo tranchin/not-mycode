@@ -2,6 +2,7 @@
 
 import type {ProgressTracker} from "../../main/ProgressTracker"
 import {assertNotNull} from "./Utils"
+import {tap} from "./PromiseUtils"
 
 export type ProgressMonitorId = number
 export type ProgressListener = (percentageCompleted: number) => mixed
@@ -110,4 +111,15 @@ export function makeTrackedProgressMonitor(tracker: ProgressTracker, totalWork: 
 
 	const handle = tracker.registerMonitor(totalWork)
 	return assertNotNull(tracker.getMonitor(handle))
+}
+
+/**
+ * Convenience function for calling work done in promise chains
+ * returns a function that calls workdone and then returns it's argument
+ * @param monitor
+ * @param amount
+ * @returns {function(): T}
+ */
+export function tapWorkDone<T>(monitor: IProgressMonitor, amount: number): T => T {
+	return tap(() => monitor.workDone(amount))
 }

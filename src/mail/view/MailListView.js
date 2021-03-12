@@ -28,7 +28,7 @@ import {locator} from "../../api/main/MainLocator"
 import {getLetId, haveSameId, sortCompareByReverseId} from "../../api/common/utils/EntityUtils";
 import {moveMails, promptAndDeleteMails} from "./MailGuiUtils"
 import {MailRow} from "./MailRow"
-import {makeTrackedProgressMonitor} from "../../api/common/utils/ProgressMonitor"
+import {makeTrackedProgressMonitor, tapWorkDone} from "../../api/common/utils/ProgressMonitor"
 import {Request} from "../../api/common/WorkerProtocol"
 import {generateExportFileName, generateMailFile, getMailExportMode} from "../export/Exporter"
 import {promiseMap, tap} from "../../api/common/utils/PromiseUtils"
@@ -229,12 +229,12 @@ export class MailListView implements Component {
 							const key = mapKey(mail)
 							const downloadPromise =
 								import("../../misc/HtmlSanitizer")
-									.then(({htmlSanitizer}) => makeMailBundle(mail, locator.entityClient, worker, htmlSanitizer))
-									.then(tap(() => progressMonitor.workDone(1)))
+									.then(({htmlSanitizer}) => makeMailBundle(mail, locator.entityClient, worker, htmlSanitizer, progressMonitor))
+									.then(tapWorkDone(progressMonitor, 1))
 									.then(bundle => generateMailFile(bundle, name, exportMode))
-									.then(tap(() => progressMonitor.workDone(1)))
+									.then(tapWorkDone(progressMonitor, 1))
 									.then(file => import("../../native/common/FileApp").then(({fileApp}) => fileApp.saveToExportDir(file)))
-									.then(tap(() => progressMonitor.workDone(1)))
+									.then(tapWorkDone(progressMonitor, 1))
 							this.exportedMails.set(key, {fileName: name, result: new AsyncResult(downloadPromise)})
 							return downloadPromise.then(() => name)
 						}),

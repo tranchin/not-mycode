@@ -6,7 +6,7 @@ import {createMail} from "../../../../src/api/entities/tutanota/Mail"
 import {MailState} from "../../../../src/api/common/TutanotaConstants"
 import {createMailAddress} from "../../../../src/api/entities/tutanota/MailAddress"
 import {createEncryptedMailAddress} from "../../../../src/api/entities/tutanota/EncryptedMailAddress"
-import {downcast} from "../../../../src/api/common/utils/Utils"
+import {downcast, noOp} from "../../../../src/api/common/utils/Utils"
 import {MailBodyTypeRef} from "../../../../src/api/entities/tutanota/MailBody"
 import {MailHeadersTypeRef} from "../../../../src/api/entities/tutanota/MailHeaders"
 import {isSameTypeRef} from "../../../../src/api/common/utils/TypeRef"
@@ -39,6 +39,10 @@ o.spec("Bundler", function () {
 		const sanitizer = {
 			sanitize: o.spy(text => ({text: sanitizedBodyText}))
 		}
+
+		const progressMonitor = {
+			workDone: o.spy(noOp)
+		}
 		const mailHeadersId = "mailheadersid"
 		const attachmentIds = [["listid", "attachid1"], ["listid", "attachid2"], ["listid", "attachid3"]]
 		const mail = createMail({
@@ -59,7 +63,7 @@ o.spec("Bundler", function () {
 
 		})
 
-		const bundle = await makeMailBundle(mail, downcast(entityClient), downcast(worker), downcast(sanitizer))
+		const bundle = await makeMailBundle(mail, downcast(entityClient), downcast(worker), downcast(sanitizer), downcast(progressMonitor))
 
 		o(bundle.mailId).deepEquals(mailId)
 		o(bundle.subject).equals(subject)

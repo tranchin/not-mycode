@@ -10,6 +10,8 @@ import {MailState} from "../../api/common/TutanotaConstants";
 import {getLetId} from "../../api/common/utils/EntityUtils"
 import type {HtmlSanitizer} from "../../misc/HtmlSanitizer"
 import {promiseMap} from "../../api/common/utils/PromiseUtils"
+import type {IProgressMonitor} from "../../api/common/utils/ProgressMonitor"
+import {tapWorkDone} from "../../api/common/utils/ProgressMonitor"
 
 /**
  * Used to pass all downloaded mail stuff to the desktop side to be exported as a file
@@ -41,44 +43,55 @@ export type MailBundle = {
  * @param entityClient
  * @param worker
  * @param sanitizer
+ * @param progressMonitor: A progressmonitor which will have workdone called 3 + mail.attachments.length times
  */
-export function makeMailBundle(mail: Mail, entityClient: EntityClient, worker: WorkerClient, sanitizer: HtmlSanitizer): Promise<MailBundle> {
-	const bodyTextPromise = entityClient.load(MailBodyTypeRef, mail.body)
-	                                    .then(getMailBodyText)
-	                                    .then(body =>
-		                                    sanitizer.sanitize(body, {
-			                                    blockExternalContent: false,
-			                                    allowRelativeLinks: false,
-			                                    usePlaceholderForInlineImages: false
-		                                    }).text
-	                                    )
+export function makeMailBundle(mail: Mail, entityClient: EntityClient, worker: WorkerClient, sanitizer: HtmlSanitizer, progressMonitor: IProgressMonitor): Promise<MailBundle> {
+	let bodyText, attachments, headers
 
-	const attachmentsPromise = promiseMap(mail.attachments,
-		fileId => entityClient.load(FileTypeRef, fileId)
-		                      .then(worker.downloadFileContent.bind(worker)))
-
-	const headersPromise = mail.headers
-		? entityClient.load(MailHeadersTypeRef, mail.headers)
-		: Promise.resolve(null)
+	// Download all of the stuff in sequence, to avoid getting users blocked
+	const downloadEverythingPromise =
+		entityClient.load(MailBodyTypeRef, mail.body)
+		            .then(getMailBodyText)
+		            .then(bodyResult => {
+			            bodyText = sanitizer.sanitize(bodyResult, {
+				            blockExternalContent: false,
+				            allowRelativeLinks: false,
+				            usePlaceholderForInlineImages: false
+			            }).text
+			            progressMonitor.workDone(1)
+		            })
+		            .then(() => promiseMap(mail.attachments,
+			            fileId => entityClient.load(FileTypeRef, fileId)
+			                                  .then(worker.downloadFileContent.bind(worker))
+			                                  .then(tapWorkDone(progressMonitor, 1))))
+		            .then(attachmentsResult => attachments = attachmentsResult)
+		            .then(() => mail.headers
+			            ? entityClient.load(MailHeadersTypeRef, mail.headers)
+			            : null)
+		            .then(headersResult => {
+			            headers = headersResult
+			            progressMonitor.workDone(1)
+		            })
 
 	const recipientMapper = addr => ({address: addr.address, name: addr.name})
-	return Promise.all([bodyTextPromise, attachmentsPromise, headersPromise])
-	              .then(([bodyText, attachments, headers]) => {
-		              return {
-			              mailId: getLetId(mail),
-			              subject: mail.subject,
-			              body: bodyText,
-			              sender: recipientMapper(mail.sender),
-			              to: mail.toRecipients.map(recipientMapper),
-			              cc: mail.ccRecipients.map(recipientMapper),
-			              bcc: mail.bccRecipients.map(recipientMapper),
-			              replyTo: mail.replyTos.map(recipientMapper),
-			              isDraft: mail.state === MailState.DRAFT,
-			              isRead: !mail.unread,
-			              sentOn: mail.sentDate.getTime(),
-			              receivedOn: mail.receivedDate.getTime(),
-			              headers: headers && getMailHeaders(headers),
-			              attachments: attachments,
-		              }
-	              })
+
+	return downloadEverythingPromise
+		.then(() => {
+			return {
+				mailId: getLetId(mail),
+				subject: mail.subject,
+				body: bodyText,
+				sender: recipientMapper(mail.sender),
+				to: mail.toRecipients.map(recipientMapper),
+				cc: mail.ccRecipients.map(recipientMapper),
+				bcc: mail.bccRecipients.map(recipientMapper),
+				replyTo: mail.replyTos.map(recipientMapper),
+				isDraft: mail.state === MailState.DRAFT,
+				isRead: !mail.unread,
+				sentOn: mail.sentDate.getTime(),
+				receivedOn: mail.receivedDate.getTime(),
+				headers: headers && getMailHeaders(headers),
+				attachments: attachments,
+			}
+		})
 }

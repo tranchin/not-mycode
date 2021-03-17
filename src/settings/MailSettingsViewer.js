@@ -9,7 +9,7 @@ import {load, update} from "../api/main/Entity"
 import {neverNull, noOp} from "../api/common/utils/Utils"
 import {MailFolderTypeRef} from "../api/entities/tutanota/MailFolder"
 import {getInboxRuleTypeName} from "../mail/model/InboxRuleHandler"
-import {EditAliasesFormN} from "./EditAliasesFormN.js"
+import {EditAliasesForm} from "./EditAliasesForm.js"
 import {Dialog} from "../gui/base/Dialog"
 import {GroupInfoTypeRef} from "../api/entities/sys/GroupInfo"
 import {logins} from "../api/main/LoginController"
@@ -36,8 +36,8 @@ import {ExpanderButtonN, ExpanderPanelN} from "../gui/base/Expander"
 import {IdentifierListViewer} from "./IdentifierListViewer"
 import {IndexingNotSupportedError} from "../api/common/error/IndexingNotSupportedError"
 import {LockedError} from "../api/common/error/RestError"
-import type {EditAliasesFormAttrs} from "./EditAliasesFormN"
-import {createEditAliasFormAttrs, updateNbrOfAliases} from "./EditAliasesFormN"
+import type {EditAliasesFormAttrs} from "./EditAliasesForm"
+import {createEditAliasFormAttrs, updateNbrOfAliases} from "./EditAliasesForm"
 import {getEnabledMailAddressesForGroupInfo} from "../api/common/utils/GroupUtils";
 import {isSameId} from "../api/common/utils/EntityUtils";
 import {showEditOutOfOfficeNotificationDialog} from "./EditOutOfOfficeNotificationDialog"
@@ -262,7 +262,7 @@ export class MailSettingsViewer implements UpdatableSettingsViewer {
 				logins.isEnabled(FeatureType.DisableContacts) ? null : m(DropDownSelectorN, noAutomaticContactsAttrs),
 				m(DropDownSelectorN, enableMailIndexingAttrs),
 				m(TextFieldN, outOfOfficeAttrs),
-				(logins.getUserController().isGlobalAdmin()) ? m(EditAliasesFormN, this._editAliasFormAttrs) : null,
+				(logins.getUserController().isGlobalAdmin()) ? m(EditAliasesForm, this._editAliasFormAttrs) : null,
 				logins.isEnabled(FeatureType.InternalCommunication) ? null : [
 					m(".flex-space-between.items-center.mt-l.mb-s", [
 						m(".h4", lang.get('inboxRulesSettings_action')),

@@ -24,6 +24,8 @@ import {TUTANOTA_MAIL_ADDRESS_DOMAINS} from "../api/common/TutanotaConstants"
 import type {GroupInfo} from "../api/entities/sys/GroupInfo"
 import type {MailAddressAlias} from "../api/entities/sys/MailAddressAlias"
 import {showNotAvailableForFreeDialog} from "../misc/SubscriptionDialogs"
+import {TextFieldN} from "../gui/base/TextFieldN"
+import type {TextFieldAttrs} from "../gui/base/TextFieldN"
 
 assertMainOrNode()
 
@@ -38,7 +40,7 @@ type AliasCount = {
 	availableToEnable: number
 }
 
-export class EditAliasesFormN implements MComponent<EditAliasesFormAttrs> {
+export class EditAliasesForm implements MComponent<EditAliasesFormAttrs> {
 	view(vnode: Vnode<LifecycleAttrs<EditAliasesFormAttrs>>): Children {
 		const a = vnode.attrs
 		const addAliasButtonAttrs: ButtonAttrs = {
@@ -48,8 +50,8 @@ export class EditAliasesFormN implements MComponent<EditAliasesFormAttrs> {
 		}
 
 		const aliasesTableAttrs: TableAttrs = {
-			columnHeading: ["emailAlias_label", "state_label"],
-			columnWidths: [ColumnWidth.Largest, ColumnWidth.Small],
+			columnHeading: ["emailAlias_label", "mailName_label", "state_label"],
+			columnWidths: [ColumnWidth.Largest, ColumnWidth.Largest, ColumnWidth.Small],
 			showActionButtonColumn: true,
 			addButtonAttrs: addAliasButtonAttrs,
 			lines: getAliasLineAttrs(a),
@@ -84,9 +86,14 @@ export class EditAliasesFormN implements MComponent<EditAliasesFormAttrs> {
 		} else {
 			getAvailableDomains().then(domains => {
 				const form = new SelectMailAddressForm(domains)
+				const senderNameFieldAttrs: TextFieldAttrs = {
+					value: stream(""),
+					label: "optionalSenderName_label",
+				}
 				const addEmailAliasOkAction = (dialog) => {
 					const alias = form.cleanMailAddress()
-					addAlias(aliasFormAttrs, alias)
+					const senderName = senderNameFieldAttrs.value()
+					addAlias(aliasFormAttrs, alias, senderName)
 					// close the add alias dialog immediately
 					dialog.close()
 				}
@@ -96,6 +103,7 @@ export class EditAliasesFormN implements MComponent<EditAliasesFormAttrs> {
 					child: {
 						view: () => [
 							m(form),
+							m(TextFieldN, senderNameFieldAttrs),
 							m(ExpanderPanelN,
 								{expanded: form.domain.map(d => TUTANOTA_MAIL_ADDRESS_DOMAINS.includes(d))},
 								m(".pt-m", lang.get("permanentAliasWarning_msg"))
@@ -148,6 +156,7 @@ export function getAliasLineAttrs(editAliasAttrs: EditAliasesFormAttrs): Array<T
 		                     return {
 			                     cells: [
 				                     alias.mailAddress,
+				                     alias.senderName,
 				                     alias.enabled
 					                     ? lang.get("activated_label")
 					                     : lang.get("deactivated_label")
@@ -177,8 +186,8 @@ function switchAliasStatus(alias: MailAddressAlias, editAliasAttrs: EditAliasesF
 }
 
 
-export function addAlias(aliasFormAttrs: EditAliasesFormAttrs, alias: string): Promise<void> {
-	return showProgressDialog("pleaseWait_msg", worker.addMailAlias(aliasFormAttrs.userGroupInfo.group, alias))
+export function addAlias(aliasFormAttrs: EditAliasesFormAttrs, alias: string, senderName: string): Promise<void> {
+	return showProgressDialog("pleaseWait_msg", worker.addMailAlias(aliasFormAttrs.userGroupInfo.group, alias, senderName))
 		.catch(InvalidDataError, () => Dialog.error("mailAddressNA_msg"))
 		.catch(LimitReachedError, () => Dialog.error("adminMaxNbrOfAliasesReached_msg"))
 		.finally(() => updateNbrOfAliases(aliasFormAttrs))

@@ -334,7 +334,7 @@ export class WorkerClient implements EntityRestInterface {
 		return this._postRequest(new Request('readAvailableCustomerStorage', [logins.getUserController().user.customer]))
 	}
 
-	addMailAlias(groupId: Id, alias: string): Promise<void> {
+	addMailAlias(groupId: Id, alias: string, senderName: string): Promise<void> {
 		return this._postRequest(new Request('addMailAlias', arguments))
 	}
 

@@ -1289,3 +1289,5 @@ export type TranslationKeyType = "about_label"
 	| "yourMessage_label"
 	| "you_label"
 	| "emptyString_msg"
+
+	| "optionalSenderName_label"

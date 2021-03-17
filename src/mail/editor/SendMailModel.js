@@ -630,7 +630,7 @@ export class SendMailModel {
 	}
 
 	getSenderName(): string {
-		return getSenderNameForUser(this._mailboxDetails, this.user())
+		return getSenderNameForUser(this._mailboxDetails, this.user(), this.getSender())
 	}
 
 	getDraft(): ?$ReadOnly<Mail> {

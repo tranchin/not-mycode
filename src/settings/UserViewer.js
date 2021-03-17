@@ -41,8 +41,8 @@ import {isUpdateForTypeRef} from "../api/main/EventController"
 import {HtmlEditor as Editor, Mode} from "../gui/editor/HtmlEditor"
 import {filterContactFormsForLocalAdmin} from "./ContactFormListView"
 import {checkAndImportUserData, CSV_USER_FORMAT} from "./ImportUsersViewer"
-import type {EditAliasesFormAttrs} from "./EditAliasesFormN"
-import {createEditAliasFormAttrs, EditAliasesFormN, updateNbrOfAliases} from "./EditAliasesFormN"
+import type {EditAliasesFormAttrs} from "./EditAliasesForm"
+import {createEditAliasFormAttrs, EditAliasesForm, updateNbrOfAliases} from "./EditAliasesForm"
 import type {GroupMembership} from "../api/entities/sys/GroupMembership"
 import {compareGroupInfos, getGroupInfoDisplayName} from "../api/common/utils/GroupUtils";
 import {CUSTOM_MIN_ID, isSameId} from "../api/common/utils/EntityUtils";
@@ -217,7 +217,7 @@ export class UserViewer {
 					(this._groupsTable) ? m(this._groupsTable) : null,
 					(this._contactFormsTable) ? m(".h4.mt-l.mb-s", lang.get('contactForms_label')) : null,
 					(this._contactFormsTable) ? m(this._contactFormsTable) : null,
-					m(EditAliasesFormN, this._editAliasFormAttrs),
+					m(EditAliasesForm, this._editAliasFormAttrs),
 					logins.getUserController().isPremiumAccount() && whitelistProtestciton
 						? [
 							m(".h4.mt-l", lang.get('mailSettings_label')),

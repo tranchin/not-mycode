@@ -2,7 +2,7 @@
 import {SelectMailAddressForm} from "../SelectMailAddressForm"
 import {logins} from "../../api/main/LoginController"
 import m from "mithril"
-import {getAliasLineAttrs, updateNbrOfAliases} from "../EditAliasesFormN"
+import {getAliasLineAttrs, updateNbrOfAliases} from "../EditAliasesForm"
 import type {AddDomainData} from "./AddDomainWizard"
 import type {EntityEventsListener} from "../../api/main/EventController"
 import {isUpdateForTypeRef} from "../../api/main/EventController"

@@ -9,9 +9,9 @@ import type {LoginFacade} from "./LoginFacade"
 import {createMailAddressAvailabilityData} from "../../entities/sys/MailAddressAvailabilityData"
 import {DomainMailAddressAvailabilityReturnTypeRef} from "../../entities/sys/DomainMailAddressAvailabilityReturn"
 import {MailAddressAvailabilityReturnTypeRef} from "../../entities/sys/MailAddressAvailabilityReturn"
+import type {MailAddressAliasServiceReturn} from "../../entities/sys/MailAddressAliasServiceReturn"
 import {MailAddressAliasServiceReturnTypeRef} from "../../entities/sys/MailAddressAliasServiceReturn"
 import {SysService} from "../../entities/sys/Services"
-import type {MailAddressAliasServiceReturn} from "../../entities/sys/MailAddressAliasServiceReturn"
 
 assertWorkerOrNode()
 
@@ -41,10 +41,11 @@ export class MailAddressFacade {
 		}
 	}
 
-	addMailAlias(groupId: Id, alias: string): Promise<void> {
+	addMailAlias(groupId: Id, alias: string, senderName: string): Promise<void> {
 		let data = createMailAddressAliasServiceData()
 		data.group = groupId
 		data.mailAddress = alias
+		data.senderName = senderName
 		return _service(SysService.MailAddressAliasService, HttpMethod.POST, data)
 	}
 

@@ -7,7 +7,7 @@ import {createContact} from "../../api/entities/tutanota/Contact"
 import {createContactMailAddress} from "../../api/entities/tutanota/ContactMailAddress"
 import type {ConversationTypeEnum, MailFolderTypeEnum} from "../../api/common/TutanotaConstants"
 import {
-	AccountType,
+
 	ContactAddressType,
 	ConversationType, FeatureType,
 	getMailFolderType,
@@ -389,9 +389,23 @@ export function getSenderName(mailboxDetails: MailboxDetail): string {
 	return getSenderNameForUser(mailboxDetails, globalLogins.getUserController())
 }
 
-export function getSenderNameForUser(mailboxDetails: MailboxDetail, userController: IUserController): string {
+/**
+ * get the sender name for a user, if an alias address is given and that alias has a sender name set, that sender name will be returned
+ * @param mailboxDetails
+ * @param userController
+ * @param senderAddress
+ * @returns {string|string}
+ */
+export function getSenderNameForUser(mailboxDetails: MailboxDetail, userController: IUserController, senderAddress?: string): string {
+	// external users do not have access to the user group info
 	if (isUserMailbox(mailboxDetails)) {
-		// external users do not have access to the user group info
+		if (senderAddress && senderAddress !== userController.userGroupInfo.mailAddress) {
+			const alias = userController.userGroupInfo.mailAddressAliases.find(alias => alias.mailAddress === senderAddress)
+			// if the alias has no sender name then we return the global one TODO do we want this?
+			if (alias && alias.senderName) {
+				return alias.senderName
+			}
+		}
 		return userController.userGroupInfo.name
 	} else {
 		return mailboxDetails.mailGroupInfo ? mailboxDetails.mailGroupInfo.name : ""

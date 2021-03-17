@@ -34,11 +34,18 @@ export const _TypeModel: TypeModel = {
 			"cardinality": "One",
 			"final": true,
 			"encrypted": false
+		},
+		"senderName": {
+			"id": 1868,
+			"type": "String",
+			"cardinality": "One",
+			"final": false,
+			"encrypted": false
 		}
 	},
 	"associations": {},
 	"app": "sys",
-	"version": "68"
+	"version": "69"
 }
 
 export function createMailAddressAlias(values?: $Shape<$Exact<MailAddressAlias>>): MailAddressAlias {
@@ -51,4 +58,5 @@ export type MailAddressAlias = {
 	_id: Id;
 	enabled: boolean;
 	mailAddress: string;
+	senderName: string;
 }

@@ -42,6 +42,7 @@ import {startsWith} from "../../api/common/utils/StringUtils"
 import {Request} from "../../api/common/WorkerProtocol.js"
 import {ConversationEntryTypeRef} from "../../api/entities/tutanota/ConversationEntry"
 import {
+	checkCorruptedConversationEntryTimestamp,
 	createNewContact,
 	getArchiveFolder,
 	getDefaultSender,
@@ -94,7 +95,7 @@ import {createEmailSenderListElement} from "../../api/entities/sys/EmailSenderLi
 import {RecipientButton} from "../../gui/base/RecipientButton"
 import {Banner, BannerType} from "../../gui/base/Banner"
 import {createReportPhishingPostData} from "../../api/entities/tutanota/ReportPhishingPostData"
-import {base64ToUint8Array} from "../../api/common/utils/Encoding"
+import {base64ToUint8Array, generatedIdToTimestamp} from "../../api/common/utils/Encoding"
 import type {Mail} from "../../api/entities/tutanota/Mail"
 import {_TypeModel as MailTypeModel} from "../../api/entities/tutanota/Mail"
 import {copyToClipboard} from "../../misc/ClipboardUtils"
@@ -239,6 +240,7 @@ export class MailViewer {
 			// load the conversation entry here because we expect it to be loaded immediately when responding to this email
 			this._entityClient.load(ConversationEntryTypeRef, mail.conversationEntry)
 			    .catch(NotFoundError, e => console.log("could load conversation entry as it has been moved/deleted already", e))
+			    .catch(NotAuthorizedError, e => checkCorruptedConversationEntryTimestamp(mail.conversationEntry, e))
 		})
 
 		this.view = () => {
@@ -1217,6 +1219,8 @@ export class MailViewer {
 			if (sendAllowed) {
 				return this._mailModel.getMailboxDetailsForMail(this.mail).then((mailboxDetails) => {
 					let prefix = "Re: "
+					// TODO
+					this.mail.subject = this.mail.subject || ""
 					let subject = (startsWith(this.mail.subject.toUpperCase(), prefix.toUpperCase())) ? this.mail.subject : prefix
 						+ this.mail.subject
 					let infoLine = formatDateTime(this.mail.sentDate) + " " + lang.get("by_label") + " "

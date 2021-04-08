@@ -1,10 +1,13 @@
 //@flow
 import o from "ospec"
 import {GroupType} from "../../../src/api/common/TutanotaConstants"
-import {createRecipientInfo, parseMailtoUrl} from "../../../src/mail/model/MailUtils"
+import {checkCorruptedConversationEntryTimestamp, createRecipientInfo, parseMailtoUrl} from "../../../src/mail/model/MailUtils"
 import {LoginControllerImpl, logins} from "../../../src/api/main/LoginController"
 import {downcast} from "../../../src/api/common/utils/Utils"
 import {RecipientInfoType} from "../../../src/api/common/RecipientInfo"
+import {NotAuthorizedError} from "../../../src/api/common/error/RestError"
+import {DateTime} from "luxon"
+import {timestampToGeneratedId} from "../../../src/api/common/utils/Encoding"
 
 
 o.spec("MailUtils", browser(function () {
@@ -84,5 +87,25 @@ o.spec("MailUtils", browser(function () {
 		o(result.to[0].name).equals("Fritz Eierschale")
 	})
 
-
+	o.spec("checkCorruptedConversationEntryTimestamp", function () {
+		const e = new NotAuthorizedError("test")
+		o("in time range", function () {
+			const timestamp = DateTime.fromObject({year: 2021, month: 4, day: 8, hour: 10, minute: 30, zone: "CEST"}).toMillis()
+			const listId = timestampToGeneratedId(timestamp)
+			const elementId = timestampToGeneratedId(0)
+			checkCorruptedConversationEntryTimestamp([listId, elementId], e)
+		})
+		o("before", function () {
+			const timestamp = DateTime.fromObject({year: 2021, month: 4, day: 4, hour: 10, minute: 30, zone: "CEST"}).toMillis()
+			const listId = timestampToGeneratedId(timestamp)
+			const elementId = timestampToGeneratedId(0)
+			o(() => checkCorruptedConversationEntryTimestamp([listId, elementId], e)).throws(NotAuthorizedError)
+		})
+		o("after", function () {
+			const timestamp = DateTime.fromObject({year: 2021, month: 4, day: 8, hour: 11, minute: 30, zone: "CEST"}).toMillis()
+			const listId = timestampToGeneratedId(timestamp)
+			const elementId = timestampToGeneratedId(0)
+			o(() => checkCorruptedConversationEntryTimestamp([listId, elementId], e)).throws(NotAuthorizedError)
+		})
+	})
 }))

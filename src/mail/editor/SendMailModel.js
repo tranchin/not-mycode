@@ -23,6 +23,7 @@ import {assertMainOrNode} from "../../api/common/Env"
 import {getPasswordStrengthForUser, isSecurePassword, PASSWORD_MIN_SECURE_VALUE} from "../../misc/PasswordUtils"
 import {downcast, neverNull} from "../../api/common/utils/Utils"
 import {
+	checkCorruptedConversationEntryTimestamp,
 	createRecipientInfo,
 	getDefaultSender,
 	getEnabledMailAddressesWithUser,
@@ -364,6 +365,7 @@ export class SendMailModel {
 		           .catch(NotFoundError, e => {
 			           console.log("could not load conversation entry", e);
 		           })
+		           .catch(NotAuthorizedError, e => checkCorruptedConversationEntryTimestamp(previousMail.conversationEntry, e))
 		           .then(() => {
 			           return this._init({
 				           conversationType,
@@ -385,41 +387,59 @@ export class SendMailModel {
 		let previousMessageId: ?string = null
 		let previousMail: ?Mail = null
 
-		return this._entity.load(ConversationEntryTypeRef, draft.conversationEntry).then(ce => {
-			conversationType = downcast(ce.conversationType)
-			if (ce.previous) {
-				return this._entity.load(ConversationEntryTypeRef, ce.previous).then(previousCe => {
-					previousMessageId = previousCe.messageId
-					if (previousCe.mail) {
-						return this._entity.load(MailTypeRef, previousCe.mail).then(mail => {
-							previousMail = mail
-						})
-					}
-				}).catch(NotFoundError, e => {
-					// ignore
-				})
-			}
-		}).then(() => {
-			const {confidential, sender, toRecipients, ccRecipients, bccRecipients, subject, replyTos} = draft
-			const recipients: Recipients = {
-				to: toRecipients.map(mailAddressToRecipient),
-				cc: ccRecipients.map(mailAddressToRecipient),
-				bcc: bccRecipients.map(mailAddressToRecipient),
-			}
-			return this._init({
-				conversationType: conversationType,
-				subject,
-				bodyText,
-				recipients,
-				draft,
-				senderMailAddress: sender.address,
-				confidential,
-				attachments,
-				replyTos,
-				previousMail,
-				previousMessageId
-			})
-		})
+		return this._entity.load(ConversationEntryTypeRef, draft.conversationEntry)
+		           .then(
+			           (ce) => {
+				           conversationType = downcast(ce.conversationType)
+				           const previousConversationEntry = ce.previous
+				           if (previousConversationEntry) {
+					           return this._entity
+					                      .load(ConversationEntryTypeRef, previousConversationEntry)
+					                      .catch(NotAuthorizedError,
+						                      e => checkCorruptedConversationEntryTimestamp(previousConversationEntry, e))
+					                      .then(previousCe => {
+						                      previousMessageId = previousCe.messageId
+						                      if (previousCe.mail) {
+							                      return this._entity.load(MailTypeRef, previousCe.mail).then(mail => {
+								                      previousMail = mail
+							                      })
+						                      }
+					                      })
+					                      .catch(NotFoundError, e => {
+						                      // ignore
+					                      })
+
+				           }
+			           },
+			           (e) => {
+				           if (e instanceof NotAuthorizedError) {
+					           checkCorruptedConversationEntryTimestamp(draft.conversationEntry, e)
+				           } else {
+					           throw e
+				           }
+			           }
+		           )
+		           .then(() => {
+			           const {confidential, sender, toRecipients, ccRecipients, bccRecipients, subject, replyTos} = draft
+			           const recipients: Recipients = {
+				           to: toRecipients.map(mailAddressToRecipient),
+				           cc: ccRecipients.map(mailAddressToRecipient),
+				           bcc: bccRecipients.map(mailAddressToRecipient),
+			           }
+			           return this._init({
+				           conversationType: conversationType,
+				           subject,
+				           bodyText,
+				           recipients,
+				           draft,
+				           senderMailAddress: sender.address,
+				           confidential,
+				           attachments,
+				           replyTos,
+				           previousMail,
+				           previousMessageId
+			           })
+		           })
 	}
 
 

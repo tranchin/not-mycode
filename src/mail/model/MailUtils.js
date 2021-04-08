@@ -17,7 +17,7 @@ import {
 } from "../../api/common/TutanotaConstants"
 import {assertNotNull, neverNull, noOp} from "../../api/common/utils/Utils"
 import {assertMainOrNode, isDesktop} from "../../api/common/Env"
-import {LockedError, NotFoundError} from "../../api/common/error/RestError"
+import {LockedError, NotAuthorizedError, NotFoundError} from "../../api/common/error/RestError"
 import {contains} from "../../api/common/utils/ArrayUtils"
 import type {LoginController} from "../../api/main/LoginController"
 import {logins as globalLogins} from "../../api/main/LoginController"
@@ -43,6 +43,8 @@ import {CustomerPropertiesTypeRef} from "../../api/entities/sys/CustomerProperti
 import {getEnabledMailAddressesForGroupInfo, getGroupInfoDisplayName} from "../../api/common/utils/GroupUtils"
 import type {InboxRule} from "../../api/entities/tutanota/InboxRule"
 import type {TutanotaProperties} from "../../api/entities/tutanota/TutanotaProperties"
+import {generatedIdToTimestamp} from "../../api/common/utils/Encoding"
+import {listIdPart} from "../../api/common/utils/EntityUtils"
 
 assertMainOrNode()
 
@@ -466,4 +468,13 @@ export function getExistingRuleForType(props: TutanotaProperties, cleanValue: st
 
 export function canDoDragAndDropExport(): boolean {
 	return isDesktop()
+}
+
+export function checkCorruptedConversationEntryTimestamp(conversationEntry: IdTuple, e: NotAuthorizedError) {
+	const conversationListTimestamp = generatedIdToTimestamp(listIdPart(conversationEntry))
+	if (conversationListTimestamp > 1617784500000 && conversationListTimestamp < 1617871500000) {
+		console.warn("Corrupted conversation entry count not be loaded, ignoring", e)
+	} else {
+		throw e
+	}
 }

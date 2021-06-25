@@ -17,6 +17,7 @@ import {isTutanotaMailAddress} from "../../api/common/RecipientInfo"
 import {createMailAddress} from "../../api/entities/tutanota/MailAddress"
 import {themeManager} from "../../gui/theme"
 import {RecipientsNotFoundError} from "../../api/common/error/RecipientsNotFoundError"
+import type {WindowUnsubscribe} from "../../misc/WindowFacade"
 
 export interface CalendarUpdateDistributor {
 	sendInvite(existingEvent: CalendarEvent, sendMailModel: SendMailModel): Promise<void>;
@@ -141,12 +142,12 @@ export class CalendarMailDistributor implements CalendarUpdateDistributor {
 		                    .finally(() => this._sendEnd())
 	}
 
-	_windowUnsubscribe: ?(() => void)
+	_windowUnsubscribe: ?WindowUnsubscribe
 
 	_sendStart() {
 		this._countDownLatch++
 		if (this._countDownLatch === 1) {
-			this._windowUnsubscribe = windowFacade.addWindowCloseListener(noOp)
+			this._windowUnsubscribe = windowFacade.addWindowCloseListener(() => true)
 		}
 	}
 
@@ -154,7 +155,6 @@ export class CalendarMailDistributor implements CalendarUpdateDistributor {
 		this._countDownLatch--
 		if (this._countDownLatch === 0 && this._windowUnsubscribe) {
 			this._windowUnsubscribe()
-			this._windowUnsubscribe = null
 		}
 	}
 }

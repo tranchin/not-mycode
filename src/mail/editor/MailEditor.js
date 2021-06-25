@@ -503,7 +503,6 @@ export class MailEditor implements MComponent<MailEditorAttrs> {
 function createMailEditorDialog(model: SendMailModel, blockExternalContent: boolean = false, inlineImages?: Promise<InlineImages>): Dialog {
 	let dialog: Dialog
 	let mailEditorAttrs: MailEditorAttrs
-	let domCloseButton: HTMLElement
 
 	const save = () => {
 		return model.saveDraft(true, MailMethod.NONE, showProgressDialog)
@@ -529,7 +528,6 @@ function createMailEditorDialog(model: SendMailModel, blockExternalContent: bool
 			label: "close_alt",
 			click: () => dialog.close(),
 			type: ButtonType.Secondary,
-			oncreate: vnode => domCloseButton = vnode.dom
 		},
 		() => [
 			{
@@ -545,7 +543,7 @@ function createMailEditorDialog(model: SendMailModel, blockExternalContent: bool
 		], () => model.hasMailChanged(), 250
 	)
 
-	let windowCloseUnsubscribe = () => {}
+	let windowCloseUnsubscribe = () => false
 	const headerBarAttrs: DialogHeaderBarAttrs = {
 		left: [closeButtonAttrs],
 		right: [
@@ -559,11 +557,11 @@ function createMailEditorDialog(model: SendMailModel, blockExternalContent: bool
 		create: () => {
 			if (isBrowser()) {
 				// Have a simple listener on browser, so their browser will make the user ask if they are sure they want to close when closing the tab/window
-				windowCloseUnsubscribe = windowFacade.addWindowCloseListener(() => {})
+				windowCloseUnsubscribe = windowFacade.addWindowCloseListener(() => true)
 			} else if (isDesktop()) {
 				// Simulate clicking the Close button when on the desktop so they can see they can save a draft rather than completely closing it
 				windowCloseUnsubscribe = windowFacade.addWindowCloseListener(() => {
-					closeButtonAttrs.click(newMouseEvent(), domCloseButton)
+					return true
 				})
 			}
 		},
@@ -618,7 +616,6 @@ function createMailEditorDialog(model: SendMailModel, blockExternalContent: bool
 	]
 
 	dialog = Dialog.largeDialogN(headerBarAttrs, MailEditor, mailEditorAttrs,)
-	dialog.setCloseHandler(() => closeButtonAttrs.click(newMouseEvent(), domCloseButton))
 	for (let shortcut of shortcuts) {
 		dialog.addShortcut(shortcut)
 	}

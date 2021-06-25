@@ -65,6 +65,8 @@ import {getListId, isSameId} from "../../api/common/utils/EntityUtils"
 import {isNewMailActionAvailable} from "../../gui/nav/NavFunctions"
 import {listSelectionKeyboardShortcuts} from "../../gui/base/List"
 import {SidebarSection} from "../../gui/SidebarSection"
+import {CounterBadge} from "../../gui/base/CounterBadge"
+import {theme} from "../../gui/theme"
 
 assertMainOrNode()
 

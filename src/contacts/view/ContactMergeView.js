@@ -16,13 +16,14 @@ import {getContactAddressTypeLabel, getContactPhoneNumberTypeLabel, getContactSo
 import {TextFieldN} from "../../gui/base/TextFieldN"
 import stream from "mithril/stream/stream.js"
 import {TextDisplayArea} from "../../gui/base/TextDisplayArea"
+import type {WindowUnsubscribe} from "../../misc/WindowFacade"
 
 export class ContactMergeView {
 	dialog: Dialog;
 	contact1: Contact;
 	contact2: Contact;
 	resolveFunction: Function; // must be called after the user action
-	windowCloseUnsubscribe: () => mixed
+	windowCloseUnsubscribe: WindowUnsubscribe
 
 	constructor(contact1: Contact, contact2: Contact) {
 		this.contact1 = contact1
@@ -89,7 +90,7 @@ export class ContactMergeView {
 		}
 
 		return m("#contact-editor", {
-			oncreate: vnode => this.windowCloseUnsubscribe = windowFacade.addWindowCloseListener(() => {}),
+			oncreate: vnode => this.windowCloseUnsubscribe = windowFacade.addWindowCloseListener(() => true),
 			onremove: vnode => this.windowCloseUnsubscribe(),
 		}, [
 			m(".flex-center.mt", [

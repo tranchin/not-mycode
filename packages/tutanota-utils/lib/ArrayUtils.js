@@ -263,6 +263,14 @@ export function groupBy<T, R>(iterable: Iterable<T>, discriminator: (T) => R): M
  * @returns {Array<Array<T>>}
  */
 export function splitInChunks<T>(chunkSize: number, array: Array<T>): Array<Array<T>> {
+	return downcast(_chunk(chunkSize, array))
+}
+
+export function splitUint8ArrayInChunks(chunkSize: number, array: Uint8Array): Array<Uint8Array> {
+	return downcast(_chunk(chunkSize, array))
+}
+
+function _chunk<T>(chunkSize: number, array: Array<T> | Uint8Array): Array<Array<T> | Uint8Array> {
 	if (chunkSize < 1) {
 		return []
 	}

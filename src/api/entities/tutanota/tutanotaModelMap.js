@@ -126,7 +126,6 @@ const map: {[string]: () => mixed} = {
     MailboxProperties: () => import('./MailboxProperties'),
     SpamResults: () => import('./SpamResults'),
     MailboxProperties: () => import('./MailboxProperties'),
-    UserAreaGroupDeleteData: () => import('./UserAreaGroupDeleteData'),
     FileBlobServiceGetReturn: () => import('./FileBlobServiceGetReturn'),
     FileBlobServicePostReturn: () => import('./FileBlobServicePostReturn')
 }

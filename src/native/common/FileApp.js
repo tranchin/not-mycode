@@ -1,9 +1,10 @@
 //@flow
 import {Request} from "../../api/common/Queue"
-import {uint8ArrayToBase64} from "@tutao/tutanota-utils"
+import {promiseMap, uint8ArrayToBase64} from "@tutao/tutanota-utils"
 import type {MailBundle} from "../../mail/export/Bundler";
-import {promiseMap} from "@tutao/tutanota-utils"
 import type {NativeInterface} from "./NativeInterface"
+import type {BlobAccessInfo} from "../../api/entities/sys/BlobAccessInfo"
+import type {BlobId} from "../../api/entities/sys/BlobId"
 
 export type DataTaskResponse = {
 	statusCode: number,
@@ -50,13 +51,12 @@ export class NativeFileApp {
 		}
 
 		return this.native.invokeNative(new Request("openFileChooser", [srcRect, false]))
-		                .then((response: Array<string>) => promiseMap(response, this.uriToFileRef.bind(this)))
+		           .then((response: Array<string>) => promiseMap(response, this.uriToFileRef.bind(this)))
 	}
 
 	openFolderChooser(): Promise<Array<string>> {
 		return this.native.invokeNative(new Request("openFileChooser", [null, true]))
 	}
-
 
 
 	/**
@@ -98,6 +98,10 @@ export class NativeFileApp {
 	 */
 	putFileIntoDownloadsFolder(localFileUri: string): Promise<string> {
 		return this.native.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
+	}
+
+	downloadBlobs(filename: string, headers: Object, blobs: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}>): Promise<DownloadTaskResponse> {
+		return this.native.invokeNative(new Request('downloadBlobs', [filename, headers, blobs]))
 	}
 
 	saveBlob(data: DataFile): Promise<void> {

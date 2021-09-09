@@ -77,6 +77,15 @@ export class FileFacade {
 	}
 
 	/**
+	 * Download and decrypt a single blob.
+	 */
+	async downloadBlob(archiveId: Id, blobId: Uint8Array, key: Uint8Array): Promise<Uint8Array> {
+		const {storageAccessToken, servers} = await this._getDownloadToken(archiveId)
+		const data = await this._downloadRawBlob(storageAccessToken, archiveId, blobId, servers)
+		return aes128Decrypt(uint8ArrayToKey(key), data)
+	}
+
+	/**
 	 * Download a file and return the data itself.
 	 */
 	async downloadFileContent(file: TutanotaFile): Promise<DataFile> {
@@ -115,14 +124,9 @@ export class FileFacade {
 	}
 
 	/**
-	 * Download and decrypt a single blob.
+	 * Download the data for a TutanotaFile from Blocks (in Database)
+	 * @return Uint8Array actual file data
 	 */
-	async downloadBlob(archiveId: Id, blobId: Uint8Array, key: Uint8Array): Promise<Uint8Array> {
-		const {storageAccessToken, servers} = await this._getDownloadToken(archiveId)
-		const data = await this._downloadRawBlob(storageAccessToken, archiveId, blobId, servers)
-		return aes128Decrypt(uint8ArrayToKey(key), data)
-	}
-
 	async _downloadFileDataBlock(file: TutanotaFile): Promise<Uint8Array> {
 		const entityToSend = await encryptAndMapToLiteral(FileDataDataGetTypeModel, this._getFileRequestData(file), null)
 		const body = JSON.stringify(entityToSend)
@@ -132,7 +136,10 @@ export class FileFacade {
 		return this._restClient.request(REST_PATH, HttpMethod.GET, {}, headers, body, MediaType.Binary)
 	}
 
-
+	/**
+	 * Download the data for a TutanotaFile from Blocks (in Database) on native
+	 * @return NativeDownloadResult which contains a uri that points to the downloaded and decrypted file
+	 */
 	async _downloadFileDataBlockNative(file: TutanotaFile): Promise<DownloadTaskResponse> {
 		const entityToSend = await encryptAndMapToLiteral(FileDataDataGetTypeModel, this._getFileRequestData(file), null)
 		const body = JSON.stringify(entityToSend)
@@ -144,7 +151,12 @@ export class FileFacade {
 		return this._fileApp.download(url.toString(), file.name, headers)
 	}
 
-
+	/**
+	 * Downloads the data for a TutanotaFile from the BlobStorage
+	 * @param file
+	 * @returns {Promise<Uint8Array>} A Promise to the actual encrypted data
+	 * @private
+	 */
 	async _downloadFileDataBlob(file: TutanotaFile): Promise<Uint8Array> {
 		const serviceReturn = await serviceRequest(
 			TutanotaService.FileBlobService,
@@ -199,9 +211,18 @@ export class FileFacade {
 		return this._fileApp.downloadBlobs(file.name, headers, orderedBlobInfos)
 	}
 
+	/**
+	 * Downloads the data of a TutanotaFile with a supplied downloader function (for blobs or blocks)
+	 * Takes care of suspension handling and decryption of the data
+	 * @param fileDownloader Function used to download the encrypted file contents to the filesystem (from either blobs or blocks)
+	 * @returns {Promise<FileReference>} A promise containing a uri pointing to the decrypted file in the filesystem
+	 * @private
+	 */
 	async _downloadFileNative(file: TutanotaFile, fileDownloader: (TutanotaFile) => Promise<DownloadTaskResponse>): Promise<FileReference> {
+		if (!isApp() && !isDesktop()) {
+			return Promise.reject("Environment is not app or Desktop!")
+		}
 
-		assert(env.mode === Mode.App || env.mode === Mode.Desktop, "Environment is not app or Desktop!")
 		if (this._suspensionHandler.isSuspended()) {
 			return this._suspensionHandler.deferRequest(() => this._downloadFileNative(file, fileDownloader))
 		}
@@ -229,7 +250,7 @@ export class FileFacade {
 					size: filterInt(file.size)
 				}
 
-			} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
+			} else if (isSuspensionResponse(statusCode, suspensionTime)) {
 				this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
 				return this._suspensionHandler.deferRequest(() => fileDownloader(file))
 			} else {
@@ -252,7 +273,6 @@ export class FileFacade {
 		requestData.base64 = false
 		return requestData
 	}
-
 
 	async _downloadRawBlob(storageAccessToken: string, archiveId: Id, blobId: Uint8Array, servers: Array<TargetServer>): Promise<Uint8Array> {
 		const headers = Object.assign({
@@ -280,24 +300,6 @@ export class FileFacade {
 	// ↑↑↑ Download ↑↑↑
 	//////////////////////////////////////////////////
 	// ↓↓↓ Upload ↓↓↓
-
-	uploadFileData(dataFile: DataFile, sessionKey: Aes128Key): Promise<Id> {
-		let encryptedData = encryptBytes(sessionKey, dataFile.data)
-		let fileData = createFileDataDataPost()
-		fileData.size = dataFile.data.byteLength.toString()
-		fileData.group = this._login.getGroupId(GroupType.Mail) // currently only used for attachments
-		return serviceRequest(TutanotaService.FileDataService, HttpMethod.POST, fileData, FileDataReturnPostTypeRef, null, sessionKey)
-			.then(fileDataPostReturn => {
-				// upload the file content
-				let fileDataId = fileDataPostReturn.fileData
-				let headers = this._login.createAuthHeaders()
-				headers['v'] = FileDataDataReturnTypeModel.version
-				return this._restClient.request(REST_PATH, HttpMethod.PUT,
-					{fileDataId: fileDataId}, headers, encryptedData, MediaType.Binary)
-				           .then(() => fileDataId)
-			})
-	}
-
 
 	async uploadFileBlobData(dataFile: DataFile, sessionKey: Aes128Key): Promise<Id> {
 		let encryptedData = encryptBytes(sessionKey, dataFile.data)
@@ -359,7 +361,7 @@ export class FileFacade {
 
 		if (statusCode === 200) {
 			return fileDataId;
-		} else if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
+		} else if (isSuspensionResponse(statusCode, suspensionTime)) {
 			this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
 			return this._suspensionHandler.deferRequest(() => this.uploadFileDataNative(fileReference, sessionKey))
 		} else {
@@ -372,7 +374,7 @@ export class FileFacade {
 	 */
 	async uploadBlob(instance: {_type: TypeRef<any>}, blobData: Uint8Array, ownerGroupId: Id): Promise<Uint8Array> {
 		const typeModel = await resolveTypeReference(instance._type)
-		const {storageAccessToken, servers} = await this.getUploadToken(typeModel, ownerGroupId)
+		const {storageAccessToken, servers} = await this._getUploadToken(typeModel, ownerGroupId)
 
 		const sessionKey = neverNull(await resolveSessionKey(typeModel, instance))
 		const encryptedData = encryptBytes(sessionKey, blobData)
@@ -387,7 +389,7 @@ export class FileFacade {
 	}
 
 
-	async getUploadToken(typeModel: TypeModel, ownerGroupId: Id): Promise<BlobAccessInfo> {
+	async _getUploadToken(typeModel: TypeModel, ownerGroupId: Id): Promise<BlobAccessInfo> {
 		const tokenRequest = createBlobAccessTokenData({
 			write: createBlobWriteData({
 				type: createTypeInfo({

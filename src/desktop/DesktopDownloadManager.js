@@ -14,11 +14,12 @@ import type {DateProvider} from "../calendar/date/CalendarUtils"
 import {CancelledError} from "../api/common/error/CancelledError"
 import type {BlobAccessInfo} from "../api/entities/sys/BlobAccessInfo"
 import type {BlobId} from "../api/entities/sys/BlobId"
-import {getStorageRestPath, StorageService} from "../api/entities/storage/Services"
+import {StorageService} from "../api/entities/storage/Services"
 import {addParamsToUrl} from "../api/worker/rest/RestClient"
 import {_TypeModel as BlobDataGetTypeModel, createBlobDataGet} from "../api/entities/storage/BlobDataGet"
 import {encryptAndMapToLiteral} from "../api/worker/crypto/InstanceMapper"
 import type {DownloadTaskResponse} from "../native/common/FileApp"
+import {getRestPath} from "../api/entities/ServiceUtils"
 
 const TAG = "[DownloadManager]"
 
@@ -96,7 +97,7 @@ export class DesktopDownloadManager {
 				const literalGetData = await encryptAndMapToLiteral(BlobDataGetTypeModel, getData, null)
 				const body = JSON.stringify(literalGetData)
 
-				const sourceUrl = addParamsToUrl(new URL(getStorageRestPath(StorageService.BlobService), servers[0].url), {
+				const sourceUrl = addParamsToUrl(new URL(getRestPath(StorageService.BlobService), servers[0].url), {
 					"_body": body
 				})
 				const storageHeader = Object.assign({

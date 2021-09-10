@@ -8,7 +8,6 @@ import {_TypeModel as FileTypeModel} from "../../entities/tutanota/File"
 import {_TypeModel as FileDataTypeModel, FileDataTypeRef} from "../../entities/tutanota/FileData"
 import {
 	arrayEquals,
-	assert,
 	assertNotNull,
 	concat,
 	filterInt,
@@ -24,7 +23,7 @@ import {FileDataReturnPostTypeRef} from "../../entities/tutanota/FileDataReturnP
 import {GroupType, MAX_BLOB_SIZE_BYTES} from "../../common/TutanotaConstants"
 import {_TypeModel as FileDataDataReturnTypeModel} from "../../entities/tutanota/FileDataDataReturn"
 import {HttpMethod, MediaType, resolveTypeReference} from "../../common/EntityFunctions"
-import {assertWorkerOrNode, getHttpOrigin, Mode} from "../../common/Env"
+import {assertWorkerOrNode, getHttpOrigin, isApp, isDesktop} from "../../common/Env"
 import {handleRestError} from "../../common/error/RestError"
 import {convertToDataFile} from "../../common/DataFile"
 import type {SuspensionHandler} from "../SuspensionHandler"

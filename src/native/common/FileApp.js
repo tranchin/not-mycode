@@ -3,8 +3,6 @@ import {Request} from "../../api/common/Queue"
 import {promiseMap, uint8ArrayToBase64} from "@tutao/tutanota-utils"
 import type {MailBundle} from "../../mail/export/Bundler";
 import type {NativeInterface} from "./NativeInterface"
-import type {BlobAccessInfo} from "../../api/entities/sys/BlobAccessInfo"
-import type {BlobId} from "../../api/entities/sys/BlobId"
 
 export type DataTaskResponse = {
 	statusCode: number,
@@ -100,8 +98,8 @@ export class NativeFileApp {
 		return this.native.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 	}
 
-	downloadBlobs(filename: string, headers: Object, blobs: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}>): Promise<DownloadTaskResponse> {
-		return this.native.invokeNative(new Request('downloadBlobs', [filename, headers, blobs]))
+	downloadBlob(headers: Params, body: string, url: string, filename: string): Promise<DownloadTaskResponse> {
+		return this.native.invokeNative(new Request('downloadBlob', [headers, body, url, filename])) // fixme args
 	}
 
 	saveBlob(data: DataFile): Promise<void> {

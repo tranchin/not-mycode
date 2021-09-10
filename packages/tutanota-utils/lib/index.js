@@ -37,6 +37,7 @@ export {
 	difference,
 	symmetricDifference,
 	partition,
+	splitUint8ArrayInChunks,
 } from "./ArrayUtils"
 
 export {

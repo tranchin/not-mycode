@@ -102,6 +102,10 @@ export class NativeFileApp {
 		return this.native.invokeNative(new Request('downloadBlob', [headers, body, url, filename])) // fixme args
 	}
 
+	joinFiles(filename: string, files: Array<string>): Promise<string> {
+		return this.native.invokeNative(new Request('joinFiles', [filename, files]))
+	}
+
 	saveBlob(data: DataFile): Promise<void> {
 		return this.native.invokeNative(new Request("saveBlob", [data.name, uint8ArrayToBase64(data.data)]))
 	}

@@ -107,6 +107,7 @@ type NativeRequestType = 'init'
 	| 'encryptUsingKeychain'
 	| 'decryptUsingKeychain'
 	| 'getSupportedEncryptionModes'
+	| 'joinFiles'
 
 /** Requests from native to web */
 type JsRequestType = 'createMailEditor'

@@ -13,7 +13,8 @@ import {
 	filterInt,
 	isEmpty,
 	neverNull,
-	promiseMap, splitUint8ArrayInChunks,
+	promiseMap,
+	splitUint8ArrayInChunks,
 	TypeRef,
 	uint8ArrayToBase64
 } from "@tutao/tutanota-utils"
@@ -148,7 +149,7 @@ export class FileFacade {
 		headers['v'] = BlobDataGetTypeModel.version
 		let queryParams = {'_body': body}
 		let url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
-		return this._fileApp.download(url.toString(), file.name, headers)
+		return this._fileApp.download(url.toString(), headers, file.name)
 	}
 
 	/**
@@ -315,7 +316,9 @@ export class FileFacade {
 
 	async _blobDownloaderNative(blobId: BlobId, headers: Params, body: string, server: TargetServer): Promise<DownloadTaskResponse> {
 		const filename = uint8ArrayToBase64(blobId.blobId) + ".blob"
-		return this._fileApp.downloadBlob(headers, body, new URL(getRestPath(StorageService.BlobService), server.url).toString(), filename)
+		const serviceUrl = new URL(getRestPath(StorageService.BlobService), server.url)
+		const url = addParamsToUrl(serviceUrl, {"_body": body})
+		return this._fileApp.download(url.toString(), headers, filename)
 	}
 
 	async _getDownloadToken(readArchiveId: Id): Promise<BlobAccessInfo> {

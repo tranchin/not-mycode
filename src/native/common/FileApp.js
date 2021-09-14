@@ -98,12 +98,12 @@ export class NativeFileApp {
 		return this.native.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 	}
 
-	downloadBlob(headers: Params, body: string, url: string, filename: string): Promise<DownloadTaskResponse> {
-		return this.native.invokeNative(new Request('downloadBlob', [headers, body, url, filename])) // fixme args
-	}
-
 	joinFiles(filename: string, files: Array<string>): Promise<string> {
 		return this.native.invokeNative(new Request('joinFiles', [filename, files]))
+	}
+
+	downloadBlob(headers: Params, body: string, url: string, filename: string): Promise<DownloadTaskResponse> {
+		return this.native.invokeNative(new Request('downloadBlob', [headers, body, url, filename])) // fixme args
 	}
 
 	saveBlob(data: DataFile): Promise<void> {
@@ -121,8 +121,8 @@ export class NativeFileApp {
 	 * Downloads the binary data of a file from tutadb and stores it in the internal memory.
 	 * @returns Resolves to the URI of the downloaded file
 	 */
-	download(sourceUrl: string, filename: string, headers: Object): Promise<DownloadTaskResponse> {
-		return this.native.invokeNative(new Request("download", [sourceUrl, filename, headers]))
+	download(url: string, headers: Params, filename: string): Promise<DownloadTaskResponse> {
+		return this.native.invokeNative(new Request('download', [url, headers, filename]))
 	}
 
 	clearFileData(): Promise<any> {

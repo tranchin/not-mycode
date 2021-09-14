@@ -738,6 +738,7 @@ o.spec("CalendarEventViewModel", function () {
 				presharedPassword: "123",
 			})
 			const contactModel = makeContactModel([contact])
+			const date = new Date()
 			const existingEvent = createCalendarEvent({
 				_id: ["listid", "calendarid"],
 				_ownerGroup: calendarGroupId,
@@ -745,6 +746,8 @@ o.spec("CalendarEventViewModel", function () {
 				attendees: [ownAttendee, attendee],
 				sequence: "1",
 				invitedConfidentially: true,
+				startTime: date,
+				endTime: date,
 			})
 			const newEvent = createCalendarEvent({
 				_id: ["listid", "calendarid"],
@@ -753,6 +756,8 @@ o.spec("CalendarEventViewModel", function () {
 				attendees: [ownAttendee, attendee],
 				sequence: "2",
 				invitedConfidentially: true,
+				startTime: date,
+				endTime: date,
 			})
 			const viewModel = await init({calendars, existingEvent, calendarModel, distributor, mailModel, contactModel})
 

@@ -58,6 +58,16 @@ const STORAGE_REST_PATH = `/rest/storage/${StorageService.BlobService}`
 
 type BlobDownloader<T> = (blobId: BlobId, headers: Params, body: string, server: TargetServer) => Promise<T>
 
+type UploadData<T: Uint8Array | FileReference> = {
+	blobId: string,
+	data: T
+}
+
+type BlobUploader<T: Uint8Array | FileReference> = (url: string, headers: Params, blobId: string, data: T) => Promise<Uint8Array>
+
+type BlobSplitter<T: Uint8Array | FileReference> = (data: T) => Promise<Array<UploadData<T>>>
+
+
 export class FileFacade {
 	_login: LoginFacadeImpl;
 	_restClient: RestClient;
@@ -334,6 +344,18 @@ export class FileFacade {
 	// ↓↓↓ Upload ↓↓↓
 
 	async uploadFileBlobData(dataFile: DataFile, sessionKey: Aes128Key): Promise<Id> {
+		const uploader: BlobUploader<Uint8Array> = (url, headers, blobId, data) =>
+			this._restClient.request(STORAGE_REST_PATH, HttpMethod.PUT, {blobId}, headers, data, MediaType.Binary, null, url)
+
+		const splitter: BlobSplitter<Uint8Array> = async data => splitUint8ArrayInChunks(MAX_BLOB_SIZE_BYTES, data).map((blob: Uint8Array) => ({
+			blobId: uint8ArrayToBase64(sha256Hash(blob).slice(0, 6)),
+			data: blob
+		}))
+
+		return this.uploadFileBlobDataWithUploader(dataFile, sessionKey, splitter, uploader)
+	}
+
+	async uploadFileBlobDataWithUploader(dataFile: DataFile, sessionKey: Aes128Key, splitter: BlobSplitter<Uint8Array>, uploader: BlobUploader<Uint8Array>): Promise<Id> {
 		let encryptedData = encryptBytes(sessionKey, dataFile.data)
 		let postData = createFileDataDataPost()
 		postData.size = dataFile.data.byteLength.toString()
@@ -348,11 +370,9 @@ export class FileFacade {
 			'v': BlobDataGetTypeModel.version
 		}, this._login.createAuthHeaders())
 
-		const chunks = splitUint8ArrayInChunks(MAX_BLOB_SIZE_BYTES, encryptedData)
-		for (let chunk of chunks) {
-			const blobId = uint8ArrayToBase64(sha256Hash(chunk).slice(0, 6))
-			const blobReferenceToken = await this._restClient.request(STORAGE_REST_PATH, HttpMethod.PUT, {blobId}, headers, chunk,
-				MediaType.Binary, null, servers[0].url)
+		const blobs = await splitter(encryptedData)
+		for (const {blobId, data} of blobs) {
+			const blobReferenceToken = await uploader(servers[0].url, headers, blobId, data)
 
 			const blobReferenceDataPut = createBlobReferenceDataPut({
 				blobReferenceToken,

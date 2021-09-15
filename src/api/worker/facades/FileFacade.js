@@ -53,8 +53,6 @@ import {getRestPath} from "../../entities/ServiceUtils"
 
 assertWorkerOrNode()
 
-const REST_PATH = "/rest/tutanota/filedataservice"
-const STORAGE_REST_PATH = `/rest/storage/${StorageService.BlobService}`
 
 type BlobDownloader<T> = (blobId: BlobId, headers: Params, body: string, server: TargetServer) => Promise<T>
 
@@ -146,7 +144,7 @@ export class FileFacade {
 		const headers = this._login.createAuthHeaders()
 
 		headers['v'] = FileDataDataGetTypeModel.version
-		return this._restClient.request(REST_PATH, HttpMethod.GET, {}, headers, body, MediaType.Binary)
+		return this._restClient.request(getRestPath(TutanotaService.FileDataService), HttpMethod.GET, {}, headers, body, MediaType.Binary)
 	}
 
 	/**
@@ -160,7 +158,7 @@ export class FileFacade {
 
 		headers['v'] = FileDataDataGetTypeModel.version
 		let queryParams = {'_body': body}
-		let url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
+		let url = addParamsToUrl(new URL(getRestPath(TutanotaService.FileDataService), getHttpOrigin()), queryParams)
 		return this._fileApp.download(url.toString(), headers, file.name)
 	}
 
@@ -355,22 +353,23 @@ export class FileFacade {
 		}))
 
 		const uploader: BlobUploader<Uint8Array> = (url, headers, blobId, data) =>
-			this._restClient.request(STORAGE_REST_PATH, HttpMethod.PUT, {blobId}, headers, data, MediaType.Binary, null, url)
+			this._restClient.request(getRestPath(StorageService.BlobService), HttpMethod.PUT, {blobId}, headers, data, MediaType.Binary, null, url)
 
 		return this.uploadFileBlobDataWithUploader(file.data, file.data.byteLength, sessionKey, encryptor, splitter, uploader)
 	}
 
 	async uploadFileBlobDataNative(file: FileReference, sessionKey: Aes128Key): Promise<Id> {
 		const encryptor: FileEncryptor<FileReference> = async (key, fileReference) => {
-			const {uri, unencSize} = await this._aesApp.aesEncryptFile(key, fileReference.location, random.generateRandomData(16))
+			const {uri} = await this._aesApp.aesEncryptFile(key, fileReference.location, random.generateRandomData(16))
 			return this._fileApp.uriToFileRef(uri)
 		}
 
 		const splitter: BlobSplitter<FileReference> = async (data: FileReference) => this._fileApp.splitFileIntoBlobs(data)
 
 		const uploader: BlobUploader<FileReference> = async (url: string, headers: Params, blobId: string, data: FileReference) => {
-			const urlWithBlobId = addParamsToUrl(new URL(url), {blobId})
-			const {responseBody} = await this._fileApp.upload(data.location, urlWithBlobId.toString(), headers) // blobReferenceToken in the response body
+			const serviceUrl = new URL(getRestPath(StorageService.BlobService), url)
+			const fullUrl = addParamsToUrl(serviceUrl, {blobId})
+			const {responseBody} = await this._fileApp.upload(data.location, fullUrl.toString(), headers) // blobReferenceToken in the response body
 			if (responseBody != null) {
 				return responseBody
 			} else {
@@ -431,7 +430,7 @@ export class FileFacade {
 		const headers = this._login.createAuthHeaders()
 		headers['v'] = FileDataDataReturnTypeModel.version
 
-		const url = addParamsToUrl(new URL(REST_PATH, getHttpOrigin()), {fileDataId})
+		const url = addParamsToUrl(new URL(getHttpOrigin(), getRestPath(TutanotaService.FileDataService)), {fileDataId})
 		const {
 			statusCode,
 			errorId,
@@ -464,7 +463,7 @@ export class FileFacade {
 			storageAccessToken,
 			'v': BlobDataGetTypeModel.version
 		}, this._login.createAuthHeaders())
-		return this._restClient.request(STORAGE_REST_PATH, HttpMethod.PUT, {blobId}, headers, encryptedData,
+		return this._restClient.request(getRestPath(StorageService.BlobService), HttpMethod.PUT, {blobId}, headers, encryptedData,
 			MediaType.Binary, null, servers[0].url)
 	}
 

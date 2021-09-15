@@ -3,12 +3,15 @@ import {Request} from "../../api/common/Queue"
 import {promiseMap, uint8ArrayToBase64} from "@tutao/tutanota-utils"
 import type {MailBundle} from "../../mail/export/Bundler";
 import type {NativeInterface} from "./NativeInterface"
+import {MAX_BLOB_SIZE_BYTES} from "../../api/common/TutanotaConstants"
+import type {BlobUploadData} from "../../api/worker/facades/FileFacade"
 
 export type DataTaskResponse = {
 	statusCode: number,
 	errorId: ?string,
 	precondition: ?string,
 	suspensionTime: ?string,
+	responseBody: ?Uint8Array,
 }
 
 export type DownloadTaskResponse = DataTaskResponse & {
@@ -21,6 +24,16 @@ export class NativeFileApp {
 
 	constructor(nativeInterface: NativeInterface) {
 		this.native = nativeInterface
+	}
+
+	async splitFileIntoBlobs(file: FileReference): Promise<Array<BlobUploadData<FileReference>>> {
+		const response: Array<{blobId: string, uri: string}> = await this.native.invokeNative(
+			new Request("splitFileIntoBlobs", [file.location, MAX_BLOB_SIZE_BYTES])
+		)
+		return promiseMap(response, async ({blobId, uri}) => ({
+				blobId, data: await this.uriToFileRef(uri)
+			}
+		))
 	}
 
 	/**
@@ -113,7 +126,8 @@ export class NativeFileApp {
 	/**
 	 * Uploads the binary data of a file to tutadb
 	 */
-	upload(fileUrl: string, targetUrl: string, headers: Object): Promise<DataTaskResponse> {
+	upload(fileUrl: string, targetUrl: string,
+	       headers: Object): Promise<DataTaskResponse> {
 		return this.native.invokeNative(new Request("upload", [fileUrl, targetUrl, headers]))
 	}
 

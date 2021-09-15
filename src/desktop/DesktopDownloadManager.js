@@ -65,7 +65,8 @@ export class DesktopDownloadManager {
 					                       encryptedFileUri: encryptedFileUri,
 										errorId: null,
 				                       precondition: null,
-				                       suspensionTime: null
+				                       suspensionTime: null,
+				                       responseBody: null,
 			                       }))
 
 			let cleanup = e => {

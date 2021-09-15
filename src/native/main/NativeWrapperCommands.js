@@ -3,7 +3,7 @@ import {Request} from "../../api/common/Queue"
 import {CloseEventBusOption, SECOND_MS} from "../../api/common/TutanotaConstants"
 import {showSpellcheckLanguageDialog} from "../../gui/dialogs/SpellcheckLanguageDialog"
 import {CancelledError} from "../../api/common/error/CancelledError"
-import {noOp, ofClass} from "@tutao/tutanota-utils"
+import {noOp, ofClass, promiseMap} from "@tutao/tutanota-utils"
 
 type JsRequest = Request<JsRequestType>
 
@@ -38,7 +38,7 @@ async function createMailEditor(msg: JsRequest): Promise<void> {
 		editor = await newMailtoUrlMailEditor(mailToUrl, false, mailboxDetails).catch(ofClass(CancelledError, noOp))
 		if (!editor) return
 	} else {
-		const files = await locator.fileApp.getFilesMetaData(filesUris)
+		const files = await promiseMap(filesUris, this._fileApp.uriToFileRef.bind(this._fileApp))
 		const address = addresses && addresses[0] || ""
 		const recipients = address ? {to: [{name: "", address: address}]} : {}
 		editor = await newMailEditorFromTemplate(

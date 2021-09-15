@@ -58,14 +58,16 @@ const STORAGE_REST_PATH = `/rest/storage/${StorageService.BlobService}`
 
 type BlobDownloader<T> = (blobId: BlobId, headers: Params, body: string, server: TargetServer) => Promise<T>
 
-type UploadData<T: Uint8Array | FileReference> = {
+export type BlobUploadData<T: Uint8Array | FileReference> = {
 	blobId: string,
 	data: T
 }
 
-type BlobUploader<T: Uint8Array | FileReference> = (url: string, headers: Params, blobId: string, data: T) => Promise<Uint8Array>
+type FileEncryptor<T : Uint8Array | FileReference> = (Aes128Key, T) => Promise<T>
 
-type BlobSplitter<T: Uint8Array | FileReference> = (data: T) => Promise<Array<UploadData<T>>>
+type BlobSplitter<T: Uint8Array | FileReference> = (data: T) => Promise<Array<BlobUploadData<T>>>
+
+type BlobUploader<T: Uint8Array | FileReference> = (url: string, headers: Params, blobId: string, data: T) => Promise<Uint8Array>
 
 
 export class FileFacade {
@@ -211,7 +213,8 @@ export class FileFacade {
 			errorId: null,
 			precondition: null,
 			suspensionTime: null,
-			encryptedFileUri
+			encryptedFileUri,
+			responseBody: null,
 		}
 	}
 
@@ -343,23 +346,48 @@ export class FileFacade {
 	//////////////////////////////////////////////////
 	// ↓↓↓ Upload ↓↓↓
 
-	async uploadFileBlobData(dataFile: DataFile, sessionKey: Aes128Key): Promise<Id> {
-		const uploader: BlobUploader<Uint8Array> = (url, headers, blobId, data) =>
-			this._restClient.request(STORAGE_REST_PATH, HttpMethod.PUT, {blobId}, headers, data, MediaType.Binary, null, url)
+	async uploadFileBlobData(file: DataFile, sessionKey: Aes128Key): Promise<Id> {
+		const encryptor: FileEncryptor<Uint8Array> = async (key, data: Uint8Array) => encryptBytes(key, data)
 
 		const splitter: BlobSplitter<Uint8Array> = async data => splitUint8ArrayInChunks(MAX_BLOB_SIZE_BYTES, data).map((blob: Uint8Array) => ({
 			blobId: uint8ArrayToBase64(sha256Hash(blob).slice(0, 6)),
 			data: blob
 		}))
 
-		return this.uploadFileBlobDataWithUploader(dataFile, sessionKey, splitter, uploader)
+		const uploader: BlobUploader<Uint8Array> = (url, headers, blobId, data) =>
+			this._restClient.request(STORAGE_REST_PATH, HttpMethod.PUT, {blobId}, headers, data, MediaType.Binary, null, url)
+
+		return this.uploadFileBlobDataWithUploader(file.data, file.data.byteLength, sessionKey, encryptor, splitter, uploader)
 	}
 
-	async uploadFileBlobDataWithUploader(dataFile: DataFile, sessionKey: Aes128Key, splitter: BlobSplitter<Uint8Array>, uploader: BlobUploader<Uint8Array>): Promise<Id> {
-		let encryptedData = encryptBytes(sessionKey, dataFile.data)
-		let postData = createFileDataDataPost()
-		postData.size = dataFile.data.byteLength.toString()
+	async uploadFileBlobDataNative(file: FileReference, sessionKey: Aes128Key): Promise<Id> {
+		const encryptor: FileEncryptor<FileReference> = async (key, fileReference) => {
+			const {uri, unencSize} = await this._aesApp.aesEncryptFile(key, fileReference.location, random.generateRandomData(16))
+			return this._fileApp.uriToFileRef(uri)
+		}
+
+		const splitter: BlobSplitter<FileReference> = async (data: FileReference) => this._fileApp.splitFileIntoBlobs(data)
+
+		const uploader: BlobUploader<FileReference> = async (url: string, headers: Params, blobId: string, data: FileReference) => {
+			const urlWithBlobId = addParamsToUrl(new URL(url), {blobId})
+			const {responseBody} = await this._fileApp.upload(data.location, urlWithBlobId.toString(), headers) // blobReferenceToken in the response body
+			if (responseBody != null) {
+				return responseBody
+			} else {
+				throw new Error("no response body")
+			}
+		}
+
+		return this.uploadFileBlobDataWithUploader(file, file.size, sessionKey, encryptor, splitter, uploader)
+	}
+
+	async uploadFileBlobDataWithUploader<T: Uint8Array | FileReference>(data: T, size: number, sessionKey: Aes128Key, encrypter: FileEncryptor<T>, splitter: BlobSplitter<T>, uploader: BlobUploader<T>): Promise<Id> {
+		const encrypted = await encrypter(sessionKey, data)
+
+		const postData = createFileDataDataPost()
+		postData.size = size.toString()
 		postData.group = this._login.getGroupId(GroupType.Mail) // currently only used for attachments
+
 		const fileBlobServicePostReturn = await serviceRequest(TutanotaService.FileBlobService, HttpMethod.POST, postData, FileBlobServicePostReturnTypeRef, null, sessionKey)
 		const fileData = await locator.cachingEntityClient.load(FileDataTypeRef, fileBlobServicePostReturn.fileData)
 
@@ -370,7 +398,7 @@ export class FileFacade {
 			'v': BlobDataGetTypeModel.version
 		}, this._login.createAuthHeaders())
 
-		const blobs = await splitter(encryptedData)
+		const blobs = await splitter(encrypted)
 		for (const {blobId, data} of blobs) {
 			const blobReferenceToken = await uploader(servers[0].url, headers, blobId, data)
 
@@ -408,7 +436,7 @@ export class FileFacade {
 			statusCode,
 			errorId,
 			precondition,
-			suspensionTime
+			suspensionTime,
 		} = await this._fileApp.upload(encryptedFileInfo.uri, url.toString(), headers)
 
 		if (statusCode === 200) {

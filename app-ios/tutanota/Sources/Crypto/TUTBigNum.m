@@ -1,4 +1,13 @@
+//
+//  TUTBigNum.m
+//  tutanota
+//
+//  Created by Tutao GmbH on 9/16/21.
+//  Copyright © 2021 Tutao GmbH. All rights reserved.
+//
+
 #import "TUTBigNum.h"
+#import <openssl/ossl_typ.h>
 #import <openssl/bn.h>
 
 @implementation TUTBigNum

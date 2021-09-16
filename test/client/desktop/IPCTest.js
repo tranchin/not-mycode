@@ -64,7 +64,7 @@ o.spec("IPC tests", function () {
 			: Promise.reject("decryption error")
 	}
 	const dl = {
-		downloadNative: (url, file) => file === "filename" ? Promise.resolve() : Promise.reject("DL error"),
+		downloadNative: (url, headers, file) => file === "filename" ? Promise.resolve() : Promise.reject("DL error"),
 		open: (file) => file === "/file/to/open" ? Promise.resolve() : Promise.reject("Could not open!")
 	}
 	const desktopIntegrator = {
@@ -825,7 +825,7 @@ o.spec("IPC tests", function () {
 
 		setTimeout(() => {
 			o(dlMock.downloadNative.callCount).equals(1)
-			o(dlMock.downloadNative.args).deepEquals(['url://file/to/download', 'filename', {one: 'somevalue', two: 'anothervalue'}])
+			o(dlMock.downloadNative.args).deepEquals(['url://file/to/download', {one: 'somevalue', two: 'anothervalue'}, 'filename'])
 			o(windowMock.sendMessageToWebContents.callCount).equals(2)
 			o(windowMock.sendMessageToWebContents.args.length).equals(1)
 			o(toObject(windowMock.sendMessageToWebContents.args[0])).deepEquals({id: 'id2', type: 'response', value: undefined})
@@ -834,13 +834,13 @@ o.spec("IPC tests", function () {
 				type: "request",
 				requestType: "download",
 				id: "id3",
-				args: ["url://file/to/download", "invalid", {one: "somevalue", two: "anothervalue"}]
+				args: ["url://file/to/download", {one: "somevalue", two: "anothervalue"}, "invalid"]
 			})
 		}, 10)
 
 		setTimeout(() => {
 			o(dlMock.downloadNative.callCount).equals(2)
-			o(dlMock.downloadNative.args).deepEquals(['url://file/to/download', 'invalid', {one: 'somevalue', two: 'anothervalue'}])
+			o(dlMock.downloadNative.args).deepEquals(['url://file/to/download', {one: 'somevalue', two: 'anothervalue'}, 'invalid'])
 			o(windowMock.sendMessageToWebContents.callCount).equals(3)
 
 			o(toObject(windowMock.sendMessageToWebContents.args[0])).deepEquals(

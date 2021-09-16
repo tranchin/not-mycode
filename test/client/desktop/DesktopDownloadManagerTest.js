@@ -304,7 +304,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 			.then(() => o("").equals(3))
 			.catch(e => {
 				o(e instanceof Error).equals(true)
-				o(e.message).equals("404")
+				o(e.message).equals('404')
 				o(mocks.fsMock.createWriteStream.callCount).equals(1)
 				o(ws.on.callCount).equals(2)
 				o(ws.removeAllListeners.callCount).equals(2)

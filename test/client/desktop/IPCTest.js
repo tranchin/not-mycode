@@ -820,7 +820,7 @@ o.spec("IPC tests", function () {
 			type: "request",
 			requestType: "download",
 			id: "id2",
-			args: ["url://file/to/download", "filename", {one: "somevalue", two: "anothervalue"}]
+			args: ["url://file/to/download", {one: "somevalue", two: "anothervalue"}, "filename"]
 		})
 
 		setTimeout(() => {

@@ -9,7 +9,7 @@ import {_TypeModel as FileTypeModel} from "../../entities/tutanota/File"
 import {_TypeModel as FileDataTypeModel, FileDataTypeRef} from "../../entities/tutanota/FileData"
 import {
 	arrayEquals,
-	assertNotNull,
+	assertNotNull, base64ToUint8Array,
 	concat,
 	filterInt,
 	isEmpty,
@@ -69,7 +69,11 @@ type BlobUploader<T: Uint8Array | FileReference> = (url: string, headers: Params
 
 
 function _getBlobIdFromData(blob: Uint8Array): string {
-	return uint8ArrayToBase64(sha256Hash(blob).slice(0, 6))
+	return _getBlobIdFromHash(sha256Hash(blob))
+}
+
+function _getBlobIdFromHash(blobHash: Uint8Array): string {
+	return uint8ArrayToBase64(blobHash.slice(0, 6))
 }
 
 export class FileFacade {
@@ -330,10 +334,31 @@ export class FileFacade {
 	}
 
 	async _blobDownloaderNative(blobId: BlobId, headers: Params, body: string, server: TargetServer): Promise<DownloadTaskResponse> {
-		const filename = uint8ArrayToHex(blobId.blobId) + ".blob"
+		const blobFilename = uint8ArrayToHex(blobId.blobId) + ".blob"
+		const fileUri = await this._fileApp.getTempFileUri(blobFilename)
+
+		// Check if we have the blob in the filesystem
+		try {
+			const existingBlobHash = await this._fileApp.hashFile(fileUri)
+			const existingBlobId = base64ToUint8Array(existingBlobHash).slice(0, 6)
+			if (arrayEquals(blobId.blobId, existingBlobId)) {
+				console.log(`using existing blob file: ${blobFilename}`)
+				return {
+					statusCode: 200,
+					encryptedFileUri: fileUri,
+					errorId: null,
+					precondition: null,
+					suspensionTime: null,
+					responseBody: null
+				}
+			}
+
+		} catch(e) {
+			// could not find existing blob
+		}
 		const serviceUrl = new URL(getRestPath(StorageService.BlobService), server.url)
 		const url = addParamsToUrl(serviceUrl, {"_body": body})
-		return this._fileApp.download(url.toString(), headers, filename)
+		return this._fileApp.download(url.toString(), headers, fileUri)
 	}
 
 	async _getDownloadToken(readArchiveId: Id): Promise<BlobAccessInfo> {

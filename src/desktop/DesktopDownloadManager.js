@@ -2,7 +2,7 @@
 import type {ElectronSession} from 'electron'
 import type {DesktopConfig} from "./config/DesktopConfig"
 import path from "path"
-import {assertNotNull, downcast, noOp} from "@tutao/tutanota-utils"
+import {assertNotNull, downcast, noOp, uint8ArrayToBase64} from "@tutao/tutanota-utils"
 import {lang} from "../misc/LanguageViewModel"
 import type {DesktopNetworkClient} from "./DesktopNetworkClient"
 import {FileOpenError} from "../api/common/error/FileOpenError"
@@ -12,8 +12,8 @@ import type {DesktopUtils} from "./DesktopUtils"
 import {promises as fs} from "fs"
 import type {DateProvider} from "../calendar/date/CalendarUtils"
 import {CancelledError} from "../api/common/error/CancelledError"
-import {addParamsToUrl} from "../api/worker/rest/RestClient"
 import type {DownloadTaskResponse} from "../native/common/FileApp"
+import {sha256Hash} from "@tutao/tutanota-crypto"
 
 const TAG = "[DownloadManager]"
 
@@ -55,15 +55,29 @@ export class DesktopDownloadManager {
 		       .on("spellcheck-dictionary-download-failure", (ev, lcode) => log.debug(TAG, "spellcheck-dictionary-download-failure", lcode))
 	}
 
-	async downloadNative(url: string, headers: Params, filename: string): Promise<DownloadTaskResponse> {
+
+	/**
+	 * SHA256 of the file found at given URI
+	 * @throws Error if file is not found
+	 */
+	async hashFile(fileUri: string): Promise<string> {
+		const data = await this._fs.promises.readFile(fileUri)
+		const checksum = sha256Hash(data)
+		return uint8ArrayToBase64(checksum)
+	}
+
+	async getTempFileUri(filename: string): Promise<string> {
+		const downloadDirectory = await this.getTutanotaTempDirectory("download")
+		return path.join(downloadDirectory, filename)
+	}
+
+	async download(url: string, headers: Params, filename: string): Promise<DownloadTaskResponse> {
 		return new Promise(async (resolve, reject) => {
-			const downloadDirectory = await this.getTutanotaTempDirectory("download")
-			const encryptedFileUri = path.join(downloadDirectory, filename)
-			const fileStream = this._fs.createWriteStream(encryptedFileUri)
+			const fileStream = this._fs.createWriteStream(filename)
 			                       .on('close', () => resolve({
-					                       statusCode: 200,
-					                       encryptedFileUri: encryptedFileUri,
-										errorId: null,
+				                       statusCode: 200,
+				                       encryptedFileUri: filename,
+				                       errorId: null,
 				                       precondition: null,
 				                       suspensionTime: null,
 				                       responseBody: null,
@@ -75,7 +89,7 @@ export class DesktopDownloadManager {
 				          .on('close', () => { // file descriptor was released
 					          fileStream.removeAllListeners('close')
 					          // remove file if it was already created
-					          this._fs.promises.unlink(encryptedFileUri)
+					          this._fs.promises.unlink(filename)
 					              .catch(noOp)
 					              .then(() => reject(e))
 				          })

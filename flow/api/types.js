@@ -109,6 +109,9 @@ type NativeRequestType = 'init'
 	| 'getSupportedEncryptionModes'
 	| 'joinFiles'
 	| 'splitFileIntoBlobs'
+	| 'hashFile'
+	| 'getTempFileUri'
+
 
 /** Requests from native to web */
 type JsRequestType = 'createMailEditor'

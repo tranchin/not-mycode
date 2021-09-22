@@ -139,9 +139,17 @@ export class NativeFileApp {
 		return this.native.invokeNative(new Request('download', [url, headers, filename]))
 	}
 
+	getTempFileUri(filename: string): Promise<string> {
+	return this.native.invokeNative(new Request("getTempFileUri", [filename]))
+}
+
+	hashFile(filename: string): Promise<string> {
+	return this.native.invokeNative(new Request('hashFile', [filename]))
+}
+
 	clearFileData(): Promise<any> {
-		return this.native.invokeNative(new Request("clearFileData", []))
-	}
+	return this.native.invokeNative(new Request("clearFileData", []))
+}
 
 	readDataFile(uriOrPath: string): Promise<?DataFile> {
 		return this.native.invokeNative(new Request("readDataFile", [uriOrPath]))

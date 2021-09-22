@@ -262,7 +262,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 		o(mocks.electronMock.shell.openPath.callCount).equals(2)
 	})
 
-	o("downloadNative, no error", async function () {
+	o("download, no error", async function () {
 		const mocks = standardMocks()
 		const dl = makeMockedDownloadManager(mocks)
 		const res = new mocks.netMock.Response(200)
@@ -290,7 +290,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 		o(res.pipe.args[0]).deepEquals(ws)
 	})
 
-	o("downloadNative, error gets cleaned up", async function () {
+	o("download, error gets cleaned up", async function () {
 		const mocks = standardMocks()
 
 		const dl = makeMockedDownloadManager(mocks)

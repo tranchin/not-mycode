@@ -49,7 +49,7 @@ export class FileController {
 					if (file) {
 						this._deleteFile(file.location)
 					}
-				}
+				                    }
 			} else if (isDesktop()) {
 				const file = open
 					? await fileFacade.downloadFileContentNative(tutanotaFile)

@@ -352,6 +352,14 @@ public final class Native {
 					promise.resolve(jsonArray);
 					break;
 				}
+				case "hashFile": {
+					String file = args.getString(0);
+					return promise.resolve(files.hashFile(file));
+				}
+				case "getTempFileUri": {
+					String file = args.getString(0);
+					return promise.resolve(files.getTempFileUri(file));
+				}
 				default:
 					throw new Exception("unsupported method: " + method);
 			}

@@ -142,3 +142,27 @@ export async function promiseFilter<T>(iterable: Iterable<T>, filter: (item: T, 
 	}
 	return result
 }
+
+/**
+ * Executes the provided functions in the provided order to retrieve a result.
+ *
+ * Short circuits after the first resolving function. Returns the last rejection if no
+ * function resolves.
+ *
+ * @throws Error if invoked with empty function array
+ * @param fns Non-empty array of asynchronous functions
+ * @returns {Promise<unknown>|*}
+ */
+export function promiseTrySequentially<T>(fns: Array<() => Promise<T>>): Promise<T> {
+	if (fns.length === 0) {
+		return Promise.reject(new Error("no functions to try"))
+	}
+
+	return fns[0]().catch(e => {
+		if (fns.length > 1) {
+			return promiseTrySequentially(fns.slice(1))
+		} else {
+			throw e
+		}
+	})
+}

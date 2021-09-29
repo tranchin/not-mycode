@@ -14,7 +14,7 @@ import {
 	filterInt,
 	isEmpty,
 	neverNull,
-	promiseMap,
+	promiseMap, promiseTrySequentially,
 	splitUint8ArrayInChunks,
 	TypeRef,
 	uint8ArrayToBase64,
@@ -322,9 +322,11 @@ export class FileFacade {
 		})
 		const literalGetData = await encryptAndMapToLiteral(BlobDataGetTypeModel, getData, null)
 		const body = JSON.stringify(literalGetData)
-		const server = servers[0]
-
-		return blobDownloader(blobId, headers, body, server)
+		return promiseTrySequentially<T>(
+			servers.map(server =>
+				() => blobDownloader(blobId, headers, body, server)
+			)
+		)
 	}
 
 	async _blobDownloaderWeb(blobId: BlobId, headers: Params, body: string, server: TargetServer): Promise<Uint8Array> {
@@ -462,7 +464,12 @@ export class FileFacade {
 
 		const blobs = await splitter(encrypted)
 		for (const {blobId, data} of blobs) {
-			const blobReferenceToken = await uploader(servers[0].url, headers, blobId, data)
+			let blobReferenceToken
+			blobReferenceToken = await promiseTrySequentially(
+				servers.map(server =>
+					() => uploader(server.url, headers, blobId, data)
+				)
+			)
 
 			const blobReferenceDataPut = createBlobReferenceDataPut({
 				blobReferenceToken,
@@ -529,8 +536,17 @@ export class FileFacade {
 			storageAccessToken,
 			'v': BlobDataGetTypeModel.version
 		}, this._login.createAuthHeaders())
-		return this._restClient.request(getRestPath(StorageService.BlobService), HttpMethod.PUT, {blobId}, headers, encryptedData,
-			MediaType.Binary, null, servers[0].url)
+		return promiseTrySequentially(servers.map(server =>
+			() => this._restClient.request(
+				getRestPath(StorageService.BlobService),
+				HttpMethod.PUT,
+				{blobId},
+				headers,
+				encryptedData,
+				MediaType.Binary,
+				null, server.url)
+		))
+
 	}
 
 

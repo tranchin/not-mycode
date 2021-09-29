@@ -125,6 +125,7 @@ export {
 	tap,
 	ofClass,
 	promiseFilter,
+	promiseTrySequentially,
 } from "./PromiseUtils"
 
 export type {

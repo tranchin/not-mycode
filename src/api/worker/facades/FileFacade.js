@@ -354,7 +354,7 @@ export class FileFacade {
 				}
 			}
 
-		} catch(e) {
+		} catch (e) {
 			// could not find existing blob
 		}
 		const serviceUrl = new URL(getRestPath(StorageService.BlobService), server.url)

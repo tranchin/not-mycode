@@ -244,7 +244,7 @@ export class MailListView implements MComponent<void> {
 
 					const downloadPromise = Promise.resolve().then(async () => {
 						const {htmlSanitizer} = await import("../../misc/HtmlSanitizer")
-						const bundle = await makeMailBundle(mail, locator.entityClient, locator.fileFacade, htmlSanitizer)
+						const bundle = await makeMailBundle(mail, locator.entityClient, locator.mailFacade, locator.fileFacade, htmlSanitizer)
 						progressMonitor.workDone(1)
 
 						const file = await generateMailFile(bundle, name, exportMode)
@@ -381,7 +381,7 @@ export class MailListView implements MComponent<void> {
 				if (isInboxList(mailboxDetail, this.listId)) {
 					// filter emails
 					return promiseFilter(mails, (mail) => {
-						return findAndApplyMatchingRule(locator.worker, locator.entityClient, mailboxDetail, mail, true)
+						return findAndApplyMatchingRule(locator.worker, mailboxDetail, mail, true)
 							.then(matchingMailId => !matchingMailId)
 					}).then(inboxMails => {
 						if (mails.length === count && inboxMails.length < mails.length) {

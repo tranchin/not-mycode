@@ -2,14 +2,14 @@
 import type {Mail} from "../../api/entities/tutanota/Mail";
 import type {EntityClient} from "../../api/common/EntityClient";
 import {MailBodyTypeRef} from "../../api/entities/tutanota/MailBody";
-import {getMailBodyText, getMailHeaders} from "../../api/common/utils/Utils";
+import {getMailBodyText} from "../../api/common/utils/Utils";
 import {FileTypeRef} from "../../api/entities/tutanota/File";
-import {MailHeadersTypeRef} from "../../api/entities/tutanota/MailHeaders";
 import {MailState} from "../../api/common/TutanotaConstants";
 import {getLetId} from "../../api/common/utils/EntityUtils"
 import type {HtmlSanitizer} from "../../misc/HtmlSanitizer"
 import {promiseMap} from "@tutao/tutanota-utils"
 import type {FileFacade} from "../../api/worker/facades/FileFacade"
+import type {MailFacade} from "../../api/worker/facades/MailFacade"
 
 /**
  * Used to pass all downloaded mail stuff to the desktop side to be exported as a file
@@ -39,10 +39,11 @@ export type MailBundle = {
  * Downloads the mail body and the attachments for an email, to prepare for exporting
  * @param mail
  * @param entityClient
- * @param worker
+ * @param mailFacade
+ * @param fileFacade
  * @param sanitizer
  */
-export function makeMailBundle(mail: Mail, entityClient: EntityClient, fileFacade: FileFacade, sanitizer: HtmlSanitizer): Promise<MailBundle> {
+export function makeMailBundle(mail: Mail, entityClient: EntityClient, mailFacade: MailFacade, fileFacade: FileFacade, sanitizer: HtmlSanitizer): Promise<MailBundle> {
 	const bodyTextPromise = entityClient.load(MailBodyTypeRef, mail.body)
 	                                    .then(getMailBodyText)
 	                                    .then(body =>
@@ -53,13 +54,12 @@ export function makeMailBundle(mail: Mail, entityClient: EntityClient, fileFacad
 		                                    }).text
 	                                    )
 
+	// FIXME blob attachments
 	const attachmentsPromise: Promise<Array<DataFile>> =
 		promiseMap(mail.attachments, fileId => entityClient.load(FileTypeRef, fileId)
 		                                                   .then((file) => fileFacade.downloadFileContent(file)))
 
-	const headersPromise = mail.headers
-		? entityClient.load(MailHeadersTypeRef, mail.headers)
-		: Promise.resolve(null)
+	const headersPromise = mailFacade.getHeaders(mail)
 
 	const recipientMapper = addr => ({address: addr.address, name: addr.name})
 	return Promise.all([bodyTextPromise, attachmentsPromise, headersPromise])
@@ -77,7 +77,7 @@ export function makeMailBundle(mail: Mail, entityClient: EntityClient, fileFacad
 			              isRead: !mail.unread,
 			              sentOn: mail.sentDate.getTime(),
 			              receivedOn: mail.receivedDate.getTime(),
-			              headers: headers && getMailHeaders(headers),
+			              headers: headers,
 			              attachments: attachments,
 		              }
 	              })

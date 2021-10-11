@@ -19,6 +19,7 @@ import type {Mail} from "../../api/entities/tutanota/Mail"
 import type {EntityClient} from "../../api/common/EntityClient"
 import type {FileFacade} from "../../api/worker/facades/FileFacade"
 import {locator} from "../../api/main/MainLocator"
+import type {MailFacade} from "../../api/worker/facades/MailFacade"
 
 // .msg export is handled in DesktopFileExport because it uses APIs that can't be loaded web side
 export type MailExportMode = "msg" | "eml"
@@ -58,11 +59,11 @@ export function generateExportFileName(subject: string, sentOn: Date, mode: Mail
  * @returns {Promise<void>} resolved after the fileController
  * was instructed to open the new zip File containing the exported files
  */
-export function exportMails(mails: Array<Mail>, entityClient: EntityClient, fileFacade: FileFacade): Promise<void> {
+export function exportMails(mails: Array<Mail>, entityClient: EntityClient, mailFacade: MailFacade, fileFacade: FileFacade): Promise<void> {
 
 	const downloadPromise =
 		promiseMap(mails, mail => import("../../misc/HtmlSanitizer")
-			.then(({htmlSanitizer}) => makeMailBundle(mail, entityClient, fileFacade, htmlSanitizer)))
+			.then(({htmlSanitizer}) => makeMailBundle(mail, entityClient, mailFacade, fileFacade, htmlSanitizer)))
 
 	return Promise.all([
 		getMailExportMode(),

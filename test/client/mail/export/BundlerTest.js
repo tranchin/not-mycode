@@ -29,7 +29,11 @@ o.spec("Bundler", function () {
 		const receivedOn = new Date()
 		const headers = "this is the headers"
 		const entityClient = {
-			load: o.spy(() => Promise.resolve({text: body, headers})),
+			load: o.spy(() => Promise.resolve({text: body})),
+		}
+
+		const mailFacade = {
+			getHeaders: o.spy((mail) => Promise.resolve(headers))
 		}
 
 		const fileFacade = {
@@ -59,7 +63,7 @@ o.spec("Bundler", function () {
 
 		})
 
-		const bundle = await makeMailBundle(mail, downcast(entityClient), downcast(fileFacade), downcast(sanitizer))
+		const bundle = await makeMailBundle(mail, downcast(entityClient), downcast(mailFacade), downcast(fileFacade), downcast(sanitizer))
 
 		o(bundle.mailId).deepEquals(mailId)
 		o(bundle.subject).equals(subject)
@@ -76,7 +80,8 @@ o.spec("Bundler", function () {
 		const compareCall = (typeRef, id) => call => isSameTypeRef(call.args[0], typeRef) && isSameId(call.args[1], id)
 		const assertLoaded = (typeRef, id) => o(entityClient.load.calls.find(compareCall(typeRef, id))).notEquals(undefined)(`assertLoaded TypeRef(${typeRef.app}, ${typeRef.type}) ${id.toString()}`)
 		assertLoaded(MailBodyTypeRef, mailBodyId)
-		assertLoaded(MailHeadersTypeRef, mailHeadersId)
+		o(mailFacade.getHeaders.calls.length).equals(1)
+		o(mailFacade.getHeaders.calls[0].args[0]).deepEquals(mail)
 		attachmentIds.forEach(assertLoaded.bind(null, FileTypeRef))
 		o(sanitizer.sanitize.calls[0].args).deepEquals([
 			body, {blockExternalContent: false, allowRelativeLinks: false, usePlaceholderForInlineImages: false}

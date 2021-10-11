@@ -3,12 +3,12 @@ import o from "ospec"
 import {_findMatchingRule, _matchesRegularExpression} from "../../../src/mail/model/InboxRuleHandler"
 import type {InboxRule} from "../../../src/api/entities/tutanota/InboxRule"
 import {createInboxRule} from "../../../src/api/entities/tutanota/InboxRule"
-import {EntityRestClientMock} from "../../api/worker/EntityRestClientMock"
-import {EntityClient} from "../../../src/api/common/EntityClient"
 import type {Mail} from "../../../src/api/entities/tutanota/Mail"
 import {createMail} from "../../../src/api/entities/tutanota/Mail"
 import {createMailAddress} from "../../../src/api/entities/tutanota/MailAddress"
 import {InboxRuleType} from "../../../src/api/common/TutanotaConstants"
+import {downcast} from "@tutao/tutanota-utils"
+import type {MailFacade} from "../../../src/api/worker/facades/MailFacade"
 
 o.spec("InboxRuleHandlerTest", function () {
 	o.spec("Test _matchesRegularExpression", function () {
@@ -61,14 +61,15 @@ o.spec("InboxRuleHandlerTest", function () {
 		})
 	})
 	o.spec("Test _findMatchingRule", function () {
-		const restClient: EntityRestClientMock = new EntityRestClientMock()
-		const entityClient = new EntityClient(restClient)
+		const mailFacade = {
+			getHeaders: () => Promise.resolve("headers")
+		}
 		o("check FROM_EQUALS is applied to from", async function () {
 			const rules: InboxRule [] = [
 				_createRule("sender@tutanota.com", InboxRuleType.FROM_EQUALS, ["ruleTarget", "ruleTarget"]),
 			]
 			const mail = _createMailWithDifferentEnvelopeSender()
-			const rule = await _findMatchingRule(entityClient, mail, rules)
+			const rule = await _findMatchingRule(downcast<MailFacade>(mailFacade), mail, rules)
 			o(rule).notEquals(null)
 			if (rule) {
 				o(_equalTupels(rule.targetFolder, ["ruleTarget", "ruleTarget"])).equals(true)
@@ -79,7 +80,7 @@ o.spec("InboxRuleHandlerTest", function () {
 				_createRule("differentenvelopsender@something.com", InboxRuleType.FROM_EQUALS, ["ruleTarget", "ruleTarget"]),
 			]
 			const mail = _createMailWithDifferentEnvelopeSender()
-			const rule = await _findMatchingRule(entityClient, mail, rules)
+			const rule = await _findMatchingRule(downcast<MailFacade>(mailFacade), mail, rules)
 			o(rule).notEquals(null)
 			if (rule) {
 				o(_equalTupels(rule.targetFolder, ["ruleTarget", "ruleTarget"])).equals(true)

@@ -115,7 +115,7 @@ export class MultiMailViewer {
 				{
 					label: "export_action",
 					click: this._actionBarAction(
-						(mails) => showProgressDialog("pleaseWait_msg", exportMails(mails, locator.entityClient, locator.fileFacade))
+						(mails) => showProgressDialog("pleaseWait_msg", exportMails(mails, locator.entityClient, locator.mailFacade, locator.fileFacade))
 					),
 					icon: () => Icons.Export,
 					type: ButtonType.Dropdown,

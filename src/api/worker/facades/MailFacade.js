@@ -40,8 +40,7 @@ import {
 	noOp,
 	ofClass,
 	promiseFilter,
-	promiseMap,
-	uint8ArrayToHex
+	promiseMap
 } from "@tutao/tutanota-utils"
 import type {User} from "../../entities/sys/User"
 import {UserTypeRef} from "../../entities/sys/User"
@@ -75,12 +74,22 @@ import {createPublicKeyData} from "../../entities/sys/PublicKeyData"
 import {aes128RandomKey} from "@tutao/tutanota-crypto/lib/encryption/Aes"
 import {
 	bitArrayToUint8Array,
-	createAuthVerifier, decryptKey, encryptKey,
+	createAuthVerifier,
+	decryptKey,
+	encryptKey,
 	generateKeyFromPassphrase,
 	generateRandomSalt,
 	KeyLength,
-	keyToUint8Array, murmurHash, random, sha256Hash
+	keyToUint8Array,
+	murmurHash,
+	random,
+	sha256Hash
 } from "@tutao/tutanota-crypto"
+import {MailHeadersTypeRef} from "../../entities/tutanota/MailHeaders"
+import {SessionKeyNotFoundError} from "../../common/error/SessionKeyNotFoundError"
+import {ProgrammingError} from "../../common/error/ProgrammingError"
+import {createBlobId} from "../../entities/sys/BlobId"
+import {decompressString} from "../crypto/InstanceMapper"
 
 assertWorkerOrNode()
 
@@ -523,6 +532,44 @@ export class MailFacade {
 			createPublicKeyData({mailAddress}),
 			PublicKeyReturnTypeRef
 		).catch(ofClass(NotFoundError, () => null))
+	}
+
+	async getHeaders(mail: Mail): Promise<?string> {
+		if (mail.headers) {
+			return this._getHeadersLegacy(mail.headers)
+		} else if (mail.headersBlob) {
+			return this._getHeadersBlob(mail)
+		}
+	}
+
+	async _getHeadersLegacy(mailHeadersId: Id): Promise<?string> {
+		try {
+			const mailHeaders = await this._entity.load(MailHeadersTypeRef, mailHeadersId)
+			return mailHeaders.compressedHeaders ?? mailHeaders.headers ?? ""
+		} catch (e) {
+			if (!(e instanceof NotFoundError)) {
+				throw e
+			}
+		}
+	}
+
+	async _getHeadersBlob(mail: Mail): Promise<string> {
+		const key = await resolveSessionKey(MailTypeModel, mail)
+		if (key == null) {
+			throw new SessionKeyNotFoundError("could not find session key to decrypt mail header blob")
+		}
+		const blob = mail.headersBlob
+
+		if (blob == null) {
+			throw new ProgrammingError("trying to retrieve headers blob but there is no blob")
+		}
+		const blobData = await this._file.downloadBlob(
+			blob.archiveId,
+			createBlobId({blobId: blob.blobId}),
+			bitArrayToUint8Array(key)
+		)
+
+		return decompressString(blobData)
 	}
 }
 

@@ -5,23 +5,19 @@ import {TutanotaService} from "../../api/entities/tutanota/Services"
 import {InboxRuleType, MAX_NBR_MOVE_DELETE_MAIL_SERVICE} from "../../api/common/TutanotaConstants"
 import {isDomainName, isRegularExpression} from "../../misc/FormatValidator"
 import {HttpMethod} from "../../api/common/EntityFunctions"
-import {getMailHeaders} from "../../api/common/utils/Utils"
-import {asyncFind, debounce} from "@tutao/tutanota-utils"
+import {asyncFind, debounce, ofClass, promiseMap, splitInChunks} from "@tutao/tutanota-utils"
 import {lang} from "../../misc/LanguageViewModel"
-import {MailHeadersTypeRef} from "../../api/entities/tutanota/MailHeaders"
 import {logins} from "../../api/main/LoginController"
 import type {MailboxDetail} from "./MailModel"
 import {LockedError, NotFoundError, PreconditionFailedError} from "../../api/common/error/RestError"
 import type {Mail} from "../../api/entities/tutanota/Mail"
 import type {InboxRule} from "../../api/entities/tutanota/InboxRule"
 import type {SelectorItemList} from "../../gui/base/DropDownSelectorN"
-import {splitInChunks} from "@tutao/tutanota-utils"
-import {EntityClient} from "../../api/common/EntityClient"
 import type {WorkerClient} from "../../api/main/WorkerClient"
 import {getElementId, getListId, isSameId} from "../../api/common/utils/EntityUtils";
 import {getInboxFolder} from "./MailUtils"
-import {ofClass, promiseMap} from "@tutao/tutanota-utils"
 import {assertMainOrNode} from "../../api/common/Env"
+import type {MailFacade} from "../../api/worker/facades/MailFacade"
 
 assertMainOrNode()
 
@@ -83,13 +79,13 @@ export function getInboxRuleTypeName(type: string): string {
  * Checks the mail for an existing inbox rule and moves the mail to the target folder of the rule.
  * @returns true if a rule matches otherwise false
  */
-export function findAndApplyMatchingRule(worker: WorkerClient, entityClient: EntityClient, mailboxDetail: MailboxDetail, mail: Mail,
+export function findAndApplyMatchingRule(worker: WorkerClient, mailboxDetail: MailboxDetail, mail: Mail,
                                          applyRulesOnServer: boolean): Promise<?IdTuple> {
 	if (mail._errors || !mail.unread || !isInboxList(mailboxDetail, getListId(mail))
 		|| !logins.getUserController().isPremiumAccount()) {
 		return Promise.resolve(null)
 	}
-	return _findMatchingRule(entityClient, mail, logins.getUserController().props.inboxRules).then(inboxRule => {
+	return _findMatchingRule(worker.getWorkerInterface().mailFacade, mail, logins.getUserController().props.inboxRules).then(inboxRule => {
 		if (inboxRule) {
 			let targetFolder = mailboxDetail.folders.filter(folder => folder !== getInboxFolder(mailboxDetail.folders))
 			                                .find(folder => isSameId(folder._id, inboxRule.targetFolder))
@@ -120,11 +116,11 @@ export function findAndApplyMatchingRule(worker: WorkerClient, entityClient: Ent
  * Finds the first matching inbox rule for the mail and returns it.
  * export only for testing
  */
-export async function _findMatchingRule(entityClient: EntityClient, mail: Mail, rules: InboxRule []): Promise<?InboxRule> {
-	return asyncFind(rules, (rule) => checkInboxRule(entityClient, mail, rule))
+export async function _findMatchingRule(mailFacade: MailFacade, mail: Mail, rules: InboxRule []): Promise<?InboxRule> {
+	return asyncFind(rules, (rule) => checkInboxRule(mailFacade, mail, rule))
 }
 
-async function checkInboxRule(entityClient: EntityClient, mail: Mail, inboxRule: InboxRule): Promise<boolean> {
+async function checkInboxRule(mailFacade: MailFacade, mail: Mail, inboxRule: InboxRule): Promise<boolean> {
 	const ruleType = inboxRule.type;
 	try {
 		if (ruleType === InboxRuleType.FROM_EQUALS) {
@@ -142,21 +138,17 @@ async function checkInboxRule(entityClient: EntityClient, mail: Mail, inboxRule:
 		} else if (ruleType === InboxRuleType.SUBJECT_CONTAINS) {
 			return _checkContainsRule(mail.subject, inboxRule)
 		} else if (ruleType === InboxRuleType.MAIL_HEADER_CONTAINS) {
-			if (mail.headers) {
-				return entityClient.load(MailHeadersTypeRef, mail.headers)
-				                   .then(mailHeaders => {
-					                   return _checkContainsRule(getMailHeaders(mailHeaders), inboxRule)
-				                   })
-				                   .catch(e => {
-					                   if (!(e instanceof NotFoundError)) {
-						                   // Does the outer catch already handle this case?
-						                   console.error("Error processing inbox rule:", e.message)
-					                   }
-					                   return false
-				                   })
-			} else {
-				return false
-			}
+			return mailFacade.getHeaders(mail)
+			             .then(mailHeaders => {
+				             return _checkContainsRule(mailHeaders || "", inboxRule)
+			             })
+			             .catch(e => {
+				             if (!(e instanceof NotFoundError)) {
+					             // Does the outer catch already handle this case?
+					             console.error("Error processing inbox rule:", e.message)
+				             }
+				             return false
+			             })
 		} else {
 			console.warn("Unknown rule type: ", inboxRule.type)
 			return false

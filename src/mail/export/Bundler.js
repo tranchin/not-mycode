@@ -54,7 +54,6 @@ export function makeMailBundle(mail: Mail, entityClient: EntityClient, mailFacad
 		                                    }).text
 	                                    )
 
-	// FIXME blob attachments
 	const attachmentsPromise: Promise<Array<DataFile>> =
 		promiseMap(mail.attachments, fileId => entityClient.load(FileTypeRef, fileId)
 		                                                   .then((file) => fileFacade.downloadFileContent(file)))

@@ -38,7 +38,7 @@ import {assertMainOrNode, isAndroidApp, isDesktop, isIOSApp} from "../../api/com
 import {Dialog} from "../../gui/base/Dialog"
 import type {DeferredObject} from "@tutao/tutanota-utils"
 import {addAll, contains, defer, downcast, neverNull, noOp, ofClass, startsWith} from "@tutao/tutanota-utils"
-import {getMailBodyText, getMailHeaders} from "../../api/common/utils/Utils"
+import {getMailBodyText} from "../../api/common/utils/Utils"
 import {Request} from "../../api/common/Queue.js"
 import {ConversationEntryTypeRef} from "../../api/entities/tutanota/ConversationEntry"
 import {
@@ -670,7 +670,9 @@ export class MailViewer {
 					if (!this._isAnnouncement() && !client.isMobileDevice() && !logins.isEnabled(FeatureType.DisableMailExport)) {
 						moreButtons.push({
 							label: "export_action",
-							click: () => showProgressDialog("pleaseWait_msg", exportMails([this.mail], this._entityClient, locator.mailFacade, locator.fileFacade)),
+							click: () => showProgressDialog("pleaseWait_msg",
+								exportMails([this.mail], this._entityClient, locator.mailFacade, locator.fileFacade)
+							),
 							icon: () => Icons.Export,
 							type: ButtonType.Dropdown,
 						})

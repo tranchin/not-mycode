@@ -73,10 +73,6 @@ export function getMailBodyText(body: MailBody): string {
 	return body.compressedText ?? body.text ?? ""
 }
 
-export function getMailHeaders(headers: MailHeaders): string {
-	return headers.compressedHeaders ?? headers.headers ?? ""
-}
-
 //If importing fails it is a good idea to bundle the error into common-min which can be achieved by annotating the module with "@bundleInto:common-min"
 const ErrorNameToType = {
 	ConnectionError,

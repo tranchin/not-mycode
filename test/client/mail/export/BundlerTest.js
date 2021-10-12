@@ -12,6 +12,7 @@ import {MailHeadersTypeRef} from "../../../../src/api/entities/tutanota/MailHead
 import {isSameTypeRef} from "@tutao/tutanota-utils"
 import {isSameId} from "../../../../src/api/common/utils/EntityUtils"
 import {FileTypeRef} from "../../../../src/api/entities/tutanota/File"
+import {locator} from "../../../../src/api/main/MainLocator"
 
 o.spec("Bundler", function () {
 	o("make mail bundle non compressed headers", async function () {
@@ -28,14 +29,14 @@ o.spec("Bundler", function () {
 		const sentOn = new Date()
 		const receivedOn = new Date()
 		const headers = "this is the headers"
+
 		const entityClient = {
 			load: o.spy(() => Promise.resolve({text: body})),
 		}
 
 		const mailFacade = {
-			getHeaders: o.spy((mail) => Promise.resolve(headers))
+			getHeaders: o.spy(() => Promise.resolve(headers))
 		}
-
 		const fileFacade = {
 			downloadFileContent: o.spy(() => Promise.resolve("attachment"))
 		}
@@ -78,10 +79,11 @@ o.spec("Bundler", function () {
 		o(bundle.headers).equals(headers)
 		o(bundle.attachments).deepEquals(["attachment", "attachment", "attachment"])
 		const compareCall = (typeRef, id) => call => isSameTypeRef(call.args[0], typeRef) && isSameId(call.args[1], id)
-		const assertLoaded = (typeRef, id) => o(entityClient.load.calls.find(compareCall(typeRef, id))).notEquals(undefined)(`assertLoaded TypeRef(${typeRef.app}, ${typeRef.type}) ${id.toString()}`)
+		const assertLoaded = (typeRef, id) => o(entityClient.load.calls.find(compareCall(typeRef, id)))
+			.notEquals(undefined)(`assertLoaded TypeRef(${typeRef.app}, ${typeRef.type}) ${id.toString()}`)
 		assertLoaded(MailBodyTypeRef, mailBodyId)
-		o(mailFacade.getHeaders.calls.length).equals(1)
-		o(mailFacade.getHeaders.calls[0].args[0]).deepEquals(mail)
+		o(mailFacade.getHeaders.calls.length).equals(1)("Headers were not loaded")
+		o(mailFacade.getHeaders.calls[0].args[0]).deepEquals(mail)("Headers were loaded, but for wrong mail")
 		attachmentIds.forEach(assertLoaded.bind(null, FileTypeRef))
 		o(sanitizer.sanitize.calls[0].args).deepEquals([
 			body, {blockExternalContent: false, allowRelativeLinks: false, usePlaceholderForInlineImages: false}

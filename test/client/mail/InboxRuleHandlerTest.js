@@ -62,7 +62,7 @@ o.spec("InboxRuleHandlerTest", function () {
 	})
 	o.spec("Test _findMatchingRule", function () {
 		const mailFacade = {
-			getHeaders: () => Promise.resolve("headers")
+			getHeaders: () => Promise.resolve("test headers")
 		}
 		o("check FROM_EQUALS is applied to from", async function () {
 			const rules: InboxRule [] = [

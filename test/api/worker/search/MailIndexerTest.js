@@ -43,6 +43,7 @@ import {EntityRestClientMock} from "../EntityRestClientMock"
 import type {DateProvider} from "../../../../src/api/worker/DateProvider"
 import {LocalTimeDateProvider} from "../../../../src/api/worker/DateProvider"
 import {aes256RandomKey, fixedIv} from "@tutao/tutanota-crypto"
+import {locator} from "../../../../src/api/worker/WorkerLocator"
 
 class FixedDateProvider implements DateProvider {
 	now: number;
@@ -74,20 +75,18 @@ o.spec("MailIndexer test", () => {
 
 	o("createMailIndexEntries without entries", function () {
 		let mail = createMail()
-		let body = createMailBody()
 		let files = [createFile()]
 		let indexer = new MailIndexer(new IndexerCore(dbMock, (null: any), browserDataStub), (null: any), (null: any), (null: any), (null: any), dateProvider)
-		let keyToIndexEntries = indexer.createMailIndexEntries(mail, body, files)
+		let keyToIndexEntries = indexer.createMailIndexEntries(mail, null, files)
 		o(keyToIndexEntries.size).equals(0)
 	})
 
 	o("createMailIndexEntries with one entry", function () {
 		let mail = createMail()
 		mail.subject = "Hello"
-		let body = createMailBody()
 		let files = [createFile()]
 		let indexer = new MailIndexer(new IndexerCore(dbMock, (null: any), browserDataStub), (null: any), (null: any), (null: any), (null: any), dateProvider)
-		let keyToIndexEntries = indexer.createMailIndexEntries(mail, body, files)
+		let keyToIndexEntries = indexer.createMailIndexEntries(mail, null, files)
 		o(keyToIndexEntries.size).equals(1)
 	})
 
@@ -130,8 +129,7 @@ o.spec("MailIndexer test", () => {
 		mail.replyTos = [replyTo] // not indexed
 		mail.sender = sender
 
-		let body = createMailBody()
-		body.text = "BT"
+		const body = "BT"
 		let files = [createFile()]
 		files[0].mimeType = "binary" // not indexed
 		files[0].name = "FN"
@@ -164,14 +162,19 @@ o.spec("MailIndexer test", () => {
 		let event: EntityUpdate = ({instanceListId: mailListId, instanceId: mailElementId}: any)
 		entityMock.addListInstances(mail, ...files)
 		entityMock.addElementInstances(body)
+		const someBody = "some body"
 		let indexer = mock(new MailIndexer((null: any), dbMock, (null: any), entityMock, entityMock, dateProvider), mocked => {
 			mocked.createMailIndexEntries = o.spy((mailParam, bodyParam, filesParam) => {
 				o(mailParam).deepEquals(mail)
-				o(bodyParam).deepEquals(body)
+				o(bodyParam).deepEquals(someBody)
 				o(filesParam).deepEquals(files)
 				return keyToIndexEntries
 			})
 		})
+		locator.mail = ({
+			getMailBody: (mail) => Promise.resolve(someBody)
+		}: any)
+
 		indexer.processNewMail(event).then(result => {
 			o(indexer.createMailIndexEntries.callCount).equals(1)
 			o(result).deepEquals({mail, keyToIndexEntries})

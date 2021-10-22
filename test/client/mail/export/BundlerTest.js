@@ -31,11 +31,12 @@ o.spec("Bundler", function () {
 		const headers = "this is the headers"
 
 		const entityClient = {
-			load: o.spy(() => Promise.resolve({text: body})),
+			load: o.spy( () => Promise.resolve({})),
 		}
 
 		const mailFacade = {
-			getHeaders: o.spy(() => Promise.resolve(headers))
+			getHeaders: o.spy(() => Promise.resolve(headers)),
+			getMailBody: o.spy(() => Promise.resolve(body))
 		}
 		const fileFacade = {
 			downloadFileContent: o.spy(() => Promise.resolve("attachment"))
@@ -78,12 +79,13 @@ o.spec("Bundler", function () {
 		o(bundle.isRead).deepEquals(true)
 		o(bundle.headers).equals(headers)
 		o(bundle.attachments).deepEquals(["attachment", "attachment", "attachment"])
+		o(mailFacade.getMailBody.calls.length).equals(1)("Mail body were not loaded")
+		o(mailFacade.getMailBody.calls[0].args[0]).deepEquals(mail)("Mail body was loaded, but for wrong mail")
+		o(mailFacade.getHeaders.calls.length).equals(1)("Headers were not loaded")
+		o(mailFacade.getHeaders.calls[0].args[0]).deepEquals(mail)("Headers were loaded, but for wrong mail")
 		const compareCall = (typeRef, id) => call => isSameTypeRef(call.args[0], typeRef) && isSameId(call.args[1], id)
 		const assertLoaded = (typeRef, id) => o(entityClient.load.calls.find(compareCall(typeRef, id)))
 			.notEquals(undefined)(`assertLoaded TypeRef(${typeRef.app}, ${typeRef.type}) ${id.toString()}`)
-		assertLoaded(MailBodyTypeRef, mailBodyId)
-		o(mailFacade.getHeaders.calls.length).equals(1)("Headers were not loaded")
-		o(mailFacade.getHeaders.calls[0].args[0]).deepEquals(mail)("Headers were loaded, but for wrong mail")
 		attachmentIds.forEach(assertLoaded.bind(null, FileTypeRef))
 		o(sanitizer.sanitize.calls[0].args).deepEquals([
 			body, {blockExternalContent: false, allowRelativeLinks: false, usePlaceholderForInlineImages: false}

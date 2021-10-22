@@ -89,7 +89,11 @@ import {MailHeadersTypeRef} from "../../entities/tutanota/MailHeaders"
 import {SessionKeyNotFoundError} from "../../common/error/SessionKeyNotFoundError"
 import {ProgrammingError} from "../../common/error/ProgrammingError"
 import {createBlobId} from "../../entities/sys/BlobId"
+import type {Blob} from "../../entities/sys/Blob"
 import {decompressString} from "../crypto/InstanceMapper"
+import type {MailBody} from "../../entities/tutanota/MailBody"
+import {MailBodyTypeRef} from "../../entities/tutanota/MailBody"
+import {TutanotaError} from "../../common/error/TutanotaError"
 
 assertWorkerOrNode()
 
@@ -554,14 +558,38 @@ export class MailFacade {
 	}
 
 	async _getHeadersBlob(mail: Mail): Promise<string> {
+		return this._getBlobbedTextFromMail(mail, mail.headersBlob)
+	}
+
+	async getMailBody(mail: Mail): Promise<?string> {
+		if (mail.body) {
+			return this._getMailBodyLegacy(mail.body)
+		} else if (mail.bodyBlob) {
+			return this._getMailBodyBlob(mail)
+		}
+	}
+
+	async _getMailBodyLegacy(mailBodyId: Id): Promise<string> {
+		const body: MailBody = await this._entity.load(MailBodyTypeRef, mailBodyId)
+		const bodyString = body.compressedText ?? body.text
+		if (bodyString == null) {
+			throw new TutanotaError("Mail body is invalid", "mail body with Id " + mailBodyId + " has neither compressedText nor text.")
+		}
+		return bodyString
+	}
+
+	async _getMailBodyBlob(mail: Mail): Promise<string> {
+		return this._getBlobbedTextFromMail(mail, mail.bodyBlob)
+	}
+
+	async _getBlobbedTextFromMail(mail: Mail, blob: ?Blob): Promise<string> {
 		const key = await resolveSessionKey(MailTypeModel, mail)
 		if (key == null) {
-			throw new SessionKeyNotFoundError("could not find session key to decrypt mail header blob")
+			throw new SessionKeyNotFoundError("could not find session key to decrypt mail blob")
 		}
-		const blob = mail.headersBlob
 
 		if (blob == null) {
-			throw new ProgrammingError("trying to retrieve headers blob but there is no blob")
+			throw new ProgrammingError("trying to retrieve blob but there is none")
 		}
 		const blobData = await this._file.downloadBlob(
 			blob.archiveId,

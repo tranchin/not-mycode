@@ -40,7 +40,7 @@ import {
 	noOp,
 	ofClass,
 	promiseFilter,
-	promiseMap
+	promiseMap, utf8Uint8ArrayToString
 } from "@tutao/tutanota-utils"
 import type {User} from "../../entities/sys/User"
 import {UserTypeRef} from "../../entities/sys/User"
@@ -332,9 +332,10 @@ export class MailFacade {
 		const senderMailGroupId = await getMailGroupIdForMailAddress(this._login.getLoggedInUser(), draft.sender.address)
 		const bucketKey = aes128RandomKey()
 
-		const sendDraftData = createSendDraftData()
-		sendDraftData.language = language
-		sendDraftData.mail = draft._id
+		const sendDraftData = createSendDraftData({
+			language,
+			mail: draft._id
+		})
 		for (let fileId of draft.attachments) {
 			const file = await this._entity.load(FileTypeRef, fileId)
 			const fileSessionKey = await resolveSessionKey(FileTypeModel, file)
@@ -633,7 +634,9 @@ export class MailFacade {
 			bitArrayToUint8Array(key)
 		)
 
-		return decompressString(blobData)
+		return mail.bodyCompression
+			? decompressString(blobData)
+			: utf8Uint8ArrayToString(blobData)
 	}
 }
 

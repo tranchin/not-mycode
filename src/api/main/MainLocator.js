@@ -37,6 +37,7 @@ import type {FileFacade} from "../worker/facades/FileFacade"
 import type {UserManagementFacade} from "../worker/facades/UserManagementFacade"
 import type {ContactFormFacade} from "../worker/facades/ContactFormFacade"
 import type {DeviceEncryptionFacade} from "../worker/facades/DeviceEncryptionFacade"
+import type {WorkerRandomizer} from "../worker/crypto/Randomizer"
 
 assertMainOrNode()
 
@@ -71,6 +72,7 @@ export interface IMainLocator {
 	+userManagementFacade: UserManagementFacade;
 	+contactFormFacade: ContactFormFacade;
 	+deviceEncryptionFacade: DeviceEncryptionFacade;
+	+random: WorkerRandomizer;
 
 	+init: () => Promise<void>
 }
@@ -105,6 +107,7 @@ class MainLocator implements IMainLocator {
 	userManagementFacade: UserManagementFacade;
 	contactFormFacade: ContactFormFacade;
 	deviceEncryptionFacade: DeviceEncryptionFacade;
+	random: WorkerRandomizer;
 
 	+_workerDeferred: DeferredObject<WorkerClient>
 	_entropyCollector: EntropyCollector
@@ -148,6 +151,7 @@ class MainLocator implements IMainLocator {
 			userManagementFacade,
 			contactFormFacade,
 			deviceEncryptionFacade,
+			random,
 		} = this.worker.getWorkerInterface()
 
 		this.loginFacade = loginFacade
@@ -167,6 +171,7 @@ class MainLocator implements IMainLocator {
 		this.userManagementFacade = userManagementFacade
 		this.contactFormFacade = contactFormFacade
 		this.deviceEncryptionFacade = deviceEncryptionFacade
+		this.random = random
 
 		this.eventController = new EventController(logins)
 		this.progressTracker = new ProgressTracker()

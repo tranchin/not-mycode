@@ -8,10 +8,14 @@ import {assertWorkerOrNode} from "../../common/Env"
 
 assertWorkerOrNode()
 
+export interface WorkerRandomizer {
+	generateRandomNumber(nbrOfBytes: number): Promise<number>
+}
+
 /**
  * This Interface provides an abstraction of the random number generator implementation.
  */
-class Randomizer {
+export class Randomizer {
 	random: any;
 
 	constructor() {
@@ -60,6 +64,16 @@ class Randomizer {
 		} catch (e) {
 			throw new CryptoError("error during random number generation", e)
 		}
+	}
+
+	generateRandomNumber(nbrOfBytes: number): number {
+		const bytes = this.generateRandomData(nbrOfBytes)
+		let result = 0
+
+		for (let i = 0; i < bytes.length; ++i) {
+			result += bytes[i] << (i * 8)
+		}
+		return result
 	}
 }
 

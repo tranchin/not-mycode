@@ -1201,6 +1201,9 @@ styles.registerStyle('main', () => {
 		'.darker-hover:hover': {
 			'filter': 'brightness(95%)',
 		},
+		'.darkest-hover:hover': {
+			'filter': 'brightness(70%)',
+		},
 		'.event-continues-left': {
 			'border-top-left-radius': 0,
 			'border-bottom-left-radius': 0,

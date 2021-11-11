@@ -5,10 +5,10 @@ import {DefaultAnimationTime} from "../animation/Animations"
 import {theme} from "../theme"
 import type {TranslationKey} from "../../misc/LanguageViewModel"
 import {lang} from "../../misc/LanguageViewModel"
+import type {lazy} from "@tutao/tutanota-utils"
 import {repeat} from "@tutao/tutanota-utils"
 import type {keyHandler} from "../../misc/KeyManager"
 import {TabIndex} from "../../api/common/TutanotaConstants"
-import type {lazy} from "@tutao/tutanota-utils"
 import type {clickHandler} from "./GuiUtils"
 
 export type TextFieldAttrs = {
@@ -104,7 +104,7 @@ export class TextFieldN implements MComponent<TextFieldAttrs> {
 					])
 				]),
 			]),
-			a.helpLabel ? m("small.noselect.click", {
+			a.helpLabel ? m("small.noselect", {
 				onclick: (e) => {
 					e.stopPropagation()
 				}
@@ -273,4 +273,3 @@ export class TextFieldN implements MComponent<TextFieldAttrs> {
 		return value === ''
 	}
 }
-

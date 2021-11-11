@@ -2,7 +2,7 @@
 import m from "mithril"
 import {TextFieldN, Type} from "../gui/base/TextFieldN"
 import {PasswordIndicator} from "../gui/PasswordIndicator"
-import {getPasswordStrength, isSecurePassword} from "../misc/PasswordUtils"
+import {getPasswordStrength, isSecurePassword} from "../misc/passwords/PasswordUtils"
 import {Dialog} from "../gui/base/Dialog"
 import type {TranslationKey} from "../misc/LanguageViewModel"
 import {lang} from "../misc/LanguageViewModel"
@@ -18,6 +18,11 @@ import {ofClass} from "@tutao/tutanota-utils"
 import {getEtId} from "../api/common/utils/EntityUtils"
 import {locator} from "../api/main/MainLocator"
 import {assertMainOrNode} from "../api/common/Env"
+import {showPasswordGeneratorDialog} from "../misc/passwords/PasswordGeneratorDialog"
+import {Icons} from "../gui/base/icons/Icons"
+import {Icon} from "../gui/base/Icon"
+import {theme} from "../gui/theme"
+import {px} from "../gui/size"
 
 assertMainOrNode()
 
@@ -33,6 +38,7 @@ export class PasswordForm {
 	_newPasswordStatus: Status;
 	_repeatedPassword: string
 	_repeatedPasswordStatus: Status;
+	_revealPassword: boolean
 
 	_validateOldPassword: boolean
 	_enforcePasswordStrength: boolean
@@ -42,6 +48,7 @@ export class PasswordForm {
 		this._validateOldPassword = validateOldPassword
 		this._enforcePasswordStrength = enforcePasswordStrength
 		this._repeatPassword = repeatPassword
+		this._revealPassword = false
 
 		// make sure both the input values and status fields are initialized correctly
 		this._onOldPasswordInput("")
@@ -58,15 +65,7 @@ export class PasswordForm {
 		}
 
 		const passwordIndicator = new PasswordIndicator(() => this._getPasswordStrength())
-		const newPasswordFieldAttrs = {
-			label: "newPassword_label",
-			value: stream(this._newPassword),
-			helpLabel: () => m(StatusField, {status: this._newPasswordStatus}),
-			oninput: (value) => this._onNewPasswordInput(value),
-			type: Type.Password,
-			preventAutofill: true,
-			injectionsRight: () => m(".mb-s.mlr", m(passwordIndicator)),
-		}
+
 
 		const repeatedPasswordFieldAttrs = {
 			label: "repeatedPassword_label",
@@ -77,6 +76,22 @@ export class PasswordForm {
 		}
 
 		this.view = () => {
+			const newPasswordFieldAttrs = {
+				label: "newPassword_label",
+				value: () => this._newPassword,
+				helpLabel: () => m("", [
+					m(StatusField, {status: this._newPasswordStatus}),
+					this.renderPasswordGeneratorHelp()
+				]),
+				oninput: (value) => this._onNewPasswordInput(value),
+				type: this._revealPassword ? Type.Text : Type.Password,
+				preventAutofill: true,
+				injectionsRight: () => [
+					this.renderRevealIcon(),
+					m(".mb-s.mlr", m(passwordIndicator))
+				],
+			}
+
 			return m("", {
 				onremove: () => {
 					this._oldPassword = ""
@@ -98,7 +113,7 @@ export class PasswordForm {
 			reserved = getEnabledMailAddressesForGroupInfo(logins.getUserController().userGroupInfo)
 				.concat(logins.getUserController().userGroupInfo.name)
 		}
-		// 80% strength is minimum. we expand it to 100%, so the password indicator if completely filled when the password is strong enough
+		// 80% strength is minimum. we expand it to 100%, so the password indicator is completely filled when the password is strong enough
 		return getPasswordStrength(this._newPassword, reserved)
 	}
 
@@ -124,6 +139,36 @@ export class PasswordForm {
 
 	isPasswordUnsecure(): boolean {
 		return !isSecurePassword(this._getPasswordStrength())
+	}
+
+	/**
+	 *  FIXME Looks super goofy right now
+	 */
+	renderPasswordGeneratorHelp(): Children {
+		return m("", [
+			m(".mr-xs", {style: {display: "inline-block"}}, "Having trouble creating a password?"),
+			m(".b.mr-xs.hover.click.darkest-hover", {
+				style: {display: "inline-block", color: theme.navigation_button_selected},
+				onclick: async () => {
+					this._onNewPasswordInput(await showPasswordGeneratorDialog())
+					m.redraw()
+				}
+			}, "Generate"),
+			m("", {style: {display: "inline-block"}}, "a passphrase!")
+		])
+	}
+
+	renderRevealIcon(): Children {
+		return m(".click.ml-s", {
+			style: {paddingTop: px(4)}, // Needs to be exactly 4px as pt-xs is 3px and its 1px too high
+			onclick: () => {
+				this._revealPassword = !this._revealPassword
+				m.redraw()
+			}
+		}, m(Icon, {
+			icon: Icons.Eye,
+			style: {opacity: this._revealPassword ? 0.4 : 1} // FIXME is there a better way to do this?
+		}))
 	}
 
 	/**

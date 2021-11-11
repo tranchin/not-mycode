@@ -157,7 +157,7 @@ export class WorkerClient implements EntityRestInterface {
 		return this._postRequest(new Request('tryReconnectEventBus', [closeIfOpen, enableAutomaticState, delay]))
 	}
 
-	restRequest<T>(path: string, method: HttpMethodEnum, queryParams: Params, headers: Params, body: ?string | ?Uint8Array, responseType: ?MediaTypeEnum, progressListener: ?ProgressListener): Promise<any> {
+	restRequest<T>(path: string, method: HttpMethodEnum, queryParams: Params, headers: Params, body: ?string | ?Uint8Array, responseType: ?MediaTypeEnum, progressListener: ?ProgressListener, baseUrl: ?string): Promise<any> {
 		return this._postRequest(new Request('restRequest', Array.from(arguments)))
 	}
 

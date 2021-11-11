@@ -16,7 +16,7 @@ import {aes256RandomKey} from "./crypto/Aes"
 import type {BrowserData} from "../../misc/ClientConstants"
 import type {InfoMessage} from "../common/CommonTypes"
 import {resolveSessionKey} from "./crypto/CryptoFacade"
-import {downcast} from "@tutao/tutanota-utils"
+import {delay, downcast} from "@tutao/tutanota-utils"
 import type {EntityUpdate} from "../entities/sys/EntityUpdate"
 import type {WebsocketCounterData} from "../entities/sys/WebsocketCounterData"
 import type {ProgressMonitorId} from "../common/utils/ProgressMonitor";
@@ -39,8 +39,9 @@ import {FileFacade} from "./facades/FileFacade"
 import {UserManagementFacade} from "./facades/UserManagementFacade"
 import {exposeLocal} from "../common/WorkerProxy"
 import type {SearchIndexStateInfo} from "./search/SearchTypes"
-import {delay} from "@tutao/tutanota-utils"
 import type {DeviceEncryptionFacade} from "./facades/DeviceEncryptionFacade"
+import type {WorkerRandomizer} from "./crypto/Randomizer"
+import {RestClient} from "./rest/RestClient"
 
 
 assertWorkerOrNode()
@@ -64,6 +65,7 @@ export interface WorkerInterface {
 	+userManagementFacade: UserManagementFacade;
 	+contactFormFacade: ContactFormFacade;
 	+deviceEncryptionFacade: DeviceEncryptionFacade;
+	+random: WorkerRandomizer;
 }
 
 export class WorkerImpl {
@@ -134,6 +136,13 @@ export class WorkerImpl {
 			},
 			get deviceEncryptionFacade() {
 				return locator.deviceEncryptionFacade
+			},
+			get random() {
+				return {
+					async generateRandomNumber(nbrOfBytes: number) {
+						return random.generateRandomNumber(nbrOfBytes)
+					}
+				}
 			}
 		}
 
@@ -190,6 +199,11 @@ export class WorkerImpl {
 				const html: string = message.args[0]
 				return Promise.resolve(urlify(html))
 			},
+			// generate3ByteNumber: (message: Request) => {
+			// 	// Currently only 3 bytes needed
+			// 	return random.generateRandomData(3)
+			//
+			// },
 			facade: exposeLocal<WorkerInterface>(exposedWorker),
 		})
 

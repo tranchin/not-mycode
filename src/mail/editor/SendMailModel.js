@@ -21,7 +21,7 @@ import {
 	TooManyRequestsError
 } from "../../api/common/error/RestError"
 import {UserError} from "../../api/main/UserError"
-import {getPasswordStrengthForUser, isSecurePassword, PASSWORD_MIN_SECURE_VALUE} from "../../misc/PasswordUtils"
+import {getPasswordStrengthForUser, isSecurePassword, PASSWORD_MIN_SECURE_VALUE} from "../../misc/passwords/PasswordUtils"
 import type {lazy} from "@tutao/tutanota-utils"
 import {downcast, neverNull, noOp} from "@tutao/tutanota-utils"
 import {

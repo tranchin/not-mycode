@@ -14,6 +14,10 @@ export class TypeRef<+T> {
 		this.type = type
 		Object.freeze(this)
 	}
+
+	getStringRepresentation(): string {
+		return `${this.app}/${this.type}`
+	}
 }
 
 export function isSameTypeRefByAttr(typeRef: TypeRef<any>, app: string, type: string): boolean {

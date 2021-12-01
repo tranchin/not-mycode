@@ -9,8 +9,7 @@ import {
 	utf8Uint8ArrayToString
 } from "@tutao/tutanota-utils"
 import {Cardinality, Type, ValueType} from "../EntityConstants"
-import type {SomeEntity} from "../../main/Entity"
-import type {ModelValue, TypeModel} from "../EntityTypes"
+import type {ModelValue, SomeEntity, TypeModel} from "../EntityTypes"
 import type {Hex} from "@tutao/tutanota-utils/"
 import {base64ExtToBase64, base64ToBase64Ext, hexToBase64, pad} from "@tutao/tutanota-utils/"
 
@@ -36,6 +35,8 @@ export const RANGE_ITEM_LIMIT = 1000
 export const LOAD_MULTIPLE_LIMIT = 100
 export const POST_MULTIPLE_LIMIT = 100
 export const READ_ONLY_HEADER = "read-only"
+
+
 
 /**
  * Tests if one id is bigger than another.
@@ -98,6 +99,7 @@ export function isSameId(id1: ?(Id | IdTuple), id2: ?(Id | IdTuple)): boolean {
 		return (id1: any) === (id2: any)
 	}
 }
+
 
 export function haveSameId(entity1: SomeEntity, entity2: SomeEntity): boolean {
 	return isSameId(entity1._id, entity2._id)

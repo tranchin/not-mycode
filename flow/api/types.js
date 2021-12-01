@@ -112,8 +112,12 @@ type NativeRequestType =
 	| 'encryptUsingKeychain'
 	| 'decryptUsingKeychain'
 	| 'getSupportedEncryptionModes'
-	| 'loadEntities'
-	| 'saveEntities'
+	| 'loadEntity'
+	| 'createEntity'
+	| 'deleteEntity'
+	| 'loadMultipleEntities'
+	| 'writeMultipleEntities'
+	| 'deleteMultipleEntities'
 
 /** Requests from native to web */
 type JsRequestType =

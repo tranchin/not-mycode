@@ -14,14 +14,13 @@ import type {RootInstance} from "../entities/sys/RootInstance"
 import {RootInstanceTypeRef} from "../entities/sys/RootInstance"
 import {assertMainOrNode} from "../common/Env"
 import {ValueType} from "../common/EntityConstants"
-import type {Element, ListElement} from "../common/utils/EntityUtils";
+import type {ListElement} from "../common/utils/EntityUtils";
 import {CUSTOM_MIN_ID, GENERATED_MIN_ID, getLetId, RANGE_ITEM_LIMIT} from "../common/utils/EntityUtils";
 import {TypeRef} from "@tutao/tutanota-utils";
 import {locator} from "./MainLocator"
+import type {SomeEntity} from "../common/EntityTypes"
 
 assertMainOrNode()
-
-export type SomeEntity = Element | ListElement
 
 /** @deprecated use EntityClient implementation instead */
 export function setup<T: SomeEntity>(listId: ?Id, instance: T): Promise<Id> {

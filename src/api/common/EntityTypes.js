@@ -1,5 +1,7 @@
 // @flow
 import {AssociationType, Cardinality, Type, ValueType} from "./EntityConstants"
+import {TypeRef} from "@tutao/tutanota-utils"
+import type {Element, ListElement} from "./utils/EntityUtils"
 
 export type TypeEnum = $Values<typeof Type>;
 export type AssociationTypeEnum = $Values<typeof AssociationType>;
@@ -41,3 +43,16 @@ export type ModelAssociation = {
 	 */
 	dependency?: ?string,
 }
+export type Entity = {
+	/* Should be TypeRef<self> but Flow doesn't allow it. */
+	_type: TypeRef<*>,
+	// Should be included but cannot be unified with types without this property.
+	// _ownerEncSessionKey?: ?Uint8Array,
+	...
+}
+
+export type ElementEntity = Entity & Element
+
+export type ListElementEntity = Entity & ListElement
+
+export type SomeEntity = ElementEntity | ListElementEntity

@@ -41,6 +41,8 @@ import de.tutao.tutanota.alarms.AlarmNotificationsManager;
 import de.tutao.tutanota.credentials.CredentialEncryptionMode;
 import de.tutao.tutanota.credentials.CredentialsEncryptionFactory;
 import de.tutao.tutanota.credentials.ICredentialsEncryption;
+import de.tutao.tutanota.offline.Entity;
+import de.tutao.tutanota.offline.OfflineRepository;
 import de.tutao.tutanota.push.LocalNotificationsFacade;
 import de.tutao.tutanota.push.SseStorage;
 
@@ -65,8 +67,9 @@ public final class Native {
 	private volatile DeferredObject<Void, Throwable, Void> webAppInitialized = new DeferredObject<>();
 	private WebMessagePort webMessagePort;
 	private boolean isMessageChannelInitialized = false;
+	private OfflineRepository offlineRepo;
 
-	Native(MainActivity activity, SseStorage sseStorage, AlarmNotificationsManager alarmNotificationsManager) {
+	Native(MainActivity activity, SseStorage sseStorage, AlarmNotificationsManager alarmNotificationsManager, OfflineRepository offlineRepo) {
 		this.activity = activity;
 		crypto = new Crypto(activity);
 		contact = new Contact(activity);
@@ -75,6 +78,7 @@ public final class Native {
 		this.sseStorage = sseStorage;
 		this.themeManager = new ThemeManager(activity);
 		this.credentialsEncryption = CredentialsEncryptionFactory.create(activity);
+		this.offlineRepo = offlineRepo;
 	}
 
 	public void setup() {
@@ -367,6 +371,32 @@ public final class Native {
 						jsonArray.put(mode.name);
 					}
 					promise.resolve(jsonArray);
+					break;
+				}
+				case "createEntity": {
+					JSONObject query = args.getJSONObject(0);
+					String typeRef = query.getString("typeRef");
+					String listId;
+					try {
+						listId = query.getString("listId");
+					} catch(JSONException e) {
+						listId = null;
+					}
+					String elementId = query.getString("elementId");
+
+					Entity entity;
+					if (listId != null) {
+						entity = offlineRepo.loadSingle(typeRef, listId, elementId);
+					} else {
+						entity = offlineRepo.loadSingle(typeRef, elementId);
+					}
+
+					return promise.resolve(entity.entityJson);
+				}
+				case "loadEntity": {
+					break;
+				}
+				case "deleteEntity": {
 					break;
 				}
 				default:

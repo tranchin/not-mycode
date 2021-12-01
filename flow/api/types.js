@@ -15,7 +15,8 @@ type IdTuple = [string, string]
 type Params = {[key: string]: string}
 
 /** Requests from main web thread to worker */
-type WorkerRequestType = 'setup'
+type WorkerRequestType =
+	| 'setup'
 	| 'generateSignupKeys'
 	| 'reset'
 	| 'testEcho'
@@ -33,7 +34,8 @@ type WorkerRequestType = 'setup'
 	| 'facade'
 
 /** Requests from worker web thread to main web thread */
-type MainRequestType = 'execNative'
+type MainRequestType =
+	| 'execNative'
 	| 'entityEvent'
 	| 'error'
 	| 'progress'
@@ -47,7 +49,8 @@ type MainRequestType = 'execNative'
 	| 'writeIndexerDebugLog'
 
 /** Requests from web to native */
-type NativeRequestType = 'init'
+type NativeRequestType =
+	| 'init'
 	| 'generateRsaKey'
 	| 'rsaEncrypt'
 	| 'rsaDecrypt'
@@ -109,9 +112,12 @@ type NativeRequestType = 'init'
 	| 'encryptUsingKeychain'
 	| 'decryptUsingKeychain'
 	| 'getSupportedEncryptionModes'
+	| 'loadEntities'
+	| 'saveEntities'
 
 /** Requests from native to web */
-type JsRequestType = 'createMailEditor'
+type JsRequestType =
+	| 'createMailEditor'
 	| 'handleBackPress'
 	| 'showAlertDialog'
 	| 'openMailbox'

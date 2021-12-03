@@ -1,5 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
 
 android {
 	compileSdkVersion 31
@@ -125,8 +126,8 @@ dependencies {
 	implementation "androidx.biometric:biometric:1.1.0"
 
 	implementation "androidx.room:room-runtime:$room_version"
-	// For Kotlin use kapt instead of annotationProcessor
-	annotationProcessor "androidx.room:room-compiler:$room_version"
+	implementation "androidx.room:room-ktx:$room_version"
+	kapt "androidx.room:room-compiler:$room_version"
 
 	implementation "androidx.lifecycle:lifecycle-livedata:$lifecycle_version"
 
@@ -135,8 +136,13 @@ dependencies {
 	testImplementation "org.robolectric:robolectric:4.6.1"
 	testImplementation "org.mockito:mockito-core:2.28.2"
 	androidTestImplementation 'org.codehaus.jackson:jackson-mapper-asl:1.9.2'
-	implementation "androidx.core:core-ktx:+"
+
+	implementation "androidx.core:core-ktx:$kotlin_version"
 	implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+	implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_version-RC"
+	implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlin_version-RC"
+
+
 }
 repositories {
 	mavenCentral()

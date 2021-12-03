@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 
 final public class LogReader {
-	static Uri getLogFile(Context context) {
+	public static Uri getLogFile(Context context) {
 		try {
 			File tempDirectory = new File(Utils.getDir(context), "temp");
 			tempDirectory.mkdirs();

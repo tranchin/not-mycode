@@ -77,7 +77,7 @@ public class FileUtil {
 		return activity.getPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
 	}
 
-	void delete(final String fileUri) throws Exception {
+	public void delete(final String fileUri) throws Exception {
 		if (fileUri.startsWith(Uri.fromFile(Utils.getDir(activity)).toString())) {
 			// we do not deleteAlarmNotification files that are not stored in our cache dir
 			if (!new File(Uri.parse(fileUri).getPath()).delete()) {
@@ -86,7 +86,7 @@ public class FileUtil {
 		}
 	}
 
-	Promise<Object, Exception, Void> openFileChooser() {
+	public Promise<Object, Exception, Void> openFileChooser() {
 		final Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
 		intent.setType("*/*");
 		intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -119,7 +119,7 @@ public class FileUtil {
 	}
 
 	// @see: https://developer.android.com/reference/android/support/v4/content/FileProvider.html
-	Promise<Object, Exception, Void> openFile(String fileUri, String mimeType) {
+	public Promise<Object, Exception, Void> openFile(String fileUri, String mimeType) {
 		Uri file = Uri.parse(fileUri);
 		String scheme = file.getScheme();
 		if ("file".equals(scheme)) {
@@ -141,7 +141,7 @@ public class FileUtil {
 	}
 
 	@NonNull
-	String getMimeType(Uri fileUri) {
+	public String getMimeType(Uri fileUri) {
 		String scheme = fileUri.getScheme();
 		if ("file".equals(scheme)) {
 			String extension = MimeTypeMap.getFileExtensionFromUrl(fileUri.toString());
@@ -243,7 +243,7 @@ public class FileUtil {
 		return Uri.fromFile(newFile).toString();
 	}
 
-	long getSize(String fileUri) throws FileNotFoundException {
+	public long getSize(String fileUri) throws FileNotFoundException {
 		return Utils.getFileInfo(activity, Uri.parse(fileUri)).size;
 	}
 
@@ -251,7 +251,7 @@ public class FileUtil {
 		return Utils.getFileInfo(activity, Uri.parse(fileUri)).name;
 	}
 
-	JSONObject upload(final String fileUri, final String targetUrl, final JSONObject headers) throws IOException, JSONException {
+	public JSONObject upload(final String fileUri, final String targetUrl, final JSONObject headers) throws IOException, JSONException {
 		InputStream inputStream = activity.getContentResolver().openInputStream(Uri.parse(fileUri));
 		HttpURLConnection con = (HttpURLConnection) (new URL(targetUrl)).openConnection();
 		try {
@@ -279,7 +279,7 @@ public class FileUtil {
 		}
 	}
 
-	JSONObject download(final String sourceUrl, final String filename, final JSONObject headers) throws IOException, JSONException {
+	public JSONObject download(final String sourceUrl, final String filename, final JSONObject headers) throws IOException, JSONException {
 		HttpURLConnection con = null;
 		try {
 			con = (HttpURLConnection) (new URL(sourceUrl)).openConnection();
@@ -334,7 +334,7 @@ public class FileUtil {
 		return  writeFileToDir(filename, inputStream, Crypto.TEMP_DIR_ENCRYPTED);
 	}
 
-	Promise<Object, Exception, Void> saveBlob(final String name, final String base64blob) {
+	public Promise<Object, Exception, Void> saveBlob(final String name, final String base64blob) {
 		try {
 			File localFile = writeFileToUnencryptedDir(name, new ByteArrayInputStream(Utils.base64ToBytes(base64blob)));
 			return this.putToDownloadFolder(Utils.fileToUri(localFile));
@@ -360,7 +360,7 @@ public class FileUtil {
 		}
 	}
 
-	void clearFileData() {
+	public void clearFileData() {
 		cleanupDir(Crypto.TEMP_DIR_DECRYPTED);
 		cleanupDir(Crypto.TEMP_DIR_ENCRYPTED);
 	}

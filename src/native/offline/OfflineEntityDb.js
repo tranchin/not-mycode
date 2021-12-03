@@ -4,6 +4,7 @@ import type {NativeInterface} from "../common/NativeInterface"
 import {Request} from "../../api/common/RemoteMessageDispatcher"
 import type {ListElementEntity, SomeEntity} from "../../api/common/EntityTypes"
 import {TypeRef} from "@tutao/tutanota-utils"
+import {ProgrammingError} from "../../api/common/error/ProgrammingError"
 
 /**
  * TODO:
@@ -42,9 +43,7 @@ export class OfflineEntityDb {
 	}
 
 	async load<T: SomeEntity>(typeRef: TypeRef<T>, listId: ?Id, elementId: Id): Promise<?T> {
-
-		const dings = await this.loadMultiple([{typeRef, listId, elementId}])
-		const loaded = await this.loadMultiple([{typeRef, listId, elementId}])
+		const loaded = await this.loadMultiple<T>([{typeRef, listId, elementId}])
 		return loaded[0]
 	}
 
@@ -58,8 +57,9 @@ export class OfflineEntityDb {
 		return JSON.parse(entityJson)
 	}
 
-	async loadRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, startId: Id, count: ?number): Promise<{found: Array<T>, notFound: Array<Id>}> {
-
+	async loadRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, startId: Id, count: ?number): Promise<Array<T>> {
+		// FIXME
+		throw new ProgrammingError("not implemented")
 	}
 
 	async delete<T: SomeEntity>(typeRef: TypeRef<T>, elementId: Id, listId: ?Id): Promise<void> {

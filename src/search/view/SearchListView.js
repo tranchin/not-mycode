@@ -28,6 +28,7 @@ import {isSameTypeRef, TypeRef} from "@tutao/tutanota-utils";
 import {compareContacts} from "../../contacts/view/ContactGuiUtils";
 import type {SearchResult} from "../../api/worker/search/SearchTypes"
 import {ofClass, promiseMap} from "@tutao/tutanota-utils"
+import type {ListElementEntity} from "../../api/common/EntityTypes"
 
 assertMainOrNode()
 
@@ -264,7 +265,7 @@ export class SearchListView {
 		return Promise.resolve()
 	}
 
-	_loadAndFilterInstances<T: ListElement>(type: TypeRef<T>, toLoad: IdTuple[], currentResult: SearchResult,
+	_loadAndFilterInstances<T: ListElementEntity>(type: TypeRef<T>, toLoad: IdTuple[], currentResult: SearchResult,
 	                                        startIndex: number): Promise<T[]> {
 
 		const grouped = groupBy(toLoad, listIdPart)

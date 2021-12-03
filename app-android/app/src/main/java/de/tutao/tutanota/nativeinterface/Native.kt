@@ -1,4 +1,4 @@
-package de.tutao.tutanota
+package de.tutao.tutanota.nativeinterface
 
 import de.tutao.tutanota.push.SseStorage
 import de.tutao.tutanota.alarms.AlarmNotificationsManager
@@ -11,31 +11,25 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebMessagePort.WebMessageCallback
 import android.webkit.WebMessage
 import org.json.JSONObject
-import org.jdeferred.DoneCallback
-import org.jdeferred.FailCallback
 import org.json.JSONException
-import de.tutao.tutanota.JsRequest
 import org.jdeferred.Promise
 import org.json.JSONArray
-import org.jdeferred.Deferred
-import de.tutao.tutanota.Crypto.EncryptedFileInfo
-import de.tutao.tutanota.LogReader
 import de.tutao.tutanota.credentials.CredentialEncryptionMode
-import de.tutao.tutanota.OfflineRepoQuery
 import kotlin.Throws
 import android.app.NotificationManager
 import de.tutao.tutanota.push.LocalNotificationsFacade
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.ActivityNotFoundException
 import androidx.core.content.FileProvider
 import android.content.ClipData
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import de.tutao.tutanota.*
 import de.tutao.tutanota.alarms.AlarmNotification
 import de.tutao.tutanota.credentials.CredentialsEncryptionFactory
 import de.tutao.tutanota.offline.Entity
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.IOException
 import java.io.PrintWriter
@@ -43,15 +37,21 @@ import java.io.StringWriter
 import java.lang.Exception
 import java.lang.RuntimeException
 import java.util.*
+import java.util.concurrent.Executors
+import kotlin.Result.Companion.failure
+import kotlin.Result.Companion.success
+import kotlin.coroutines.suspendCoroutine
+
+const val NumWorkerThreads = 2
 
 /**
  * Created by mpfau on 4/8/17.
  */
 class Native(
-		private val activity: MainActivity,
-		private val sseStorage: SseStorage,
-		private val alarmNotificationsManager: AlarmNotificationsManager,
-		private val offlineRepo: OfflineRepository
+	private val activity: MainActivity,
+	private val sseStorage: SseStorage,
+	private val alarmNotificationsManager: AlarmNotificationsManager,
+	private val offlineRepo: OfflineRepository
 ) {
 	private val crypto: Crypto = Crypto(activity)
 	private val files: FileUtil = FileUtil(activity, LocalNotificationsFacade(activity))
@@ -89,16 +89,22 @@ class Native(
 		val (outgoingPort, incomingPort) = webView.createWebMessageChannel()
 		webMessagePort = outgoingPort
 
+
+		// Setup worker threads
+		val executor = Executors.newFixedThreadPool(NumWorkerThreads)
+
 		outgoingPort.setWebMessageCallback(object : WebMessageCallback() {
 			override fun onMessage(port: WebMessagePort, message: WebMessage) {
-				handleMessageFromWeb(message.data)
+				executor.execute {
+					handleMessageFromWeb(message.data)
+				}
 			}
 		})
 
 		// We send the port to the web side, this message gets handled by window.onmessage
 		webView.postWebMessage(
-				WebMessage("", arrayOf(incomingPort)),
-				Uri.EMPTY
+			WebMessage("", arrayOf(incomingPort)),
+			Uri.EMPTY
 		)
 	}
 
@@ -107,27 +113,32 @@ class Native(
 	 *
 	 * @param msg A request (see WorkerProtocol)
 	 */
-	fun handleMessageFromWeb(msg: String?) {
-		Thread(Runnable {
-			try {
-				val request = JSONObject(msg)
-				if (request["type"] == "response") {
-					val id = request.getString("id")
-					val promise = queue.remove(id)
-					if (promise == null) {
-						Log.w(TAG, "No request for id $id")
-					} else {
-						promise.resolve(request)
-					}
-				} else {
-					invokeMethod(request.getString("requestType"), request.getJSONArray("args"))
-							.then { result: Any? -> sendResponse(request, result) }
-							.fail { e: Exception -> sendErrorResponse(request, e) }
-				}
-			} catch (e: JSONException) {
-				Log.e("Native", "could not parse msg:", e)
+	fun handleMessageFromWeb(msg: String) {
+		val request = try {
+			JSONObject(msg)
+		} catch (e: JSONException) {
+			Log.e("Native", "could not parse msg:", e)
+			return
+		}
+
+		if (request["type"] == "response") {
+			val id = request.getString("id")
+			val promise = queue.remove(id)
+			if (promise == null) {
+				Log.w(TAG, "No request for id $id")
+			} else {
+				promise.resolve(request)
 			}
-		}).start()
+		} else {
+			runBlocking {
+				try {
+					val result = invokeMethod(request.getString("requestType"), request.getJSONArray("args"))
+					sendResponse(request, result)
+				} catch (e: Exception) {
+					sendErrorResponse(request, e)
+				}
+			}
+		}
 	}
 
 	fun sendRequest(type: JsRequest, args: Array<Any?>): Promise<Any, Exception, *> {
@@ -180,156 +191,138 @@ class Native(
 	}
 
 	// Public for testing
-	fun invokeMethod(method: String, args: JSONArray): Promise<Any?, Exception, Void> {
-		val promise: Deferred<Any?, Exception, Void> = DeferredObject()
-		try {
-			when (method) {
-				"init" -> {
-					if (!webAppInitialized.isResolved) {
-						webAppInitialized.resolve(null)
-					}
-					promise.resolve(null)
+	suspend fun invokeMethod(method: String, args: JSONArray): Any? {
+		return when (method) {
+			"init" -> {
+				if (!webAppInitialized.isResolved) {
+					webAppInitialized.resolve(null)
 				}
-				"reload" -> {
-					webAppInitialized = DeferredObject()
-					activity.reload(Utils.jsonObjectToMap(args.getJSONObject(0)))
-					promise.resolve(null)
-				}
-				"initPushNotifications" -> return initPushNotifications()
-				"generateRsaKey" -> promise.resolve(crypto.generateRsaKey(Utils.base64ToBytes(args.getString(0))))
-				"rsaEncrypt" -> promise.resolve(crypto.rsaEncrypt(args.getJSONObject(0), Utils.base64ToBytes(args.getString(1)), Utils.base64ToBytes(args.getString(2))))
-				"rsaDecrypt" -> promise.resolve(crypto.rsaDecrypt(args.getJSONObject(0), Utils.base64ToBytes(args.getString(1))))
-				"aesEncryptFile" -> {
-					val efi = crypto.aesEncryptFile(Utils.base64ToBytes(args.getString(0)), args.getString(1),
-							Utils.base64ToBytes(args.getString(2)))
-					promise.resolve(efi.toJSON())
-				}
-				"aesDecryptFile" -> {
-					val key = Utils.base64ToBytes(args.getString(0))
-					val fileUrl = args.getString(1)
-					promise.resolve(crypto.aesDecryptFile(key, fileUrl))
-				}
-				"open" -> return files.openFile(args.getString(0), args.getString(1))
-				"openFileChooser" -> return files.openFileChooser()
-				"deleteFile" -> {
-					files.delete(args.getString(0))
-					promise.resolve(null)
-				}
-				"getName" -> promise.resolve(files.getName(args.getString(0)))
-				"getMimeType" -> promise.resolve(files.getMimeType(Uri.parse(args.getString(0))))
-				"getSize" -> promise.resolve(files.getSize(args.getString(0)).toString() + "")
-				"upload" -> promise.resolve(files.upload(args.getString(0), args.getString(1), args.getJSONObject(2)))
-				"download" -> promise.resolve(files.download(args.getString(0), args.getString(1), args.getJSONObject(2)))
-				"clearFileData" -> {
-					files.clearFileData()
-					promise.resolve(null)
-				}
-				"findSuggestions" -> return contact.findSuggestions(args.getString(0))
-				"openLink" -> promise.resolve(openLink(args.getString(0)))
-				"shareText" -> promise.resolve(shareText(args.getString(0), args.getString(1)))
-				"getPushIdentifier" -> promise.resolve(sseStorage.pushIdentifier)
-				"storePushIdentifierLocally" -> {
-					val deviceIdentififer = args.getString(0)
-					val userId = args.getString(1)
-					val sseOrigin = args.getString(2)
-					Log.d(TAG, "storePushIdentifierLocally")
-					sseStorage.storePushIdentifier(deviceIdentififer, sseOrigin)
-					val pushIdentifierId = args.getString(3)
-					val pushIdentifierSessionKeyB64 = args.getString(4)
-					sseStorage.storePushIdentifierSessionKey(userId, pushIdentifierId, pushIdentifierSessionKeyB64)
-					promise.resolve(true)
-				}
-				"closePushNotifications" -> {
-					val addressesArray = args.getJSONArray(0)
-					cancelNotifications(addressesArray)
-					promise.resolve(true)
-				}
-				"readFile" -> promise.resolve(Utils.bytesToBase64(
-						Utils.readFile(File(activity.filesDir, args.getString(0)))))
-				"writeFile" -> {
-					val filename = args.getString(0)
-					val contentInBase64 = args.getString(1)
-					Utils.writeFile(File(activity.filesDir, filename),
-							Utils.base64ToBytes(contentInBase64))
-					promise.resolve(true)
-				}
-				"getSelectedTheme" -> {
-					promise.resolve(themeManager.selectedThemeId)
-				}
-				"setSelectedTheme" -> {
-					val themeId = args.getString(0)
-					themeManager.setSelectedThemeId(themeId)
-					activity.applyTheme()
-					promise.resolve(null)
-				}
-				"getThemes" -> {
-					val themesList = themeManager.themes
-					promise.resolve(JSONArray(themesList))
-				}
-				"setThemes" -> {
-					val jsonThemes = args.getJSONArray(0)
-					themeManager.setThemes(jsonThemes)
-					activity.applyTheme() // reapply theme in case the current selected theme definition has changed
-					promise.resolve(null)
-				}
-				"saveBlob" -> return files.saveBlob(args.getString(0), args.getString(1))
-				"putFileIntoDownloads" -> {
-					val path = args.getString(0)
-					return files.putToDownloadFolder(path)
-				}
-				"getDeviceLog" -> return Utils.resolvedDeferred(LogReader.getLogFile(activity).toString())
-				"changeLanguage" -> promise.resolve(null)
-				"scheduleAlarms" -> {
-					scheduleAlarms(args.getJSONArray(0))
-					promise.resolve(null)
-				}
-				"encryptUsingKeychain" -> {
-					val encryptionMode = args.getString(0)
-					val dataToEncrypt = args.getString(1)
-					val mode = CredentialEncryptionMode.fromName(encryptionMode)
-					val encryptedData = credentialsEncryption.encryptUsingKeychain(dataToEncrypt, mode)
-					promise.resolve(encryptedData)
-				}
-				"decryptUsingKeychain" -> {
-					val encryptionMode = args.getString(0)
-					val dataToDecrypt = args.getString(1)
-					val mode = CredentialEncryptionMode.fromName(encryptionMode)
-					val decryptedData = credentialsEncryption.decryptUsingKeychain(dataToDecrypt, mode)
-					promise.resolve(decryptedData)
-				}
-				"getSupportedEncryptionModes" -> {
-					val modes = credentialsEncryption.supportedEncryptionModes
-					val jsonArray = JSONArray()
-					for (mode in modes) {
-						jsonArray.put(mode.name)
-					}
-					promise.resolve(jsonArray)
-				}
-				"offline.load" -> {
-					val query = OfflineRepoQuery.fromJson(args.getJSONObject(0))
-					val entity = offlineRepo.load(query.typeRef, query.listId, query.elementId)
-					promise.resolve(entity?.data)
-				}
-				"offline.write" -> {
-					val query = OfflineRepoQuery.fromJson(args.getJSONObject(0))
-					if (query.payload == null) {
-						throw Exception("No payload")
-					}
-					offlineRepo.insert(Entity(query.typeRef, query.listId, query.elementId, query.payload))
-					promise.resolve(null)
-				}
-				"offline.delete" -> {
-					val query = OfflineRepoQuery.fromJson(args.getJSONObject(0))
-					offlineRepo.delete(query.typeRef, query.listId, query.elementId)
-					promise.resolve(null)
-				}
-				else -> throw Exception("unsupported method: $method")
+				null
 			}
-		} catch (e: Exception) {
-			Log.e(TAG, "failed invocation", e)
-			promise.reject(e)
+			"reload" -> {
+				webAppInitialized = DeferredObject()
+				activity.reload(Utils.jsonObjectToMap(args.getJSONObject(0)))
+			}
+			"initPushNotifications" -> initPushNotifications()
+			"generateRsaKey" -> crypto.generateRsaKey(Utils.base64ToBytes(args.getString(0)))
+			"rsaEncrypt" ->
+				crypto.rsaEncrypt(
+					args.getJSONObject(0),
+					Utils.base64ToBytes(args.getString(1)),
+					Utils.base64ToBytes(args.getString(2))
+				)
+			"rsaDecrypt" -> crypto.rsaDecrypt(args.getJSONObject(0), Utils.base64ToBytes(args.getString(1)))
+			"aesEncryptFile" ->
+				crypto.aesEncryptFile(
+					Utils.base64ToBytes(args.getString(0)),
+					args.getString(1),
+					Utils.base64ToBytes(args.getString(2))
+				).toJSON()
+			"aesDecryptFile" -> {
+				val key = Utils.base64ToBytes(args.getString(0))
+				val fileUrl = args.getString(1)
+				crypto.aesDecryptFile(key, fileUrl)
+			}
+			"open" -> files.openFile(args.getString(0), args.getString(1)).await()
+			"openFileChooser" -> files.openFileChooser().await()
+			"deleteFile" -> files.delete(args.getString(0))
+			"getName" -> files.getName(args.getString(0))
+			"getMimeType" -> files.getMimeType(Uri.parse(args.getString(0)))
+			"getSize" -> files.getSize(args.getString(0)).toString()
+			"upload" -> files.upload(args.getString(0), args.getString(1), args.getJSONObject(2))
+			"download" -> files.download(args.getString(0), args.getString(1), args.getJSONObject(2))
+			"clearFileData" -> files.clearFileData()
+			"findSuggestions" -> contact.findSuggestions(args.getString(0)).await()
+			"openLink" -> openLink(args.getString(0))
+			"shareText" -> shareText(args.getString(0), args.getString(1))
+			"getPushIdentifier" -> sseStorage.pushIdentifier
+			"storePushIdentifierLocally" -> {
+				val deviceIdentififer = args.getString(0)
+				val userId = args.getString(1)
+				val sseOrigin = args.getString(2)
+				Log.d(TAG, "storePushIdentifierLocally")
+				sseStorage.storePushIdentifier(deviceIdentififer, sseOrigin)
+				val pushIdentifierId = args.getString(3)
+				val pushIdentifierSessionKeyB64 = args.getString(4)
+				sseStorage.storePushIdentifierSessionKey(userId, pushIdentifierId, pushIdentifierSessionKeyB64)
+				true
+			}
+			"closePushNotifications" -> {
+				val addressesArray = args.getJSONArray(0)
+				cancelNotifications(addressesArray)
+				true
+			}
+			"readFile" -> Utils.bytesToBase64(Utils.readFile(File(activity.filesDir, args.getString(0))))
+			"writeFile" -> {
+				val filename = args.getString(0)
+				val contentInBase64 = args.getString(1)
+				Utils.writeFile(
+					File(activity.filesDir, filename),
+					Utils.base64ToBytes(contentInBase64)
+				)
+				true
+			}
+			"getSelectedTheme" -> themeManager.selectedThemeId
+			"setSelectedTheme" -> {
+				val themeId = args.getString(0)
+				themeManager.setSelectedThemeId(themeId)
+				activity.applyTheme()
+			}
+			"getThemes" -> {
+				val themesList = themeManager.themes
+				JSONArray(themesList)
+			}
+			"setThemes" -> {
+				val jsonThemes = args.getJSONArray(0)
+				themeManager.setThemes(jsonThemes)
+				activity.applyTheme() // reapply theme in case the current selected theme definition has changed
+			}
+			"saveBlob" -> files.saveBlob(args.getString(0), args.getString(1)).await()
+			"putFileIntoDownloads" -> {
+				val path = args.getString(0)
+				files.putToDownloadFolder(path).await()
+			}
+			"getDeviceLog" -> LogReader.getLogFile(activity).toString()
+			"changeLanguage" -> null
+			"scheduleAlarms" -> scheduleAlarms(args.getJSONArray(0))
+			"encryptUsingKeychain" -> {
+				val encryptionMode = args.getString(0)
+				val dataToEncrypt = args.getString(1)
+				val mode = CredentialEncryptionMode.fromName(encryptionMode)
+				credentialsEncryption.encryptUsingKeychain(dataToEncrypt, mode)
+			}
+			"decryptUsingKeychain" -> {
+				val encryptionMode = args.getString(0)
+				val dataToDecrypt = args.getString(1)
+				val mode = CredentialEncryptionMode.fromName(encryptionMode)
+				credentialsEncryption.decryptUsingKeychain(dataToDecrypt, mode)
+			}
+			"getSupportedEncryptionModes" -> {
+				val modes = credentialsEncryption.supportedEncryptionModes
+				val jsonArray = JSONArray()
+				for (mode in modes) {
+					jsonArray.put(mode.name)
+				}
+				jsonArray
+			}
+			"offline.load" -> {
+				val query = OfflineRepoQuery.fromJson(args.getJSONObject(0))
+				val entity = offlineRepo.load(query.typeRef, query.listId, query.elementId)
+				entity?.data
+			}
+			"offline.write" -> {
+				val query = OfflineRepoQuery.fromJson(args.getJSONObject(0))
+				if (query.payload == null) {
+					throw Exception("No payload")
+				}
+				offlineRepo.insert(Entity(query.typeRef, query.listId, query.elementId, query.payload))
+			}
+			"offline.delete" -> {
+				val query = OfflineRepoQuery.fromJson(args.getJSONObject(0))
+				offlineRepo.delete(query.typeRef, query.listId, query.elementId)
+			}
+			else -> throw Exception("unsupported method: $method")
 		}
-		return promise.promise()
 	}
 
 	@Throws(JSONException::class)
@@ -341,8 +334,12 @@ class Native(
 			notificationManager.cancel(Math.abs(addressesArray.getString(i).hashCode()))
 			emailAddesses.add(addressesArray.getString(i))
 		}
-		activity.startService(LocalNotificationsFacade.notificationDismissedIntent(activity,
-				emailAddesses, "Native", false))
+		activity.startService(
+			LocalNotificationsFacade.notificationDismissedIntent(
+				activity,
+				emailAddesses, "Native", false
+			)
+		)
 	}
 
 	private fun openLink(uri: String?): Boolean {
@@ -376,16 +373,18 @@ class Native(
 			val logoFile = files.writeFileToUnencryptedDir(imageName, logoInputStream)
 			val logoUri = FileProvider.getUriForFile(activity, BuildConfig.FILE_PROVIDER_AUTHORITY, logoFile)
 			val thumbnail = ClipData.newUri(
-					activity.contentResolver,
-					"tutanota_logo",
-					logoUri
+				activity.contentResolver,
+				"tutanota_logo",
+				logoUri
 			)
 			sendIntent.clipData = thumbnail
 		} catch (e: IOException) {
-			Log.e(TAG, """
+			Log.e(
+				TAG, """
  	Error attaching thumbnail to share intent:
  	${e.message}
- 	""".trimIndent())
+ 	""".trimIndent()
+			)
 		}
 		sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 		val intent = Intent.createChooser(sendIntent, null)
@@ -393,12 +392,11 @@ class Native(
 		return true
 	}
 
-	private fun initPushNotifications(): Promise<Any?, Exception, Void> {
+	private fun initPushNotifications() {
 		activity.runOnUiThread {
-			activity.askBatteryOptinmizationsIfNeeded()
+			activity.askBatteryOptimizationsIfNeeded()
 			activity.setupPushNotifications()
 		}
-		return Utils.resolvedDeferred(null)
 	}
 
 	@Throws(JSONException::class)
@@ -443,10 +441,10 @@ class Native(
 }
 
 internal class OfflineRepoQuery private constructor(
-		val typeRef: String,
-		val listId: String,
-		val elementId: String,
-		val payload: String?
+	val typeRef: String,
+	val listId: String,
+	val elementId: String,
+	val payload: String?
 ) {
 	companion object {
 		@Throws(JSONException::class)
@@ -468,4 +466,10 @@ internal class OfflineRepoQuery private constructor(
 			return OfflineRepoQuery(typeRef, listId, elementId, payload)
 		}
 	}
+}
+
+suspend fun <D, F : Throwable, P> Promise<D, F, P>.await(): D = suspendCoroutine { continuation ->
+	this
+		.then { continuation.resumeWith(success(it)) }
+		.fail { continuation.resumeWith(failure(it)) }
 }

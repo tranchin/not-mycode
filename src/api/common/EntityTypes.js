@@ -43,16 +43,15 @@ export type ModelAssociation = {
 	 */
 	dependency?: ?string,
 }
-export type Entity = {
+export interface Entity {
 	/* Should be TypeRef<self> but Flow doesn't allow it. */
-	_type: TypeRef<*>,
+	_type: TypeRef<*>
 	// Should be included but cannot be unified with types without this property.
 	// _ownerEncSessionKey?: ?Uint8Array,
-	...
 }
 
-export type ElementEntity = Entity & Element
+export interface ElementEntity extends Entity, Element {}
 
-export type ListElementEntity = Entity & ListElement
+export interface ListElementEntity extends Entity , ListElement {}
 
 export type SomeEntity = ElementEntity | ListElementEntity

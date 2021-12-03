@@ -102,7 +102,7 @@ public class Crypto {
 	}
 
 
-	protected synchronized JSONObject generateRsaKey(byte[] seed) throws JSONException, NoSuchProviderException, NoSuchAlgorithmException {
+	public synchronized JSONObject generateRsaKey(byte[] seed) throws JSONException, NoSuchProviderException, NoSuchAlgorithmException {
 		this.randomizer.setSeed(seed);
 		KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
 		generator.initialize(RSA_KEY_LENGTH_IN_BITS, randomizer);
@@ -159,7 +159,7 @@ public class Crypto {
 	/**
 	 * Encrypts an aes key with RSA to a byte array.
 	 */
-	String rsaEncrypt(JSONObject publicKeyJson, byte[] data, byte[] random) throws CryptoError {
+	public String rsaEncrypt(JSONObject publicKeyJson, byte[] data, byte[] random) throws CryptoError {
 		try {
 			PublicKey publicKey = jsonToPublicKey(publicKeyJson);
 			return this.rsaEncrypt(publicKey, data, random);
@@ -194,7 +194,7 @@ public class Crypto {
 	/**
 	 * Decrypts a byte array with RSA to an AES key.
 	 */
-	String rsaDecrypt(JSONObject jsonPrivateKey, byte[] encryptedKey) throws CryptoError {
+	public String rsaDecrypt(JSONObject jsonPrivateKey, byte[] encryptedKey) throws CryptoError {
 		try {
 			PrivateKey privateKey = jsonToPrivateKey(jsonPrivateKey);
 			byte[] decrypted = rsaDecrypt(privateKey, encryptedKey);
@@ -237,7 +237,7 @@ public class Crypto {
 		return new SecretKeySpec(key, "AES");
 	}
 
-	EncryptedFileInfo aesEncryptFile(final byte[] key, final String fileUrl, final byte[] iv) throws IOException, CryptoError {
+	public EncryptedFileInfo aesEncryptFile(final byte[] key, final String fileUrl, final byte[] iv) throws IOException, CryptoError {
 		Uri fileUri = Uri.parse(fileUrl);
 		FileInfo file = Utils.getFileInfo(context, fileUri);
 		File encryptedDir = new File(Utils.getDir(context), TEMP_DIR_ENCRYPTED);
@@ -281,7 +281,7 @@ public class Crypto {
 		}
 	}
 
-	String aesDecryptFile(final byte[] key, final String fileUrl) throws IOException, CryptoError {
+	public String aesDecryptFile(final byte[] key, final String fileUrl) throws IOException, CryptoError {
 		Uri fileUri = Uri.parse(fileUrl);
 		FileInfo file = Utils.getFileInfo(context, fileUri);
 		File decryptedDir = new File(Utils.getDir(context), TEMP_DIR_DECRYPTED);

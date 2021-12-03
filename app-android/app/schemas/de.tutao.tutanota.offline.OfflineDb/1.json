@@ -1,13 +1,19 @@
-a{
+{
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "1eba7f1f87b98ac45f206190fe2d9194",
+    "identityHash": "5ac15939305e4c7d5837c835176cabca",
     "entities": [
       {
         "tableName": "Entity",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`listId` TEXT NOT NULL, `elementId` TEXT NOT NULL, `typeRef` TEXT NOT NULL, PRIMARY KEY(`listId`, `elementId`, `typeRef`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`typeRef` TEXT NOT NULL, `listId` TEXT NOT NULL, `elementId` TEXT NOT NULL, `data` TEXT NOT NULL, PRIMARY KEY(`listId`, `elementId`, `typeRef`))",
         "fields": [
+          {
+            "fieldPath": "typeRef",
+            "columnName": "typeRef",
+            "affinity": "TEXT",
+            "notNull": true
+          },
           {
             "fieldPath": "listId",
             "columnName": "listId",
@@ -21,8 +27,8 @@ a{
             "notNull": true
           },
           {
-            "fieldPath": "typeRef",
-            "columnName": "typeRef",
+            "fieldPath": "data",
+            "columnName": "data",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -42,7 +48,7 @@ a{
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1eba7f1f87b98ac45f206190fe2d9194')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5ac15939305e4c7d5837c835176cabca')"
     ]
   }
 }

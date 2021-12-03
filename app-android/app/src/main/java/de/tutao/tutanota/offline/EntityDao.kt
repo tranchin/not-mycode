@@ -8,17 +8,21 @@ import androidx.room.Query
 @Dao
 abstract class EntityDao {
 	@Query("SELECT * FROM Entity WHERE typeRef = :typeRef AND listId = :listId AND elementId = :elementId")
-	abstract fun load(typeRef: String?, listId: String?, elementId: String?): Entity?
+	abstract fun load(typeRef: String, listId: String, elementId: String): Entity?
+
 	@Query("SELECT * FROM Entity WHERE typeRef = :typeRef AND listId = :listId AND elementId IN (:elementIds)")
-	abstract fun loadMultiple(typeRef: String?, listId: String?, elementIds: List<String?>?): List<Entity?>?
+	abstract fun loadMultiple(typeRef: String, listId: String, elementIds: List<String>): List<Entity?>?
 
 	// TODO How does comparison work here when IDs are strings?
-	//	@Query("SELECT * FROM Entity WHERE typeRef = :typeRef AND listId = :listId AND elementId > :startId ORDER BY elementId")
-	//	public abstract List<Entity> loadRange(String typeRef, String listId, String startId);
+	@Query("SELECT * FROM Entity WHERE typeRef = :typeRef AND listId = :listId AND elementId > :startId ORDER BY elementId")
+	abstract fun loadRange(typeRef: String, listId: String, startId: String): List<Entity>
+
 	@Query("SELECT * FROM Entity WHERE typeRef = :typeRef AND listId = :listId")
-	abstract fun loadAll(typeRef: String?, listId: String?): List<Entity?>?
+	abstract fun loadAll(typeRef: String, listId: String): List<Entity>
+
 	@Insert(onConflict = OnConflictStrategy.REPLACE)
-	abstract fun insert(entities: List<Entity?>?)
+	abstract fun insert(entities: List<Entity>)
+
 	@Query("DELETE FROM Entity WHERE typeRef = :typeRef AND listId = :listId AND elementId = :elementId")
-	abstract fun delete(typeRef: String?, listId: String?, elementId: String?)
+	abstract fun delete(typeRef: String, listId: String, elementId: String)
 }

@@ -109,10 +109,11 @@ export function containsId(ids: $ReadOnlyArray<Id | IdTuple>, id: Id | IdTuple):
 	return ids.find(idInArray => isSameId(idInArray, id)) != null
 }
 
-export type Element = {
+export interface Element  {
 	_id: Id
 }
-export type ListElement = {
+
+export interface ListElement {
 	_id: IdTuple
 }
 

@@ -14,12 +14,15 @@ abstract class OfflineDb : RoomDatabase() {
 
 	companion object {
 		var instance: OfflineDb? = null
-		fun getInstance(context: Context?): OfflineDb? {
+
+		@JvmStatic
+		@Synchronized
+		fun getInstance(context: Context?): OfflineDb {
 			if (instance == null) {
 				val builder = Room.databaseBuilder(context!!, OfflineDb::class.java, "offline-db")
 				instance = builder.build()
 			}
-			return instance
+			return instance!!
 		}
 	}
 }

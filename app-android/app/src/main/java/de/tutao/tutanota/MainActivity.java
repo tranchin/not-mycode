@@ -1,6 +1,5 @@
 package de.tutao.tutanota;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
@@ -31,7 +30,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
-import androidx.activity.ComponentActivity;
 import androidx.annotation.ColorInt;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
@@ -59,6 +57,9 @@ import java.util.concurrent.TimeUnit;
 import de.tutao.tutanota.alarms.AlarmNotificationsManager;
 import de.tutao.tutanota.alarms.SystemAlarmFacade;
 import de.tutao.tutanota.data.AppDatabase;
+import de.tutao.tutanota.nativeinterface.Native;
+import de.tutao.tutanota.offline.OfflineDb;
+import de.tutao.tutanota.offline.OfflineRepository;
 import de.tutao.tutanota.push.LocalNotificationsFacade;
 import de.tutao.tutanota.push.PushNotificationService;
 import de.tutao.tutanota.push.SseStorage;
@@ -93,7 +94,8 @@ public class MainActivity extends FragmentActivity {
 				keyStoreFacade);
 		AlarmNotificationsManager alarmNotificationsManager = new AlarmNotificationsManager(sseStorage,
 				new Crypto(this), new SystemAlarmFacade(this), new LocalNotificationsFacade(this));
-		nativeImpl = new Native(this, sseStorage, alarmNotificationsManager);
+
+		nativeImpl = new Native(this, sseStorage, alarmNotificationsManager, new OfflineRepository(OfflineDb.getInstance(this)));
 
 		doApplyTheme(this.nativeImpl.themeManager.getCurrentThemeWithFallback());
 
@@ -277,7 +279,7 @@ public class MainActivity extends FragmentActivity {
 
 	}
 
-	public void askBatteryOptinmizationsIfNeeded() {
+	public void askBatteryOptimizationsIfNeeded() {
 		PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
 		if (!preferences.getBoolean(ASKED_BATTERY_OPTIMIZTAIONS_PREF, false)
@@ -398,7 +400,7 @@ public class MainActivity extends FragmentActivity {
 		}
 	}
 
-	void setupPushNotifications() {
+	public void setupPushNotifications() {
 		startService(PushNotificationService.startIntent(this, "MainActivity#setupPushNotifications"));
 
 		JobScheduler jobScheduler = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);

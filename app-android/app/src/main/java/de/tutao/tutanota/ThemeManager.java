@@ -39,15 +39,15 @@ public class ThemeManager {
 	}
 
 	@Nullable
-	String getSelectedThemeId() {
+	public String getSelectedThemeId() {
 		return getPrefs().getString(CURRENT_THEME_KEY, null);
 	}
 
-	void setSelectedThemeId(@NonNull String themeId) {
+	public void setSelectedThemeId(@NonNull String themeId) {
 		getPrefs().edit().putString(CURRENT_THEME_KEY, themeId).apply();
 	}
 
-	List<Map<String, String>> getThemes() {
+	public List<Map<String, String>> getThemes() {
 		Set<String> themesStrings = Objects.requireNonNull(getPrefs().getStringSet(THEMES_KEY, Collections.emptySet()));
 		List<Map<String, String>> themes = new ArrayList<>();
 		for (String string : themesStrings) {
@@ -62,7 +62,7 @@ public class ThemeManager {
 		return themes;
 	}
 
-	void setThemes(JSONArray themes) {
+	public void setThemes(JSONArray themes) {
 		Set<String> themeStrings = new HashSet<>();
 		for (int i = 0; i < themes.length(); i++) {
 			try {

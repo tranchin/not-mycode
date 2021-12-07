@@ -11,7 +11,7 @@ import accountingModelMap from "../entities/accounting/accountingModelMap"
 import baseModelMap from "../entities/base/baseModelMap"
 import gossipModelMap from "../entities/gossip/gossipModelMap"
 import storageModelMap from "../entities/storage/storageModelMap"
-import type {TypeModel} from "./EntityTypes"
+import type {SomeEntity, TypeModel} from "./EntityTypes"
 import {SetupMultipleError} from "./error/SetupMultipleError"
 import {PayloadTooLargeError} from "./error/RestError"
 
@@ -60,7 +60,7 @@ export function resolveTypeReference(typeRef: TypeRef<any>): Promise<TypeModel> 
 }
 
 
-export function _setupEntity<T>(listId: ?Id, instance: T, target: EntityRestInterface, extraHeaders?: Params): Promise<Id> {
+export function _setupEntity<T: SomeEntity>(listId: ?Id, instance: T, target: EntityRestInterface, extraHeaders?: Params): Promise<Id> {
 	return resolveTypeReference((instance: any)._type).then(typeModel => {
 		_verifyType(typeModel)
 		if (typeModel.type === Type.ListElement) {

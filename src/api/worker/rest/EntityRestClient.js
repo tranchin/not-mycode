@@ -16,6 +16,7 @@ import {NotAuthenticatedError} from "../../common/error/RestError"
 import type {EntityUpdate} from "../../entities/sys/EntityUpdate"
 import {isSameTypeRef, ofClass, promiseMap, TypeRef} from "@tutao/tutanota-utils";
 import {assertWorkerOrNode} from "../../common/Env"
+import type {SomeEntity} from "../../common/EntityTypes"
 
 assertWorkerOrNode()
 
@@ -40,7 +41,15 @@ export interface EntityRestInterface {
 	 * @param queryParams
 	 * @return Resolves the entity / list of Entities delivered by the server or the elementId of the created entity.
 	 */
-	entityRequest<T>(typeRef: TypeRef<T>, method: HttpMethodEnum, listId: ?Id, id: ?Id, entity: ?T | T[], queryParameter: ?Params, extraHeaders?: Params): Promise<?T | T[] | Id | Id[]>;
+	entityRequest<T: SomeEntity>(
+		typeRef: TypeRef<T>,
+		method: HttpMethodEnum,
+		listId: ?Id,
+		id: ?Id,
+		entity: ?T | T[],
+		queryParameter: ?Params,
+		extraHeaders?: Params
+	): Promise<?T | T[] | Id | Id[]>;
 
 	/**
 	 * Must be called when entity events are received.
@@ -93,13 +102,13 @@ export class EntityRestClient implements EntityRestInterface {
 			headers['v'] = model.version
 			if (method === HttpMethod.POST) {
 				let encryptedEntityPromise
-				if(Array.isArray(entity)){
+				if (Array.isArray(entity)) {
 					//post multiple
 					encryptedEntityPromise = promiseMap(entity, e => {
 						const sk = setNewOwnerEncSessionKey(model, (e: any))
 						return encryptAndMapToLiteral(model, e, sk)
 					})
-				}else {
+				} else {
 					//regular post
 					const sk = setNewOwnerEncSessionKey(model, (entity: any))
 					encryptedEntityPromise = encryptAndMapToLiteral(model, entity, sk)

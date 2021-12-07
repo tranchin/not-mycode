@@ -4,7 +4,19 @@ import {typeRefToPath} from "./EntityRestClient"
 import type {HttpMethodEnum} from "../../common/EntityFunctions"
 import {HttpMethod, resolveTypeReference} from "../../common/EntityFunctions"
 import {OperationType} from "../../common/TutanotaConstants"
-import {clone, downcast, flat, groupBy, isSameTypeRef, neverNull, ofClass, promiseMap, remove, TypeRef} from "@tutao/tutanota-utils"
+import {
+	clone,
+	downcast,
+	flat,
+	getFromMap,
+	groupBy,
+	isSameTypeRef,
+	neverNull,
+	ofClass,
+	promiseMap,
+	remove,
+	TypeRef
+} from "@tutao/tutanota-utils"
 import {containsEventOfType, getEventOfType} from "../../common/utils/Utils"
 import {PermissionTypeRef} from "../../entities/sys/Permission"
 import {EntityEventBatchTypeRef} from "../../entities/sys/EntityEventBatch"
@@ -29,16 +41,157 @@ import {
 import {ProgrammingError} from "../../common/error/ProgrammingError"
 import {assertWorkerOrNode} from "../../common/Env"
 import type {$Promisable} from "@tutao/tutanota-utils/"
+import type {SomeEntity} from "../../common/EntityTypes"
 
 
 assertWorkerOrNode()
 
 export interface CacheStorage {
 	getEntity(): any;
+
 	getListEntity(): any;
+
 	isInRange(): boolean;
 }
 
+type ListEntry = {
+	allRange: Id[],
+	lowerRangeId: Id,
+	upperRangeId: Id,
+	elements: Map<Id, Object>
+}
+
+export class CacheStorageWeb {
+	//	Example:
+	//	entities = {
+	//		'path': { 		// element type
+	//			'element1Id': 'element1',
+	//			'element2Id': 'element2'
+	//		    // and so on
+	//		},
+	//      // and so on
+	//  }
+	_entities: Map<string, Map<Id, Object>>
+
+	//	Example:
+	//    listEntities {
+	//		'path': { 		// list element type
+	//			'listId': {
+	//				allRange: ['listElement1Id', 'listElement2Id'],
+	//              lowerRangeId: listElement1Id,
+	//              upperRangeId: GENERATED_MAX_ID,
+	//              elements: {
+	//				    'listElement1Id': 'listElement1',
+	//				    'listElement2Id': 'listElement2',
+	//    				// and so on
+	//              }
+	//			},
+	//          // and so on
+	//		},
+	//      // and so on
+	//	}
+	_listEntities: Map<string, Map<Id, ListEntry>>
+
+
+	contains(typeRef: TypeRef<any>, listId: ?Id, id: Id): boolean {
+		const path = typeRefToPath(typeRef)
+		if (listId) {
+			return this._listEntities.get(path)?.get(listId)?.elements.get(id) != null
+		} else {
+			return this._entities.get(path)?.get(id) != null
+		}
+	}
+
+	isInRange(typeRef: TypeRef<*>, listId: Id, id: Id): boolean {
+		const path = typeRefToPath(typeRef)
+		const entry = this._listEntities.get(path)?.get(listId)
+		return entry != null
+			&& !firstBiggerThanSecond(id, entry.upperRangeId)
+			&& !firstBiggerThanSecond(entry.lowerRangeId, id)
+	}
+
+
+	/**
+	 *
+	 * @returns {Array<Id>} the ids that are in cache range
+	 */
+	getIdsInRange(typeRef: TypeRef<*>, listId: Id, ids: Id[]): Id[] {
+		return ids.filter(id => this.isInRange(typeRef, listId, id))
+	}
+
+
+	removeIfExists<T: SomeEntity>(typeRef: TypeRef<T>, listId: ?Id, id: Id): void {
+		const path = typeRefToPath(typeRef)
+		if (this.contains(typeRef, listId, id)) {
+			if (listId) {
+				const entry = this._listEntities.get(path)?.get(listId)
+				if (entry) {
+					entry.elements.delete(id)
+					remove(entry.allRange, id)
+				}
+			} else {
+				this._entities.get(path)?.delete(id)
+			}
+		}
+	}
+
+	get<T: SomeEntity>(typeRef: TypeRef<T>, listId: ?Id, id: Id): ?T {
+		const path = typeRefToPath(typeRef)
+
+		const entity = listId != null
+			? this._listEntities.get(path)?.get(listId)?.elements.get(id)
+			: this._entities.get(path)?.get(id)
+
+		return clone(entity)
+	}
+
+
+	put<T: SomeEntity>(originalEntity: T): void {
+		const entity = clone(originalEntity)
+		const {_id, _type} = entity
+		const path = typeRefToPath(_type)
+		if (_id instanceof Array) {
+			const [listId, id] = entity._id
+			const lists = getFromMap(this._listEntities, path, () => new Map())
+			const list = lists.get(listId)
+
+			if (!list) {
+				// first element in this list
+				lists.set(listId, {
+					allRange: [id],
+					lowerRangeId: id,
+					upperRangeId: id,
+					elements: new Map([[id, entity]])
+				})
+
+			} else {
+				// if the element already exists in the cache, overwrite it
+				// add new element to existing list if necessary
+				list.elements.set(id, entity)
+				if (this.isInRange(_type, listId, id)) {
+					this._insertIntoRange(list.allRange, id)
+				}
+			}
+		} else {
+			getFromMap(this._entities, path, () => new Map()).set(_id, entity)
+		}
+	}
+
+
+	_insertIntoRange(allRange: Array<Id>, elementId: Id) {
+		for (let i = 0; i < allRange.length; i++) {
+			let rangeElement = allRange[i]
+			if (firstBiggerThanSecond(rangeElement, elementId)) {
+				allRange.splice(i, 0, elementId)
+				return
+			}
+			if (rangeElement === elementId) {
+				return
+			}
+		}
+		allRange.push(elementId)
+	}
+}
 
 /**
  * This implementation provides a caching mechanism to the rest chain.
@@ -64,48 +217,27 @@ export class EntityRestCache implements EntityRestInterface {
 	_ignoredTypes: TypeRef<any>[];
 
 	_entityRestClient: EntityRestInterface;
-	/**
-	 * stores all contents that would be stored on the server, otherwise
-	 */
-	_entities: {[key: string]: {[key: Id]: Object}};
-	//	Example:
-	//	_entities = {
-	//		'path': { 		// element type
-	//			'element1Id': 'element1',
-	//			'element2Id': 'element2'
-	//		    // and so on
-	//		},
-	//      // and so on
-	//  }
-	_listEntities: {[key: string]: {[key: Id]: {allRange: Id[], lowerRangeId: Id, upperRangeId: Id, elements: {[key: Id]: Object}}}};
-	//	Example:
-	//    _listEntities {
-	//		'path': { 		// list element type
-	//			'listId': {
-	//				allRange: ['listElement1Id', 'listElement2Id'],
-	//              lowerRangeId: listElement1Id,
-	//              upperRangeId: GENERATED_MAX_ID,
-	//              elements: {
-	//				    'listElement1Id': 'listElement1',
-	//				    'listElement2Id': 'listElement2',
-	//    				// and so on
-	//              }
-	//			},
-	//          // and so on
-	//		},
-	//      // and so on
-	//	}
+
+	storage: CacheStorageWeb
+
 	constructor(entityRestClient: EntityRestInterface) {
 		this._entityRestClient = entityRestClient
-		this._entities = {}
-		this._listEntities = {}
+		this.storage = new CacheStorageWeb()
 		this._ignoredTypes = [
 			EntityEventBatchTypeRef, PermissionTypeRef, BucketPermissionTypeRef, SessionTypeRef,
 			SecondFactorTypeRef, RecoverCodeTypeRef, RejectedSenderTypeRef
 		]
 	}
 
-	entityRequest<T>(typeRef: TypeRef<T>, method: HttpMethodEnum, listId: ?Id, id: ?Id, entity: ?T, queryParameter: ?Params, extraHeaders?: Params): Promise<any> {
+	async entityRequest<T: SomeEntity>(
+		typeRef: TypeRef<T>,
+		method: HttpMethodEnum,
+		listId: ?Id,
+		id: ?Id,
+		entity: ?T | T[],
+		queryParameter: ?Params,
+		extraHeaders?: Params
+	): Promise<?T | T[] | Id | Id[]> {
 		let readOnly = false
 		if (extraHeaders) {
 			readOnly = extraHeaders[READ_ONLY_HEADER] === "true"
@@ -131,8 +263,8 @@ export class EntityRestCache implements EntityRestInterface {
 				})
 			} else if (id) {
 				// load single entity
-				if (this._isInCache(typeRef, listId, id)) {
-					return Promise.resolve(this._getFromCache(typeRef, listId, id))
+				if (this.storage.contains(typeRef, listId, id)) {
+					return Promise.resolve(this.storage.get(typeRef, listId, id))
 					// Some methods like "createDraft" are loading the created instance directly after the service has completed.
 					// Currently we cannot apply this optimization here because the cached is not updated directly after a service request because
 					// We don't wait for the updated/create event of the modified instance.
@@ -143,7 +275,7 @@ export class EntityRestCache implements EntityRestInterface {
 					return this._entityRestClient.entityRequest(typeRef, method, listId, id, entity, queryParameter, extraHeaders)
 					           .then(entity => {
 						           if (!readOnly) {
-							           this._putIntoCache(entity)
+							           this.storage.put(entity)
 						           }
 						           return entity
 					           })
@@ -168,33 +300,41 @@ export class EntityRestCache implements EntityRestInterface {
 			&& queryParameter["reverse"] != null
 	}
 
-	_loadMultiple<T>(typeRef: TypeRef<T>, method: HttpMethodEnum, listId: ?Id, id: ?Id, entity: ?T, queryParameter: Params,
-	                 extraHeaders?: Params, readOnly: boolean): Promise<Array<T>> {
+	async _loadMultiple<T: SomeEntity>(
+		typeRef: TypeRef<T>,
+		method: HttpMethodEnum,
+		listId: ?Id,
+		id: ?Id,
+		entity: T[],
+		queryParameter: Params,
+		extraHeaders?: Params,
+		readOnly: boolean
+	): Promise<Array<T>> {
 		const ids = queryParameter["ids"].split(",")
-		const inCache = [], notInCache = []
-		ids.forEach((id) => {
-			if (this._isInCache(typeRef, listId, id)) {
-				inCache.push(id)
+		const alreadyCached = []
+		const notInCache = []
+		for (let id of ids) {
+			const cached = this.storage.get(typeRef, listId, id)
+			if (cached != null) {
+				alreadyCached.push(cached)
 			} else {
 				notInCache.push(id)
 			}
-		})
-		const newQuery = Object.assign({}, queryParameter, {ids: notInCache.join(",")})
-		const loadFromServerPromise = notInCache.length > 0
-			? this._entityRestClient.entityRequest(typeRef, method, listId, id, entity, newQuery, extraHeaders)
-			      .then((response) => {
-				      const entities: Array<T> = downcast(response)
-				      if (!readOnly) {
-					      entities.forEach((e) => this._putIntoCache(e))
-				      }
-				      return entities
-			      })
-			: Promise.resolve([])
+		}
 
-		return Promise.all([
-			loadFromServerPromise,
-			inCache.map(id => this._getFromCache(typeRef, listId, id))
-		]).then(flat)
+		const newQuery = Object.assign({}, queryParameter, {ids: notInCache.join(",")})
+		const loaded = notInCache.length > 0
+			? await this._entityRestClient.entityRequest(typeRef, method, listId, id, entity, newQuery, extraHeaders)
+			            .then((response) => {
+				            const entities: Array<T> = downcast(response)
+				            if (!readOnly) {
+					            entities.forEach((e) => this._putIntoCache(e))
+				            }
+				            return entities
+			            })
+			: []
+
+		return loaded.concat(alreadyCached)
 	}
 
 	_loadRange<T: ListElement>(typeRef: TypeRef<T>, listId: Id, start: Id, count: number, reverse: boolean, readOnly: boolean): Promise<T[]> {
@@ -349,8 +489,7 @@ export class EntityRestCache implements EntityRestInterface {
 		let startElementId = start
 
 		let indexOfStart = allRangeList.indexOf(start)
-		if ((!reverse && listCache.upperRangeId === GENERATED_MAX_ID) || (reverse && listCache.lowerRangeId
-			=== GENERATED_MIN_ID)) {
+		if ((!reverse && listCache.upperRangeId === GENERATED_MAX_ID) || (reverse && listCache.lowerRangeId === GENERATED_MIN_ID)) {
 			// we have already loaded the complete range in the desired direction, so we do not have to load from server
 			elementsToRead = 0
 		} else if (allRangeList.length === 0) { // Element range is empty, so read all elements
@@ -445,10 +584,9 @@ export class EntityRestCache implements EntityRestInterface {
 		return promiseMap(createUpdatesForLETsPerList, ([instanceListId, updates]) => {
 			const firstUpdate = updates[0]
 			const typeRef = new TypeRef(firstUpdate.application, firstUpdate.type)
-			const path = typeRefToPath(typeRef)
 			const ids = updates.map(update => update.instanceId)
 			//We only want to load the instances that are in cache range
-			const idsInCacheRange = this._getInCacheRange(path, instanceListId, ids)
+			const idsInCacheRange = this.storage.getIdsInRange(typeRef, instanceListId, ids)
 			if (idsInCacheRange.length === 0) {
 				return updates
 			}
@@ -482,7 +620,7 @@ export class EntityRestCache implements EntityRestInterface {
 				          if (isSameTypeRef(MailTypeRef, typeRef) && containsEventOfType(batch, OperationType.CREATE, instanceId)) {
 					          // move for mail is handled in create event.
 				          } else {
-					          this._tryRemoveFromCache(typeRef, instanceListId, instanceId)
+					          this.storage.removeIfExists(typeRef, instanceListId, instanceId)
 				          }
 				          return update
 			          case OperationType.CREATE:
@@ -506,15 +644,16 @@ export class EntityRestCache implements EntityRestInterface {
 		// We put new instances into cache only when it's a new instance in the cached range which is only for the list instances.
 		if (instanceListId) {
 			const deleteEvent = getEventOfType(batch, OperationType.DELETE, instanceId)
-			const path = typeRefToPath(typeRef)
-			if (deleteEvent && isSameTypeRef(MailTypeRef, typeRef) && this._isInCache(typeRef, deleteEvent.instanceListId, instanceId)) {
+			if (deleteEvent && isSameTypeRef(MailTypeRef, typeRef)) {
 				// It is a move event for cached mail
-				const element = this._getFromCache(typeRef, deleteEvent.instanceListId, instanceId)
-				this._tryRemoveFromCache(typeRef, deleteEvent.instanceListId, instanceId)
-				element._id = [instanceListId, instanceId]
-				this._putIntoCache(element)
+				const element = this.storage.get(typeRef, deleteEvent.instanceListId, instanceId)
+				if (element) {
+					this.storage.removeIfExists(typeRef, deleteEvent.instanceListId, instanceId)
+					element._id = [instanceListId, instanceId]
+					this._putIntoCache(element)
+				}
 				return update
-			} else if (this._isInCacheRange(path, instanceListId, instanceId)) {
+			} else if (this.storage.isInRange(typeRef, instanceListId, instanceId)) {
 				// No need to try to download something that's not there anymore
 				return this._entityRestClient.entityRequest(typeRef, HttpMethod.GET, instanceListId, instanceId)
 				           .then(entity => this._putIntoCache(entity))
@@ -530,7 +669,7 @@ export class EntityRestCache implements EntityRestInterface {
 
 	_processUpdateEvent(typeRef: TypeRef<*>, update: EntityUpdate): $Promisable<EntityUpdate | null> {
 		const {instanceListId, instanceId} = update
-		if (this._isInCache(typeRef, instanceListId, instanceId)) {
+		if (this.storage.contains(typeRef, instanceListId, instanceId)) {
 			// No need to try to download something that's not there anymore
 			return this._entityRestClient.entityRequest(typeRef, HttpMethod.GET, instanceListId, instanceId)
 			           .then(entity => this._putIntoCache(entity))
@@ -548,94 +687,6 @@ export class EntityRestCache implements EntityRestInterface {
 			return null
 		} else {
 			throw e
-		}
-	}
-
-	_isInCache(typeRef: TypeRef<any>, listId: ?Id, id: Id): boolean {
-		let path = typeRefToPath(typeRef)
-		if (listId) {
-			return (this._listEntities[path] != null && this._listEntities[path][listId] != null
-				&& this._listEntities[path][listId].elements[id] != null)
-		} else {
-			return (this._entities[path] != null && this._entities[path][id] != null)
-		}
-	}
-
-	_getFromCache(typeRef: TypeRef<any>, listId: ?Id, id: Id): any {
-		let path = typeRefToPath(typeRef)
-		if (listId) {
-			return clone(this._listEntities[path][listId].elements[id])
-		} else {
-			return clone(this._entities[path][id])
-		}
-	}
-
-	_isInCacheRange(path: string, listId: Id, id: Id): boolean {
-		return this._listEntities[path] != null && this._listEntities[path][listId] != null
-			&& !firstBiggerThanSecond(id, this._listEntities[path][listId].upperRangeId)
-			&& !firstBiggerThanSecond(this._listEntities[path][listId].lowerRangeId, id)
-	}
-
-	/**
-	 *
-	 * @returns {Array<Id>} the ids that are in cache range
-	 */
-	_getInCacheRange(path: string, listId: Id, ids: Id[]): Id[] {
-		return ids.filter(id => this._isInCacheRange(path, listId, id))
-	}
-
-	_putIntoCache(originalEntity: any): void {
-		let entity = clone(originalEntity)
-		let path = typeRefToPath((entity: any)._type)
-		if (entity._id instanceof Array) {
-			if (!this._listEntities[path]) {
-				this._listEntities[path] = {}
-			}
-			let listId = entity._id[0]
-			let id = entity._id[1]
-			if (!this._listEntities[path][listId]) {
-				// first element in this list
-				this._listEntities[path][listId] = {allRange: [id], lowerRangeId: id, upperRangeId: id, elements: {}}
-				this._listEntities[path][listId].elements[id] = entity
-			} else {
-				// if the element already exists in the cache, overwrite it
-				// add new element to existing list if necessary
-				this._listEntities[path][listId].elements[id] = entity
-				if (this._isInCacheRange(path, listId, id)) {
-					this._insertIntoRange(this._listEntities[path][listId].allRange, id)
-				}
-			}
-		} else {
-			if (!this._entities[path]) {
-				this._entities[path] = {}
-			}
-			this._entities[path][entity._id] = entity
-		}
-	}
-
-	_insertIntoRange(allRange: Array<Id>, elementId: Id) {
-		for (let i = 0; i < allRange.length; i++) {
-			let rangeElement = allRange[i]
-			if (firstBiggerThanSecond(rangeElement, elementId)) {
-				allRange.splice(i, 0, elementId)
-				return
-			}
-			if (rangeElement === elementId) {
-				return
-			}
-		}
-		allRange.push(elementId)
-	}
-
-	_tryRemoveFromCache(typeRef: TypeRef<any>, listId: ?Id, id: Id): void {
-		let path = typeRefToPath(typeRef)
-		if (this._isInCache(typeRef, listId, id)) {
-			if (listId) {
-				delete this._listEntities[path][listId].elements[id]
-				remove(this._listEntities[path][listId].allRange, id)
-			} else {
-				delete this._entities[path][id]
-			}
 		}
 	}
 }

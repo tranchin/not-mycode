@@ -1,4 +1,6 @@
 // @flow
+// noinspection FallThroughInSwitchStatementJS
+
 import {
 	AccessBlockedError,
 	AccessDeactivatedError,
@@ -16,9 +18,8 @@ import m from "mithril"
 import {lang} from "./LanguageViewModel"
 import {assertMainOrNode, Mode} from "../api/common/Env"
 import {AccountType, ConversationType, MailMethod} from "../api/common/TutanotaConstants"
-import {errorToString, neverNull, noOp} from "@tutao/tutanota-utils"
+import {errorToString, neverNull, noOp, ofClass} from "@tutao/tutanota-utils"
 import {logins, SessionType} from "../api/main/LoginController"
-import {client} from "./ClientDetector"
 import {OutOfSyncError} from "../api/common/error/OutOfSyncError"
 import stream from "mithril/stream/stream.js"
 import {SecondFactorPendingError} from "../api/common/error/SecondFactorPendingError"
@@ -36,8 +37,8 @@ import {copyToClipboard} from "./ClipboardUtils"
 import {px} from "../gui/size"
 import {UserError} from "../api/main/UserError"
 import {showMoreStorageNeededOrderDialog} from "./SubscriptionDialogs";
-import {ofClass} from "@tutao/tutanota-utils"
 import {createDraftRecipient} from "../api/entities/tutanota/DraftRecipient"
+import {OfflineModeHandler} from "../offline/Offline"
 
 assertMainOrNode()
 
@@ -61,7 +62,16 @@ const ignoredMessages = [
 	"avast_submit"
 ]
 
-export function handleUncaughtError(e: Error) {
+function getServerDownReasonMessage() {
+	return new Promise(resolve => {
+		var img = document.createElement("img")
+		img.onload = () => resolve("serverDownForMaintenance_msg")
+		img.onerror = () => resolve("serverNotReachable_msg")
+		img.src = "https://tutanota.com/images/maintenancecheck.png"
+	})
+}
+
+export async function handleUncaughtError(e: Error) {
 	if (isLoggingOut) {
 		// ignore all errors while logging out
 		return
@@ -74,23 +84,17 @@ export function handleUncaughtError(e: Error) {
 	}
 
 	if (e instanceof ConnectionError) {
-		if (!notConnectedDialogActive) {
-			notConnectedDialogActive = true
-			var checkForMaintenance = function () {
-				var img = document.createElement("img")
-				img.onload = function () {
-					Dialog.message("serverDownForMaintenance_msg").then(() => {
-						notConnectedDialogActive = false
-					})
-				}
-				img.onerror = function () {
-					Dialog.message("serverNotReachable_msg").then(() => {
-						notConnectedDialogActive = false
-					})
-				}
-				img.src = "https://tutanota.com/images/maintenancecheck.png"
+		const offlineMode = locator.offline
+
+		// Only show a dialog if user does not have offline mode activated
+		// Because in offline mode they will just get some minor indication that they are offline
+		if (!offlineMode.enabled) {
+			if (!notConnectedDialogActive) {
+				notConnectedDialogActive = true
+				const message = await getServerDownReasonMessage()
+				await Dialog.message(message)
+				notConnectedDialogActive = false
 			}
-			checkForMaintenance()
 		}
 	} else if (e instanceof InvalidSoftwareVersionError) {
 		if (!invalidSoftwareVersionActive) {

@@ -314,7 +314,7 @@ class Header {
 	}
 
 	_connectionIndicator(): Children {
-		if (this._wsState === "connected" || this._wsState === "terminated") {
+		if (offlineMode.enabled || this._wsState === "connected" || this._wsState === "terminated") {
 			return null
 		} else {
 			// Use key so that mithril does not reuse dom element and transition works correctly

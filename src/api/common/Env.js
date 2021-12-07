@@ -72,6 +72,10 @@ export function isBrowser(): boolean {
 	return env.mode === Mode.Browser
 }
 
+export function isNative():  boolean {
+	return !isBrowser()
+}
+
 export function ifDesktop<T>(obj: T | null): T | null {
 	return isDesktop()
 		? obj

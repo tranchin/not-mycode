@@ -41,7 +41,7 @@ export type DisplayModeEnum = $Values<typeof DisplayMode>
  */
 export const LoginState = Object.freeze({
 	/* Log in in process. */
-	LogginIn: "LogginIn",
+	LoggingIn: "LogginIn",
 	/* Some unknown error occured during login. */
 	UnknownError: "UnknownError",
 	/* The credentials used for the last login attempt where invalid (e.g. bad password). */
@@ -186,8 +186,8 @@ export class LoginViewModel implements ILoginViewModel {
 	}
 
 	async login() {
-		if (this.state === LoginState.LogginIn) return
-		this.state = LoginState.LogginIn
+		if (this.state === LoginState.LoggingIn) return
+		this.state = LoginState.LoggingIn
 		if (this.displayMode === DisplayMode.Credentials || this.displayMode === DisplayMode.DeleteCredentials) {
 			await this._autologin()
 		} else if (this.displayMode === DisplayMode.Form) {
@@ -273,9 +273,11 @@ export class LoginViewModel implements ILoginViewModel {
 			}
 			if (this._autoLoginCredentials) {
 				const credentials = await this._credentialsProvider.getCredentialsByUserId(this._autoLoginCredentials.userId)
-				if (credentials) {
-					await this._loginController.resumeSession(credentials)
-					await this._onLogin()
+				if (isOnline()) {
+					if (credentials) {
+						await this._loginController.resumeSession(credentials)
+						await this._onLogin()
+					}
 				}
 			}
 		} catch (e) {
@@ -309,7 +311,7 @@ export class LoginViewModel implements ILoginViewModel {
 			return
 		}
 		this.helpText = 'login_msg'
-		this.state = LoginState.LogginIn
+		this.state = LoginState.LoggingIn
 		try {
 
 			const sessionType = savePassword ? SessionType.Persistent : SessionType.Login

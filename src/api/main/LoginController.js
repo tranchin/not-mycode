@@ -1,12 +1,11 @@
 //@flow
 import type {DeferredObject} from "@tutao/tutanota-utils"
-import {assertNotNull, defer} from "@tutao/tutanota-utils"
-import {assertMainOrNodeBoot, getHttpOrigin} from "../common/Env"
+import {assertNotNull, defer, remove} from "@tutao/tutanota-utils"
+import {assertMainOrNodeBoot, getHttpOrigin, isNative} from "../common/Env"
 import type {FeatureTypeEnum} from "../common/TutanotaConstants"
 import type {IUserController, UserControllerInitData} from "./UserController"
 import {getWhitelabelCustomizations} from "../../misc/WhitelabelCustomizations"
 import {NotFoundError} from "../common/error/RestError"
-import {remove} from "@tutao/tutanota-utils"
 import {client} from "../../misc/ClientDetector"
 import type {LoginFacade} from "../worker/facades/LoginFacade"
 import type {Credentials} from "../../misc/credentials/Credentials"
@@ -32,12 +31,18 @@ export type LoggedInEvent = {|
 |}
 
 export interface LoginController {
-	createSession(username: string,
-	              password: string,
-	              sessionType: SessionTypeEnum,
+	createSession(
+		username: string,
+		password: string,
+		sessionType: SessionTypeEnum,
 	): Promise<Credentials>;
 
-	createExternalSession(userId: Id, password: string, salt: Uint8Array, clientIdentifier: string, sessionType: SessionTypeEnum
+	createExternalSession(
+		userId: Id,
+		password: string,
+		salt: Uint8Array,
+		clientIdentifier: string,
+		sessionType: SessionTypeEnum
 	): Promise<Credentials>;
 
 	resumeSession(credentials: Credentials, externalUserSalt: ?Uint8Array): Promise<void>;
@@ -65,7 +70,6 @@ export interface LoginController {
 	registerHandler(handler: LoginEventHandler): void;
 
 	unregisterHandler(handler: LoginEventHandler): void;
-
 }
 
 export class LoginControllerImpl implements LoginController {
@@ -246,6 +250,7 @@ export class LoginControllerImpl implements LoginController {
 			}
 		}
 	}
+
 }
 
 export const logins: LoginController = new LoginControllerImpl()

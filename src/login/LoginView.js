@@ -215,6 +215,7 @@ export class LoginView {
 			invalidCredentials: this._viewModel.state === LoginState.InvalidCredentials,
 			showRecoveryOption: this._recoverLoginVisible(),
 			accessExpired: this._viewModel.state === LoginState.AccessExpired,
+			disabled: !isOnline()
 		}))
 	}
 

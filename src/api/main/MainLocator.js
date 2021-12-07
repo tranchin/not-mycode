@@ -65,6 +65,7 @@ export interface IMainLocator {
 	+fileApp: NativeFileApp;
 	+pushService: NativePushServiceApp;
 	+systemApp: NativeSystemApp;
+	+offline: OfflineModeHandler;
 
 	+loginFacade: LoginFacade;
 	+customerFacade: CustomerFacade;
@@ -101,7 +102,7 @@ class MainLocator implements IMainLocator {
 	credentialsProvider: ICredentialsProvider;
 	worker: WorkerClient;
 	fileController: FileController;
-
+	offline: OfflineModeHandler;
 
 	loginFacade: LoginFacade;
 	customerFacade: CustomerFacade;
@@ -247,6 +248,7 @@ class MainLocator implements IMainLocator {
 		this.contactModel = new ContactModelImpl(this.searchFacade, this.entityClient, logins)
 		this.minimizedMailModel = new MinimizedMailEditorViewModel()
 		this.fileController = new FileController(this._nativeInterfaces?.fileApp)
+		this.offline = new OfflineModeHandler(native, logins)
 	}
 }
 

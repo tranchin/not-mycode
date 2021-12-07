@@ -33,6 +33,12 @@ import type {$Promisable} from "@tutao/tutanota-utils/"
 
 assertWorkerOrNode()
 
+export interface CacheStorage {
+	getEntity(): any;
+	getListEntity(): any;
+	isInRange(): boolean;
+}
+
 
 /**
  * This implementation provides a caching mechanism to the rest chain.

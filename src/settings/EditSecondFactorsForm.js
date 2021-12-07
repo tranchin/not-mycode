@@ -4,7 +4,6 @@ import {assertMainOrNode, isApp, isTutanotaDomain} from "../api/common/Env"
 import {createSecondFactor, SecondFactorTypeRef} from "../api/entities/sys/SecondFactor"
 import {contains, LazyLoaded, neverNull, ofClass} from "@tutao/tutanota-utils"
 import {Icons} from "../gui/base/icons/Icons"
-import {erase, load, loadAll, setup} from "../api/main/Entity"
 import {Dialog, DialogType} from "../gui/base/Dialog"
 import {lang} from "../misc/LanguageViewModel"
 import {U2fClient} from "../misc/U2fClient"
@@ -90,7 +89,7 @@ export class EditSecondFactorsForm {
 
 	_updateSecondFactors(): Promise<void> {
 		return this._user.getAsync()
-		           .then(user => loadAll(SecondFactorTypeRef, neverNull(user.auth).secondFactors))
+		           .then(user => locator.entityClient.loadAll(SecondFactorTypeRef, neverNull(user.auth).secondFactors))
 		           .then(factors => {
 
 			           const differentDomainAppIds = factors.reduce((result, f) => {
@@ -107,7 +106,7 @@ export class EditSecondFactorsForm {
 					           label: "remove_action",
 					           click: () => Dialog
 						           .confirm("confirmDeleteSecondFactor_msg")
-						           .then(res => res ? showProgressDialog("pleaseWait_msg", erase(f)) : Promise.resolve())
+						           .then(res => res ? showProgressDialog("pleaseWait_msg", locator.entityClient.erase(f)) : Promise.resolve())
 						           .catch(ofClass(NotFoundError, e => console.log("could not delete second factor (already deleted)", e))),
 					           icon: () => Icons.Cancel
 				           }
@@ -125,7 +124,7 @@ export class EditSecondFactorsForm {
 	/** see https://github.com/google/google-authenticator/wiki/Key-Uri-Format */
 	_getOtpAuthUrl(secret: string): Promise<string> {
 		return this._user.getAsync()
-		           .then(user => load(GroupInfoTypeRef, user.userGroup.groupInfo))
+		           .then(user => locator.entityClient.load(GroupInfoTypeRef, user.userGroup.groupInfo))
 		           .then(userGroupInfo => {
 			           let otpAuthUrlPrefix = "otpauth://totp/"
 			           let issuer = isTutanotaDomain() ? "Tutanota" : location.hostname
@@ -289,7 +288,8 @@ export class EditSecondFactorsForm {
 								sf.otpSecret = totpKeys.key
 							}
 						}
-						showProgressDialog("pleaseWait_msg", setup(neverNull(user.auth).secondFactors, sf))
+					
+						showProgressDialog("pleaseWait_msg", locator.entityClient.setup(neverNull(user.auth).secondFactors, sf))
 							.then(() => dialog.close())
 							.then(() => this._showRecoveryInfoDialog(user))
 					})

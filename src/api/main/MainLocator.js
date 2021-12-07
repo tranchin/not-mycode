@@ -168,7 +168,7 @@ class MainLocator implements IMainLocator {
 		this.worker = bootstrapWorker(this)
 
 		await this._createInstances()
-
+		
 		this._entropyCollector = new EntropyCollector(this.worker)
 		this._entropyCollector.start()
 
@@ -199,6 +199,7 @@ class MainLocator implements IMainLocator {
 			userManagementFacade,
 			contactFormFacade,
 			deviceEncryptionFacade,
+			restInterface
 		} = this.worker.getWorkerInterface()
 
 		this.loginFacade = loginFacade
@@ -222,7 +223,7 @@ class MainLocator implements IMainLocator {
 		this.eventController = new EventController(logins)
 		this.progressTracker = new ProgressTracker()
 		this.search = new SearchModel(this.searchFacade)
-		this.entityClient = new EntityClient(this.worker)
+		this.entityClient = new EntityClient(restInterface)
 		this.credentialsProvider = await createCredentialsProvider(deviceEncryptionFacade, this._nativeInterfaces?.native)
 
 		this.mailModel = new MailModel(notifications, this.eventController, this.worker, this.mailFacade, this.entityClient)

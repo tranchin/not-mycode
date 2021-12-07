@@ -2,7 +2,7 @@
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
 import {SessionTypeRef} from "../api/entities/sys/Session"
-import {load, serviceRequestVoid} from "../api/main/Entity"
+import { serviceRequestVoid} from "../api/main/ServiceRequest"
 import {Dialog} from "../gui/base/Dialog"
 import {SysService} from "../api/entities/sys/Services"
 import {HttpMethod} from "../api/common/EntityFunctions"
@@ -57,7 +57,7 @@ export class SecondFactorHandler {
 				let sessionId = [neverNull(update.instanceListId), update.instanceId];
 				if (isUpdateForTypeRef(SessionTypeRef, update)) {
 					if (update.operation === OperationType.CREATE) {
-						return load(SessionTypeRef, sessionId)
+						return locator.entityClient.load(SessionTypeRef, sessionId)
 							.then(session => {
 								if (session.state === SessionState.SESSION_STATE_PENDING) {
 									if (this._otherLoginDialog != null) {
@@ -106,7 +106,7 @@ export class SecondFactorHandler {
 							.catch(ofClass(NotFoundError, (e) => console.log("Failed to load session", e)))
 					} else if (update.operation === OperationType.UPDATE && this._otherLoginSessionId
 						&& isSameId(this._otherLoginSessionId, sessionId)) {
-						return load(SessionTypeRef, sessionId)
+						return locator.entityClient.load(SessionTypeRef, sessionId)
 							.then(session => {
 								if (session.state !== SessionState.SESSION_STATE_PENDING && this._otherLoginDialog
 									&& isSameId(neverNull(this._otherLoginSessionId), sessionId)) {

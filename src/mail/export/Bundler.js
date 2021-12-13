@@ -1,8 +1,6 @@
 //@flow
 import type {Mail} from "../../api/entities/tutanota/Mail";
 import type {EntityClient} from "../../api/common/EntityClient";
-import {MailBodyTypeRef} from "../../api/entities/tutanota/MailBody";
-import {getMailBodyText} from "../../api/common/utils/Utils";
 import {FileTypeRef} from "../../api/entities/tutanota/File";
 import {MailState} from "../../api/common/TutanotaConstants";
 import {getLetId} from "../../api/common/utils/EntityUtils"
@@ -45,13 +43,13 @@ export type MailBundle = {
  */
 export function makeMailBundle(mail: Mail, entityClient: EntityClient, mailFacade: MailFacade, fileFacade: FileFacade, sanitizer: HtmlSanitizer): Promise<MailBundle> {
 	const bodyTextPromise = mailFacade.getMailBody(mail)
-	                                    .then(body =>
-		                                    sanitizer.sanitize(body ?? "", {
-			                                    blockExternalContent: false,
-			                                    allowRelativeLinks: false,
-			                                    usePlaceholderForInlineImages: false
-		                                    }).text
-	                                    )
+	                                  .then(body =>
+		                                  sanitizer.sanitize(body ?? "", {
+			                                  blockExternalContent: false,
+			                                  allowRelativeLinks: false,
+			                                  usePlaceholderForInlineImages: false
+		                                  }).text
+	                                  )
 
 	const attachmentsPromise: Promise<Array<DataFile>> =
 		promiseMap(mail.attachments, fileId => entityClient.load(FileTypeRef, fileId)

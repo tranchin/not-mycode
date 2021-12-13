@@ -139,16 +139,16 @@ async function checkInboxRule(mailFacade: MailFacade, mail: Mail, inboxRule: Inb
 			return _checkContainsRule(mail.subject, inboxRule)
 		} else if (ruleType === InboxRuleType.MAIL_HEADER_CONTAINS) {
 			return mailFacade.getHeaders(mail)
-			             .then(mailHeaders => {
-				             return _checkContainsRule(mailHeaders || "", inboxRule)
-			             })
-			             .catch(e => {
-				             if (!(e instanceof NotFoundError)) {
-					             // Does the outer catch already handle this case?
-					             console.error("Error processing inbox rule:", e.message)
-				             }
-				             return false
-			             })
+			                 .then(mailHeaders => {
+				                 return _checkContainsRule(mailHeaders || "", inboxRule)
+			                 })
+			                 .catch(e => {
+				                 if (!(e instanceof NotFoundError)) {
+					                 // Does the outer catch already handle this case?
+					                 console.error("Error processing inbox rule:", e.message)
+				                 }
+				                 return false
+			                 })
 		} else {
 			console.warn("Unknown rule type: ", inboxRule.type)
 			return false

@@ -40,7 +40,8 @@ import {
 	noOp,
 	ofClass,
 	promiseFilter,
-	promiseMap, utf8Uint8ArrayToString
+	promiseMap,
+	utf8Uint8ArrayToString
 } from "@tutao/tutanota-utils"
 import type {User} from "../../entities/sys/User"
 import {UserTypeRef} from "../../entities/sys/User"
@@ -63,7 +64,7 @@ import type {EntityUpdate} from "../../entities/sys/EntityUpdate"
 import type {PhishingMarker} from "../../entities/tutanota/PhishingMarker"
 import {EntityClient} from "../../common/EntityClient"
 import {getEnabledMailAddressesForGroupInfo, getUserGroupMemberships} from "../../common/utils/GroupUtils";
-import {containsId, elementIdPart, getLetId, isSameId, listIdPart, stringToCustomId} from "../../common/utils/EntityUtils";
+import {containsId, getLetId, isSameId, stringToCustomId} from "../../common/utils/EntityUtils";
 import {htmlToText} from "../search/IndexUtils"
 import {MailBodyTooLargeError} from "../../common/error/MailBodyTooLargeError"
 import {UNCOMPRESSED_MAX_SIZE} from "../Compression"
@@ -90,13 +91,10 @@ import {SessionKeyNotFoundError} from "../../common/error/SessionKeyNotFoundErro
 import {ProgrammingError} from "../../common/error/ProgrammingError"
 import {createBlobId} from "../../entities/sys/BlobId"
 import type {Blob} from "../../entities/sys/Blob"
-import {compressString, decompressString} from "../crypto/InstanceMapper"
+import {decompressString} from "../crypto/InstanceMapper"
 import type {MailBody} from "../../entities/tutanota/MailBody"
 import {MailBodyTypeRef} from "../../entities/tutanota/MailBody"
 import {TutanotaError} from "../../common/error/TutanotaError"
-import {createBlobReferenceDataPut} from "../../entities/storage/BlobReferenceDataPut"
-import {createTypeInfo} from "../../entities/sys/TypeInfo"
-import {StorageService} from "../../entities/storage/Services"
 
 assertWorkerOrNode()
 
@@ -109,7 +107,6 @@ export class MailFacade {
 	_deferredDraftId: ?IdTuple; // the mail id of the draft that we are waiting for to be updated via websocket
 	_deferredDraftUpdate: ?Object; // this deferred promise is resolved as soon as the update of the draft is received
 	_entity: EntityClient;
-	_useBlobs: boolean;
 
 	constructor(login: LoginFacadeImpl, fileFacade: FileFacade, entity: EntityClient) {
 		this._login = login
@@ -118,7 +115,6 @@ export class MailFacade {
 		this._deferredDraftId = null
 		this._deferredDraftUpdate = null
 		this._entity = entity
-		this._useBlobs = true // FIXME get this info from server somehow
 	}
 
 	createMailFolder(name: string, parent: IdTuple, ownerGroupId: Id): Promise<void> {
@@ -160,9 +156,7 @@ export class MailFacade {
 		})
 		draftCreateData.draftData = createDraftData({
 			subject,
-			bodyText: !this._useBlobs
-				? bodyText
-				: null,
+			bodyText,
 			senderMailAddress,
 			senderName,
 			confidential,
@@ -176,18 +170,6 @@ export class MailFacade {
 				: []
 		})
 		const createDraftReturn = await serviceRequest(TutanotaService.DraftService, HttpMethod.POST, draftCreateData, DraftCreateReturnTypeRef, null, sk)
-
-		if (this._useBlobs) {
-			const blobReferenceToken = await this._file.uploadBlob(MailTypeRef, sk, compressString(bodyText), senderMailGroupId)
-			const blobReferenceDataPut = createBlobReferenceDataPut({
-				blobReferenceToken,
-				type: createTypeInfo({application: MailTypeModel.app, typeId: String(MailTypeModel.id)}),
-				instanceListId: listIdPart(createDraftReturn.draft),
-				instanceListElementId: elementIdPart(createDraftReturn.draft),
-				field: "bodyBlob"
-			})
-			await serviceRequestVoid(StorageService.BlobReferenceService, HttpMethod.PUT, blobReferenceDataPut)
-		}
 
 		return this._entity.load(MailTypeRef, createDraftReturn.draft)
 	}
@@ -222,9 +204,7 @@ export class MailFacade {
 			draft: draft._id,
 			draftData: createDraftData({
 				subject,
-				bodyText: !this._useBlobs
-					? bodyText
-					: null,
+				bodyText,
 				senderMailAddress,
 				senderName,
 				confidential,
@@ -249,17 +229,6 @@ export class MailFacade {
 		const deferredUpdatePromiseWrapper = this._deferredDraftUpdate
 		await serviceRequest(TutanotaService.DraftService, HttpMethod.PUT, draftUpdateData, DraftUpdateReturnTypeRef, null, sk)
 
-		if (this._useBlobs) {
-			const blobReferenceToken = await this._file.uploadBlob(MailTypeRef, sk, compressString(bodyText), senderMailGroupId)
-			const blobReferenceDataPut = createBlobReferenceDataPut({
-				blobReferenceToken,
-				type: createTypeInfo({application: MailTypeModel.app, typeId: String(MailTypeModel.id)}),
-				instanceListId: listIdPart(draft._id),
-				instanceListElementId: elementIdPart(draft._id),
-				field: "bodyBlob"
-			})
-			await serviceRequestVoid(StorageService.BlobReferenceService, HttpMethod.PUT, blobReferenceDataPut)
-		}
 		return deferredUpdatePromiseWrapper.promise
 	}
 

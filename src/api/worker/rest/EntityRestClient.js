@@ -15,12 +15,9 @@ import {Type} from "../../common/EntityConstants"
 import {SetupMultipleError} from "../../common/error/SetupMultipleError"
 import {expandId} from "./EntityRestCache"
 import {InstanceMapper} from "../crypto/InstanceMapper"
+import {typeRefToPath} from "@tutao/tutanota-utils"
 
 assertWorkerOrNode()
-
-export function typeRefToPath(typeRef: TypeRef<any>): string {
-	return `/rest/${typeRef.app}/${typeRef.type.toLowerCase()}`
-}
 
 export type AuthHeadersProvider = () => Params
 

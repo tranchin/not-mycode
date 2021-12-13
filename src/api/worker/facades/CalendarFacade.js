@@ -236,7 +236,7 @@ export class CalendarFacade {
 						           // remove the user from the cache before loading it again to make sure we get the latest version.
 						           // otherwise we might not see the new calendar in case it is created at login and the websocket is not connected yet
 						           const userId = this._loginFacade.getLoggedInUser()._id
-						           this._entityRestCache._tryRemoveFromCache(UserTypeRef, null, userId)
+						           this._entityRestCache.deleteFromCacheIfExists(UserTypeRef, null, userId)
 						           return this._entityClient.load(UserTypeRef, userId)
 						                      .then(user => {
 							                      this._loginFacade._user = user

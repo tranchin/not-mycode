@@ -37,7 +37,7 @@ import {createCreateSessionData} from "../../entities/sys/CreateSessionData"
 import type {CreateSessionReturn} from "../../entities/sys/CreateSessionReturn"
 import {CreateSessionReturnTypeRef} from "../../entities/sys/CreateSessionReturn"
 import {_TypeModel as SessionModelType, SessionTypeRef} from "../../entities/sys/Session"
-import {EntityRestClient, typeRefToPath} from "../rest/EntityRestClient"
+import {EntityRestClient} from "../rest/EntityRestClient"
 import {createSecondFactorAuthGetData} from "../../entities/sys/SecondFactorAuthGetData"
 import {SecondFactorAuthGetReturnTypeRef} from "../../entities/sys/SecondFactorAuthGetReturn"
 import {SecondFactorPendingError} from "../../common/error/SecondFactorPendingError"
@@ -89,6 +89,7 @@ import {
 	uint8ArrayToKey
 } from "@tutao/tutanota-crypto"
 import {encryptBytes, encryptString} from "../crypto/CryptoFacade"
+import {typeRefToPath} from "@tutao/tutanota-utils";
 import {InstanceMapper} from "../crypto/InstanceMapper"
 
 assertWorkerOrNode()

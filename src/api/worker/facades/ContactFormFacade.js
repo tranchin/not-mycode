@@ -1,12 +1,12 @@
 // @flow
 import {HttpMethod, resolveTypeReference} from "../../common/EntityFunctions"
-import {typeRefToPath} from "../rest/EntityRestClient"
 import type {ContactForm} from "../../entities/tutanota/ContactForm"
 import {ContactFormTypeRef} from "../../entities/tutanota/ContactForm"
 import {RestClient} from "../rest/RestClient"
 import {assertWorkerOrNode} from "../../common/Env"
 import {locator} from "../WorkerLocator"
 import {InstanceMapper} from "../crypto/InstanceMapper"
+import {typeRefToPath} from "@tutao/tutanota-utils";
 
 
 assertWorkerOrNode()

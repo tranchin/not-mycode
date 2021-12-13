@@ -25,7 +25,6 @@ import type {Group} from "../../entities/sys/Group"
 import {GroupTypeRef} from "../../entities/sys/Group"
 import type {Permission} from "../../entities/sys/Permission"
 import {PermissionTypeRef} from "../../entities/sys/Permission"
-import {typeRefToPath} from "../rest/EntityRestClient"
 import {createUpdatePermissionKeyData} from "../../entities/sys/UpdatePermissionKeyData"
 import {SysService} from "../../entities/sys/Services"
 import {LockedError, NotFoundError, PayloadTooLargeError, TooManyRequestsError} from "../../common/error/RestError"
@@ -63,6 +62,7 @@ import {PublicKeyReturnTypeRef} from "../../entities/sys/PublicKeyReturn"
 import {RecipientNotResolvedError} from "../../common/error/RecipientNotResolvedError"
 import type {RsaImplementation} from "./RsaImplementation"
 import {locator} from "../WorkerLocator"
+import {typeRefToPath} from "@tutao/tutanota-utils";
 
 assertWorkerOrNode()
 

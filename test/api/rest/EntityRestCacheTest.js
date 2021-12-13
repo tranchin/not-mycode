@@ -12,7 +12,7 @@ import {createMail, MailTypeRef} from "../../../src/api/entities/tutanota/Mail"
 import {clone, downcast, isSameTypeRef, neverNull, TypeRef} from "@tutao/tutanota-utils"
 import {createExternalUserReference, ExternalUserReferenceTypeRef} from "../../../src/api/entities/sys/ExternalUserReference"
 import {NotAuthorizedError, NotFoundError} from "../../../src/api/common/error/RestError"
-import {EntityRestClient, typeRefToPath} from "../../../src/api/worker/rest/EntityRestClient"
+import {EntityRestClient} from "../../../src/api/worker/rest/EntityRestClient"
 import {
 	CUSTOM_MIN_ID,
 	GENERATED_MAX_ID,
@@ -87,7 +87,7 @@ o.spec("entity rest cache", function () {
 	})
 
 	o.spec("entityEventsReceived", function () {
-		const path = typeRefToPath(ContactTypeRef)
+		const path = ContactTypeRef.path
 		const contactListId1 = "contactListId1"
 		const contactListId2 = "contactListId2"
 		const id1 = "id1"
@@ -100,43 +100,33 @@ o.spec("entity rest cache", function () {
 		o.spec("postMultiple", async function () {
 			o.beforeEach(function () {
 
-				cache._listEntities = {
-					[path]: {
-						[contactListId1]: {
-							allRange: [],
-							lowerRangeId: id1,
-							upperRangeId: id7,
-							elements: {
-								[id1]: null,
-								[id2]: null,
-								[id3]: null,
-								[id4]: null,
-								[id5]: null,
-								[id6]: null,
-								[id7]: null
-							}
-						},
-						[contactListId2]: {
-							allRange: [],
-							lowerRangeId: id1,
-							upperRangeId: id7,
-							elements: {
-								[id1]: null,
-								[id2]: null,
-								[id3]: null,
-								[id4]: null,
-								[id5]: null,
-								[id6]: null,
-								[id7]: null
-							}
-						}
-					}
-				}
-
+				cache._storage._listEntities = new Map([
+					[
+						path,
+						new Map([
+							[
+								contactListId1,
+								{
+									allRange: [],
+									lowerRangeId: id1,
+									upperRangeId: id7,
+									elements: new Map()
+								}
+							],
+							[
+								contactListId2,
+								{
+									allRange: [],
+									lowerRangeId: id1,
+									upperRangeId: id7,
+									elements: new Map()
+								}
+							]
+						])
+					]
+				])
 			})
 			o("entity events received should call loadMultiple when receiving updates from a postMultiple", async function () {
-
-
 				const contact1 = createContact({_id: [contactListId1, id1]})
 				const contact2 = createContact({_id: [contactListId1, id2]})
 
@@ -154,8 +144,8 @@ o.spec("entity rest cache", function () {
 				const updates = await cache.entityEventsReceived(batch)
 				unmockAttribute(mock)
 				o(loadMultiple.callCount).equals(1)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id1)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id2)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id1)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id2)).equals(true)
 				o(updates).deepEquals(batch)
 			})
 
@@ -204,11 +194,11 @@ o.spec("entity rest cache", function () {
 				unmockAttribute(loadMultipleMock)
 				o(load.callCount).equals(1)("One load for the customer create")
 				o(loadMultiple.callCount).equals(2)("Two load multiple, one for each contact list")
-				o(cache._isInCache(ContactTypeRef, contactListId1, id1)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id2)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId2, id3)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId2, id4)).equals(true)
-				o(cache._isInCache(CustomerTypeRef, null, id5)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id1)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id2)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId2, id3)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId2, id4)).equals(true)
+				o(cache._storage.contains(CustomerTypeRef, null, id5)).equals(false)
 				o(filteredUpdates.length).equals(batch.length)
 				for (const update of batch) {
 					o(filteredUpdates.includes(update)).equals(true)
@@ -241,10 +231,10 @@ o.spec("entity rest cache", function () {
 				unmockAttribute(loadMultipleMock)
 
 				o(loadMultiple.callCount).equals(2)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id1)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id2)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId2, id3)).equals(false)
-				o(cache._isInCache(ContactTypeRef, contactListId2, id4)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id1)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id2)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId2, id3)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId2, id4)).equals(false)
 				o(updates).deepEquals(batch.slice(0, 2))
 			})
 		})
@@ -259,26 +249,29 @@ o.spec("entity rest cache", function () {
 				]
 				const updates = await cache.entityEventsReceived(batch)
 
-				o(cache._isInCache(ContactTypeRef, contactListId1, id1)).equals(false)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id2)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id1)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id2)).equals(false)
 				o(updates).deepEquals(batch)
 			})
 
 			o("updates partially not loaded by loadMultiple", async function () {
 
-				cache._listEntities = {
-					[path]: {
-						[contactListId1]: {
-							allRange: [],
-							lowerRangeId: id1,
-							upperRangeId: id2,
-							elements: {
-								[id1]: null,
-								[id2]: null,
-							}
-						},
-					}
-				}
+				cache._storage._listEntities = new Map([
+					[
+						path,
+						new Map([
+							[
+								contactListId1,
+								{
+									allRange: [],
+									lowerRangeId: id1,
+									upperRangeId: id2,
+									elements: new Map()
+								}
+							]
+						])
+					]
+				])
 
 				const batch = [
 					createUpdate(ContactTypeRef, contactListId1, id1, OperationType.CREATE),
@@ -302,8 +295,8 @@ o.spec("entity rest cache", function () {
 				unmockAttribute(loadMultipleMock)
 
 				o(loadMultiple.callCount).equals(1)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id1)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id2)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id1)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id2)).equals(false)
 				o(filteredUpdates.length).equals(batch.length - 1)
 				for (const update of batch.slice(0, 1)) {
 					o(filteredUpdates.includes(update)).equals(true)
@@ -312,26 +305,31 @@ o.spec("entity rest cache", function () {
 
 			o("update are partially in cache range ", async function () {
 
-				cache._listEntities = {
-					[path]: {
-						[contactListId1]: {
-							allRange: [],
-							lowerRangeId: id1,
-							upperRangeId: id1,
-							elements: {
-								[id1]: null,
-							}
-						},
-						[contactListId2]: {
-							allRange: [],
-							lowerRangeId: id4,
-							upperRangeId: id4,
-							elements: {
-								[id4]: null
-							}
-						}
-					}
-				}
+				cache._storage._listEntities = new Map([
+					[
+						path,
+						new Map([
+							[
+								contactListId1,
+								{
+									allRange: [],
+									lowerRangeId: id1,
+									upperRangeId: id1,
+									elements: new Map()
+								},
+							],
+							[
+								contactListId2,
+								{
+									allRange: [],
+									lowerRangeId: id4,
+									upperRangeId: id4,
+									elements: new Map()
+								},
+							]
+						])
+					]
+				])
 
 				const batch = [
 					createUpdate(ContactTypeRef, contactListId1, id1, OperationType.CREATE),
@@ -360,10 +358,10 @@ o.spec("entity rest cache", function () {
 				unmockAttribute(loadMultipleMock)
 
 				o(loadMultiple.callCount).equals(2) // twice for contact creations (per list id)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id1)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id2)).equals(false)
-				o(cache._isInCache(ContactTypeRef, contactListId2, id3)).equals(false)
-				o(cache._isInCache(ContactTypeRef, contactListId2, id4)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id1)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id2)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId2, id3)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId2, id4)).equals(true)
 				o(filteredUpdates.length).equals(batch.length)
 				for (const update of batch) {
 					o(filteredUpdates.includes(update)).equals(true)
@@ -373,26 +371,31 @@ o.spec("entity rest cache", function () {
 
 			o("update  partially results in NotAuthorizedError ", async function () {
 
-				cache._listEntities = {
-					[path]: {
-						[contactListId1]: {
-							allRange: [],
-							lowerRangeId: id1,
-							upperRangeId: id1,
-							elements: {
-								[id1]: null,
-							}
-						},
-						[contactListId2]: {
-							allRange: [],
-							lowerRangeId: id4,
-							upperRangeId: id4,
-							elements: {
-								[id4]: null
-							}
-						}
-					}
-				}
+				cache._storage._listEntities = new Map([
+					[
+						path,
+						new Map([
+							[
+								contactListId1,
+								{
+									allRange: [],
+									lowerRangeId: id1,
+									upperRangeId: id1,
+									elements: new Map()
+								}
+							],
+							[
+								contactListId2,
+								{
+									allRange: [],
+									lowerRangeId: id4,
+									upperRangeId: id4,
+									elements: new Map()
+								}
+							]
+						]),
+					],
+				])
 
 				const batch = [
 					createUpdate(ContactTypeRef, contactListId1, id1, OperationType.CREATE),
@@ -418,10 +421,10 @@ o.spec("entity rest cache", function () {
 				const filteredUpdates = await cache.entityEventsReceived(batch)
 
 				o(loadMultiple.callCount).equals(2) // twice for contact creations (per list id)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id1)).equals(true)
-				o(cache._isInCache(ContactTypeRef, contactListId1, id2)).equals(false)
-				o(cache._isInCache(ContactTypeRef, contactListId2, id3)).equals(false)
-				o(cache._isInCache(ContactTypeRef, contactListId2, id4)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id1)).equals(true)
+				o(cache._storage.contains(ContactTypeRef, contactListId1, id2)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId2, id3)).equals(false)
+				o(cache._storage.contains(ContactTypeRef, contactListId2, id4)).equals(false)
 				o(filteredUpdates.length).equals(batch.length - 1)
 				for (const update of batch.slice(0, 3)) {
 					o(filteredUpdates.includes(update)).equals(true)
@@ -749,7 +752,7 @@ o.spec("entity rest cache", function () {
 			const result = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MIN_ID, 4, false)
 
 			o(result).deepEquals([cachedMails[0], cachedMails[1], cachedMails[2], clone(mail4)])
-			o(cache._getFromCache(MailTypeRef, getListId(mail4), getElementId(mail4))).deepEquals(mail4)
+			o(cache._storage.get(MailTypeRef, getListId(mail4), getElementId(mail4))).deepEquals(mail4)
 			o(loadRange.callCount).equals(1) // entities are provided from server
 
 			unmockAttribute(loadRangeMock)
@@ -772,7 +775,7 @@ o.spec("entity rest cache", function () {
 			const result = await cache.loadRange(MailTypeRef, "listId1", createId("id2"), 4, true)
 
 
-			o(cache._getFromCache(MailTypeRef, getListId(mail0), getElementId(mail0))).deepEquals(mail0)
+			o(cache._storage.get(MailTypeRef, getListId(mail0), getElementId(mail0))).deepEquals(mail0)
 			o(result).deepEquals([cachedMails[0], clone(mail0)])
 			o(loadRange.callCount).equals(1) // entities are provided from server
 			unmockAttribute(loadRangeMock)
@@ -794,7 +797,7 @@ o.spec("entity rest cache", function () {
 			const mock = mockAttribute(entityRestClient, entityRestClient.loadRange, loadRange)
 			const result = await cache.loadRange(MailTypeRef, "listId1", createId("id1"), 4, true)
 
-			o(cache._getFromCache(MailTypeRef, getListId(mail0), getElementId(mail0))).deepEquals(mail0)
+			o(cache._storage.get(MailTypeRef, getListId(mail0), getElementId(mail0))).deepEquals(mail0)
 			o(result).deepEquals([clone(mail0)])
 			o(loadRange.callCount).equals(1) // entities are provided from server
 			unmockAttribute(mock)
@@ -848,7 +851,7 @@ o.spec("entity rest cache", function () {
 			const result = await cache.loadRange(MailTypeRef, "listId1", createId("ic6"), 4, true)
 
 			o(result).deepEquals([clone(mailFirst)])
-			o(cache._getFromCache(MailTypeRef, getListId(mailFirst), getElementId(mailFirst))).deepEquals(mailFirst)
+			o(cache._storage.get(MailTypeRef, getListId(mailFirst), getElementId(mailFirst))).deepEquals(mailFirst)
 			o(loadRange.callCount).equals(1) // entities are provided from server
 			unmockAttribute(mock)
 		})
@@ -934,12 +937,12 @@ o.spec("entity rest cache", function () {
 
 			const mock = mockAttribute(entityRestClient, entityRestClient.loadRange, loadRange)
 
-			o(cache._isInCacheRange(typeRefToPath(MailTypeRef), "listId1", GENERATED_MAX_ID)).equals(false)
+			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MAX_ID)).equals(false)
 
 			const result1 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MAX_ID, 10, true)
 			o(result1).deepEquals([cachedMails[2], cachedMails[1], cachedMails[0]])
 			o(loadRange.callCount).equals(1) // entities are provided from server
-			o(cache._isInCacheRange(typeRefToPath(MailTypeRef), "listId1", GENERATED_MAX_ID)).equals(true)
+			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MAX_ID)).equals(true)
 
 			// further requests are resolved from the cache
 			const result2 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MAX_ID, 10, true)
@@ -964,7 +967,7 @@ o.spec("entity rest cache", function () {
 
 			const mock = mockAttribute(entityRestClient, entityRestClient.loadRange, loadRange)
 
-			o(cache._isInCacheRange(typeRefToPath(MailTypeRef), "listId1", GENERATED_MIN_ID)).equals(false)
+			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(false)
 
 			const result1 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MIN_ID, 10, false)
 
@@ -972,11 +975,11 @@ o.spec("entity rest cache", function () {
 			// further reqests are resolved from the cache
 			o(loadRange.callCount).equals(1) // entities are provided from server
 
-			o(cache._isInCacheRange(typeRefToPath(MailTypeRef), "listId1", GENERATED_MIN_ID)).equals(true)
+			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(true)
 			const result2 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MIN_ID, 10, false)
 
 			o(result2).deepEquals([cachedMails[0], cachedMails[1], cachedMails[2]])
-			o(cache._isInCacheRange(typeRefToPath(MailTypeRef), "listId1", GENERATED_MIN_ID)).equals(true)
+			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(true)
 			o(loadRange.callCount).equals(1) // entities are provided from cache
 			unmockAttribute(mock)
 		})
@@ -1006,7 +1009,7 @@ o.spec("entity rest cache", function () {
 				[MailTypeRef, listId, notInCache.map(getElementId)]
 			)
 			inCache.concat(notInCache).forEach((e) => {
-				o(cache._isInCache(MailTypeRef, listId, getElementId(e))).equals(true)
+				o(cache._storage.contains(MailTypeRef, listId, getElementId(e))).equals(true)
 			})
 			unmockAttribute(mock)
 		})

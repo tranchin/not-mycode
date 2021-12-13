@@ -581,7 +581,7 @@ class IndexLoader {
 	}
 
 	removeFromCache(id: IdTuple) {
-		this._entityCache._tryRemoveFromCache(MailTypeRef, listIdPart(id), elementIdPart(id))
+		this._entityCache.deleteFromCacheIfExists(MailTypeRef, listIdPart(id), elementIdPart(id))
 	}
 
 	loadMailBodies(mails: Mail[]): Promise<MailBody[]> {

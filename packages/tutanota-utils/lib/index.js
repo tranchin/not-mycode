@@ -158,7 +158,8 @@ export {
 export {
 	TypeRef,
 	isSameTypeRefByAttr,
-	isSameTypeRef
+	isSameTypeRef,
+	typeRefToPath
 } from "./TypeRef"
 
 export {

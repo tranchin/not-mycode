@@ -14,6 +14,10 @@ export class TypeRef<+T> {
 		this.type = type
 		Object.freeze(this)
 	}
+
+	get path(): string {
+		return typeRefToPath(this)
+	}
 }
 
 export function isSameTypeRefByAttr(typeRef: TypeRef<any>, app: string, type: string): boolean {
@@ -22,4 +26,8 @@ export function isSameTypeRefByAttr(typeRef: TypeRef<any>, app: string, type: st
 
 export function isSameTypeRef(typeRef1: TypeRef<any>, typeRef2: TypeRef<any>): boolean {
 	return isSameTypeRefByAttr(typeRef1, typeRef2.app, typeRef2.type)
+}
+
+export function typeRefToPath(typeRef: TypeRef<any>): string {
+	return `/rest/${typeRef.app}/${typeRef.type.toLowerCase()}`
 }

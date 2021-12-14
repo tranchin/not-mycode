@@ -113,6 +113,8 @@ styles.registerStyle('main', () => {
 			position: 'fixed',  // Fix body for iOS & Safari
 			// It is inlined to "transparent" in HTML so we have to overwrite it.
 			'background-color': `${theme.content_bg} !important`,
+			// We need it because we can't get env() value from JS directly
+			'--safe-area-inset-bottom': 'env(safe-area-inset-bottom)',
 		},
 		'button, textarea': {
 			padding: 0,

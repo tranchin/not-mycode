@@ -14,6 +14,7 @@ import {MinimizedMailEditorViewModel} from "../model/MinimizedMailEditorViewMode
 import {MinimizedEditorOverlay} from "./MinimizedEditorOverlay"
 import {windowFacade} from "../../misc/WindowFacade"
 import {assertMainOrNode} from "../../api/common/Env"
+import {neverNull} from "@tutao/tutanota-utils"
 
 assertMainOrNode()
 
@@ -57,9 +58,20 @@ function showMinimizedEditorOverlay(viewModel: MinimizedMailEditorViewModel, min
 	)
 }
 
+/**
+ * Only used for iOS. We need to go through CSS variable because getting env() directly does not work.
+ * see https://benfrain.com/how-to-get-the-value-of-phone-notches-environment-variables-env-in-javascript-from-css/
+ * We need to adjust bottom position because of the home button on iOS which shifts everything up.
+ */
+function getSafeAreaInsetBottom(): number {
+	const bottomInsetString = getComputedStyle(neverNull(document?.body)).getPropertyValue("--safe-area-inset-bottom")
+	return bottomInsetString ? parseInt(bottomInsetString.slice(0, -2)) : 0
+}
+
 function getVerticalOverlayPosition(): number {
+	const bottomInset = getSafeAreaInsetBottom()
 	return MINIMIZED_EDITOR_HEIGHT + (styles.isUsingBottomNavigation() // use size.hpad values to keep bottom and right space even
-		? (size.bottom_nav_bar + size.hpad)
+		? (size.bottom_nav_bar + size.hpad + bottomInset)
 		: size.hpad_medium)
 }
 

@@ -100,7 +100,7 @@ export class UpgradeConfirmPage implements WizardPageN<UpgradeSubscriptionData> 
 						m(".flex-grow-shrink-half.plr-l.flex-center.items-end",
 							m("img[src=" + HabReminderImage + "].pt.bg-white.border-radius", {style: {width: "200px"}})),
 					]),
-					m(".flex-center.full-width.pt-l", m("", {style: {width: "260px"}}, m(ButtonN, {
+					m(".flex-center.full-width.pt-l.pb-l", m("", {style: {width: "260px"}}, m(ButtonN, {
 						label: "ok_action",
 						click: () => this.close(attrs.data, vnode.dom),
 						type: ButtonType.Login,
@@ -119,7 +119,7 @@ export class UpgradeConfirmPage implements WizardPageN<UpgradeSubscriptionData> 
 						m(".flex-grow-shrink-half.plr-l.flex-center.items-end",
 							m("img[src=" + HabReminderImage + "].pt.bg-white.border-radius", {style: {width: "200px"}}))
 					]),
-					m(".flex-center.full-width.pt-l", m("", {style: {width: "260px"}}, m(ButtonN, {
+					m(".flex-center.full-width.pt-l.pb-l", m("", {style: {width: "260px"}}, m(ButtonN, {
 						label: "buy_action",
 						click: upgrade,
 						type: ButtonType.Login,

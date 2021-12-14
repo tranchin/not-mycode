@@ -28,7 +28,7 @@ export const _TypeModel: TypeModel = {
 		"bodyText": {
 			"id": 499,
 			"type": "String",
-			"cardinality": "ZeroOrOne",
+			"cardinality": "One",
 			"final": true,
 			"encrypted": true
 		},
@@ -125,7 +125,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "48"
+	"version": "49"
 }
 
 export function createDraftData(values?: $Shape<$Exact<DraftData>>): DraftData {
@@ -136,7 +136,7 @@ export type DraftData = {
 	_type: TypeRef<DraftData>;
 
 	_id: Id;
-	bodyText: ?string;
+	bodyText: string;
 	compressedBodyText: ?string;
 	confidential: boolean;
 	method: NumberString;

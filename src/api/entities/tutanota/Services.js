@@ -23,8 +23,7 @@ export const TutanotaService = Object.freeze({
 	GroupInvitationService: "groupinvitationservice",
 	ReportMailService: "reportmailservice",
 	EntropyService: "entropyservice",
-	TemplateGroupService: "templategroupservice",
-	FileBlobService: "fileblobservice"
+	TemplateGroupService: "templategroupservice"
 })
 
 export type TutanotaServiceType = $Values<typeof TutanotaService>

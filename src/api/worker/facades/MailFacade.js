@@ -40,8 +40,7 @@ import {
 	noOp,
 	ofClass,
 	promiseFilter,
-	promiseMap,
-	utf8Uint8ArrayToString
+	promiseMap
 } from "@tutao/tutanota-utils"
 import type {User} from "../../entities/sys/User"
 import {UserTypeRef} from "../../entities/sys/User"
@@ -87,11 +86,7 @@ import {
 	sha256Hash
 } from "@tutao/tutanota-crypto"
 import {MailHeadersTypeRef} from "../../entities/tutanota/MailHeaders"
-import {SessionKeyNotFoundError} from "../../common/error/SessionKeyNotFoundError"
-import {ProgrammingError} from "../../common/error/ProgrammingError"
-import {createBlobId} from "../../entities/sys/BlobId"
 import type {Blob} from "../../entities/sys/Blob"
-import {decompressString} from "../crypto/InstanceMapper"
 import type {MailBody} from "../../entities/tutanota/MailBody"
 import {MailBodyTypeRef} from "../../entities/tutanota/MailBody"
 import {TutanotaError} from "../../common/error/TutanotaError"
@@ -280,7 +275,7 @@ export class MailFacade {
 		// only delete the temporary files after all attachments have been uploaded
 		if (isApp()) {
 			this._file.clearFileData()
-			       .catch((e) => console.warn("Failed to clear files", e))
+			    .catch((e) => console.warn("Failed to clear files", e))
 		}
 		return attachments.filter(Boolean)
 	}
@@ -589,23 +584,7 @@ export class MailFacade {
 	}
 
 	async _getBlobbedTextFromMail(mail: Mail, blob: ?Blob): Promise<string> {
-		const key = await resolveSessionKey(MailTypeModel, mail)
-		if (key == null) {
-			throw new SessionKeyNotFoundError("could not find session key to decrypt mail blob")
-		}
-
-		if (blob == null) {
-			throw new ProgrammingError("trying to retrieve blob but there is none")
-		}
-		const blobData = await this._file.downloadBlob(
-			blob.archiveId,
-			createBlobId({blobId: blob.blobId}),
-			bitArrayToUint8Array(key)
-		)
-
-		return mail.bodyCompression
-			? decompressString(blobData)
-			: utf8Uint8ArrayToString(blobData)
+		throw new Error("retrieving mail bodies from blobs not implemented yet")
 	}
 }
 

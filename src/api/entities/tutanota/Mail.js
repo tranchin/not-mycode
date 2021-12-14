@@ -75,13 +75,6 @@ export const _TypeModel: TypeModel = {
 			"final": false,
 			"encrypted": false
 		},
-		"bodyCompression": {
-			"id": 1212,
-			"type": "Boolean",
-			"cardinality": "ZeroOrOne",
-			"final": false,
-			"encrypted": false
-		},
 		"confidential": {
 			"id": 426,
 			"type": "Boolean",
@@ -95,13 +88,6 @@ export const _TypeModel: TypeModel = {
 			"cardinality": "ZeroOrOne",
 			"final": true,
 			"encrypted": true
-		},
-		"headerCompression": {
-			"id": 1211,
-			"type": "Boolean",
-			"cardinality": "ZeroOrOne",
-			"final": false,
-			"encrypted": false
 		},
 		"listUnsubscribe": {
 			"id": 866,
@@ -191,7 +177,7 @@ export const _TypeModel: TypeModel = {
 			"dependency": null
 		},
 		"bodyBlob": {
-			"id": 1214,
+			"id": 1224,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
@@ -207,7 +193,7 @@ export const _TypeModel: TypeModel = {
 			"dependency": null
 		},
 		"headersBlob": {
-			"id": 1213,
+			"id": 1223,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": true,
@@ -276,7 +262,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "48"
+	"version": "49"
 }
 
 export function createMail(values?: $Shape<$Exact<Mail>>): Mail {
@@ -295,10 +281,8 @@ export type Mail = {
 	_ownerGroup: ?Id;
 	_permissions: Id;
 	authStatus: NumberString;
-	bodyCompression: ?boolean;
 	confidential: boolean;
 	differentEnvelopeSender: ?string;
-	headerCompression: ?boolean;
 	listUnsubscribe: boolean;
 	method: NumberString;
 	movedTime: ?Date;

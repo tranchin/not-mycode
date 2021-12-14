@@ -26,7 +26,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {
 		"accessInfo": {
-			"id": 1210,
+			"id": 1222,
 			"type": "AGGREGATION",
 			"cardinality": "ZeroOrOne",
 			"final": false,
@@ -42,7 +42,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "48"
+	"version": "49"
 }
 
 export function createFileDataReturnPost(values?: $Shape<$Exact<FileDataReturnPost>>): FileDataReturnPost {

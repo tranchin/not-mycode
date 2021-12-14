@@ -62,7 +62,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {
 		"blobs": {
-			"id": 1209,
+			"id": 1221,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,
@@ -79,7 +79,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "48"
+	"version": "49"
 }
 
 export function createFileData(values?: $Shape<$Exact<FileData>>): FileData {

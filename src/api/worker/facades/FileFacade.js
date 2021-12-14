@@ -9,12 +9,13 @@ import {_TypeModel as FileTypeModel} from "../../entities/tutanota/File"
 import {_TypeModel as FileDataTypeModel, FileDataTypeRef} from "../../entities/tutanota/FileData"
 import {
 	arrayEquals,
-	assertNotNull, base64ToUint8Array,
+	assertNotNull,
+	base64ToUint8Array,
 	concat,
 	filterInt,
 	isEmpty,
 	neverNull,
-	promiseMap, promiseTrySequentially,
+	promiseTrySequentially,
 	splitUint8ArrayInChunks,
 	TypeRef,
 	uint8ArrayToBase64,
@@ -45,8 +46,6 @@ import type {TargetServer} from "../../entities/sys/TargetServer"
 import {locator} from "../WorkerLocator"
 import {ProgrammingError} from "../../common/error/ProgrammingError"
 import {TutanotaService} from "../../entities/tutanota/Services"
-import type {FileBlobServiceGetReturn} from "../../entities/tutanota/FileBlobServiceGetReturn"
-import {FileBlobServiceGetReturnTypeRef} from "../../entities/tutanota/FileBlobServiceGetReturn"
 import {createBlobReferenceDataPut} from "../../entities/storage/BlobReferenceDataPut"
 import {getRestPath} from "../../entities/ServiceUtils"
 import {FileDataReturnPostTypeRef} from "../../entities/tutanota/FileDataReturnPost"
@@ -224,26 +223,7 @@ export class FileFacade {
 	}
 
 	async _downloadBlobsOfFile<T>(file: TutanotaFile, downloader: BlobDownloader<T>): Promise<Array<T>> {
-		const serviceReturn: FileBlobServiceGetReturn = await serviceRequest(
-			TutanotaService.FileBlobService,
-			HttpMethod.GET,
-			this._getFileRequestData(file),
-			FileBlobServiceGetReturnTypeRef
-		)
-
-		const accessInfos = serviceReturn.accessInfos
-		const orderedBlobInfos: Array<{blobId: BlobId, accessInfo: BlobAccessInfo}> = serviceReturn.blobs.map(blobId => {
-				const accessInfo = assertNotNull(
-					accessInfos.find(info => info.blobs.find(b => arrayEquals(b.blobId, blobId.blobId))),
-					"Missing accessInfo for blob"
-				)
-				return {blobId, accessInfo}
-			}
-		)
-
-		return promiseMap(orderedBlobInfos, ({blobId, accessInfo}) => {
-			return this._downloadRawBlob(accessInfo.storageAccessToken, accessInfo.archiveId, blobId, accessInfo.servers, downloader)
-		}, {concurrency: 1})
+		throw new Error("downloading blob files has not been implemented yet")
 	}
 
 	/**

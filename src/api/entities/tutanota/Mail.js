@@ -242,7 +242,7 @@ export const _TypeModel: TypeModel = {
 		"body": {
 			"id": 116,
 			"type": "ELEMENT_ASSOCIATION",
-			"cardinality": "ZeroOrOne",
+			"cardinality": "One",
 			"final": true,
 			"refType": "MailBody"
 		},
@@ -304,7 +304,7 @@ export type Mail = {
 	sender: MailAddress;
 	toRecipients: MailAddress[];
 	attachments: IdTuple[];
-	body: ?Id;
+	body: Id;
 	conversationEntry: IdTuple;
 	headers: ?Id;
 }

@@ -20,6 +20,7 @@ import {ProgrammingError} from "../../common/error/ProgrammingError"
 import {assertWorkerOrNode} from "../../common/Env"
 import type {$Promisable} from "@tutao/tutanota-utils/"
 import type {ElementEntity, ListElementEntity, SomeEntity} from "../../common/EntityTypes"
+import type {NativeInterface} from "../../../native/common/NativeInterface"
 
 
 assertWorkerOrNode()
@@ -31,9 +32,100 @@ type ListEntry = {
 	elements: Map<Id, ListElementEntity>
 }
 
+// export interface CacheStorage {
+// 	/**
+// 	 * Get a given entity from the cache, expects that you have already checked for existence
+// 	 */
+// 	get<T: SomeEntity>(typeRef: TypeRef<T>, listId: ?Id, id: Id): T;
+//
+// 	contains(typeRef: TypeRef<any>, listId: ?Id, id: Id): boolean;
+//
+// 	deleteIfExists<T>(typeRef: TypeRef<T>, listId: ?Id, id: Id): void;
+//
+// 	getListEntry<T>(typeRef: TypeRef<T>, listId: Id): ?ListEntry;
+//
+// 	addListEntry<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, entry: ListEntry): void;
+//
+// 	addElementEntity<T: ElementEntity>(typeRef: TypeRef<T>, id: Id, entity: T): void;
+//
+// 	isElementIdInCacheRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, id: Id): boolean;
+// }
+//
+// class OfflineStorageInterface {
+//
+// 	native: NativeInterface
+//
+// 	load<T: SomeEntity>(typeRef: TypeRef<T>, listId: ?Id, ids: Array<Id>): T {
+//
+// 	}
+//
+// 	write<T: SomeEntity>(entities: Array<T>): void {
+//
+// 	}
+//
+// 	delete<T>(typeRef: TypeRef<T>, listId: ?Id, ids: Array<Id>): void {
+//
+// 	}
+// }
+
+/*
+	TABLE entity:
+	| type*     | listId*      | elementId*   | entity*
+	---------------------------------------------------
+	| app/type1 | -----------1 | -----------1 | (blob)
+	| app/type1 | -----------1 | -----------2 | (blob)
+	| app/type1 | -----------1 | -----------3 | (blob)
+	| app/type1 | -----------2 | -----------4 | (blob)
+	| app/type1 | -----------2 | -----------5 | (blob)
+	| app/type1 | -----------2 | -----------6 | (blob)
+	| app/type2 | ""           | -----------7 | (blob)
+	| app/type2 | ""           | -----------8 | (blob)
+	| app/type2 | ""           | -----------9 | (blob)
+
+	TABLE listEntry
+	|
+	-
+	|
+	|
+
+ */
+
+// class PersistentCacheStorage implements CacheStorage {
+//
+// 	native: NativeInterface
+//
+// 	constructor(native: NativeInterface) {
+// 		this.native = native
+// 	}
+//
+// 	addElementEntity<T: ElementEntity>(typeRef: TypeRef<T>, id: Id, entity: T): void {
+//
+// 	}
+//
+// 	addListEntry<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, entry: ListEntry): void {
+// 	}
+//
+// 	contains<T>(typeRef: TypeRef<*>, listId: ?Id, id: Id): boolean {
+// 		return false;
+// 	}
+//
+// 	deleteIfExists<T>(typeRef: TypeRef<T>, listId: ?Id, id: Id): void {
+// 	}
+//
+// 	get<T: SomeEntity>(typeRef: TypeRef<T>, listId: ?Id, id: Id): T {
+// 		return undefined;
+// 	}
+//
+// 	getListEntry<T>(typeRef: TypeRef<T>, listId: Id): ?ListEntry {
+// 		return undefined;
+// 	}
+// }
+
 export class CacheStorage {
 	_entities: Map<string, Map<Id, ElementEntity>> = new Map()
 	_listEntities: Map<string, Map<Id, ListEntry>> = new Map()
+
+	listEntities: Map<string, Map<Id, Array<ListElementEntity>>>
 
 	/**
 	 * Get a given entity from the cache, expects that you have already checked for existence
@@ -51,11 +143,7 @@ export class CacheStorage {
 	}
 
 	contains(typeRef: TypeRef<any>, listId: ?Id, id: Id): boolean {
-		if (listId) {
-			return this._listEntities.get(typeRef.path)?.get(listId)?.elements.get(id) != null
-		} else {
-			return this._entities.get(typeRef.path)?.get(id) != null
-		}
+		return this.get(typeRef, listId, id) != null
 	}
 
 	deleteIfExists<T>(typeRef: TypeRef<T>, listId: ?Id, id: Id) {
@@ -80,6 +168,13 @@ export class CacheStorage {
 
 	addElementEntity<T: ElementEntity>(typeRef: TypeRef<T>, id: Id, entity: T) {
 		getFromMap(this._entities, typeRef.path, () => new Map()).set(id, entity)
+	}
+
+	isElementIdInCacheRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, id: Id): boolean {
+		const entry = this.getListEntry(typeRef, listId)
+		return entry != null
+			&& !firstBiggerThanSecond(id, entry.upperRangeId)
+			&& !firstBiggerThanSecond(entry.lowerRangeId, id)
 	}
 }
 
@@ -212,8 +307,14 @@ export class EntityRestCache implements EntityRestInterface {
 	_loadRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, start: Id, count: number, reverse: boolean): Promise<T[]> {
 		const listCache = this._storage.getListEntry(typeRef, listId)
 		// check which range must be loaded from server
-		if (!listCache || (start === GENERATED_MAX_ID && reverse && listCache.upperRangeId !== GENERATED_MAX_ID)
-			|| (start === GENERATED_MIN_ID && !reverse && listCache.lowerRangeId !== GENERATED_MIN_ID)) {
+		const shouldLoadWholeRange = listCache == null
+			|| (start === GENERATED_MAX_ID && reverse && listCache.upperRangeId !== GENERATED_MAX_ID)
+			|| (start === GENERATED_MIN_ID && !reverse && listCache.lowerRangeId !== GENERATED_MIN_ID)
+
+		const startIsLocatedInRange = listCache && !firstBiggerThanSecond(start, listCache.upperRangeId) && !firstBiggerThanSecond(listCache.lowerRangeId, start)
+
+		const startIsLocatedOutsideRange = (firstBiggerThanSecond(start, listCache.upperRangeId) && !reverse) || (firstBiggerThanSecond(listCache.lowerRangeId, start) && reverse)
+		if (shouldLoadWholeRange) {
 			// this is the first request for this list or
 			// our upper range id is not MAX_ID and we now read the range starting with MAX_ID. we just replace the complete existing range with the new one because we do not want to handle multiple ranges or
 			// our lower range id is not MIN_ID and we now read the range starting with MIN_ID. we just replace the complete existing range with the new one because we do not want to handle multiple ranges
@@ -232,8 +333,7 @@ export class EntityRestCache implements EntityRestInterface {
 				}
 				return this._handleElementRangeResult(newListCache, start, count, reverse, entities, count)
 			})
-		} else if (!firstBiggerThanSecond(start, listCache.upperRangeId)
-			&& !firstBiggerThanSecond(listCache.lowerRangeId, start)) { // check if the requested start element is located in the range
+		} else if (startIsLocatedInRange) { // check if the requested start element is located in the range
 
 			// count the numbers of elements that are already in allRange to determine the number of elements to read
 			const {newStart, newCount} = this._recalculateRangeRequest(listCache, start, count, reverse)
@@ -245,8 +345,7 @@ export class EntityRestCache implements EntityRestInterface {
 				// all elements are located in the cache.
 				return Promise.resolve(this._provideFromCache(listCache, start, count, reverse))
 			}
-		} else if ((firstBiggerThanSecond(start, listCache.upperRangeId) && !reverse) // Start is outside the range.
-			|| (firstBiggerThanSecond(listCache.lowerRangeId, start) && reverse)) {
+		} else if (startIsLocatedOutsideRange) {
 			let loadStartId
 			if (firstBiggerThanSecond(start, listCache.upperRangeId) && !reverse) {
 				// start is higher than range. load from upper range id with same count. then, if all available elements have been loaded or the requested number is in cache, return from cache. otherwise load again the same way.
@@ -423,7 +522,7 @@ export class EntityRestCache implements EntityRestInterface {
 			const ids = updates.map(update => update.instanceId)
 
 			//We only want to load the instances that are in cache range
-			const idsInCacheRange = this._getInCacheRange(typeRef, instanceListId, ids)
+			const idsInCacheRange = this.getElementIdsInCacheRange(typeRef, instanceListId, ids)
 			if (idsInCacheRange.length === 0) {
 				postMultipleEventUpdates.push(updates)
 			} else {
@@ -507,7 +606,7 @@ export class EntityRestCache implements EntityRestInterface {
 				element._id = [instanceListId, instanceId]
 				this._putIntoCache(element)
 				return update
-			} else if (this._isInCacheRange(typeRef, instanceListId, instanceId)) {
+			} else if (this._storage.isElementIdInCacheRange(typeRef, instanceListId, instanceId)) {
 				// No need to try to download something that's not there anymore
 				return this._entityRestClient.load(typeRef, [instanceListId, instanceId])
 				           .then(entity => this._putIntoCache(entity))
@@ -544,19 +643,12 @@ export class EntityRestCache implements EntityRestInterface {
 		}
 	}
 
-	_isInCacheRange<T>(typeRef: TypeRef<T>, listId: Id, id: Id): boolean {
-		const entry = this._storage.getListEntry(typeRef, listId)
-		return entry != null
-			&& !firstBiggerThanSecond(id, entry.upperRangeId)
-			&& !firstBiggerThanSecond(entry.lowerRangeId, id)
-	}
-
 	/**
 	 *
-	 * @returns {Array<Id>} the ids that are in cache range
+	 * @returns {Array<Id>} the ids that are in cache range and therefore should be cached
 	 */
-	_getInCacheRange<T>(typeRef: TypeRef<T>, listId: Id, ids: Id[]): Id[] {
-		return ids.filter(id => this._isInCacheRange(typeRef, listId, id))
+	getElementIdsInCacheRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, ids: Id[]): Id[] {
+		return ids.filter(id => this._storage.isElementIdInCacheRange(typeRef, listId, id))
 	}
 
 	_putIntoCache(originalEntity: any): void {
@@ -579,7 +671,7 @@ export class EntityRestCache implements EntityRestInterface {
 				// if the element already exists in the cache, overwrite it
 				// add new element to existing list if necessary
 				entry.elements.set(elementId, entity)
-				if (this._isInCacheRange(typeRef, listId, elementId)) {
+				if (this._storage.isElementIdInCacheRange(typeRef, listId, elementId)) {
 					this._insertIntoRange(entry.allRange, elementId)
 				}
 			}

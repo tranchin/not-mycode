@@ -444,7 +444,7 @@ o.spec("entity rest cache", function () {
 		// element notifications
 		o("Update event for cached entity is received, it should be redownloaded", async function () {
 			let initialBody = createBodyInstance("id1", "hello")
-			cache._putIntoCache(initialBody)
+			cache._storage.put(initialBody)
 
 			const load = o.spy(async () => createBodyInstance("id1", "goodbye"))
 			const loadMock = mockAttribute(entityRestClient, entityRestClient.load, load)
@@ -462,7 +462,7 @@ o.spec("entity rest cache", function () {
 
 		o("element should be deleted from the cache when a delete event is received", async function () {
 			let initialBody = createBodyInstance("id1", "hello")
-			cache._putIntoCache(initialBody)
+			cache._storage.put(initialBody)
 
 			const load = o.spy(function (args) {
 				return Promise.reject(new NotFoundError("not found"))
@@ -482,7 +482,7 @@ o.spec("entity rest cache", function () {
 
 		o("Mail should not be loaded when a move event is received", async function () {
 			const instance = createMailInstance("listId1", "id1", "henlo")
-			cache._putIntoCache(instance)
+			cache._storage.put(instance)
 
 			const newListId = "listid2"
 			const newInstance = clone(instance)
@@ -574,7 +574,7 @@ o.spec("entity rest cache", function () {
 
 		o("list element is updated in cache", async function () {
 			let initialMail = createMailInstance("listId1", createId("id1"), "hello")
-			cache._putIntoCache(initialMail)
+			cache._storage.put(initialMail)
 
 			let mailUpdate = createMailInstance("listId1", createId("id1"), "goodbye")
 			const load = o.spy(function (typeRef, id) {
@@ -607,7 +607,7 @@ o.spec("entity rest cache", function () {
 
 		o("when reading from the cache, the entities will be cloned", function (done) {
 			let body = createBodyInstance("id1", "hello")
-			cache._putIntoCache(body)
+			cache._storage.put(body)
 			cache.load(MailBodyTypeRef, createId("id1"), null,).then(body1 => {
 				o(body1 == body).equals(false)
 				cache.load(MailBodyTypeRef, createId("id1")).then(body2 => {
@@ -620,7 +620,7 @@ o.spec("entity rest cache", function () {
 
 		o("when reading from the cache, the entities will be cloned pt.2", function (done) {
 			let mail = createMailInstance("listId1", "id1", "hello")
-			cache._putIntoCache(mail)
+			cache._storage.put(mail)
 			cache.load(MailTypeRef, ["listId1", createId("id1")], null).then(mail1 => {
 				o(mail1 == mail).equals(false)
 				cache.load(MailTypeRef, ["listId1", createId("id1")], null).then(mail2 => {
@@ -937,12 +937,12 @@ o.spec("entity rest cache", function () {
 
 			const mock = mockAttribute(entityRestClient, entityRestClient.loadRange, loadRange)
 
-			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MAX_ID)).equals(false)
+			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MAX_ID)).equals(false)
 
 			const result1 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MAX_ID, 10, true)
 			o(result1).deepEquals([cachedMails[2], cachedMails[1], cachedMails[0]])
 			o(loadRange.callCount).equals(1) // entities are provided from server
-			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MAX_ID)).equals(true)
+			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MAX_ID)).equals(true)
 
 			// further requests are resolved from the cache
 			const result2 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MAX_ID, 10, true)
@@ -967,7 +967,7 @@ o.spec("entity rest cache", function () {
 
 			const mock = mockAttribute(entityRestClient, entityRestClient.loadRange, loadRange)
 
-			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(false)
+			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(false)
 
 			const result1 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MIN_ID, 10, false)
 
@@ -975,11 +975,11 @@ o.spec("entity rest cache", function () {
 			// further reqests are resolved from the cache
 			o(loadRange.callCount).equals(1) // entities are provided from server
 
-			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(true)
+			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(true)
 			const result2 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MIN_ID, 10, false)
 
 			o(result2).deepEquals([cachedMails[0], cachedMails[1], cachedMails[2]])
-			o(cache._isInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(true)
+			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(true)
 			o(loadRange.callCount).equals(1) // entities are provided from cache
 			unmockAttribute(mock)
 		})
@@ -995,7 +995,7 @@ o.spec("entity rest cache", function () {
 				createMailInstance(listId, "2", "2"),
 				createMailInstance(listId, "5", "5")
 			]
-			inCache.forEach((i) => cache._putIntoCache(i))
+			inCache.forEach((i) => cache._storage.put(i))
 			const ids = inCache.concat(notInCache).map(getElementId)
 
 			const loadMultiple = o.spy(() => Promise.resolve(notInCache))

@@ -2,7 +2,7 @@
 import type {EntityRestInterface} from "./EntityRestClient"
 import {resolveTypeReference} from "../../common/EntityFunctions"
 import {OperationType} from "../../common/TutanotaConstants"
-import {clone, downcast, flat, getFromMap, groupBy, isSameTypeRef, neverNull, remove, TypeRef} from "@tutao/tutanota-utils"
+import {clone, downcast, flat, getFromMap, groupBy, isSameTypeRef, remove, TypeRef} from "@tutao/tutanota-utils"
 import {containsEventOfType, getEventOfType} from "../../common/utils/Utils"
 import {PermissionTypeRef} from "../../entities/sys/Permission"
 import {EntityEventBatchTypeRef} from "../../entities/sys/EntityEventBatch"
@@ -20,7 +20,6 @@ import {ProgrammingError} from "../../common/error/ProgrammingError"
 import {assertWorkerOrNode} from "../../common/Env"
 import type {$Promisable} from "@tutao/tutanota-utils/"
 import type {ElementEntity, ListElementEntity, SomeEntity} from "../../common/EntityTypes"
-import type {NativeInterface} from "../../../native/common/NativeInterface"
 
 
 assertWorkerOrNode()
@@ -176,6 +175,139 @@ export class CacheStorage {
 			&& !firstBiggerThanSecond(id, entry.upperRangeId)
 			&& !firstBiggerThanSecond(entry.lowerRangeId, id)
 	}
+
+	put(originalEntity: any): void {
+		const entity = clone(originalEntity)
+		const typeRef = entity._type
+		const {listId, elementId} = expandId(entity._id)
+		if (listId != null) {
+
+			const entry = this.getListEntry(typeRef, listId)
+			if (entry == null) {
+				// first element in this list
+				const newEntry = {
+					allRange: [elementId],
+					lowerRangeId: elementId,
+					upperRangeId: elementId,
+					elements: new Map([[elementId, entity]])
+				}
+				this.addListEntry(typeRef, listId, newEntry)
+			} else {
+				// if the element already exists in the cache, overwrite it
+				// add new element to existing list if necessary
+				entry.elements.set(elementId, entity)
+				if (this.isElementIdInCacheRange(typeRef, listId, elementId)) {
+					this._insertIntoRange(entry.allRange, elementId)
+				}
+			}
+		} else {
+			this.addElementEntity(typeRef, elementId, entity)
+		}
+	}
+
+	_insertIntoRange(allRange: Array<Id>, elementId: Id) {
+		for (let i = 0; i < allRange.length; i++) {
+			const rangeElement = allRange[i]
+			if (firstBiggerThanSecond(rangeElement, elementId)) {
+				allRange.splice(i, 0, elementId)
+				return
+			}
+			if (rangeElement === elementId) {
+				return
+			}
+		}
+		allRange.push(elementId)
+	}
+
+	provideFromListCache<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, start: Id, count: number, reverse: boolean): T[] {
+		const listCache = this.getListEntry(typeRef, listId)
+
+		if (listCache == null) {
+			// FIXME
+			throw new Error("TODO")
+		}
+
+		let range = listCache.allRange
+		let ids: Id[] = []
+		if (reverse) {
+			let i
+			for (i = range.length - 1; i >= 0; i--) {
+				if (firstBiggerThanSecond(start, range[i])) {
+					break
+				}
+			}
+			if (i >= 0) {
+				let startIndex = i + 1 - count
+				if (startIndex < 0) { // start index may be negative if more elements have been requested than available when getting elements reverse.
+					startIndex = 0
+				}
+				ids = range.slice(startIndex, i + 1)
+				ids.reverse()
+			} else {
+				ids = []
+			}
+		} else {
+			let i
+			for (i = 0; i < range.length; i++) {
+				if (firstBiggerThanSecond(range[i], start)) {
+					break
+				}
+			}
+			ids = range.slice(i, i + count)
+		}
+		let result: T[] = []
+		for (let a = 0; a < ids.length; a++) {
+			result.push(clone((listCache.elements.get(ids[a]): any)))
+		}
+		return result
+	}
+
+	getRangeForList<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id): ?{lower: Id, upper: Id} {
+		const listEntry = this.getListEntry(typeRef, listId)
+		if (listEntry == null) {
+			return null
+		}
+		return {lower: listEntry.lowerRangeId, upper: listEntry.upperRangeId}
+	}
+
+	setUpperRangeForList<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, id: Id): void {
+		const listEntry = this.getListEntry(typeRef, listId)
+		if (listEntry == null) {
+			throw new Error("list does not exist")
+		}
+		listEntry.upperRangeId = id
+	}
+
+	setLowerRangeForList<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, id: Id): void {
+		const listEntry = this.getListEntry(typeRef, listId)
+		if (listEntry == null) {
+			throw new Error("list does not exist")
+		}
+		listEntry.lowerRangeId = id
+	}
+
+	/**
+	 * Creates a new list entry if there is none. Resets everything but elements.
+	 * @param typeRef
+	 * @param listId
+	 * @param lower
+	 * @param upper
+	 */
+	setNewRangeForList<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, lower: Id, upper: Id): void {
+		const listEntry = this.getListEntry(typeRef, listId)
+		if (listEntry == null) {
+			this.addListEntry(typeRef, listId, {allRange: [], lowerRangeId: lower, upperRangeId: upper, elements: new Map()})
+		} else {
+			listEntry.lowerRangeId = lower
+			listEntry.upperRangeId = upper
+			listEntry.allRange = []
+		}
+	}
+
+	getIdsInRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id): Array<Id> {
+		return this.getListEntry(typeRef, listId)?.allRange ?? []
+	}
+
 }
 
 
@@ -226,6 +358,7 @@ export class EntityRestCache implements EntityRestInterface {
 		) {
 			return this._entityRestClient.load(typeRef, id, queryParameters, extraHeaders)
 		}
+		//TODO
 		// Some methods like "createDraft" load the created instance directly after the service has completed.
 		// Currently we cannot apply this optimization here because the cache is not updated directly after a service request because
 		// We don't wait for the update/create event of the modified instance.
@@ -296,7 +429,7 @@ export class EntityRestCache implements EntityRestInterface {
 		if (idsToLoad.length > 0) {
 			const entities = await this._entityRestClient.loadMultiple(typeRef, listId, idsToLoad)
 			for (let entity of entities) {
-				this._putIntoCache(entity)
+				this._storage.put(entity)
 				entitiesFromServer.push(entity)
 			}
 		}
@@ -305,60 +438,66 @@ export class EntityRestCache implements EntityRestInterface {
 	}
 
 	_loadRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, start: Id, count: number, reverse: boolean): Promise<T[]> {
-		const listCache = this._storage.getListEntry(typeRef, listId)
 		// check which range must be loaded from server
-		const shouldLoadWholeRange = listCache == null
-			|| (start === GENERATED_MAX_ID && reverse && listCache.upperRangeId !== GENERATED_MAX_ID)
-			|| (start === GENERATED_MIN_ID && !reverse && listCache.lowerRangeId !== GENERATED_MIN_ID)
 
-		const startIsLocatedInRange = listCache && !firstBiggerThanSecond(start, listCache.upperRangeId) && !firstBiggerThanSecond(listCache.lowerRangeId, start)
 
-		const startIsLocatedOutsideRange = (firstBiggerThanSecond(start, listCache.upperRangeId) && !reverse) || (firstBiggerThanSecond(listCache.lowerRangeId, start) && reverse)
+		let lowerRangeId, upperRangeId
+		let isFirstRequest = false
+		const listRange = this._storage.getRangeForList(typeRef, listId)
+		if (listRange == null) {
+			isFirstRequest = true
+			lowerRangeId = start
+			upperRangeId = start
+		} else {
+			lowerRangeId = listRange.lower
+			upperRangeId = listRange.upper
+		}
+		// this is the first request for this list or
+		// our upper range id is not MAX_ID and we now read the range starting with MAX_ID. we just replace the complete existing range with the new one because we do not want to handle multiple ranges or
+		// our lower range id is not MIN_ID and we now read the range starting with MIN_ID. we just replace the complete existing range with the new one because we do not want to handle multiple ranges
+		// this can also happen if we just have read a single element before, so the range is only that element and can be skipped
+		const shouldLoadWholeRange = isFirstRequest
+			|| (start === GENERATED_MAX_ID && reverse && upperRangeId !== GENERATED_MAX_ID)
+			|| (start === GENERATED_MIN_ID && !reverse && lowerRangeId !== GENERATED_MIN_ID)
+
+		const startIsLocatedInRange = !isFirstRequest && !firstBiggerThanSecond(start, upperRangeId)
+			&& !firstBiggerThanSecond(lowerRangeId, start)
+
+		const startIsLocatedOutsideRange = !isFirstRequest && ((firstBiggerThanSecond(start, upperRangeId) && !reverse)
+			|| (firstBiggerThanSecond(lowerRangeId, start) && reverse))
+
 		if (shouldLoadWholeRange) {
-			// this is the first request for this list or
-			// our upper range id is not MAX_ID and we now read the range starting with MAX_ID. we just replace the complete existing range with the new one because we do not want to handle multiple ranges or
-			// our lower range id is not MIN_ID and we now read the range starting with MIN_ID. we just replace the complete existing range with the new one because we do not want to handle multiple ranges
-			// this can also happen if we just have read a single element before, so the range is only that element and can be skipped
 			return this._entityRestClient.loadRange(typeRef, listId, start, count, reverse).then(entities => {
-				// create the list data path in the cache if not existing
-				let newListCache
-				if (!listCache) {
-					newListCache = {allRange: [], lowerRangeId: start, upperRangeId: start, elements: new Map()}
-					this._storage.addListEntry(typeRef, listId, newListCache)
-				} else {
-					newListCache = listCache
-					newListCache.allRange = []
-					newListCache.lowerRangeId = start
-					newListCache.upperRangeId = start
-				}
-				return this._handleElementRangeResult(newListCache, start, count, reverse, entities, count)
+				// reset range
+				this._storage.setNewRangeForList(typeRef, listId, start, start)
+				return this._handleElementRangeResult(typeRef, listId, start, count, reverse, entities, count)
 			})
 		} else if (startIsLocatedInRange) { // check if the requested start element is located in the range
 
 			// count the numbers of elements that are already in allRange to determine the number of elements to read
-			const {newStart, newCount} = this._recalculateRangeRequest(listCache, start, count, reverse)
+			const {newStart, newCount} = this._recalculateRangeRequest(typeRef, listId, start, count, reverse)
 			if (newCount > 0) {
 				return this._entityRestClient.loadRange(typeRef, listId, newStart, newCount, reverse).then(entities => {
-					return this._handleElementRangeResult(neverNull(listCache), start, count, reverse, entities, newCount)
+					return this._handleElementRangeResult(typeRef, listId, start, count, reverse, entities, newCount)
 				})
 			} else {
 				// all elements are located in the cache.
-				return Promise.resolve(this._provideFromCache(listCache, start, count, reverse))
+				return Promise.resolve(this._storage.provideFromListCache(typeRef, listId, start, count, reverse))
 			}
 		} else if (startIsLocatedOutsideRange) {
 			let loadStartId
-			if (firstBiggerThanSecond(start, listCache.upperRangeId) && !reverse) {
+			if (firstBiggerThanSecond(start, upperRangeId) && !reverse) {
 				// start is higher than range. load from upper range id with same count. then, if all available elements have been loaded or the requested number is in cache, return from cache. otherwise load again the same way.
-				loadStartId = listCache.upperRangeId
+				loadStartId = upperRangeId
 			} else {
 				// start is lower than range. load from lower range id with same count. then, if all available elements have been loaded or the requested number is in cache, return from cache. otherwise load again the same way.
-				loadStartId = listCache.lowerRangeId
+				loadStartId = lowerRangeId
 			}
 			return this._entityRestClient.loadRange(typeRef, listId, loadStartId, count, reverse).then(entities => {
 				// put the new elements into the cache
-				this._handleElementRangeResult(neverNull(listCache), loadStartId, count, reverse, ((entities: any): T[]), count)
+				this._handleElementRangeResult(typeRef, listId, loadStartId, count, reverse, ((entities: any): T[]), count)
 				// provide from cache with the actual start id
-				let resultElements = this._provideFromCache(neverNull(listCache), start, count, reverse)
+				let resultElements = this._storage.provideFromListCache(typeRef, listId, start, count, reverse)
 				if (entities.length < count || resultElements.length === count) {
 					// either all available elements have been loaded from target or the requested number of elements could be provided from cache
 					return resultElements
@@ -369,45 +508,38 @@ export class EntityRestCache implements EntityRestInterface {
 			})
 		} else {
 			let msg = "invalid range request. path: " + typeRef.path + " list: " + listId + " start: " + start + " count: "
-				+ count + " reverse: " + String(reverse) + " lower: " + listCache.lowerRangeId + " upper: "
-				+ listCache.upperRangeId
+				+ count + " reverse: " + String(reverse) + " lower: " + lowerRangeId + " upper: "
+				+ upperRangeId
 			return Promise.reject(new Error(msg))
 		}
 	}
 
-	_handleElementRangeResult<T: ListElementEntity>(listCache: ListEntry, start: Id, count: number, reverse: boolean, elements: T[], targetCount: number): T[] {
+	_handleElementRangeResult<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, start: Id, count: number, reverse: boolean, elements: T[], targetCount: number): T[] {
 		let elementsToAdd = elements
-		if (elements.length > 0) {
+		if (reverse) {
 			// Ensure that elements are cached in ascending (not reverse) order
-			if (reverse) {
-				elementsToAdd = elements.reverse()
-				if (elements.length < targetCount) {
-					listCache.lowerRangeId = GENERATED_MIN_ID
-				} else {
-					// After reversing the list the first element in the list is the lower range limit
-					listCache.lowerRangeId = getLetId(elements[0])[1]
-				}
+			elementsToAdd = elements.reverse()
+			if (elements.length < targetCount) {
+				this._storage.setLowerRangeForList(typeRef, listId, GENERATED_MIN_ID)
 			} else {
-				// Last element in the list is the upper range limit
-				if (elements.length < targetCount) {
-					// all elements have been loaded, so the upper range must be set to MAX_ID
-					listCache.upperRangeId = GENERATED_MAX_ID
-				} else {
-					listCache.upperRangeId = getLetId(elements[elements.length - 1])[1]
-				}
-			}
-			for (let i = 0; i < elementsToAdd.length; i++) {
-				this._putIntoCache(elementsToAdd[i])
+				// After reversing the list the first element in the list is the lower range limit
+				this._storage.setLowerRangeForList(typeRef, listId, getLetId(elements[0])[1])
 			}
 		} else {
-			// all elements have been loaded, so the range must be set to MAX_ID / MIN_ID
-			if (reverse) {
-				listCache.lowerRangeId = GENERATED_MIN_ID
+			// Last element in the list is the upper range limit
+			if (elements.length < targetCount) {
+				// all elements have been loaded, so the upper range must be set to MAX_ID
+				this._storage.setUpperRangeForList(typeRef, listId, GENERATED_MAX_ID)
 			} else {
-				listCache.upperRangeId = GENERATED_MAX_ID
+				this._storage.setUpperRangeForList(typeRef, listId, getLetId(elements[elements.length - 1])[1])
 			}
 		}
-		return this._provideFromCache(listCache, start, count, reverse)
+
+		for (let element of elementsToAdd) {
+			this._storage.put(element)
+		}
+
+		return this._storage.provideFromListCache(typeRef, listId, start, count, reverse)
 	}
 
 	/**
@@ -415,14 +547,17 @@ export class EntityRestCache implements EntityRestInterface {
 	 * order to read no duplicate values.
 	 * @return returns the new start and count value.
 	 */
-	_recalculateRangeRequest<T>(listCache: ListEntry, start: Id, count: number, reverse: boolean): {newStart: string, newCount: number} {
-		let allRangeList = listCache['allRange']
+	_recalculateRangeRequest<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, start: Id, count: number, reverse: boolean): {newStart: string, newCount: number} {
+		let allRangeList = this._storage.getIdsInRange(typeRef, listId)
 		let elementsToRead = count
 		let startElementId = start
-
+		const range = this._storage.getRangeForList(typeRef, listId)
+		if (range == null) {
+			return {newStart: start, newCount: count}
+		}
+		const {lower, upper} = range
 		let indexOfStart = allRangeList.indexOf(start)
-		if ((!reverse && listCache.upperRangeId === GENERATED_MAX_ID) || (reverse && listCache.lowerRangeId
-			=== GENERATED_MIN_ID)) {
+		if ((!reverse && upper === GENERATED_MAX_ID) || (reverse && lower === GENERATED_MIN_ID)) {
 			// we have already loaded the complete range in the desired direction, so we do not have to load from server
 			elementsToRead = 0
 		} else if (allRangeList.length === 0) { // Element range is empty, so read all elements
@@ -435,16 +570,19 @@ export class EntityRestCache implements EntityRestInterface {
 				elementsToRead = count - (allRangeList.length - 1 - indexOfStart)
 				startElementId = allRangeList[allRangeList.length - 1] // use the  highest id in allRange as start element
 			}
-		} else if (listCache["lowerRangeId"] === start || (firstBiggerThanSecond(start, listCache["lowerRangeId"])
-			&& (firstBiggerThanSecond(allRangeList[0], start)))) { // Start element is not in allRange but has been used has start element for a range request, eg. EntityRestInterface.GENERATED_MIN_ID, or start is between lower range id and lowest element in range
+		} else if (
+			lower === start
+			|| (firstBiggerThanSecond(start, lower) && (firstBiggerThanSecond(allRangeList[0], start)))
+		) { // Start element is not in allRange but has been used has start element for a range request, eg. EntityRestInterface.GENERATED_MIN_ID, or start is between lower range id and lowest element in range
 			if (!reverse) { // if not reverse read only elements that are not in allRange
 				startElementId = allRangeList[allRangeList.length - 1] // use the  highest id in allRange as start element
 				elementsToRead = count - allRangeList.length
 			}
 			// if reverse read all elements
-		} else if (listCache["upperRangeId"] === start
+		} else if (upper === start
 			|| (firstBiggerThanSecond(start, allRangeList[allRangeList.length - 1])
-				&& (firstBiggerThanSecond(listCache["upperRangeId"], start)))) { // Start element is not in allRange but has been used has start element for a range request, eg. EntityRestInterface.GENERATED_MAX_ID, or start is between upper range id and highest element in range
+				&& (firstBiggerThanSecond(upper, start)))
+		) { // Start element is not in allRange but has been used has start element for a range request, eg. EntityRestInterface.GENERATED_MAX_ID, or start is between upper range id and highest element in range
 			if (reverse) { // if not reverse read only elements that are not in allRange
 				startElementId = allRangeList[0] // use the  highest id in allRange as start element
 				elementsToRead = count - allRangeList.length
@@ -454,41 +592,6 @@ export class EntityRestCache implements EntityRestInterface {
 		return {newStart: startElementId, newCount: elementsToRead}
 	}
 
-	_provideFromCache<T>(listCache: ListEntry, start: Id, count: number, reverse: boolean): T[] {
-		let range = listCache.allRange
-		let ids: Id[] = []
-		if (reverse) {
-			let i
-			for (i = range.length - 1; i >= 0; i--) {
-				if (firstBiggerThanSecond(start, range[i])) {
-					break
-				}
-			}
-			if (i >= 0) {
-				let startIndex = i + 1 - count
-				if (startIndex < 0) { // start index may be negative if more elements have been requested than available when getting elements reverse.
-					startIndex = 0
-				}
-				ids = range.slice(startIndex, i + 1)
-				ids.reverse()
-			} else {
-				ids = []
-			}
-		} else {
-			let i
-			for (i = 0; i < range.length; i++) {
-				if (firstBiggerThanSecond(range[i], start)) {
-					break
-				}
-			}
-			ids = range.slice(i, i + count)
-		}
-		let result: T[] = []
-		for (let a = 0; a < ids.length; a++) {
-			result.push(clone((listCache.elements.get(ids[a]): any)))
-		}
-		return result
-	}
 
 	/**
 	 * Resolves when the entity is loaded from the server if necessary
@@ -604,12 +707,12 @@ export class EntityRestCache implements EntityRestInterface {
 				const element = this._storage.get(typeRef, deleteEvent.instanceListId, instanceId)
 				this._storage.deleteIfExists(typeRef, deleteEvent.instanceListId, instanceId)
 				element._id = [instanceListId, instanceId]
-				this._putIntoCache(element)
+				this._storage.put(element)
 				return update
 			} else if (this._storage.isElementIdInCacheRange(typeRef, instanceListId, instanceId)) {
 				// No need to try to download something that's not there anymore
 				return this._entityRestClient.load(typeRef, [instanceListId, instanceId])
-				           .then(entity => this._putIntoCache(entity))
+				           .then(entity => this._storage.put(entity))
 				           .then(() => update)
 				           .catch((e) => this._handleProcessingError(e))
 			} else {
@@ -625,7 +728,7 @@ export class EntityRestCache implements EntityRestInterface {
 		if (this._storage.contains(typeRef, instanceListId, instanceId)) {
 			// No need to try to download something that's not there anymore
 			return this._entityRestClient.load(typeRef, collapseId(instanceListId, instanceId))
-			           .then(entity => this._putIntoCache(entity))
+			           .then(entity => this._storage.put(entity))
 			           .then(() => update)
 			           .catch((e) => this._handleProcessingError(e))
 		}
@@ -649,49 +752,6 @@ export class EntityRestCache implements EntityRestInterface {
 	 */
 	getElementIdsInCacheRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, ids: Id[]): Id[] {
 		return ids.filter(id => this._storage.isElementIdInCacheRange(typeRef, listId, id))
-	}
-
-	_putIntoCache(originalEntity: any): void {
-		const entity = clone(originalEntity)
-		const typeRef = entity._type
-		const {listId, elementId} = expandId(entity._id)
-		if (listId != null) {
-
-			const entry = this._storage.getListEntry(typeRef, listId)
-			if (entry == null) {
-				// first element in this list
-				const newEntry = {
-					allRange: [elementId],
-					lowerRangeId: elementId,
-					upperRangeId: elementId,
-					elements: new Map([[elementId, entity]])
-				}
-				this._storage.addListEntry(typeRef, listId, newEntry)
-			} else {
-				// if the element already exists in the cache, overwrite it
-				// add new element to existing list if necessary
-				entry.elements.set(elementId, entity)
-				if (this._storage.isElementIdInCacheRange(typeRef, listId, elementId)) {
-					this._insertIntoRange(entry.allRange, elementId)
-				}
-			}
-		} else {
-			this._storage.addElementEntity(typeRef, elementId, entity)
-		}
-	}
-
-	_insertIntoRange(allRange: Array<Id>, elementId: Id) {
-		for (let i = 0; i < allRange.length; i++) {
-			const rangeElement = allRange[i]
-			if (firstBiggerThanSecond(rangeElement, elementId)) {
-				allRange.splice(i, 0, elementId)
-				return
-			}
-			if (rangeElement === elementId) {
-				return
-			}
-		}
-		allRange.push(elementId)
 	}
 }
 

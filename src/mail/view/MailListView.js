@@ -89,11 +89,11 @@ export class MailListView implements MComponent<void> {
 					} else if (this.targetInbox()) {
 						this.list.selectNone()
 						return locator.mailModel.getMailboxFolders(listElement)
-						              .then((folders) => moveMails(locator.mailModel, [listElement], getInboxFolder(folders)))
+						              .then((folders) => moveMails(locator.mailModel, [listElement], getInboxFolder(folders).folder))
 					} else {
 						this.list.selectNone()
 						return locator.mailModel.getMailboxFolders(listElement)
-						              .then((folders) => moveMails(locator.mailModel, [listElement], getArchiveFolder(folders)))
+						              .then((folders) => moveMails(locator.mailModel, [listElement], getArchiveFolder(folders).folder))
 					}
 				},
 				enabled: true

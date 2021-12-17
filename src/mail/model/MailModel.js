@@ -2,7 +2,7 @@
 import m from "mithril"
 import stream from "mithril/stream/stream.js"
 import {containsEventOfType} from "../../api/common/utils/Utils"
-import {neverNull, noOp} from "@tutao/tutanota-utils"
+import {assertNotNull, base64ToUint8Array, groupBy, neverNull, noOp, ofClass, promiseMap, splitInChunks} from "@tutao/tutanota-utils"
 import {createMoveMailData} from "../../api/entities/tutanota/MoveMailData"
 import {TutanotaService} from "../../api/entities/tutanota/Services"
 import {HttpMethod} from "../../api/common/EntityFunctions"
@@ -19,7 +19,7 @@ import {GroupTypeRef} from "../../api/entities/sys/Group"
 import type {MailFolder} from "../../api/entities/tutanota/MailFolder"
 import {MailFolderTypeRef} from "../../api/entities/tutanota/MailFolder"
 import type {MailReportTypeEnum} from "../../api/common/TutanotaConstants"
-import {FeatureType, GroupType, MailFolderType, MAX_NBR_MOVE_DELETE_MAIL_SERVICE, OperationType} from "../../api/common/TutanotaConstants"
+import {GroupType, MailFolderType, MAX_NBR_MOVE_DELETE_MAIL_SERVICE, OperationType} from "../../api/common/TutanotaConstants"
 import {UserTypeRef} from "../../api/entities/sys/User"
 import type {Mail} from "../../api/entities/tutanota/Mail"
 import {_TypeModel as MailTypeModel, MailTypeRef} from "../../api/entities/tutanota/Mail"
@@ -30,18 +30,15 @@ import {Notifications} from "../../gui/Notifications"
 import {findAndApplyMatchingRule} from "./InboxRuleHandler"
 import type {WebsocketCounterData} from "../../api/entities/sys/WebsocketCounterData"
 import type {WorkerClient} from "../../api/main/WorkerClient"
-import {groupBy, splitInChunks} from "@tutao/tutanota-utils"
 import {EntityClient} from "../../api/common/EntityClient"
 import {elementIdPart, getListId, isSameId, listIdPart} from "../../api/common/utils/EntityUtils";
-import {ofClass, promiseMap} from "@tutao/tutanota-utils"
 import {createReportMailPostData} from "../../api/entities/tutanota/ReportMailPostData"
-import {base64ToUint8Array} from "@tutao/tutanota-utils"
 import {NotFoundError} from "../../api/common/error/RestError"
 import type {MailFacade} from "../../api/worker/facades/MailFacade"
 
 export type MailboxDetail = {
 	mailbox: MailBox,
-	folders: MailFolder[],
+	folders: Array<MailFolderNode>,
 	mailGroupInfo: GroupInfo,
 	mailGroup: Group,
 	mailboxGroupRoot: MailboxGroupRoot,
@@ -53,6 +50,11 @@ export type MailboxCounters = {
 		// mailListId and counter
 		[string]: number
 	}
+}
+
+export type MailFolderNode = {
+	folder: MailFolder,
+	subfolders: Array<MailFolderNode>,
 }
 
 export class MailModel {
@@ -91,25 +93,21 @@ export class MailModel {
 
 	_init(): Promise<void> {
 		let mailGroupMemberships = logins.getUserController().getMailGroupMemberships()
-		this._initialization = Promise.all(mailGroupMemberships.map(mailGroupMembership => {
-				return Promise.all([
+		this._initialization = Promise.all(mailGroupMemberships.map(async mailGroupMembership => {
+				const [mailboxGroupRoot, mailGroupInfo, mailGroup] = await Promise.all([
 					this._entityClient.load(MailboxGroupRootTypeRef, mailGroupMembership.group),
 					this._entityClient.load(GroupInfoTypeRef, mailGroupMembership.groupInfo),
 					this._entityClient.load(GroupTypeRef, mailGroupMembership.group)
-				]).then(([mailboxGroupRoot, mailGroupInfo, mailGroup]) => {
-					return this._entityClient.load(MailBoxTypeRef, mailboxGroupRoot.mailbox).then((mailbox) => {
-						return this._loadFolders(neverNull(mailbox.systemFolders).folders, true)
-						           .then((folders) => {
-							           return {
-								           mailbox,
-								           folders,
-								           mailGroupInfo,
-								           mailGroup,
-								           mailboxGroupRoot
-							           }
-						           })
-					})
-				})
+				])
+				const mailbox = await this._entityClient.load(MailBoxTypeRef, mailboxGroupRoot.mailbox)
+				const folders = await this._loadFolders(neverNull(mailbox.systemFolders).folders, true)
+				return {
+					mailbox,
+					folders,
+					mailGroupInfo,
+					mailGroup,
+					mailboxGroupRoot
+				}
 			})
 		).then(details => {
 			this.mailboxDetails(details)
@@ -117,29 +115,32 @@ export class MailModel {
 		return this._initialization
 	}
 
-	_loadFolders(folderListId: Id, loadSubFolders: boolean): Promise<MailFolder[]> {
-		return this._entityClient.loadAll(MailFolderTypeRef, folderListId).then(folders => {
-			if (loadSubFolders) {
-				return promiseMap(folders, folder => this._loadFolders(folder.subFolders, false), {concurrency: 5})
-					.then(subfolders => {
-						return folders.concat(...subfolders)
-					})
-			} else {
-				return folders
-			}
-		}).then(folders => {
-			return folders.filter(f => {
-				if ((f.folderType === MailFolderType.SPAM || f.folderType === MailFolderType.ARCHIVE)
-					&& !logins.isInternalUserLoggedIn()) {
-					return false
-				} else if (logins.isEnabled(FeatureType.InternalCommunication)
-					&& f.folderType === MailFolderType.SPAM) {
-					return false
-				} else {
-					return true
-				}
+	async _loadFolders(folderListId: Id, loadSubFolders: boolean): Promise<Array<MailFolderNode>> {
+		const folders = await this._entityClient.loadAll(MailFolderTypeRef, folderListId)
+
+		if (loadSubFolders) {
+			return promiseMap(folders, async folder => {
+				const subfolders = await this._loadFolders(folder.subFolders, true)
+				return {folder, subfolders}
+			}, {concurrency: 5})
+
+		} else {
+			return folders.map((f) => {
+				return {folder: f, subfolders: []}
 			})
-		})
+		}
+		//        .then(folders => {
+		// return folders.filter(f => {
+		// 	if ((f.folderType === MailFolderType.SPAM || f.folderType === MailFolderType.ARCHIVE)
+		// 		&& !logins.isInternalUserLoggedIn()) {
+		// 		return false
+		// 	} else if (logins.isEnabled(FeatureType.InternalCommunication)
+		// 		&& f.folderType === MailFolderType.SPAM) {
+		// 		return false
+		// 	} else {
+		// 		return true
+		// 	}
+		// })
 	}
 
 	getMailboxDetails(): Promise<Array<MailboxDetail>> {
@@ -153,8 +154,9 @@ export class MailModel {
 	}
 
 	getMailboxDetailsForMailListId(mailListId: Id): Promise<MailboxDetail> {
+		// TODO
 		return this.getMailboxDetails().then(mailboxDetails =>
-			neverNull(mailboxDetails.find((md) => md.folders.find(f => f.mails === mailListId) != null)))
+			neverNull(mailboxDetails.find((md) => md.folders.find(f => f.folder.mails === mailListId) != null)))
 	}
 
 	getMailboxDetailsForMailGroup(mailGroupId: Id): Promise<MailboxDetail> {
@@ -168,7 +170,7 @@ export class MailModel {
 			neverNull(mailboxDetails.find((md) => md.mailGroup._id === userMailGroupMembership.group)))
 	}
 
-	getMailboxFolders(mail: Mail): Promise<MailFolder[]> {
+	getMailboxFolders(mail: Mail): Promise<MailFolderNode[]> {
 		return this.getMailboxDetailsForMail(mail).then(md => md.folders)
 	}
 
@@ -176,8 +178,8 @@ export class MailModel {
 		const mailboxDetails = this.mailboxDetails() || []
 		for (let e of mailboxDetails) {
 			for (let f of e.folders) {
-				if (f.mails === mailListId) {
-					return f
+				if (f.folder.mails === mailListId) {
+					return f.folder
 				}
 			}
 		}
@@ -252,7 +254,7 @@ export class MailModel {
 				if (this.isFinalDelete(sourceMailFolder)) {
 					await this._finallyDeleteMails(mails)
 				} else {
-					await this.getMailboxFolders(mails[0]).then(folders => this._moveMails(mails, this.getTrashFolder(folders)))
+					await this.getMailboxFolders(mails[0]).then(folders => this._moveMails(mails, this.getTrashFolder(folders).folder))
 				}
 			} else {
 				console.log("Delete mail: no mail folder for list id", listId)
@@ -345,8 +347,8 @@ export class MailModel {
 		return this._mailFacade.checkMailForPhishing(mail, links)
 	}
 
-	getTrashFolder(folders: MailFolder[]): MailFolder {
-		return (folders.find(f => f.folderType === MailFolderType.TRASH): any)
+	getTrashFolder(folders: MailFolderNode[]): MailFolderNode {
+		return assertNotNull(folders.find(f => f.folder.folderType === MailFolderType.TRASH))
 	}
 
 	isFinalDelete(folder: ?MailFolder): boolean {

@@ -338,9 +338,9 @@ export class MailSettingsViewer implements UpdatableSettingsViewer {
 	}
 
 	_getTextForTarget(mailboxDetails: MailboxDetail, targetFolderId: IdTuple): string {
-		let folder = mailboxDetails.folders.find(folder => isSameId(folder._id, targetFolderId))
+		let folder = mailboxDetails.folders.find(folder => isSameId(folder.folder._id, targetFolderId))
 		if (folder) {
-			return getFolderName(folder)
+			return getFolderName(folder.folder)
 		} else {
 			return "?"
 		}

@@ -45,7 +45,7 @@ export function handleBackPress(): Promise<boolean> {
 						if (parts.length > 1) {
 							const selectedMailListId = parts[1]
 							return locator.mailModel.getMailboxDetails().then((mailboxDetails) => {
-								const inboxMailListId = getInboxFolder(mailboxDetails[0].folders).mails
+								const inboxMailListId = getInboxFolder(mailboxDetails[0].folders).folder.mails
 								if (inboxMailListId !== selectedMailListId) {
 									m.route.set(MAIL_PREFIX + "/" + inboxMailListId)
 									return true

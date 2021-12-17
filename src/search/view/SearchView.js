@@ -129,7 +129,7 @@ export class SearchView implements CurrentView {
 			]
 			mailboxes.forEach((mailbox, mailboxIndex) => {
 				(getSortedSystemFolders(mailbox.folders)
-					.concat(getSortedCustomFolders(mailbox.folders))).forEach(folder => {
+					.concat(getSortedCustomFolders(mailbox.folders))).forEach(({folder}) => {
 					if (folder.folderType !== MailFolderType.SPAM) {
 						mailFolders.push({
 							name: getFolderName(folder) + ((mailboxIndex === 0) ? "" : " ("

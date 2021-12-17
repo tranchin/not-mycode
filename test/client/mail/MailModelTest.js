@@ -30,7 +30,7 @@ o.spec("MailModelTest", function () {
 
 	const mailboxDetails: $Shape<MailboxDetail>[] = [
 		{
-			folders: [inboxFolder]
+			folders: [{folder: inboxFolder, subfolders: []}]
 		}
 	]
 

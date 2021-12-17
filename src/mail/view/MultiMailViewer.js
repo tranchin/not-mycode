@@ -145,9 +145,9 @@ export class MultiMailViewer {
 			.filter(f => f !== this._mailView.selectedFolder)
 			.map(f => {
 				return {
-					label: () => getFolderName(f),
-					click: this._actionBarAction(mails => moveMails(locator.mailModel, mails, f)),
-					icon: getFolderIcon(f),
+					label: () => getFolderName(f.folder),
+					click: this._actionBarAction(mails => moveMails(locator.mailModel, mails, f.folder)),
+					icon: getFolderIcon(f.folder),
 					type: ButtonType.Dropdown
 				}
 			})

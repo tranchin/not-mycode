@@ -9,7 +9,7 @@ export function openMailbox(userId: Id, mailAddress: string, requestedPath: ?str
 	if (logins.isUserLoggedIn() && logins.getUserController().user._id === userId) {
 		if (!requestedPath) {
 			locator.mailModel.getMailboxDetails().then((mailboxDetails) =>
-				m.route.set("/mail/" + getInboxFolder(mailboxDetails[0].folders).mails))
+				m.route.set("/mail/" + getInboxFolder(mailboxDetails[0].folders).folder.mails))
 		} else {
 			m.route.set("/mail" + requestedPath)
 		}

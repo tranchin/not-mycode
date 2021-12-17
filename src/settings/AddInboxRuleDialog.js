@@ -10,7 +10,7 @@ import {createInboxRule} from "../api/entities/tutanota/InboxRule"
 import {update} from "../api/main/Entity"
 import {logins} from "../api/main/LoginController"
 import {getArchiveFolder, getExistingRuleForType, getFolderName} from "../mail/model/MailUtils"
-import type {MailboxDetail} from "../mail/model/MailModel"
+import type {MailboxDetail, MailFolderNode} from "../mail/model/MailModel"
 import stream from "mithril/stream/stream.js"
 import {DropDownSelectorN} from "../gui/base/DropDownSelectorN"
 import {TextFieldN} from "../gui/base/TextFieldN"
@@ -28,13 +28,13 @@ export function show(mailBoxDetails: MailboxDetail, ruleOrTemplate: InboxRule) {
 	} else if (mailBoxDetails) {
 		let targetFolders = mailBoxDetails.folders
 		                                  .map(folder => {
-			                                  return {name: getFolderName(folder), value: folder}
+			                                  return {name: getFolderName(folder.folder), value: folder.folder}
 		                                  })
 		                                  .sort((folder1, folder2) => folder1.name.localeCompare(folder2.name))
 		const inboxRuleType = stream(ruleOrTemplate.type)
 		const inboxRuleValue = stream(ruleOrTemplate.value)
-		const selectedFolder = mailBoxDetails.folders.find((folder) => isSameId(folder._id, ruleOrTemplate.targetFolder))
-		const inboxRuleTarget = stream(selectedFolder || getArchiveFolder(mailBoxDetails.folders))
+		const selectedFolder = mailBoxDetails.folders.find((folder) => isSameId(folder.folder._id, ruleOrTemplate.targetFolder))
+		const inboxRuleTarget: Stream<MailFolderNode> = stream(selectedFolder || getArchiveFolder(mailBoxDetails.folders))
 		let form = () => [
 			m(DropDownSelectorN, {
 				items: getInboxRuleTypeNameMapping(),
@@ -62,7 +62,7 @@ export function show(mailBoxDetails: MailboxDetail, ruleOrTemplate: InboxRule) {
 			let rule = createInboxRule()
 			rule.type = inboxRuleType()
 			rule.value = _getCleanedValue(inboxRuleType(), inboxRuleValue())
-			rule.targetFolder = inboxRuleTarget()._id
+			rule.targetFolder = inboxRuleTarget().folder._id
 			const props = logins.getUserController().props
 			const inboxRules = props.inboxRules
 			props.inboxRules = isNewRule ? [

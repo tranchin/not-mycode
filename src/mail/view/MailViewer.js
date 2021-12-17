@@ -615,13 +615,13 @@ export class MailViewer {
 						icon: () => Icons.Folder,
 						colors,
 						click: createAsyncDropdown(() => this._mailModel.getMailboxFolders(this.mail).then((folders) => {
-								const filteredFolders = folders.filter(f => f.mails !== this.mail._id[0])
+								const filteredFolders = folders.filter(f => f.folder.mails !== this.mail._id[0])
 								const targetFolders = (getSortedSystemFolders(filteredFolders).concat(getSortedCustomFolders(filteredFolders)))
 								return targetFolders.map(f => {
 									return {
-										label: () => getFolderName(f),
-										click: () => moveMails(this._mailModel, [mail], f),
-										icon: getFolderIcon(f),
+										label: () => getFolderName(f.folder),
+										click: () => moveMails(this._mailModel, [mail], f.folder),
+										icon: getFolderIcon(f.folder),
 										type: ButtonType.Dropdown,
 									}
 								})
@@ -755,7 +755,7 @@ export class MailViewer {
 			    .then((mailboxDetails) => {
 				    const spamFolder = getFolder(mailboxDetails.folders, MailFolderType.SPAM)
 				    // do not report moved mails again
-				    return moveMails(this._mailModel, [this.mail], spamFolder, false)
+				    return moveMails(this._mailModel, [this.mail], spamFolder.folder, false)
 			    })
 			    .catch(ofClass(LockedError, () => Dialog.message("operationStillActive_msg")))
 			    .catch(ofClass(NotFoundError, () => console.log("mail already moved")))
@@ -1444,7 +1444,7 @@ export class MailViewer {
 				return defaultSendMailModel(mailboxDetails).initAsResponse(args, this._loadedInlineImages).then(model => model.send(MailMethod.NONE))
 			})
 		}).then(() => this._mailModel.getMailboxFolders(this.mail)).then((folders) => {
-			return moveMails(this._mailModel, [this.mail], getArchiveFolder(folders))
+			return moveMails(this._mailModel, [this.mail], getArchiveFolder(folders).folder)
 		})
 	}
 

@@ -24,7 +24,7 @@ import {logins as globalLogins} from "../../api/main/LoginController"
 import type {Language} from "../../misc/LanguageViewModel"
 import {lang} from "../../misc/LanguageViewModel"
 import {Icons} from "../../gui/base/icons/Icons"
-import type {MailboxDetail} from "./MailModel"
+import type {MailboxDetail, MailFolderNode} from "./MailModel"
 import {getContactDisplayName} from "../../contacts/model/ContactUtils"
 import type {lazyIcon} from "../../gui/base/Icon"
 import {endsWith} from "@tutao/tutanota-utils"
@@ -248,35 +248,37 @@ export function getFolderIcon(folder: MailFolder): lazyIcon {
 }
 
 
-export function getFolder(folders: MailFolder[], type: MailFolderTypeEnum): MailFolder {
-	const folder = folders.find(f => f.folderType === type)
+export function getFolder(folders: MailFolderNode[], type: MailFolderTypeEnum): MailFolderNode {
+	const folder = folders.find(f => f.folder.folderType === type)
 	return neverNull(folder)
 }
 
-export function getInboxFolder(folders: MailFolder[]): MailFolder {
+export function getInboxFolder(folders: MailFolderNode[]): MailFolderNode {
 	return getFolder(folders, MailFolderType.INBOX)
 }
 
-export function getArchiveFolder(folders: MailFolder[]): MailFolder {
+export function getArchiveFolder(folders: MailFolderNode[]): MailFolderNode {
 	return getFolder(folders, MailFolderType.ARCHIVE)
 }
 
 
-export function getSortedSystemFolders(folders: MailFolder[]): MailFolder[] {
-	return folders.filter(f => f.folderType !== MailFolderType.CUSTOM).sort((folder1, folder2) => {
+export function getSortedSystemFolders(folders: MailFolderNode[]): MailFolderNode[] {
+	return folders.filter(f => f.folder.folderType !== MailFolderType.CUSTOM).sort((folder1, folder2) => {
 		// insert the draft folder after inbox (use type number 1.5 which is after inbox)
-		if (folder1.folderType === MailFolderType.DRAFT) {
-			return 1.5 - Number(folder2.folderType)
-		} else if (folder2.folderType === MailFolderType.DRAFT) {
-			return Number(folder1.folderType) - 1.5
+		const type1 = folder1.folder.folderType
+		const type2 = folder2.folder.folderType
+		if (type1 === MailFolderType.DRAFT) {
+			return 1.5 - Number(type2)
+		} else if (type2 === MailFolderType.DRAFT) {
+			return Number(type1) - 1.5
 		}
-		return Number(folder1.folderType) - Number(folder2.folderType)
+		return Number(type1) - Number(type2)
 	})
 }
 
-export function getSortedCustomFolders(folders: MailFolder[]): MailFolder[] {
-	return folders.filter(f => f.folderType === MailFolderType.CUSTOM).sort((folder1, folder2) => {
-		return folder1.name.localeCompare(folder2.name)
+export function getSortedCustomFolders(folders: MailFolderNode[]): MailFolderNode[] {
+	return folders.filter(f => f.folder.folderType === MailFolderType.CUSTOM).sort((folder1, folder2) => {
+		return folder1.folder.name.localeCompare(folder2.folder.name)
 	})
 }
 

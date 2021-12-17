@@ -95,7 +95,7 @@ export function archiveMails(mails: Mail[]): Promise<*> {
 	if (mails.length > 0) {
 		// assume all mails in the array belong to the same Mailbox
 		return locator.mailModel.getMailboxFolders(mails[0])
-		              .then((folders) => moveMails(locator.mailModel, mails, getArchiveFolder(folders)))
+		              .then((folders) => moveMails(locator.mailModel, mails, getArchiveFolder(folders).folder))
 	} else {
 		return Promise.resolve()
 	}
@@ -105,7 +105,7 @@ export function moveToInbox(mails: Mail[]): Promise<*> {
 	if (mails.length > 0) {
 		// assume all mails in the array belong to the same Mailbox
 		return locator.mailModel.getMailboxFolders(mails[0])
-		              .then((folders) => moveMails(locator.mailModel, mails, getInboxFolder(folders)))
+		              .then((folders) => moveMails(locator.mailModel, mails, getInboxFolder(folders).folder))
 	} else {
 		return Promise.resolve()
 	}

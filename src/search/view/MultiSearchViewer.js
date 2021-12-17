@@ -233,15 +233,15 @@ export class MultiSearchViewer {
 		return (getSortedSystemFolders(selectedMailbox.folders)
 			.concat(getSortedCustomFolders(selectedMailbox.folders)))
 			.map(f => ({
-				label: () => getFolderName(f),
+				label: () => getFolderName(f.folder),
 				click: () => {
 					//is needed for correct selection behavior on mobile
 					this._searchListView.selectNone()
 					// move all groups one by one because the mail list cannot be modified in parallel
-					return moveMails(locator.mailModel, selectedMails, f)
+					return moveMails(locator.mailModel, selectedMails, f.folder)
 
 				},
-				icon: getFolderIcon(f),
+				icon: getFolderIcon(f.folder),
 				type: ButtonType.Dropdown
 			}))
 	}

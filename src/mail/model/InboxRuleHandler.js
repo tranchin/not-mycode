@@ -92,7 +92,7 @@ export function findAndApplyMatchingRule(worker: WorkerClient, entityClient: Ent
 	return _findMatchingRule(entityClient, mail, logins.getUserController().props.inboxRules).then(inboxRule => {
 		if (inboxRule) {
 			let targetFolder = mailboxDetail.folders.filter(folder => folder !== getInboxFolder(mailboxDetail.folders))
-			                                .find(folder => isSameId(folder._id, inboxRule.targetFolder))
+			                                .find(folder => isSameId(folder.folder._id, inboxRule.targetFolder))
 			if (targetFolder) {
 				if (applyRulesOnServer) {
 					let moveMailData = moveMailDataPerFolder.find(folderMoveMailData => isSameId(folderMoveMailData.targetFolder, inboxRule.targetFolder))
@@ -106,7 +106,7 @@ export function findAndApplyMatchingRule(worker: WorkerClient, entityClient: Ent
 					}
 					applyMatchingRules(worker)
 				}
-				return [targetFolder.mails, getElementId(mail)]
+				return [targetFolder.folder.mails, getElementId(mail)]
 			} else {
 				return null
 			}
@@ -199,5 +199,5 @@ function _checkEmailAddresses(mailAddresses: string[], inboxRule: InboxRule): bo
 }
 
 export function isInboxList(mailboxDetail: MailboxDetail, listId: Id): boolean {
-	return isSameId(listId, getInboxFolder(mailboxDetail.folders).mails)
+	return isSameId(listId, getInboxFolder(mailboxDetail.folders).folder.mails)
 }

@@ -20,7 +20,6 @@ import {ProgrammingError} from "../../common/error/ProgrammingError"
 import {assertWorkerOrNode} from "../../common/Env"
 import type {$Promisable} from "@tutao/tutanota-utils/"
 import type {ElementEntity, ListElementEntity, SomeEntity} from "../../common/EntityTypes"
-import {BookingTypeRef} from "../../entities/sys/Booking"
 
 
 assertWorkerOrNode()

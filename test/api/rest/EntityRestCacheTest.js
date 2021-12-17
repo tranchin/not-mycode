@@ -923,66 +923,102 @@ o.spec("entity rest cache", function () {
 		})
 
 
-		o("load range beginning at MAX_ID while range exists", async function () {
-			const cachedMails = await setupMailList(false, false)
+		o("Load towards the range with start being before the existing range. Range will be extended. Reverse. ", async function () {
+
+			const ids = [createId("1"), createId("2"), createId("3"), createId("4"), createId("5")]
+			const mails = new Map()
+			const listId1 = "listId1"
+			mails.set(ids[0], createMailInstance(listId1, ids[0], "hello1"))
+			mails.set(ids[1], createMailInstance(listId1, ids[1], "hello2"))
+			mails.set(ids[2], createMailInstance(listId1, ids[2], "hello3"))
+			const listCache = {
+				allRange: ids,
+				lowerRangeId: ids[0],
+				upperRangeId: ids[2],
+				elements: mails
+			}
+			cache._storage.addListCache(MailTypeRef, listId1, listCache)
+
+			const moreMails = new Map()
+			moreMails.set(ids[3], createMailInstance(listId1, ids[3], "hello4"))
+			moreMails.set(ids[4], createMailInstance(listId1, ids[4], "hello5"))
+
+
 			const loadRange = o.spy(function (typeRef, listId, start, count, reverse) {
-				o(isSameTypeRef(typeRef, MailTypeRef)).equals(true)
-				o(listId).equals("listId1")
-				o(start).equals(GENERATED_MAX_ID)
-				o(count).equals(10)
-				// the cache actually loads all elements again and overwrites the current range
-				o(reverse).equals(true)
-				return Promise.resolve([cachedMails[2], cachedMails[1], cachedMails[0]])
+				return Promise.resolve([moreMails.get(ids[3]), moreMails.get(ids[4])])
 			})
 
 			const mock = mockAttribute(entityRestClient, entityRestClient.loadRange, loadRange)
 
-			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MAX_ID)).equals(false)
+			const originalUpper = cache._storage.getRangeForList(MailTypeRef, listId1)?.upper
 
-			const result1 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MAX_ID, 10, true)
-			o(result1).deepEquals([cachedMails[2], cachedMails[1], cachedMails[0]])
-			o(loadRange.callCount).equals(1) // entities are provided from server
-			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MAX_ID)).equals(true)
+			const result1 = await cache.loadRange(MailTypeRef, listId1, GENERATED_MAX_ID, 5, true)
+
+			o(loadRange.callCount).equals(1)("entities are provided from server")
+			o(loadRange.args[2]).equals(originalUpper)("starts extending range beginning with upperId")
+			o(cache._storage.isElementIdInCacheRange(MailTypeRef, listId1, GENERATED_MAX_ID)).equals(true)("MAX ID is in cache range")
+			const expectedResult = [
+				moreMails.get(ids[4]), moreMails.get(ids[3]), mails.get(ids[2]), mails.get(ids[1]), mails.get(ids[0])
+			]
+			o(result1).deepEquals(expectedResult)("Returns all elements in reverse order")
+
 
 			// further requests are resolved from the cache
-			const result2 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MAX_ID, 10, true)
+			const result2 = await cache.loadRange(MailTypeRef, listId1, GENERATED_MAX_ID, 5, true)
 
-			o(result2).deepEquals([cachedMails[2], cachedMails[1], cachedMails[0]])
+			o(result2).deepEquals(expectedResult)
 			o(loadRange.callCount).equals(1) // entities are provided from cache
 			unmockAttribute(mock)
 		})
 
+		o("Load towards the range with start being before the existing range. Range will be extended. Not Reverse.", async function () {
 
-		o("load range beginning at MIN_ID while range exists", async function () {
-			const cachedMails = await setupMailList(false, false)
+			const ids = [createId("1"), createId("2"), createId("3"), createId("4"), createId("5")]
+			const mails = new Map()
+			const listId1 = "listId1"
+			mails.set(ids[2], createMailInstance(listId1, ids[2], "hello3"))
+			mails.set(ids[3], createMailInstance(listId1, ids[3], "hello4"))
+			mails.set(ids[4], createMailInstance(listId1, ids[4], "hello5"))
+			const listCache = {
+				allRange: ids,
+				lowerRangeId: ids[0],
+				upperRangeId: ids[2],
+				elements: mails
+			}
+			cache._storage.addListCache(MailTypeRef, listId1, listCache)
+
+			const moreMails = new Map()
+			moreMails.set(ids[0], createMailInstance(listId1, ids[0], "hello1"))
+			moreMails.set(ids[1], createMailInstance(listId1, ids[1], "hello2"))
+
+
 			const loadRange = o.spy(function (typeRef, listId, start, count, reverse) {
-				o(isSameTypeRef(typeRef, MailTypeRef)).equals(true)
-				o(listId).equals("listId1")
-				o(start).equals(GENERATED_MIN_ID)
-				o(count).equals(10)
-				// the cache actually loads all elements again and overwrites the current range
-				o(reverse).equals(false)
-				return Promise.resolve(cachedMails)
+				return Promise.resolve([moreMails.get(ids[0]), moreMails.get(ids[1])])
 			})
 
 			const mock = mockAttribute(entityRestClient, entityRestClient.loadRange, loadRange)
 
-			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(false)
+			const originalLower = cache._storage.getRangeForList(MailTypeRef, listId1)?.lower
 
-			const result1 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MIN_ID, 10, false)
+			const result1 = await cache.loadRange(MailTypeRef, listId1, GENERATED_MIN_ID, 5, false)
 
-			o(result1).deepEquals([cachedMails[0], cachedMails[1], cachedMails[2]])
-			// further reqests are resolved from the cache
-			o(loadRange.callCount).equals(1) // entities are provided from server
+			o(loadRange.callCount).equals(1)("entities are provided from server")
+			o(loadRange.args[2]).equals(originalLower)("starts extending range beginning with lowerId")
+			o(cache._storage.isElementIdInCacheRange(MailTypeRef, listId1, GENERATED_MIN_ID)).equals(true)("MIN ID is in cache range")
+			const expectedResult = [
+				moreMails.get(ids[0]), moreMails.get(ids[1]), mails.get(ids[2]), mails.get(ids[3]), mails.get(ids[4])
+			]
+			o(result1).deepEquals(expectedResult)("Returns all elements in reverse order")
 
-			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(true)
-			const result2 = await cache.loadRange(MailTypeRef, "listId1", GENERATED_MIN_ID, 10, false)
 
-			o(result2).deepEquals([cachedMails[0], cachedMails[1], cachedMails[2]])
-			o(cache._storage.isElementIdInCacheRange(MailTypeRef, "listId1", GENERATED_MIN_ID)).equals(true)
+			// further requests are resolved from the cache
+			const result2 = await cache.loadRange(MailTypeRef, listId1, GENERATED_MIN_ID, 5, false)
+
+			o(result2).deepEquals(expectedResult)
 			o(loadRange.callCount).equals(1) // entities are provided from cache
 			unmockAttribute(mock)
 		})
+
 
 		o("loadMultiple should load necessary elements from the server, and get the rest from the cache", async function () {
 			const listId = "listId"
@@ -1014,15 +1050,15 @@ o.spec("entity rest cache", function () {
 			unmockAttribute(mock)
 		})
 
-		o("A new range request for a nonexistent range should initialize that range", async function() {
+		o("A new range request for a nonexistent range should initialize that range", async function () {
 			const loadRange = o.spy(function (typeRef, listId, start, count, reverse) {
 				return [
-					createContact({ _id: [listId, createId("1")]}),
-					createContact({ _id: [listId, createId("2")]}),
-					createContact({ _id: [listId, createId("3")]}),
-					createContact({ _id: [listId, createId("4")]}),
-					createContact({ _id: [listId, createId("5")]}),
-					createContact({ _id: [listId, createId("6")]}),
+					createContact({_id: [listId, createId("1")]}),
+					createContact({_id: [listId, createId("2")]}),
+					createContact({_id: [listId, createId("3")]}),
+					createContact({_id: [listId, createId("4")]}),
+					createContact({_id: [listId, createId("5")]}),
+					createContact({_id: [listId, createId("6")]}),
 				]
 			})
 

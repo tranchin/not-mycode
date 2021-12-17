@@ -205,6 +205,10 @@ export class CacheStorage {
 		}
 	}
 
+	putIntoRange() {
+		throw new Error("TODO")
+	}
+
 	_insertIntoRange(allRange: Array<Id>, elementId: Id) {
 		for (let i = 0; i < allRange.length; i++) {
 			const rangeElement = allRange[i]
@@ -247,12 +251,7 @@ export class CacheStorage {
 				ids = []
 			}
 		} else {
-			let i
-			for (i = 0; i < range.length; i++) {
-				if (firstBiggerThanSecond(range[i], start)) {
-					break
-				}
-			}
+			const i = range.findIndex(id => firstBiggerThanSecond(id, start))
 			ids = range.slice(i, i + count)
 		}
 		let result: T[] = []
@@ -354,7 +353,7 @@ export class EntityRestCache implements EntityRestInterface {
 			typeRef.app === "monitor"
 			|| queryParameters?.version != null //if a specific version is requested we have to load again
 			|| !this._storage.contains(typeRef, listId, elementId)
-			|| this._ignoredTypes.find(ref => isSameTypeRef(typeRef, ref))
+			|| this._ignoredTypes.some(ref => isSameTypeRef(typeRef, ref))
 		) {
 			return this._entityRestClient.load(typeRef, id, queryParameters, extraHeaders)
 		}
@@ -372,7 +371,7 @@ export class EntityRestCache implements EntityRestInterface {
 		const typeModel = await resolveTypeReference(typeRef)
 		if (
 			typeRef.app === "monitor"
-			|| this._ignoredTypes.find(ref => isSameTypeRef(typeRef, ref))
+			|| this._ignoredTypes.some(ref => isSameTypeRef(typeRef, ref))
 			|| typeModel.values._id.type !== ValueType.GeneratedId // we currently only store ranges for generated ids
 		) {
 			return this._entityRestClient.loadRange(typeRef, listId, start, count, reverse)
@@ -384,7 +383,7 @@ export class EntityRestCache implements EntityRestInterface {
 	loadMultiple<T: SomeEntity>(typeRef: TypeRef<T>, listId: ?Id, elementIds: Array<Id>): Promise<Array<T>> {
 		if (
 			typeRef.app === "monitor"
-			|| this._ignoredTypes.find(ref => isSameTypeRef(typeRef, ref))
+			|| this._ignoredTypes.some(ref => isSameTypeRef(typeRef, ref))
 		) {
 			return this._entityRestClient.loadMultiple(typeRef, listId, elementIds)
 		}
@@ -437,67 +436,74 @@ export class EntityRestCache implements EntityRestInterface {
 		return entitiesFromServer.concat(entitiesInCache)
 	}
 
-	_loadRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, start: Id, count: number, reverse: boolean): Promise<T[]> {
-		// check which range must be loaded from server
+	async _loadRange<T: ListElementEntity>(typeRef: TypeRef<T>, listId: Id, start: Id, count: number, reverse: boolean): Promise<T[]> {
 
-
-		let lowerRangeId, upperRangeId
-		let isFirstRequest = false
 		const listRange = this._storage.getRangeForList(typeRef, listId)
+
 		if (listRange == null) {
-			isFirstRequest = true
-			lowerRangeId = start
-			upperRangeId = start
+			// assert that the range request starts at the respective boundary
+			if (reverse) {
+				if (start !== GENERATED_MAX_ID) {
+					throw new Error("New range must begin at max id")
+				}
+			} else {
+				if (start !== GENERATED_MIN_ID) {
+					throw new Error("New range must begin at min id")
+				}
+			}
+
+			// Create a new range and load everything
+			const entities = await this._entityRestClient.loadRange(typeRef, listId, start, count, reverse)
+
+			// Initialize a new range for this list
+			this._storage.setNewRangeForList(typeRef, listId, start, start)
+
+			// The range bounds will be updated in here
+			return this._handleElementRangeResult(typeRef, listId, start, count, reverse, entities, count)
 		} else {
-			lowerRangeId = listRange.lower
-			upperRangeId = listRange.upper
-		}
-		// this is the first request for this list or
-		// our upper range id is not MAX_ID and we now read the range starting with MAX_ID. we just replace the complete existing range with the new one because we do not want to handle multiple ranges or
-		// our lower range id is not MIN_ID and we now read the range starting with MIN_ID. we just replace the complete existing range with the new one because we do not want to handle multiple ranges
-		// this can also happen if we just have read a single element before, so the range is only that element and can be skipped
-		const shouldLoadWholeRange = isFirstRequest
-			|| (start === GENERATED_MAX_ID && reverse && upperRangeId !== GENERATED_MAX_ID)
-			|| (start === GENERATED_MIN_ID && !reverse && lowerRangeId !== GENERATED_MIN_ID)
 
-		const startIsLocatedInRange = !isFirstRequest && !firstBiggerThanSecond(start, upperRangeId)
-			&& !firstBiggerThanSecond(lowerRangeId, start)
+			const startIsLocatedInRange = !firstBiggerThanSecond(start, listRange.upper) && !firstBiggerThanSecond(listRange.lower, start)
 
-		const startIsLocatedOutsideRange = !isFirstRequest && ((firstBiggerThanSecond(start, upperRangeId) && !reverse)
-			|| (firstBiggerThanSecond(lowerRangeId, start) && reverse))
-
-		if (shouldLoadWholeRange) {
-			return this._entityRestClient.loadRange(typeRef, listId, start, count, reverse).then(entities => {
-				// reset range
-				this._storage.setNewRangeForList(typeRef, listId, start, start)
-				return this._handleElementRangeResult(typeRef, listId, start, count, reverse, entities, count)
-			})
-		} else if (startIsLocatedInRange) { // check if the requested start element is located in the range
-
-			// count the numbers of elements that are already in allRange to determine the number of elements to read
-			const {newStart, newCount} = this._recalculateRangeRequest(typeRef, listId, start, count, reverse)
-			if (newCount > 0) {
-				return this._entityRestClient.loadRange(typeRef, listId, newStart, newCount, reverse).then(entities => {
+			if (startIsLocatedInRange) {
+				const {newStart, newCount} = this._recalculateRangeRequest(typeRef, listId, start, count, reverse)
+				if (newCount > 0) {
+					// We will be able to provide some entities from the cache, so we just want to load the remaining entities from the server
+					const entities = await this._entityRestClient.loadRange(typeRef, listId, newStart, newCount, reverse)
 					return this._handleElementRangeResult(typeRef, listId, start, count, reverse, entities, newCount)
-				})
+				} else {
+					// all elements are located in the cache.
+					return this._storage.provideFromListCache(typeRef, listId, start, count, reverse)
+				}
 			} else {
-				// all elements are located in the cache.
-				return Promise.resolve(this._storage.provideFromListCache(typeRef, listId, start, count, reverse))
-			}
-		} else if (startIsLocatedOutsideRange) {
-			let loadStartId
-			if (firstBiggerThanSecond(start, upperRangeId) && !reverse) {
-				// start is higher than range. load from upper range id with same count. then, if all available elements have been loaded or the requested number is in cache, return from cache. otherwise load again the same way.
-				loadStartId = upperRangeId
-			} else {
-				// start is lower than range. load from lower range id with same count. then, if all available elements have been loaded or the requested number is in cache, return from cache. otherwise load again the same way.
-				loadStartId = lowerRangeId
-			}
-			return this._entityRestClient.loadRange(typeRef, listId, loadStartId, count, reverse).then(entities => {
+
+				// If we are loading from outside of the range, then we can only load away from the current range
+				// The start is located after the range. It's not possible for the start to be before the range, because ranges always start with min or max id
+				//FIXME we should revisit this behavior before releasing? Test break so we need to reconsider our assumptions
+				if (reverse) {
+					if (listRange.upper !== GENERATED_MAX_ID) {
+						throw new Error("New range must begin at max id")
+					}
+				} else {
+					if (listRange.lower !== GENERATED_MIN_ID) {
+						throw new Error("New range must begin at min id")
+					}
+				}
+
+
+				// Which end of the range to start loading from
+				const loadStartId = reverse
+					? listRange.lower
+					: listRange.upper
+
+				// Load from the end of the range in the direction of the startId. then, if all available elements have been loaded or the requested number is in cache, return from cache. otherwise load again the same way.
+				const entities = await this._entityRestClient.loadRange(typeRef, listId, loadStartId, count, reverse)
+
 				// put the new elements into the cache
 				this._handleElementRangeResult(typeRef, listId, loadStartId, count, reverse, ((entities: any): T[]), count)
+
 				// provide from cache with the actual start id
-				let resultElements = this._storage.provideFromListCache(typeRef, listId, start, count, reverse)
+				const resultElements = this._storage.provideFromListCache(typeRef, listId, start, count, reverse)
+
 				if (entities.length < count || resultElements.length === count) {
 					// either all available elements have been loaded from target or the requested number of elements could be provided from cache
 					return resultElements
@@ -505,12 +511,7 @@ export class EntityRestCache implements EntityRestInterface {
 					// try again with the new elements in the cache
 					return this.loadRange(typeRef, listId, start, count, reverse)
 				}
-			})
-		} else {
-			let msg = "invalid range request. path: " + typeRef.path + " list: " + listId + " start: " + start + " count: "
-				+ count + " reverse: " + String(reverse) + " lower: " + lowerRangeId + " upper: "
-				+ upperRangeId
-			return Promise.reject(new Error(msg))
+			}
 		}
 	}
 

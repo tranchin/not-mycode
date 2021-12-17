@@ -9,7 +9,7 @@ import type {EntityUpdate} from "../../../src/api/entities/sys/EntityUpdate"
 import {createEntityUpdate} from "../../../src/api/entities/sys/EntityUpdate"
 import type {Mail} from "../../../src/api/entities/tutanota/Mail"
 import {createMail, MailTypeRef} from "../../../src/api/entities/tutanota/Mail"
-import {clone, downcast, isSameTypeRef, neverNull, TypeRef} from "@tutao/tutanota-utils"
+import {clone, downcast, isSameTypeRef, neverNull, TypeRef, typeRefToPath} from "@tutao/tutanota-utils"
 import {createExternalUserReference, ExternalUserReferenceTypeRef} from "../../../src/api/entities/sys/ExternalUserReference"
 import {NotAuthorizedError, NotFoundError} from "../../../src/api/common/error/RestError"
 import {EntityRestClient} from "../../../src/api/worker/rest/EntityRestClient"
@@ -87,7 +87,7 @@ o.spec("entity rest cache", function () {
 	})
 
 	o.spec("entityEventsReceived", function () {
-		const path = ContactTypeRef.path
+		const path = typeRefToPath(ContactTypeRef)
 		const contactListId1 = "contactListId1"
 		const contactListId2 = "contactListId2"
 		const id1 = "id1"
@@ -100,7 +100,7 @@ o.spec("entity rest cache", function () {
 		o.spec("postMultiple", async function () {
 			o.beforeEach(function () {
 
-				cache._storage._listEntities = new Map([
+				cache._storage._lists = new Map([
 					[
 						path,
 						new Map([
@@ -256,7 +256,7 @@ o.spec("entity rest cache", function () {
 
 			o("updates partially not loaded by loadMultiple", async function () {
 
-				cache._storage._listEntities = new Map([
+				cache._storage._lists = new Map([
 					[
 						path,
 						new Map([
@@ -305,7 +305,7 @@ o.spec("entity rest cache", function () {
 
 			o("update are partially in cache range ", async function () {
 
-				cache._storage._listEntities = new Map([
+				cache._storage._lists = new Map([
 					[
 						path,
 						new Map([
@@ -371,7 +371,7 @@ o.spec("entity rest cache", function () {
 
 			o("update  partially results in NotAuthorizedError ", async function () {
 
-				cache._storage._listEntities = new Map([
+				cache._storage._lists = new Map([
 					[
 						path,
 						new Map([
@@ -1011,6 +1011,27 @@ o.spec("entity rest cache", function () {
 			inCache.concat(notInCache).forEach((e) => {
 				o(cache._storage.contains(MailTypeRef, listId, getElementId(e))).equals(true)
 			})
+			unmockAttribute(mock)
+		})
+
+		o("A new range request for a nonexistent range should initialize that range", async function() {
+			const loadRange = o.spy(function (typeRef, listId, start, count, reverse) {
+				return [
+					createContact({ _id: [listId, createId("1")]}),
+					createContact({ _id: [listId, createId("2")]}),
+					createContact({ _id: [listId, createId("3")]}),
+					createContact({ _id: [listId, createId("4")]}),
+					createContact({ _id: [listId, createId("5")]}),
+					createContact({ _id: [listId, createId("6")]}),
+				]
+			})
+
+			const mock = mockAttribute(entityRestClient, entityRestClient.loadRange, loadRange)
+
+			const result = await cache.loadRange(ContactTypeRef, createId("0"), GENERATED_MIN_ID, 1000, false)
+
+			o(result.length).equals(6)
+
 			unmockAttribute(mock)
 		})
 	})

@@ -9,7 +9,7 @@ import type {EntityUpdate} from "../../../src/api/entities/sys/EntityUpdate"
 import {createEntityUpdate} from "../../../src/api/entities/sys/EntityUpdate"
 import type {Mail} from "../../../src/api/entities/tutanota/Mail"
 import {createMail, MailTypeRef} from "../../../src/api/entities/tutanota/Mail"
-import {clone, downcast, isSameTypeRef, neverNull, TypeRef, typeRefToPath} from "@tutao/tutanota-utils"
+import {clone, downcast, getFromMap, isSameTypeRef, neverNull, TypeRef, typeRefToPath} from "@tutao/tutanota-utils"
 import {createExternalUserReference, ExternalUserReferenceTypeRef} from "../../../src/api/entities/sys/ExternalUserReference"
 import {NotAuthorizedError, NotFoundError} from "../../../src/api/common/error/RestError"
 import {EntityRestClient} from "../../../src/api/worker/rest/EntityRestClient"
@@ -84,6 +84,7 @@ o.spec("entity rest cache", function () {
 
 		entityRestClient = mockRestClient()
 		cache = new EntityRestCache(entityRestClient)
+
 	})
 
 	o.spec("entityEventsReceived", function () {
@@ -937,7 +938,7 @@ o.spec("entity rest cache", function () {
 				upperRangeId: ids[2],
 				elements: mails
 			}
-			cache._storage.addListCache(MailTypeRef, listId1, listCache)
+			getFromMap(cache._storage._lists, typeRefToPath(MailTypeRef), () => new Map()).set(listId1, listCache)
 
 			const moreMails = new Map()
 			moreMails.set(ids[3], createMailInstance(listId1, ids[3], "hello4"))
@@ -985,7 +986,7 @@ o.spec("entity rest cache", function () {
 				upperRangeId: ids[2],
 				elements: mails
 			}
-			cache._storage.addListCache(MailTypeRef, listId1, listCache)
+			getFromMap(cache._storage._lists, typeRefToPath(MailTypeRef), () => new Map()).set(listId1, listCache)
 
 			const moreMails = new Map()
 			moreMails.set(ids[0], createMailInstance(listId1, ids[0], "hello1"))

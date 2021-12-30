@@ -199,11 +199,6 @@ export class WorkerImpl {
 				const html: string = message.args[0]
 				return Promise.resolve(urlify(html))
 			},
-			// generate3ByteNumber: (message: Request) => {
-			// 	// Currently only 3 bytes needed
-			// 	return random.generateRandomData(3)
-			//
-			// },
 			facade: exposeLocal<WorkerInterface>(exposedWorker),
 		})
 

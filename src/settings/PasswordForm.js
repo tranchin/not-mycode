@@ -141,9 +141,6 @@ export class PasswordForm {
 		return !isSecurePassword(this._getPasswordStrength())
 	}
 
-	/**
-	 *  FIXME Looks super goofy right now
-	 */
 	renderPasswordGeneratorHelp(): Children {
 		return m("", [
 			m(".mr-xs", {style: {display: "inline-block"}}, "Having trouble creating a password?"),
@@ -160,14 +157,17 @@ export class PasswordForm {
 
 	renderRevealIcon(): Children {
 		return m(".click.ml-s", {
-			style: {paddingTop: px(4)}, // Needs to be exactly 4px as pt-xs is 3px and its 1px too high
+			style: {
+				// Needs to be exactly 4px as pt-xs is 3px and its 1px too high
+				paddingTop: px(4)
+			},
 			onclick: () => {
 				this._revealPassword = !this._revealPassword
 				m.redraw()
 			}
 		}, m(Icon, {
 			icon: Icons.Eye,
-			style: {opacity: this._revealPassword ? 0.4 : 1} // FIXME is there a better way to do this?
+			class: this._revealPassword ? "translucent" : "opaque",
 		}))
 	}
 

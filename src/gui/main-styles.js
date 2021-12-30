@@ -185,7 +185,7 @@ styles.registerStyle('main', () => {
 			'white-space': "pre-wrap",
 			'word-break': "break-word"
 		},
-		
+
 		".white-space-pre": {'white-space': "pre"},
 
 		".min-content": {
@@ -565,6 +565,12 @@ styles.registerStyle('main', () => {
 			'animation-timing-function': 'calculatePosition',
 			'transform-origin': '50% 50%',
 			display: 'inline-block'
+		},
+		".translucent": {
+			opacity: "0.4"
+		},
+		".opaque": {
+			opacity: "1"
 		},
 		'@keyframes rotate-icon': {
 			'0%': {

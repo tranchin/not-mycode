@@ -1,7 +1,7 @@
 // @flow
 import {assertMainOrNode} from "../../api/common/Env"
 import type {WorkerRandomizer} from "../../api/worker/crypto/Randomizer"
-import {assert, capitalizeFirstLetter} from "@tutao/tutanota-utils"
+import {assert} from "@tutao/tutanota-utils"
 
 assertMainOrNode()
 
@@ -10,35 +10,24 @@ assertMainOrNode()
 export const NUMBER_OF_BYTES: number = 2
 export const BYTE_RANGE: number = Math.pow(2, (8 * NUMBER_OF_BYTES))
 
-export type LetterCase = "uppercase" | "lowercase" | "titlecase"
-
-
 export class PasswordGenerator {
-	letterCase: LetterCase
-	separator: string
-
 	_random: WorkerRandomizer
 	_dictionary: Array<string>
 
 	constructor(randomizer: WorkerRandomizer, dictionary: Array<string>) {
 		this._random = randomizer
 		this._dictionary = dictionary
-		this.letterCase = "lowercase"
-		this.separator = " "
 	}
 
 	async generateRandomPassphrase(): Promise<string> {
-		const usedWords = []
-		for (let i = 0; i < 6; i++) {
-			let word = await this.pickRandomWordFromDictionary()
-			while (usedWords.includes(word)) {
-				word = await this.pickRandomWordFromDictionary()
-			}
-			usedWords.push(word)
+		const usedWords = new Set()
+
+		while (usedWords.size < 6) {
+			const word = await this.pickRandomWordFromDictionary()
+			usedWords.add(word)
 		}
-		return usedWords
-			.map((word) => this.changeLetterCase(word))
-			.join(this.separator)
+
+		return Array.from(usedWords).join(" ")
 	}
 
 	async pickRandomWordFromDictionary(): Promise<string> {
@@ -54,20 +43,5 @@ export class PasswordGenerator {
 		assert(range > 0, "range must be greater than 0")
 		const byteNumber = await this._random.generateRandomNumber(NUMBER_OF_BYTES)
 		return Math.floor((byteNumber / BYTE_RANGE) * range)
-	}
-
-	changeLetterCase(word: string): string {
-		switch (this.letterCase) {
-			case "titlecase": {
-				return capitalizeFirstLetter(word.toLowerCase())
-			}
-			case "uppercase": {
-				return word.toUpperCase()
-			}
-			case "lowercase":
-			default: {
-				return word.toLowerCase()
-			}
-		}
 	}
 }

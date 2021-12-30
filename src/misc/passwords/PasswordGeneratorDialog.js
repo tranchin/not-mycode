@@ -13,11 +13,14 @@ import {copyToClipboard} from "../ClipboardUtils"
 
 let dictionary = null
 
+/**
+ * Show a dialog to generate a random passphrase
+ * @returns a promise containing the generated password
+ */
 export function showPasswordGeneratorDialog(): Promise<string> {
 	return new Promise(async (resolve) => {
 
 		if (dictionary == null) {
-			// TODO is there a better way to do this rest request???
 			const dictionaryJson = await locator.worker.restRequest(`/wordlibrary.json`, HttpMethod.GET, {}, {}, null, MediaType.Json, null, getWebRoot())
 			dictionary = JSON.parse(dictionaryJson)
 		}

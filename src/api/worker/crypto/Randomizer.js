@@ -66,6 +66,9 @@ export class Randomizer {
 		}
 	}
 
+	/**
+	 * Generate a number that fits in the range of an n-byte integer
+	 */
 	generateRandomNumber(nbrOfBytes: number): number {
 		const bytes = this.generateRandomData(nbrOfBytes)
 		let result = 0

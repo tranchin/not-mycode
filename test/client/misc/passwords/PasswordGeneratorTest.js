@@ -52,7 +52,7 @@ o.spec("PasswordGenerator", function () {
 
 		o("there should be no duplicates in the generated password", async function () {
 			const passwordGenerator = new PasswordGenerator(downcast({}),
-				["a", "b", "c", "d", "c", "e", "f", "g"]
+				["a", "B", "c", "d", "c", "e", "f", "g"]
 			)
 
 			let i = 0
@@ -61,20 +61,7 @@ o.spec("PasswordGenerator", function () {
 			}
 
 			const randomPassword = await passwordGenerator.generateRandomPassphrase()
-			o(randomPassword).equals("A B C D E F")
-		})
-		o("words in the password should be capitalized accordingly", async function () {
-			const passwordGenerator = new PasswordGenerator(downcast({}),
-				["word", "yes", "hello", "cool", "works", "doesnt", "out", "outter"]
-			)
-
-			let i = 0
-			passwordGenerator.generateRandomNumberInRange = function () {
-				return i++
-			}
-
-			const randomPassword = await passwordGenerator.generateRandomPassphrase()
-			o(randomPassword).equals("Word Yes Hello Cool Works Doesnt")
+			o(randomPassword).equals("a B c d e f")
 		})
 	})
 })

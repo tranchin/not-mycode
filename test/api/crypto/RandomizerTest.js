@@ -3,6 +3,7 @@ import {random} from "../../../src/api/worker/crypto/Randomizer"
 import {CryptoError} from "../../../src/api/common/error/CryptoError"
 import sjcl from "../../../src/api/worker/crypto/lib/sjcl"
 import {EntropySrc} from "../../../src/api/common/TutanotaConstants"
+import {mockAttribute, unmockAttribute} from "@tutao/tutanota-test-utils"
 
 o.spec("Randomizer", function () {
 

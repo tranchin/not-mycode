@@ -17,13 +17,7 @@ import {createAlarmInfo} from "../../api/entities/sys/AlarmInfo"
 import type {MailboxDetail} from "../../mail/model/MailModel"
 import stream from "mithril/stream"
 import Stream from "mithril/stream"
-import {
-	copyMailAddress,
-	getDefaultSenderFromUser,
-	getEnabledMailAddressesWithUser,
-	getSenderNameForUser,
-	RecipientField
-} from "../../mail/model/MailUtils"
+import {copyMailAddress, getDefaultSenderFromUser, getEnabledMailAddressesWithUser, getSenderNameForUser, RecipientField} from "../../mail/model/MailUtils"
 import {
 	createRepeatRuleWithValues,
 	generateUid,
@@ -64,7 +58,7 @@ import {NotFoundError, PayloadTooLargeError, TooManyRequestsError} from "../../a
 import type {CalendarUpdateDistributor} from "./CalendarUpdateDistributor"
 import {calendarUpdateDistributor} from "./CalendarUpdateDistributor"
 import type {IUserController} from "../../api/main/UserController"
-import {isExternal, RecipientInfo, RecipientInfoType} from "../../api/common/RecipientInfo"
+import {isExternal, RecipientInfoType} from "../../api/common/RecipientInfo"
 import type {Contact} from "../../api/entities/tutanota/Contact"
 import type {SendMailModel} from "../../mail/editor/SendMailModel"
 import type {RepeatRule} from "../../api/entities/sys/RepeatRule"
@@ -99,7 +93,7 @@ export type Guest = {
 	status: CalendarAttendeeStatus
 }
 type SendMailPurpose = "invite" | "update" | "cancel" | "response"
-type SendMailModelFactory = (arg0: MailboxDetail, arg1: SendMailPurpose) => SendMailModel
+type SendMailModelFactory = (detail: MailboxDetail, purpose: SendMailPurpose) => SendMailModel
 export type RepeatData = {
 	frequency: RepeatPeriod
 	interval: number
@@ -260,7 +254,7 @@ export class CalendarEventViewModel {
 		this.endTime = Time.fromDate(newEndDate)
 	}
 
-	async _applyValuesFromExistingEvent(existingEvent: CalendarEvent, calendars: ReadonlyMap<Id, CalendarInfo>): Promise<void> {
+	private async _applyValuesFromExistingEvent(existingEvent: CalendarEvent, calendars: ReadonlyMap<Id, CalendarInfo>): Promise<void> {
 		this.summary(existingEvent.summary)
 		const calendarForGroup = calendars.get(neverNull(existingEvent._ownerGroup))
 
@@ -335,7 +329,7 @@ export class CalendarEventViewModel {
 	 *
 	 *   *** depends on share capability. Cannot edit if it's not a copy and there are attendees.
 	 */
-	_initEventType(existingEvent: CalendarEvent | null, calendars: ReadonlyMap<Id, CalendarInfo>): EventType {
+	private _initEventType(existingEvent: CalendarEvent | null, calendars: ReadonlyMap<Id, CalendarInfo>): EventType {
 		if (!existingEvent) {
 			return EventType.OWN
 		} else {
@@ -359,7 +353,7 @@ export class CalendarEventViewModel {
 		}
 	}
 
-	_initGuestStatus(
+	private _initGuestStatus(
 		existingEvent: CalendarEvent | null,
 		resolveRecipientsLazily: boolean,
 	): Stream<ReadonlyMap<string, CalendarAttendeeStatus>> {
@@ -400,7 +394,7 @@ export class CalendarEventViewModel {
 		}
 	}
 
-	_initAttendees(): Stream<Array<Guest>> {
+	private _initAttendees(): Stream<Array<Guest>> {
 		return stream.merge([this._inviteModel.onMailChanged, this._updateModel.onMailChanged, this._guestStatuses, this._ownAttendee]).map(() => {
 			const makeGuestList = (model: SendMailModel) => {
 				return model.bccRecipients().map(recipientInfo => {
@@ -432,14 +426,14 @@ export class CalendarEventViewModel {
 		})
 	}
 
-	_setDefaultTimes(date: Date = getNextHalfHour()) {
+	private _setDefaultTimes(date: Date = getNextHalfHour()) {
 		const endTimeDate = new Date(date)
 		endTimeDate.setMinutes(endTimeDate.getMinutes() + 30)
 		this.startTime = Time.fromDate(date)
 		this.endTime = Time.fromDate(endTimeDate)
 	}
 
-	_ownPossibleOrganizers(mailboxDetail: MailboxDetail, userController: IUserController): Array<EncryptedMailAddress> {
+	private _ownPossibleOrganizers(mailboxDetail: MailboxDetail, userController: IUserController): Array<EncryptedMailAddress> {
 		return this._ownMailAddresses.map(address => addressToMailAddress(address, mailboxDetail, userController))
 	}
 
@@ -523,7 +517,7 @@ export class CalendarEventViewModel {
 		return this._eventType === EventType.SHARED_RO || (this._eventType === EventType.SHARED_RW && this.attendees().length > 0)
 	}
 
-	_adjustEndTime() {
+	private _adjustEndTime() {
 		if (!this.startTime || !this.endTime || !this._oldStartTime) {
 			return
 		}
@@ -794,7 +788,7 @@ export class CalendarEventViewModel {
 					  })
 	}
 
-	_sendCancellation(event: CalendarEvent): Promise<any> {
+	private _sendCancellation(event: CalendarEvent): Promise<any> {
 		const updatedEvent = clone(event)
 		// This is guaranteed to be our own event.
 		updatedEvent.sequence = incrementSequence(updatedEvent.sequence, true)
@@ -828,7 +822,7 @@ export class CalendarEventViewModel {
 			)
 	}
 
-	_saveEvent(newEvent: CalendarEvent, newAlarms: Array<AlarmInfo>): Promise<void> {
+	private _saveEvent(newEvent: CalendarEvent, newAlarms: Array<AlarmInfo>): Promise<void> {
 		if (this._userController.user.accountType === AccountType.EXTERNAL) {
 			return Promise.resolve()
 		}
@@ -842,11 +836,11 @@ export class CalendarEventViewModel {
 		}
 	}
 
-	_hasUpdatableAttendees(): boolean {
+	private _hasUpdatableAttendees(): boolean {
 		return this._updateModel.bccRecipients().length > 0
 	}
 
-	_sendNotificationAndSave(
+	private _sendNotificationAndSave(
 		askInsecurePassword: () => Promise<boolean>,
 		askForUpdates: () => Promise<"yes" | "no" | "cancel">,
 		showProgress: ShowProgressCallback,
@@ -895,7 +889,7 @@ export class CalendarEventViewModel {
 		})
 	}
 
-	_sendInvite(event: CalendarEvent): Promise<void> {
+	private _sendInvite(event: CalendarEvent): Promise<void> {
 		const newAttendees = event.attendees.filter(a => a.status === CalendarAttendeeStatus.ADDED)
 
 		if (newAttendees.length > 0) {
@@ -913,7 +907,7 @@ export class CalendarEventViewModel {
 		}
 	}
 
-	_respondToOrganizerAndSave(
+	private _respondToOrganizerAndSave(
 		showProgress: ShowProgressCallback,
 		existingEvent: CalendarEvent,
 		newEvent: CalendarEvent,
@@ -1081,10 +1075,6 @@ export class CalendarEventViewModel {
 		}
 	}
 
-	_allRecipients(): Array<RecipientInfo> {
-		return this._inviteModel.allRecipients().concat(this._updateModel.allRecipients()).concat(this._cancelModel.allRecipients())
-	}
-
 	dispose(): void {
 		this._inviteModel.dispose()
 
@@ -1099,6 +1089,8 @@ export class CalendarEventViewModel {
 
 	/**
 	 * Keep in sync with _hasChanges().
+	 *
+	 * Visible for testing.
 	 */
 	_initializeNewEvent(): CalendarEvent {
 		// We have to use existing instance to get all the final fields correctly
@@ -1174,6 +1166,8 @@ export class CalendarEventViewModel {
 	 * Keep in sync with _initializeNewEvent().
 	 * @param newEvent the new event created from the CalendarEvent properties tracked in this class.
 	 * @returns {boolean} true if changes were made to the event to justify sending updates to attendees.
+	 *
+	 * Visible for testing.
 	 */
 	_hasChanges(newEvent: CalendarEvent): boolean {
 		const existingEvent = this.existingEvent

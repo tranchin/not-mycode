@@ -110,7 +110,13 @@ export function makeMailboxDetail(): MailboxDetail {
 	}
 }
 
-export function makeCalendarInfo(type: "own" | "shared", id: string): CalendarInfo {
+export enum CalendarType {
+	OWN,
+	SHARED,
+	OWN_SHARED
+}
+
+export function makeCalendarInfo(type: CalendarType, id: string): CalendarInfo {
 	return {
 		groupRoot: downcast({
 			longEvents: "longEventsList",
@@ -121,13 +127,13 @@ export function makeCalendarInfo(type: "own" | "shared", id: string): CalendarIn
 		group: createGroup({
 			_id: id,
 			type: GroupType.Calendar,
-			user: type === "own" ? userId : "anotherUserId",
+			user: type === CalendarType.OWN ? userId : "anotherUserId",
 		}),
-		shared: type === "shared",
+		shared: type === CalendarType.SHARED || type === CalendarType.OWN_SHARED,
 	}
 }
 
-export function makeCalendars(type: "own" | "shared", id: string = calendarGroupId): Map<string, CalendarInfo> {
+export function makeCalendars(type: CalendarType, id: string = calendarGroupId): Map<string, CalendarInfo> {
 	const calendarInfo = makeCalendarInfo(type, id)
 	return new Map([[id, calendarInfo]])
 }
@@ -148,10 +154,10 @@ export function makeCalendarModel(): CalendarModel {
 		deleteEvent: o.spy(() => Promise.resolve()),
 		loadAlarms: o.spy(() => Promise.resolve([])),
 		loadCalendarInfos: progressMonitor => {
-			return Promise.resolve(makeCalendars("own", calendarGroupId))
+			return Promise.resolve(makeCalendars(CalendarType.OWN, calendarGroupId))
 		},
 		loadOrCreateCalendarInfo: (progressMonitor: IProgressMonitor) => {
-			return Promise.resolve(makeCalendars("own", calendarGroupId))
+			return Promise.resolve(makeCalendars(CalendarType.OWN, calendarGroupId))
 		},
 		createCalendar: (name: string, color: string | null | undefined) => Promise.resolve(),
 	})

@@ -10,13 +10,7 @@ import type {MailboxDetail} from "../../../src/mail/model/MailModel"
 import {MailModel} from "../../../src/mail/model/MailModel"
 import type {CalendarEvent} from "../../../src/api/entities/tutanota/CalendarEvent"
 import {createCalendarEvent} from "../../../src/api/entities/tutanota/CalendarEvent"
-import {
-	AccountType,
-	AlarmInterval,
-	assertEnumValue,
-	CalendarAttendeeStatus,
-	ShareCapability,
-} from "../../../src/api/common/TutanotaConstants"
+import {AccountType, AlarmInterval, assertEnumValue, CalendarAttendeeStatus, ShareCapability,} from "../../../src/api/common/TutanotaConstants"
 import {createGroupMembership} from "../../../src/api/entities/sys/GroupMembership"
 import type {User} from "../../../src/api/entities/sys/User"
 import {createCalendarEventAttendee} from "../../../src/api/entities/tutanota/CalendarEventAttendee"
@@ -45,6 +39,7 @@ import {Time} from "../../../src/api/common/utils/Time"
 import {
 	accountMailAddress,
 	calendarGroupId,
+	CalendarType,
 	makeCalendarInfo,
 	makeCalendarModel,
 	makeCalendars,
@@ -70,6 +65,7 @@ const getAddress = a => a.mailAddress
 let internalAddresses: string[] = []
 let resolveRecipientMs = 100
 let mockedAttributeReferences = []
+
 o.spec("CalendarEventViewModel", function () {
 	let inviteModel: SendMailModel
 	let updateModel: SendMailModel
@@ -78,16 +74,16 @@ o.spec("CalendarEventViewModel", function () {
 	let showProgress = noOp
 
 	async function init({
-		                    userController = makeUserController(),
-		                    distributor = makeDistributor(),
-		                    mailboxDetail = makeMailboxDetail(),
-		                    calendars,
-		                    existingEvent,
-		                    calendarModel = makeCalendarModel(),
-		                    mailModel = downcast({}),
-		                    contactModel = makeContactModel(),
-		                    mail = null,
-	                    }: {
+							userController = makeUserController(),
+							distributor = makeDistributor(),
+							mailboxDetail = makeMailboxDetail(),
+							calendars,
+							existingEvent,
+							calendarModel = makeCalendarModel(),
+							mailModel = downcast({}),
+							contactModel = makeContactModel(),
+							mail = null,
+						}: {
 		userController?: IUserController
 		distributor?: CalendarUpdateDistributor
 		mailboxDetail?: MailboxDetail
@@ -191,15 +187,18 @@ o.spec("CalendarEventViewModel", function () {
 		// We need this because SendMailModel queries for default language. We should refactor to avoid this.
 		lang.init(en)
 	})
+
 	o.beforeEach(function () {
 		askForUpdates = o.spy(async () => "yes")
 		askInsecurePassword = o.spy(async () => true)
 		internalAddresses = []
 	})
+
 	o.afterEach(function () {
 		mockedAttributeReferences.forEach(ref => unmockAttribute(ref))
 		mockedAttributeReferences = []
 	})
+
 	o("init with existing event", async function () {
 		const existingEvent = createCalendarEvent({
 			summary: "existing event",
@@ -223,7 +222,7 @@ o.spec("CalendarEventViewModel", function () {
 			organizer: encMailAddress,
 		})
 		const viewModel = await init({
-			calendars: makeCalendars("own"),
+			calendars: makeCalendars(CalendarType.OWN),
 			existingEvent,
 		})
 		o(viewModel.summary()).equals(existingEvent.summary)
@@ -234,8 +233,8 @@ o.spec("CalendarEventViewModel", function () {
 				day: 26,
 				zone,
 			})
-				.toJSDate()
-				.toISOString(),
+					.toJSDate()
+					.toISOString(),
 		)
 		o(viewModel.endDate.toISOString()).equals(
 			DateTime.fromObject({
@@ -244,8 +243,8 @@ o.spec("CalendarEventViewModel", function () {
 				day: 26,
 				zone,
 			})
-				.toJSDate()
-				.toISOString(),
+					.toJSDate()
+					.toISOString(),
 		)
 		// @ts-ignore
 		o(viewModel.startTime?.toObject()).deepEquals({
@@ -266,6 +265,7 @@ o.spec("CalendarEventViewModel", function () {
 		o(neverNull(viewModel.organizer)).deepEquals(encMailAddress)
 		o(viewModel.possibleOrganizers).deepEquals([encMailAddress])
 	})
+
 	o("init all day event", async function () {
 		const existingEvent = createCalendarEvent({
 			summary: "existing event",
@@ -292,7 +292,7 @@ o.spec("CalendarEventViewModel", function () {
 			_ownerGroup: calendarGroupId,
 		})
 		const viewModel = await init({
-			calendars: makeCalendars("own"),
+			calendars: makeCalendars(CalendarType.OWN),
 			existingEvent,
 		})
 		o(viewModel.summary()).equals(existingEvent.summary)
@@ -303,8 +303,8 @@ o.spec("CalendarEventViewModel", function () {
 				day: 26,
 				zone,
 			})
-				.toJSDate()
-				.toISOString(),
+					.toJSDate()
+					.toISOString(),
 		)
 		o(viewModel.endDate.toISOString()).equals(
 			DateTime.fromObject({
@@ -313,10 +313,11 @@ o.spec("CalendarEventViewModel", function () {
 				day: 26,
 				zone,
 			})
-				.toJSDate()
-				.toISOString(),
+					.toJSDate()
+					.toISOString(),
 		)
 	})
+
 	o("invite in our own calendar", async function () {
 		const existingEvent = createCalendarEvent({
 			summary: "existing event",
@@ -336,7 +337,7 @@ o.spec("CalendarEventViewModel", function () {
 			],
 		})
 		const viewModel = await init({
-			calendars: makeCalendars("own"),
+			calendars: makeCalendars(CalendarType.OWN),
 			existingEvent,
 		})
 		o(viewModel.isReadOnlyEvent()).equals(false)
@@ -345,8 +346,9 @@ o.spec("CalendarEventViewModel", function () {
 		o(viewModel.canModifyOrganizer()).equals(false)
 		o(viewModel.possibleOrganizers).deepEquals([neverNull(existingEvent.organizer)])
 	})
+
 	o("new invite (without calendar)", async function () {
-		const calendars = makeCalendars("own")
+		const calendars = makeCalendars(CalendarType.OWN)
 		const existingEvent = createCalendarEvent({
 			summary: "existing event",
 			startTime: new Date(2020, 4, 26, 12),
@@ -370,8 +372,9 @@ o.spec("CalendarEventViewModel", function () {
 		o(viewModel.canModifyOrganizer()).equals(false)
 		o(viewModel.possibleOrganizers).deepEquals([neverNull(existingEvent.organizer)])
 	})
+
 	o("in writable calendar", async function () {
-		const calendars = makeCalendars("shared")
+		const calendars = makeCalendars(CalendarType.SHARED)
 		const userController = makeUserController()
 		addCapability(userController.user, calendarGroupId, ShareCapability.Write)
 		const existingEvent = createCalendarEvent({
@@ -392,8 +395,9 @@ o.spec("CalendarEventViewModel", function () {
 		o(viewModel.canModifyOrganizer()).equals(false)
 		o(viewModel.possibleOrganizers).deepEquals([neverNull(existingEvent.organizer)])
 	})
+
 	o("invite in writable calendar", async function () {
-		const calendars = makeCalendars("shared")
+		const calendars = makeCalendars(CalendarType.SHARED)
 		const userController = makeUserController()
 		addCapability(userController.user, calendarGroupId, ShareCapability.Write)
 		const existingEvent = createCalendarEvent({
@@ -414,8 +418,9 @@ o.spec("CalendarEventViewModel", function () {
 		o(viewModel.canModifyOrganizer()).equals(false)
 		o(viewModel.possibleOrganizers).deepEquals([neverNull(existingEvent.organizer)])
 	})
+
 	o("in readonly calendar", async function () {
-		const calendars = makeCalendars("shared")
+		const calendars = makeCalendars(CalendarType.SHARED)
 		const userController = makeUserController()
 		addCapability(userController.user, calendarGroupId, ShareCapability.Read)
 		const existingEvent = createCalendarEvent({
@@ -431,8 +436,9 @@ o.spec("CalendarEventViewModel", function () {
 		o(viewModel.canModifyOwnAttendance()).equals(false)
 		o(viewModel.canModifyOrganizer()).equals(false)
 	})
+
 	o("in writable calendar w/ guests", async function () {
-		const calendars = makeCalendars("shared")
+		const calendars = makeCalendars(CalendarType.SHARED)
 		const userController = makeUserController()
 		addCapability(userController.user, calendarGroupId, ShareCapability.Write)
 		const existingEvent = createCalendarEvent({
@@ -462,7 +468,7 @@ o.spec("CalendarEventViewModel", function () {
 	})
 	o.spec("_hasChanges", async function () {
 		o("ignore sequence", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -498,8 +504,9 @@ o.spec("CalendarEventViewModel", function () {
 			newEvent.sequence = "7"
 			o(viewModel._hasChanges(newEvent)).equals(false)
 		})
+
 		o("detect changes", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -582,8 +589,9 @@ o.spec("CalendarEventViewModel", function () {
 			newEvent.repeatRule = existingEvent.repeatRule
 			o(viewModel._hasChanges(newEvent)).equals(false)
 		})
+
 		o("do not ignore confidentiality", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -618,8 +626,9 @@ o.spec("CalendarEventViewModel", function () {
 			existingEvent.invitedConfidentially = false
 			o(viewModel._hasChanges(newEvent)).equals(true)
 		})
+
 		o("do not ignore uid", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -662,9 +671,10 @@ o.spec("CalendarEventViewModel", function () {
 			o(viewModel._hasChanges(newEvent)).equals(false)
 		})
 	})
+
 	o.spec("force update", async function () {
 		o("not forcing updates to attendees, no changes, send no update", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -718,8 +728,9 @@ o.spec("CalendarEventViewModel", function () {
 			// No new attendees, do not ask about password
 			o(askInsecurePassword.calls.length).equals(0)
 		})
+
 		o("force sending updates to attendees, no changes", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -777,8 +788,9 @@ o.spec("CalendarEventViewModel", function () {
 			// No new attendees, do not ask about password
 			o(askInsecurePassword.calls.length).equals(0)
 		})
+
 		o("force sending updates to attendees, with changes", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -837,8 +849,9 @@ o.spec("CalendarEventViewModel", function () {
 			// No new attendees, do not ask about password
 			o(askInsecurePassword.calls.length).equals(0)
 		})
+
 		o("not forcing updates to attendees, with changes", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -896,9 +909,10 @@ o.spec("CalendarEventViewModel", function () {
 			o(askInsecurePassword.calls.length).equals(0)
 		})
 	})
+
 	o.spec("delete event", async function () {
 		o("own event with internal attendees in own calendar", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const attendee = makeAttendee()
 			const ownAttendee = makeAttendee(encMailAddress.address)
@@ -937,7 +951,7 @@ o.spec("CalendarEventViewModel", function () {
 			o(cancelModel.bccRecipients().map(r => r.mailAddress)).deepEquals([attendee.address.address])
 		})
 		o("own event with external attendees in own calendar, has password, not confidential", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const attendee = makeAttendee()
 			const ownAttendee = makeAttendee(encMailAddress.address)
@@ -993,8 +1007,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(distributor.sendCancellation.calls.map(c => c.args[0])).deepEquals([newEvent])
 			o(cancelModel.bccRecipients().map(r => r.mailAddress)).deepEquals([attendee.address.address])
 		})
+
 		o("own event with external attendees in own calendar, has password, confidential", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const attendee = makeAttendee()
 			const ownAttendee = makeAttendee(encMailAddress.address)
@@ -1041,9 +1056,10 @@ o.spec("CalendarEventViewModel", function () {
 			o(distributor.sendCancellation.calls.map(c => c.args[0])).deepEquals([newEvent])
 			o(cancelModel.bccRecipients().map(r => r.mailAddress)).deepEquals([attendee.address.address])
 		})
+
 		o("own event with external attendees in own calendar, no password, confidential", async function () {
 			// There should no cancellations sent to attendees without password as we cannot encrypt emails
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const attendee = makeAttendee()
 			const ownAttendee = makeAttendee(encMailAddress.address)
@@ -1082,11 +1098,10 @@ o.spec("CalendarEventViewModel", function () {
 			o(distributor.sendCancellation.calls.map(c => c.args[0])).deepEquals([])
 			o(cancelModel.bccRecipients().map(r => r.mailAddress)).deepEquals([])
 		})
-		o(
-			"own event with external eventually resolved attendees in own calendar, no password, confidential",
-			async function () {
+
+		o("own event with external eventually resolved attendees in own calendar, no password, confidential", async function () {
 				// There should no cancellations sent to attendees without password as we cannot encrypt emails
-				const calendars = makeCalendars("own")
+				const calendars = makeCalendars(CalendarType.OWN)
 				const distributor = makeDistributor()
 				const attendee = makeAttendee()
 				const ownAttendee = makeAttendee(encMailAddress.address)
@@ -1127,8 +1142,9 @@ o.spec("CalendarEventViewModel", function () {
 				o(cancelModel.bccRecipients().map(r => r.mailAddress)).deepEquals([])
 			},
 		)
+
 		o("own event without attendees in own calendar", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const calendarModel = makeCalendarModel()
 			const existingEvent = createCalendarEvent({
@@ -1149,8 +1165,9 @@ o.spec("CalendarEventViewModel", function () {
 			// @ts-ignore
 			o(distributor.sendCancellation.calls).deepEquals([])
 		})
+
 		o("invite in own calendar", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const calendarModel = makeCalendarModel()
 			const attendee = makeAttendee()
@@ -1172,8 +1189,9 @@ o.spec("CalendarEventViewModel", function () {
 			// @ts-ignore
 			o(distributor.sendCancellation.calls).deepEquals([])
 		})
+
 		o("in shared calendar", async function () {
-			const calendars = makeCalendars("shared")
+			const calendars = makeCalendars(CalendarType.SHARED)
 			const userController = makeUserController()
 			addCapability(userController.user, calendarGroupId, ShareCapability.Write)
 			const distributor = makeDistributor()
@@ -1198,8 +1216,9 @@ o.spec("CalendarEventViewModel", function () {
 			// @ts-ignore
 			o(distributor.sendCancellation.calls).deepEquals([])
 		})
+
 		o("in own calendar, without attendees", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const calendarModel = makeCalendarModel()
 			const existingEvent = createCalendarEvent({
@@ -1220,8 +1239,9 @@ o.spec("CalendarEventViewModel", function () {
 			// @ts-ignore
 			o(distributor.sendCancellation.calls).deepEquals([])
 		})
+
 		o("in own calendar, self is only attendee", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const userController = makeUserController()
 			const distributor = makeDistributor()
 			const calendarModel = makeCalendarModel()
@@ -1246,9 +1266,10 @@ o.spec("CalendarEventViewModel", function () {
 			o(distributor.sendCancellation.calls).deepEquals([])
 		})
 	})
+
 	o.spec("create event", function () {
 		o("own calendar, no guests", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const viewModel = await init({
@@ -1279,8 +1300,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.callCount).equals(0)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("own calendar, new guests", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const userController = makeUserController([], AccountType.PREMIUM, "", true)
@@ -1330,8 +1352,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.callCount).equals(0)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("own calendar, new guests, premium no business feature", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const userController = makeUserController([], AccountType.PREMIUM, "", false)
@@ -1353,8 +1376,9 @@ o.spec("CalendarEventViewModel", function () {
 				}),
 			)
 		})
+
 		o("own calendar, same guests, agree on updates", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -1399,8 +1423,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.calls.length).equals(1)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("own calendar, old, new, removed guests, agree on updates", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const oldGuest = "old-attendee@example.com"
@@ -1461,8 +1486,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.calls.length).equals(1)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("own calendar, same guests, agree on updates and on insecure password", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "new-attendee@example.com"
@@ -1515,8 +1541,9 @@ o.spec("CalendarEventViewModel", function () {
 			// No new attendees, do not ask about password
 			o(askInsecurePassword.calls.length).equals(0)
 		})
+
 		o("own calendar, same and new guests, agree on updates but not on insecure password", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const guest = "exising-attendee@example.com"
@@ -1566,8 +1593,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.calls.length).equals(1)
 			o(askInsecurePassword.calls.length).equals(1)
 		})
+
 		o("own calendar, old, new, removed guests, do not send updates", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const oldGuest = "old-attendee@example.com"
@@ -1627,8 +1655,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.calls.length).equals(1)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("own calendar, old, new, removed guests, cancel", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const oldGuest = "old-attendee@example.com"
@@ -1688,8 +1717,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.calls.length).equals(1)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("own calendar, only removed guests, send updates", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const toRemoveGuest: Guest = {
@@ -1737,9 +1767,10 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.calls.length).equals(0)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("send response", async function () {
 			const mail = createMail()
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const ownAttendee = createCalendarEventAttendee({
@@ -1798,8 +1829,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.callCount).equals(0)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("existing event times preserved", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const startTime = DateTime.fromObject({
 				year: 2020,
@@ -1839,8 +1871,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.callCount).equals(0)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("invite to self is not sent", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const calendarModel = makeCalendarModel()
 			const distributor = makeDistributor()
 			const userController = makeUserController([], AccountType.PREMIUM, "", true)
@@ -1871,8 +1904,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.callCount).equals(0)
 			o(askInsecurePassword.callCount).equals(0)
 		})
+
 		o("update to self is not sent", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const ownAttendee = createCalendarEventAttendee({
 				address: encMailAddress,
@@ -1911,8 +1945,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(updateModel.bccRecipients().map(getAddress)).deepEquals([anotherAttendee.address.address])
 			o(askForUpdates.calls.length).equals(1)
 		})
+
 		o("invite is not called if only self is added", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const anotherAttendee = createCalendarEventAttendee({
 				address: createEncryptedMailAddress({
@@ -1950,8 +1985,9 @@ o.spec("CalendarEventViewModel", function () {
 			// Update is asked because there's another attendee
 			o(askForUpdates.calls.length).equals(1)
 		})
+
 		o("does not ask for updates if only self is present", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const distributor = makeDistributor()
 			const ownAttendee = createCalendarEventAttendee({
 				address: encMailAddress,
@@ -1981,8 +2017,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.calls.length).equals(0)
 			o(askInsecurePassword.calls.length).equals(0)
 		})
+
 		o("does not ask for updates if alarm is changed in shared calendar", async function () {
-			const calendars = makeCalendars("shared")
+			const calendars = makeCalendars(CalendarType.SHARED)
 			const calendarModel = makeCalendarModel()
 			const existingEvent = createCalendarEvent({
 				_id: ["listId", "eventId"],
@@ -2018,8 +2055,9 @@ o.spec("CalendarEventViewModel", function () {
 			o(askForUpdates.calls.length).equals(0)
 		})
 	})
+
 	o("send invite with alias as default sender", async function () {
-		const calendars = makeCalendars("own")
+		const calendars = makeCalendars(CalendarType.OWN)
 		const distributor = makeDistributor()
 		const alias = "alias@tutanota.com"
 		const userController = makeUserController([alias], AccountType.PREMIUM, alias)
@@ -2038,8 +2076,9 @@ o.spec("CalendarEventViewModel", function () {
 		o(attendees.find(guest => guest.address.address === alias)).notEquals(undefined)
 		o(attendees.find(guest => guest.address.address === "address@tutanota.com")).equals(undefined)
 	})
+
 	o("invite self to set organizer with existing attendees", async function () {
-		const calendars = makeCalendars("own")
+		const calendars = makeCalendars(CalendarType.OWN)
 		const distributor = makeDistributor()
 		const alias = "alias@tutanota.com"
 		const aliasEncMailAddress = wrapEncIntoMailAddress(alias)
@@ -2069,8 +2108,9 @@ o.spec("CalendarEventViewModel", function () {
 		o(attendees().find(guest => guest.address.address === alias)).notEquals(undefined)
 		o(attendees().find(guest => guest.address.address === accountMailAddress)).equals(undefined)
 	})
+
 	o("invite self as first attendee", async function () {
-		const calendars = makeCalendars("own")
+		const calendars = makeCalendars(CalendarType.OWN)
 		const distributor = makeDistributor()
 		const alias = "alias@tutanota.com"
 		const userController = makeUserController([alias], AccountType.PREMIUM)
@@ -2088,8 +2128,9 @@ o.spec("CalendarEventViewModel", function () {
 		o(viewModel.organizer).deepEquals(encMailAddress)
 		o(attendees().find(guest => guest.address.address === accountMailAddress)).notEquals(undefined)
 	})
+
 	o("invite alias as first attendee", async function () {
-		const calendars = makeCalendars("own")
+		const calendars = makeCalendars(CalendarType.OWN)
 		const distributor = makeDistributor()
 		const alias = "alias@tutanota.com"
 		const aliasEncMailAddress = wrapEncIntoMailAddress(alias)
@@ -2107,9 +2148,10 @@ o.spec("CalendarEventViewModel", function () {
 		o(viewModel.organizer!).deepEquals(aliasEncMailAddress)
 		o(attendees().find(guest => guest.address.address === alias)).notEquals(undefined)
 	})
+
 	o.spec("onStartDateSelected", function () {
 		o("date adjusted forward", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const existingEvent = createCalendarEvent({
 				startTime: DateTime.fromObject({
 					year: 2020,
@@ -2146,8 +2188,8 @@ o.spec("CalendarEventViewModel", function () {
 					day: 11,
 					zone,
 				})
-					.toJSDate()
-					.toISOString(),
+						.toJSDate()
+						.toISOString(),
 			)
 			// @ts-ignore
 			o(viewModel.endTime?.toObject()).deepEquals({
@@ -2155,8 +2197,9 @@ o.spec("CalendarEventViewModel", function () {
 				minutes: 0,
 			})
 		})
+
 		o("date adjusted backwards", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const existingEvent = createCalendarEvent({
 				startTime: DateTime.fromObject({
 					year: 2020,
@@ -2193,8 +2236,8 @@ o.spec("CalendarEventViewModel", function () {
 					day: 7,
 					zone,
 				})
-					.toJSDate()
-					.toISOString(),
+						.toJSDate()
+						.toISOString(),
 			)
 			// @ts-ignore
 			o(viewModel.endTime?.toObject()).deepEquals({
@@ -2203,9 +2246,10 @@ o.spec("CalendarEventViewModel", function () {
 			})
 		})
 	})
+
 	o.spec("onStartTimeSelected", function () {
 		o("time adjusted forward", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const existingEvent = createCalendarEvent({
 				startTime: DateTime.fromObject({
 					year: 2020,
@@ -2235,14 +2279,15 @@ o.spec("CalendarEventViewModel", function () {
 					day: 8,
 					zone,
 				})
-					.toJSDate()
-					.toISOString(),
+						.toJSDate()
+						.toISOString(),
 			)
 			// @ts-ignore
 			o(viewModel.endTime?.to24HourString()).deepEquals("16:00")
 		})
+
 		o("time adjusted backward", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const existingEvent = createCalendarEvent({
 				startTime: DateTime.fromObject({
 					year: 2020,
@@ -2272,8 +2317,8 @@ o.spec("CalendarEventViewModel", function () {
 					day: 8,
 					zone,
 				})
-					.toJSDate()
-					.toISOString(),
+						.toJSDate()
+						.toISOString(),
 			)
 			// @ts-ignore
 			o(viewModel.endTime?.toObject()).deepEquals({
@@ -2281,8 +2326,9 @@ o.spec("CalendarEventViewModel", function () {
 				minutes: 0,
 			})
 		})
+
 		o("time not adjust when different day", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const existingEvent = createCalendarEvent({
 				startTime: DateTime.fromObject({
 					year: 2020,
@@ -2312,15 +2358,16 @@ o.spec("CalendarEventViewModel", function () {
 					day: 9,
 					zone,
 				})
-					.toJSDate()
-					.toISOString(),
+						.toJSDate()
+						.toISOString(),
 			)
 			o(viewModel.endTime?.to24HourString()).equals("15:00")
 		})
 	})
+
 	o.spec("addGuest", function () {
 		o("to new event", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const viewModel = await init({
 				calendars,
 				existingEvent: null,
@@ -2345,8 +2392,9 @@ o.spec("CalendarEventViewModel", function () {
 			await delay(resolveRecipientMs)
 			o(viewModel.attendees()[1].type).equals(RecipientInfoType.EXTERNAL)
 		})
+
 		o("to existing event", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const existingEvent = createCalendarEvent({
 				_ownerGroup: calendarGroupId,
 			})
@@ -2374,8 +2422,9 @@ o.spec("CalendarEventViewModel", function () {
 			await delay(resolveRecipientMs)
 			o(viewModel.attendees()[1].type).equals(RecipientInfoType.EXTERNAL)
 		})
+
 		o("to existing event as duplicate", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const guest = "new-attendee@example.com"
 			const existingEvent = createCalendarEvent({
 				attendees: [
@@ -2406,9 +2455,10 @@ o.spec("CalendarEventViewModel", function () {
 			o(viewModel.attendees()[0].type).equals(RecipientInfoType.EXTERNAL)
 		})
 	})
+
 	o.spec("selectGoing", function () {
 		o("as a free user", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const userController = makeUserController([], AccountType.FREE)
 			const ownAttendee = createCalendarEventAttendee({
 				address: encMailAddress,
@@ -2431,8 +2481,9 @@ o.spec("CalendarEventViewModel", function () {
 				},
 			])
 		})
+
 		o("status of own attendee is changed selected in own event", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const attendee = createCalendarEventAttendee({
 				address: createEncryptedMailAddress({
 					address: "guest@example.com",
@@ -2465,8 +2516,9 @@ o.spec("CalendarEventViewModel", function () {
 			await delay(resolveRecipientMs)
 			o(viewModel.attendees()[1].type).equals(RecipientInfoType.EXTERNAL)
 		})
+
 		o("status of own attendee is changed selected in invite", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const attendee = createCalendarEventAttendee({
 				address: createEncryptedMailAddress({
 					address: "guest@example.com",
@@ -2503,17 +2555,19 @@ o.spec("CalendarEventViewModel", function () {
 			o(viewModel.attendees()[1].type).equals(RecipientInfoType.EXTERNAL)
 		})
 	})
+
 	o.spec("canModifyOrganizer", function () {
 		o("can modify when when new event and no guests", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const viewModel = await init({
 				calendars,
 				existingEvent: null,
 			})
 			o(viewModel.canModifyOrganizer()).equals(true)
 		})
+
 		o("can modify when when new own event and added guests", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const viewModel = await init({
 				calendars,
 				existingEvent: null,
@@ -2521,8 +2575,9 @@ o.spec("CalendarEventViewModel", function () {
 			viewModel.addGuest("guest@example.com", null)
 			o(viewModel.canModifyOrganizer()).equals(true)
 		})
+
 		o("can modify when own event and no guests", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const viewModel = await init({
 				calendars,
 				existingEvent: createCalendarEvent({
@@ -2532,8 +2587,9 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.canModifyOrganizer()).equals(true)
 		})
+
 		o("can modify when own event without guests and added guests", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const viewModel = await init({
 				calendars,
 				existingEvent: createCalendarEvent({
@@ -2544,8 +2600,9 @@ o.spec("CalendarEventViewModel", function () {
 			viewModel.addGuest("guest@tutanota.de", null)
 			o(viewModel.canModifyOrganizer()).equals(true)
 		})
+
 		o("cannot modify in own calendar when there were guests", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const viewModel = await init({
 				calendars,
 				existingEvent: createCalendarEvent({
@@ -2562,8 +2619,9 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.canModifyOrganizer()).equals(false)
 		})
+
 		o("cannot modify in own calendar when there were guests and they were removed", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const toRemoveGuest: Guest = {
 				address: createEncryptedMailAddress({
 					address: "remove-attendee@example.com",
@@ -2586,8 +2644,9 @@ o.spec("CalendarEventViewModel", function () {
 			viewModel.removeAttendee(toRemoveGuest)
 			o(viewModel.canModifyOrganizer()).equals(false)
 		})
+
 		o("cannot modify in ro shared calendar without guests", async function () {
-			const calendars = makeCalendars("shared")
+			const calendars = makeCalendars(CalendarType.SHARED)
 			const viewModel = await init({
 				calendars,
 				existingEvent: createCalendarEvent({
@@ -2597,8 +2656,9 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.canModifyOrganizer()).equals(false)
 		})
+
 		o("can modify in rw shared calendar without guests", async function () {
-			const calendars = makeCalendars("shared")
+			const calendars = makeCalendars(CalendarType.SHARED)
 			const userController = makeUserController()
 			addCapability(userController.user, calendarGroupId, ShareCapability.Write)
 			const viewModel = await init({
@@ -2611,8 +2671,9 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.canModifyOrganizer()).equals(false)
 		})
+
 		o("cannot modify when it's invite in own calendar", async function () {
-			const calendars = makeCalendars("own")
+			const calendars = makeCalendars(CalendarType.OWN)
 			const viewModel = await init({
 				calendars,
 				existingEvent: createCalendarEvent({
@@ -2626,20 +2687,22 @@ o.spec("CalendarEventViewModel", function () {
 			o(viewModel.canModifyOrganizer()).equals(false)
 		})
 	})
+
 	o.spec("getAvailableCalendars", async function () {
-		const ownCalendar = makeCalendarInfo("own", calendarGroupId)
+		const ownCalendar = makeCalendarInfo(CalendarType.OWN, calendarGroupId)
 		const userController = makeUserController()
 		const roCalendarId = "roId"
-		const roCalendar = makeCalendarInfo("shared", roCalendarId)
+		const roCalendar = makeCalendarInfo(CalendarType.SHARED, roCalendarId)
 		addCapability(userController.user, roCalendarId, ShareCapability.Read)
 		const rwCalendarId = "rwId"
-		const rwCalendar = makeCalendarInfo("shared", rwCalendarId)
+		const rwCalendar = makeCalendarInfo(CalendarType.SHARED, rwCalendarId)
 		addCapability(userController.user, rwCalendarId, ShareCapability.Write)
 		const calendars = new Map([
 			[calendarGroupId, ownCalendar],
 			[roCalendarId, roCalendar],
 			[rwCalendarId, rwCalendar],
 		])
+
 		o("own calendar, new event", async function () {
 			const viewModel = await init({
 				userController,
@@ -2648,6 +2711,7 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.getAvailableCalendars()).deepEquals([ownCalendar, rwCalendar])
 		})
+
 		o("own calendar, existing event no guests", async function () {
 			const existingEvent = createCalendarEvent({
 				_ownerGroup: calendarGroupId,
@@ -2659,6 +2723,7 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.getAvailableCalendars()).deepEquals([ownCalendar, rwCalendar])
 		})
+
 		o("rw calendar, existing event with no guests", async function () {
 			const existingEvent = createCalendarEvent({
 				_ownerGroup: rwCalendarId,
@@ -2670,6 +2735,7 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.getAvailableCalendars()).deepEquals([ownCalendar, rwCalendar])
 		})
+
 		o("new invite", async function () {
 			const existingEvent = createCalendarEvent({
 				_ownerGroup: null,
@@ -2685,6 +2751,7 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.getAvailableCalendars()).deepEquals([ownCalendar])
 		})
+
 		o("ro calendar, existing event with no guests", async function () {
 			const existingEvent = createCalendarEvent({
 				_ownerGroup: roCalendarId,
@@ -2696,6 +2763,7 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.getAvailableCalendars()).deepEquals([roCalendar])
 		})
+
 		o("own calendar, existing event with guests", async function () {
 			const existingEvent = createCalendarEvent({
 				_ownerGroup: calendarGroupId,
@@ -2708,6 +2776,7 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.getAvailableCalendars()).deepEquals([ownCalendar])
 		})
+
 		o("rw calendar, existing event with guests", async function () {
 			const existingEvent = createCalendarEvent({
 				_ownerGroup: rwCalendarId,
@@ -2720,6 +2789,7 @@ o.spec("CalendarEventViewModel", function () {
 			})
 			o(viewModel.getAvailableCalendars()).deepEquals([rwCalendar])
 		})
+
 		o("ro calendar, existing event with guests", async function () {
 			const existingEvent = createCalendarEvent({
 				_ownerGroup: roCalendarId,
@@ -2733,44 +2803,48 @@ o.spec("CalendarEventViewModel", function () {
 			o(viewModel.getAvailableCalendars()).deepEquals([roCalendar])
 		})
 	})
+
 	o.spec("shouldShowInviteNotAvailable", async function () {
 		o("not available for free users", async function () {
 			const userController = makeUserController([], AccountType.FREE, "", false)
 			const viewModel = await init({
 				userController,
-				calendars: makeCalendars("own"),
+				calendars: makeCalendars(CalendarType.OWN),
 				existingEvent: null,
 			})
 			const notAvailable = viewModel.shouldShowSendInviteNotAvailable()
 			o(notAvailable).equals(true)
 		})
+
 		o("not available for premium users without business subscription", async function () {
 			const userController = makeUserController([], AccountType.PREMIUM, "", false)
 			const viewModel = await init({
 				userController,
-				calendars: makeCalendars("own"),
+				calendars: makeCalendars(CalendarType.OWN),
 				existingEvent: null,
 			})
 			await viewModel.updateCustomerFeatures()
 			const notAvailable = viewModel.shouldShowSendInviteNotAvailable()
 			o(notAvailable).equals(true)
 		})
+
 		o("available for premium users with business subscription", async function () {
 			const userController = makeUserController([], AccountType.PREMIUM, "", true)
 			const viewModel = await init({
 				userController,
-				calendars: makeCalendars("own"),
+				calendars: makeCalendars(CalendarType.OWN),
 				existingEvent: null,
 			})
 			await viewModel.updateCustomerFeatures()
 			const notAvailable = viewModel.shouldShowSendInviteNotAvailable()
 			o(notAvailable).equals(false)
 		})
+
 		o("available for external users", async function () {
 			const userController = makeUserController([], AccountType.EXTERNAL, "", false)
 			const viewModel = await init({
 				userController,
-				calendars: makeCalendars("own"),
+				calendars: makeCalendars(CalendarType.OWN),
 				existingEvent: null,
 			})
 			await viewModel.updateCustomerFeatures()

@@ -88,6 +88,8 @@ class LoginListener implements LoginEventHandler {
 			await this._credentialsProvider.setCredentialsEncryptionMode(CredentialEncryptionMode.DEVICE_LOCK)
 		}
 
+		locator.usageTestController.addTests(await locator.usageTestModel.loadActiveUsageTests())
+
 		// Do not wait
 		this.asyncActions()
 	}

@@ -39,13 +39,15 @@ import type {NativeFileApp} from "../../native/common/FileApp"
 import type {NativePushServiceApp} from "../../native/main/NativePushServiceApp"
 import type {NativeSystemApp} from "../../native/main/NativeSystemApp"
 import type {NativeInterfaceMain} from "../../native/main/NativeInterfaceMain"
+import type {NativeInterfaces} from "./NativeInterfaceFactory"
 import {createNativeInterfaces} from "./NativeInterfaceFactory"
 import {ProgrammingError} from "../common/error/ProgrammingError"
-import type {NativeInterfaces} from "./NativeInterfaceFactory"
 import {SecondFactorHandler} from "../../misc/2fa/SecondFactorHandler"
 import {WebauthnClient} from "../../misc/2fa/webauthn/WebauthnClient"
 import {UserManagementFacade} from "../worker/facades/UserManagementFacade"
 import {GroupManagementFacade} from "../worker/facades/GroupManagementFacade"
+import {UsageTestController} from "@tutao/tutanota-usagetests"
+import {UsageTestModel} from "../../misc/UsageTestModel"
 
 assertMainOrNode()
 
@@ -84,6 +86,8 @@ export interface IMainLocator {
 	readonly userManagementFacade: UserManagementFacade
 	readonly contactFormFacade: ContactFormFacade
 	readonly deviceEncryptionFacade: DeviceEncryptionFacade
+	readonly usageTestController: UsageTestController
+	readonly usageTestModel: UsageTestModel
 	readonly init: () => Promise<void>
 	readonly initialized: Promise<void>
 }
@@ -118,6 +122,8 @@ class MainLocator implements IMainLocator {
 	userManagementFacade!: UserManagementFacade
 	contactFormFacade!: ContactFormFacade
 	deviceEncryptionFacade!: DeviceEncryptionFacade
+	usageTestController!: UsageTestController
+	usageTestModel!: UsageTestModel
 
 	private _nativeInterfaces: NativeInterfaces | null = null
 
@@ -219,6 +225,7 @@ class MainLocator implements IMainLocator {
 		this.secondFactorHandler = new SecondFactorHandler(this.eventController, this.entityClient, new WebauthnClient(), this.loginFacade)
 		this.credentialsProvider = await createCredentialsProvider(deviceEncryptionFacade, this._nativeInterfaces?.native ?? null)
 		this.mailModel = new MailModel(notifications, this.eventController, this.worker, this.mailFacade, this.entityClient)
+		this.usageTestModel = new UsageTestModel()
 
 		const lazyScheduler = async () => {
 			const {AlarmSchedulerImpl} = await import("../../calendar/date/AlarmScheduler")
@@ -242,6 +249,8 @@ class MainLocator implements IMainLocator {
 		this.contactModel = new ContactModelImpl(this.searchFacade, this.entityClient, logins)
 		this.minimizedMailModel = new MinimizedMailEditorViewModel()
 		this.fileController = new FileController(this._nativeInterfaces?.fileApp ?? null)
+		this.usageTestController = new UsageTestController()
+		this.usageTestController.pingAdapter = this.usageTestModel
 	}
 }
 

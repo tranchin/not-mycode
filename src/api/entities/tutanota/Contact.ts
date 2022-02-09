@@ -195,7 +195,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "49"
+	"version": "50"
 }
 
 export function createContact(values?: Partial<Contact>): Contact {

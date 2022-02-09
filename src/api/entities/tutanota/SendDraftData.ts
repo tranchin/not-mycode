@@ -100,7 +100,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "49"
+	"version": "50"
 }
 
 export function createSendDraftData(values?: Partial<SendDraftData>): SendDraftData {

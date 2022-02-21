@@ -19,7 +19,7 @@
 		"testclient": "cd test && node --icu-data-dir=../node_modules/full-icu test client",
 		"postinstall": "node ./buildSrc/compileKeytar",
 		"types": "tsc",
-		"prebuild": "tsc --noEmit false --outDir build/prebuilt --declaration true --declarationMap true && cp src/*.d.ts build/prebuilt"
+		"prebuild": "tsc --noEmitOnError false --noEmit false --outDir build/prebuilt --declaration true --declarationMap true && cp src/*.d.ts build/prebuilt"
 	},
 	"dependencies": {
 		"@tutao/oxmsg": "0.0.9-beta.0",
@@ -36,7 +36,16 @@
 		"node-forge": "1.2.1",
 		"qrcode-svg": "1.0.0",
 		"squire-rte": "1.11.1",
-		"systemjs": "6.10.2"
+		"systemjs": "6.10.2",
+		"@types/better-sqlite3": "7.4.2",
+		"@types/dompurify": "2.3.0",
+		"@types/linkifyjs": "2.1.4",
+		"@types/luxon": "1.27.1",
+		"@types/mithril": "2.0.8",
+		"@types/node-forge": "1.0.0",
+		"@types/qrcode-svg": "1.1.1",
+		"@types/systemjs": "6.1.1",
+		"@types/winreg": "1.2.31"
 	},
 	"devDependencies": {
 		"@octokit/auth-token": "2.5.0",
@@ -47,15 +56,6 @@
 		"@rollup/plugin-typescript": "8.3.0",
 		"@tutao/tutanota-build-server": "3.91.11",
 		"@tutao/tutanota-test-utils": "3.91.11",
-		"@types/better-sqlite3": "7.4.2",
-		"@types/dompurify": "2.3.0",
-		"@types/linkifyjs": "2.1.4",
-		"@types/luxon": "1.27.1",
-		"@types/mithril": "2.0.8",
-		"@types/node-forge": "1.0.0",
-		"@types/qrcode-svg": "1.1.1",
-		"@types/systemjs": "6.1.1",
-		"@types/winreg": "1.2.31",
 		"body-parser": "1.19.0",
 		"chokidar": "3.5.2",
 		"commander": "5.0.0-2",

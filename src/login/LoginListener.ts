@@ -30,6 +30,7 @@ import type {ThemeCustomizations} from "../misc/WhitelabelCustomizations"
 import {getThemeCustomizations} from "../misc/WhitelabelCustomizations"
 import {CredentialEncryptionMode} from "../misc/credentials/CredentialEncryptionMode"
 import {SecondFactorHandler} from "../misc/2fa/SecondFactorHandler"
+import {TtlBehavior} from "../misc/UsageTestModel"
 
 export async function registerLoginListener(credentialsProvider: ICredentialsProvider, secondFactorHandler: SecondFactorHandler) {
 	logins.registerHandler(new LoginListener(credentialsProvider, secondFactorHandler))
@@ -88,7 +89,7 @@ class LoginListener implements LoginEventHandler {
 			await this._credentialsProvider.setCredentialsEncryptionMode(CredentialEncryptionMode.DEVICE_LOCK)
 		}
 
-		locator.usageTestController.addTests(await locator.usageTestModel.loadActiveUsageTests())
+		locator.usageTestController.addTests(await locator.usageTestModel.loadActiveUsageTests(TtlBehavior.PossiblyOutdated))
 
 		// Do not wait
 		this.asyncActions()
@@ -124,6 +125,9 @@ class LoginListener implements LoginEventHandler {
 		lang.updateFormats({
 			hourCycle: getHourCycle(logins.getUserController().userSettingsGroupRoot),
 		})
+
+		// Get any tests, as soon as possible even if they are stale
+		locator.usageTestController.addTests(await locator.usageTestModel.loadActiveUsageTests(TtlBehavior.UpToDateOnly))
 
 		this.enforcePasswordChange()
 	}

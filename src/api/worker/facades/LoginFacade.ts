@@ -1,5 +1,6 @@
 import {serviceRequest, serviceRequestVoid} from "../ServiceRequestWorker"
 import {SysService} from "../../entities/sys/Services"
+import type {Base64Url, Hex} from "@tutao/tutanota-utils"
 import {
 	assertNotNull,
 	Base64,
@@ -41,13 +42,7 @@ import {_TypeModel as SessionModelType, SessionTypeRef} from "../../entities/sys
 import {EntityRestClient, typeRefToPath} from "../rest/EntityRestClient"
 import {createSecondFactorAuthGetData} from "../../entities/sys/SecondFactorAuthGetData"
 import {SecondFactorAuthGetReturnTypeRef} from "../../entities/sys/SecondFactorAuthGetReturn"
-import {
-	ConnectionError,
-	LockedError,
-	NotAuthenticatedError,
-	NotFoundError,
-	ServiceUnavailableError
-} from "../../common/error/RestError"
+import {ConnectionError, LockedError, NotAuthenticatedError, NotFoundError, ServiceUnavailableError} from "../../common/error/RestError"
 import type {WorkerImpl} from "../WorkerImpl"
 import type {Indexer} from "../search/Indexer"
 import {createDeleteCustomerData} from "../../entities/sys/DeleteCustomerData"
@@ -66,7 +61,6 @@ import type {WebsocketLeaderStatus} from "../../entities/sys/WebsocketLeaderStat
 import {createWebsocketLeaderStatus} from "../../entities/sys/WebsocketLeaderStatus"
 import {createEntropyData} from "../../entities/tutanota/EntropyData"
 import {GENERATED_ID_BYTES_LENGTH, isSameId} from "../../common/utils/EntityUtils"
-import type {Base64Url, Hex} from "@tutao/tutanota-utils"
 import type {Credentials} from "../../../misc/credentials/Credentials"
 import {
 	aes128Decrypt,
@@ -549,7 +543,10 @@ export class LoginFacadeImpl implements LoginFacade {
 			v: SessionModelType.version,
 		}
 		return this._restClient
-				   .request(path, HttpMethod.DELETE, {}, headers, undefined, MediaType.Json)
+				   .request(path, HttpMethod.DELETE, {
+					   headers,
+					   responseType: MediaType.Json,
+				   })
 				   .catch(
 					   ofClass(NotAuthenticatedError, () => {
 						   console.log("authentication failed => session is already closed")
@@ -584,7 +581,10 @@ export class LoginFacadeImpl implements LoginFacade {
 			accessToken: accessToken,
 			v: SessionModelType.version,
 		}
-		return this._restClient.request(path, HttpMethod.GET, {}, headers, undefined, MediaType.Json).then(instance => {
+		return this._restClient.request(path, HttpMethod.GET, {
+			headers,
+			responseType: MediaType.Json,
+		}).then(instance => {
 			let session = JSON.parse(instance)
 			return {
 				userId: session.user,

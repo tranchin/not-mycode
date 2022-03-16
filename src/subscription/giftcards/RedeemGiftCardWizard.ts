@@ -1,14 +1,9 @@
 import m, {Children, Vnode, VnodeDOM} from "mithril"
 import stream from "mithril/stream"
-import {neverNull, noOp} from "@tutao/tutanota-utils"
+import Stream from "mithril/stream"
+import {downcast, neverNull, noOp, ofClass} from "@tutao/tutanota-utils"
 import type {WizardPageAttrs, WizardPageN} from "../../gui/base/WizardDialogN"
-import {
-	createWizardDialog,
-	emitWizardEvent,
-	WizardEventType,
-	wizardPageWrapper,
-	WizardPageWrapper
-} from "../../gui/base/WizardDialogN"
+import {createWizardDialog, emitWizardEvent, WizardEventType, wizardPageWrapper} from "../../gui/base/WizardDialogN"
 import {logins, SessionType} from "../../api/main/LoginController"
 import type {NewAccountData} from "../UpgradeSubscriptionWizard"
 import {loadUpgradePrices} from "../UpgradeSubscriptionWizard"
@@ -40,10 +35,7 @@ import {formatPrice, getPaymentMethodName, getSubscriptionPrice} from "../PriceU
 import {TextFieldAttrs, TextFieldN} from "../../gui/base/TextFieldN"
 import {getByAbbreviation} from "../../api/common/CountryList"
 import {isSameId} from "../../api/common/utils/EntityUtils"
-import {ofClass} from "@tutao/tutanota-utils"
 import type {CredentialsInfo} from "../../misc/credentials/CredentialsProvider"
-import Stream from "mithril/stream";
-import {downcast} from "@tutao/tutanota-utils";
 
 type GetCredentialsMethod = "login" | "signup"
 type RedeemGiftCardWizardData = {
@@ -279,6 +271,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 			isBusinessUse: () => false,
 			isPaidSubscription: () => false,
 			campaign: () => null,
+			repeatPassword: true,
 		}
 		return m(SignupForm, signupFormAttrs)
 	}

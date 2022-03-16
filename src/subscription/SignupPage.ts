@@ -1,38 +1,54 @@
-import m, {Children, Vnode, VnodeDOM} from "mithril"
+import m, {Children, Component, Vnode, VnodeDOM} from "mithril"
 import type {TranslationKey} from "../misc/LanguageViewModel"
 import type {UpgradeSubscriptionData} from "./UpgradeSubscriptionWizard"
 import {getDisplayNameOfSubscriptionType, SubscriptionType} from "./SubscriptionUtils"
-import type {WizardPageAttrs, WizardPageN} from "../gui/base/WizardDialogN"
+import type {WizardPageAttrs} from "../gui/base/WizardDialogN"
 import {emitWizardEvent, WizardEventType} from "../gui/base/WizardDialogN"
 import {SignupForm} from "./SignupForm"
+import {UsageTest, UsageTestController} from "@tutao/tutanota-usagetests"
 
 type ConfirmStatus = {
 	type: string
 	text: TranslationKey
 }
 
-export class SignupPage implements WizardPageN<UpgradeSubscriptionData> {
+export class SignupPage implements Component<SignupPageAttrs> {
 	private dom!: HTMLElement;
 
 	oncreate(vnode: VnodeDOM<WizardPageAttrs<UpgradeSubscriptionData>>) {
 		this.dom = vnode.dom as HTMLElement
 	}
 
-	view(vnode: Vnode<WizardPageAttrs<UpgradeSubscriptionData>>): Children {
+	view(vnode: Vnode<SignupPageAttrs>): Children {
 		const data = vnode.attrs.data
 		const newAccountData = data.newAccountData
 		let mailAddress: undefined | string = undefined
 		if (newAccountData) mailAddress = newAccountData.mailAddress
-		return m(SignupForm, {
-			newSignupHandler: newAccountData => {
-				if (newAccountData) data.newAccountData = newAccountData
-				emitWizardEvent(this.dom, WizardEventType.SHOWNEXTPAGE)
-			},
-			isBusinessUse: data.options.businessUse,
-			isPaidSubscription: () => data.type !== SubscriptionType.Free,
-			campaign: () => data.campaign,
-			prefilledMailAddress: mailAddress,
-			readonly: !!newAccountData,
+		return vnode.attrs.repeatPasswordTest().renderVariant({
+			[0]: () => m(SignupForm, {
+				newSignupHandler: newAccountData => {
+					if (newAccountData) data.newAccountData = newAccountData
+					emitWizardEvent(this.dom, WizardEventType.SHOWNEXTPAGE)
+				},
+				isBusinessUse: data.options.businessUse,
+				isPaidSubscription: () => data.type !== SubscriptionType.Free,
+				campaign: () => data.campaign,
+				prefilledMailAddress: mailAddress,
+				readonly: !!newAccountData,
+				repeatPassword: true
+			}),
+			[1]: () => m(SignupForm, {
+				newSignupHandler: newAccountData => {
+					if (newAccountData) data.newAccountData = newAccountData
+					emitWizardEvent(this.dom, WizardEventType.SHOWNEXTPAGE)
+				},
+				isBusinessUse: data.options.businessUse,
+				isPaidSubscription: () => data.type !== SubscriptionType.Free,
+				campaign: () => data.campaign,
+				prefilledMailAddress: mailAddress,
+				readonly: !!newAccountData,
+				repeatPassword: false
+			}),
 		})
 	}
 }
@@ -40,7 +56,9 @@ export class SignupPage implements WizardPageN<UpgradeSubscriptionData> {
 export class SignupPageAttrs implements WizardPageAttrs<UpgradeSubscriptionData> {
 	data: UpgradeSubscriptionData
 
-	constructor(signupData: UpgradeSubscriptionData) {
+	constructor(signupData: UpgradeSubscriptionData,
+				private readonly usageTestController: UsageTestController
+	) {
 		this.data = signupData
 	}
 
@@ -65,5 +83,9 @@ export class SignupPageAttrs implements WizardPageAttrs<UpgradeSubscriptionData>
 
 	isEnabled(): boolean {
 		return true
+	}
+
+	repeatPasswordTest(): UsageTest {
+		return this.usageTestController.getTest("signup.repeatPassword")
 	}
 }

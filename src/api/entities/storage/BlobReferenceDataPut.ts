@@ -2,7 +2,7 @@ import {create} from "../../common/utils/EntityUtils.js"
 import {TypeRef, downcast} from "@tutao/tutanota-utils"
 import type {TypeModel} from "../../common/EntityTypes.js"
 
-import type {TypeInfo} from "../sys/TypeInfo.js"
+import type {BlobReferenceTokenWrapper} from "../sys/BlobReferenceTokenWrapper.js"
 
 export const BlobReferenceDataPutTypeRef: TypeRef<BlobReferenceDataPut> = new TypeRef("storage", "BlobReferenceDataPut")
 export const _TypeModel: TypeModel = {
@@ -21,9 +21,9 @@ export const _TypeModel: TypeModel = {
 			"final": false,
 			"encrypted": false
 		},
-		"blobReferenceToken": {
-			"id": 96,
-			"type": "Bytes",
+		"archiveDataType": {
+			"id": 123,
+			"type": "Number",
 			"cardinality": "One",
 			"final": false,
 			"encrypted": false
@@ -35,17 +35,10 @@ export const _TypeModel: TypeModel = {
 			"final": false,
 			"encrypted": false
 		},
-		"instanceElementId": {
+		"instanceId": {
 			"id": 107,
 			"type": "GeneratedId",
-			"cardinality": "ZeroOrOne",
-			"final": false,
-			"encrypted": false
-		},
-		"instanceListElementId": {
-			"id": 98,
-			"type": "GeneratedId",
-			"cardinality": "ZeroOrOne",
+			"cardinality": "One",
 			"final": false,
 			"encrypted": false
 		},
@@ -58,17 +51,17 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"associations": {
-		"type": {
-			"id": 99,
+		"referenceTokens": {
+			"id": 122,
 			"type": "AGGREGATION",
-			"cardinality": "One",
+			"cardinality": "Any",
 			"final": true,
-			"refType": "TypeInfo",
+			"refType": "BlobReferenceTokenWrapper",
 			"dependency": "sys"
 		}
 	},
 	"app": "storage",
-	"version": "3"
+	"version": "4"
 }
 
 export function createBlobReferenceDataPut(values?: Partial<BlobReferenceDataPut>): BlobReferenceDataPut {
@@ -79,11 +72,10 @@ export type BlobReferenceDataPut = {
 	_type: TypeRef<BlobReferenceDataPut>;
 
 	_format: NumberString;
-	blobReferenceToken: Uint8Array;
+	archiveDataType: NumberString;
 	field: string;
-	instanceElementId: null | Id;
-	instanceListElementId: null | Id;
+	instanceId: Id;
 	instanceListId: null | Id;
 
-	type: TypeInfo;
+	referenceTokens: BlobReferenceTokenWrapper[];
 }

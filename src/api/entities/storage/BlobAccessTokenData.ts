@@ -2,6 +2,7 @@ import {create} from "../../common/utils/EntityUtils.js"
 import {TypeRef, downcast} from "@tutao/tutanota-utils"
 import type {TypeModel} from "../../common/EntityTypes.js"
 
+import type {BlobReadData} from "./BlobReadData.js"
 import type {BlobWriteData} from "./BlobWriteData.js"
 
 export const BlobAccessTokenDataTypeRef: TypeRef<BlobAccessTokenData> = new TypeRef("storage", "BlobAccessTokenData")
@@ -21,15 +22,23 @@ export const _TypeModel: TypeModel = {
 			"final": false,
 			"encrypted": false
 		},
-		"readArchiveId": {
-			"id": 79,
-			"type": "GeneratedId",
-			"cardinality": "ZeroOrOne",
+		"archiveDataType": {
+			"id": 174,
+			"type": "Number",
+			"cardinality": "One",
 			"final": false,
 			"encrypted": false
 		}
 	},
 	"associations": {
+		"read": {
+			"id": 175,
+			"type": "AGGREGATION",
+			"cardinality": "ZeroOrOne",
+			"final": true,
+			"refType": "BlobReadData",
+			"dependency": null
+		},
 		"write": {
 			"id": 80,
 			"type": "AGGREGATION",
@@ -40,7 +49,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "storage",
-	"version": "3"
+	"version": "4"
 }
 
 export function createBlobAccessTokenData(values?: Partial<BlobAccessTokenData>): BlobAccessTokenData {
@@ -51,7 +60,8 @@ export type BlobAccessTokenData = {
 	_type: TypeRef<BlobAccessTokenData>;
 
 	_format: NumberString;
-	readArchiveId: null | Id;
+	archiveDataType: NumberString;
 
+	read:  null | BlobReadData;
 	write:  null | BlobWriteData;
 }

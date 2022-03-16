@@ -2,7 +2,7 @@ import {create} from "../../common/utils/EntityUtils.js"
 import {TypeRef, downcast} from "@tutao/tutanota-utils"
 import type {TypeModel} from "../../common/EntityTypes.js"
 
-import type {BlobAccessInfo} from "../sys/BlobAccessInfo.js"
+import type {StorageServerAccessInfo} from "./StorageServerAccessInfo.js"
 
 export const BlobAccessTokenReturnTypeRef: TypeRef<BlobAccessTokenReturn> = new TypeRef("storage", "BlobAccessTokenReturn")
 export const _TypeModel: TypeModel = {
@@ -23,17 +23,17 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"associations": {
-		"blobAccessInfo": {
-			"id": 83,
+		"storageAccessInfo": {
+			"id": 154,
 			"type": "AGGREGATION",
 			"cardinality": "One",
 			"final": false,
-			"refType": "BlobAccessInfo",
-			"dependency": "sys"
+			"refType": "StorageServerAccessInfo",
+			"dependency": null
 		}
 	},
 	"app": "storage",
-	"version": "3"
+	"version": "4"
 }
 
 export function createBlobAccessTokenReturn(values?: Partial<BlobAccessTokenReturn>): BlobAccessTokenReturn {
@@ -45,5 +45,5 @@ export type BlobAccessTokenReturn = {
 
 	_format: NumberString;
 
-	blobAccessInfo: BlobAccessInfo;
+	storageAccessInfo: StorageServerAccessInfo;
 }

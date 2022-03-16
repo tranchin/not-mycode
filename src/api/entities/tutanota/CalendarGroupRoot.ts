@@ -75,7 +75,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "51"
+	"version": "52"
 }
 
 export function createCalendarGroupRoot(values?: Partial<CalendarGroupRoot>): CalendarGroupRoot {

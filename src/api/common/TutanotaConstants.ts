@@ -943,3 +943,12 @@ export enum UsageTestMetricType {
 }
 
 export const UsageTestMetricTypeToName = reverse(UsageTestMetricType)
+
+
+
+export const enum ArchiveDataType {
+	AuthorityRequests = "0",
+	Attachments = "1",
+	MailBody = "2",
+	MailHeaders = "3"
+}

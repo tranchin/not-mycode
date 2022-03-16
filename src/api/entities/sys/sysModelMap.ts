@@ -194,9 +194,6 @@ const map = {
     ArchiveRef: () => import('./ArchiveRef.js'),
     ArchiveType: () => import('./ArchiveType.js'),
     Blob: () => import('./Blob.js'),
-    BlobId: () => import('./BlobId.js'),
-    TargetServer: () => import('./TargetServer.js'),
-    BlobAccessInfo: () => import('./BlobAccessInfo.js'),
     WebauthnResponseData: () => import('./WebauthnResponseData.js'),
     UsageTestMetricConfig: () => import('./UsageTestMetricConfig.js'),
     UsageTestMetricData: () => import('./UsageTestMetricData.js'),
@@ -204,6 +201,7 @@ const map = {
     UsageTestAssignmentIn: () => import('./UsageTestAssignmentIn.js'),
     UsageTestAssignment: () => import('./UsageTestAssignment.js'),
     UsageTestAssignmentOut: () => import('./UsageTestAssignmentOut.js'),
-    UsageTestParticipationIn: () => import('./UsageTestParticipationIn.js')
+    UsageTestParticipationIn: () => import('./UsageTestParticipationIn.js'),
+    BlobReferenceTokenWrapper: () => import('./BlobReferenceTokenWrapper.js')
 }
 export default map

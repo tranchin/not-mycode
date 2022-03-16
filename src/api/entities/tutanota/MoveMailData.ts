@@ -38,7 +38,7 @@ export const _TypeModel: TypeModel = {
 		}
 	},
 	"app": "tutanota",
-	"version": "51"
+	"version": "52"
 }
 
 export function createMoveMailData(values?: Partial<MoveMailData>): MoveMailData {

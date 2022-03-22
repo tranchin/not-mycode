@@ -16,7 +16,7 @@ import {neverNull} from "@tutao/tutanota-utils"
 import {MailFolderType, MailReportType} from "../../api/common/TutanotaConstants"
 import {getElementId} from "../../api/common/utils/EntityUtils"
 import {reportMailsAutomatically} from "./MailReportDialog"
-import type {FileFacade} from "../../api/worker/facades/FileFacade"
+import type {FileFacade} from "../../api/worker/facades/FileFacade.js"
 import {DataFile} from "../../api/common/DataFile";
 import {TranslationKey} from "../../misc/LanguageViewModel"
 

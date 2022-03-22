@@ -8,20 +8,20 @@ export const _TypeModel: TypeModel = {
 	"name": "StorageServerUrl",
 	"since": 4,
 	"type": "AGGREGATED_TYPE",
-	"id": 147,
-	"rootId": "B3N0b3JhZ2UAAJM",
+	"id": 148,
+	"rootId": "B3N0b3JhZ2UAAJQ",
 	"versioned": false,
 	"encrypted": false,
 	"values": {
 		"_id": {
-			"id": 148,
+			"id": 149,
 			"type": "CustomId",
 			"cardinality": "One",
 			"final": true,
 			"encrypted": false
 		},
 		"url": {
-			"id": 149,
+			"id": 150,
 			"type": "String",
 			"cardinality": "One",
 			"final": false,

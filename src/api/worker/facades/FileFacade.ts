@@ -3,40 +3,28 @@ import {addParamsToUrl, isSuspensionResponse, RestClient} from "../rest/RestClie
 import {encryptBytes, resolveSessionKey} from "../crypto/CryptoFacade"
 import type {File as TutanotaFile} from "../../entities/tutanota/File"
 import {_TypeModel as FileTypeModel} from "../../entities/tutanota/File"
-import {assert, filterInt, neverNull, TypeRef, uint8ArrayToBase64} from "@tutao/tutanota-utils"
+import {assert, filterInt, neverNull} from "@tutao/tutanota-utils"
 import {LoginFacadeImpl} from "./LoginFacade"
 import {createFileDataDataPost} from "../../entities/tutanota/FileDataDataPost"
 import {_service} from "../rest/ServiceRestClient"
 import {FileDataReturnPostTypeRef} from "../../entities/tutanota/FileDataReturnPost"
-import {ArchiveDataType, GroupType} from "../../common/TutanotaConstants"
+import {GroupType} from "../../common/TutanotaConstants"
 import {_TypeModel as FileDataDataReturnTypeModel} from "../../entities/tutanota/FileDataDataReturn"
-import {_TypeModel as BlobGetInTypeModel} from "../../entities/storage/BlobGetIn"
 
-import {HttpMethod, MediaType, resolveTypeReference} from "../../common/EntityFunctions"
+import {HttpMethod, MediaType} from "../../common/EntityFunctions"
 import {assertWorkerOrNode, getHttpOrigin, Mode} from "../../common/Env"
 import {handleRestError} from "../../common/error/RestError"
 import {convertToDataFile, DataFile} from "../../common/DataFile"
 import type {SuspensionHandler} from "../SuspensionHandler"
-import {StorageService} from "../../entities/storage/Services"
-import {serviceRequest} from "../ServiceRequestWorker"
-import {createBlobAccessTokenData} from "../../entities/storage/BlobAccessTokenData"
-import {BlobAccessTokenReturnTypeRef} from "../../entities/storage/BlobAccessTokenReturn"
-import {createBlobWriteData} from "../../entities/storage/BlobWriteData"
-import {aes128Decrypt, random, sha256Hash, uint8ArrayToKey} from "@tutao/tutanota-crypto"
+import {aes128Decrypt, random} from "@tutao/tutanota-crypto"
 import type {NativeFileApp} from "../../../native/common/FileApp"
 import type {AesApp} from "../../../native/worker/AesApp"
 import {InstanceMapper} from "../crypto/InstanceMapper"
 import {FileReference} from "../../common/utils/FileUtils";
 import {TutanotaService} from "../../entities/tutanota/Services";
-import {StorageServerAccessInfo} from "../../entities/storage/StorageServerAccessInfo.js"
-import {createBlobGetIn} from "../../entities/storage/BlobGetIn.js"
-import {locator} from "../WorkerLocator"
-import {BlobPutOut, BlobPutOutTypeRef} from "../../entities/storage/BlobPutOut"
-import {createBlobReadData} from "../../entities/storage/BlobReadData"
 
 assertWorkerOrNode()
 const REST_PATH = "/rest/tutanota/filedataservice"
-const STORAGE_REST_PATH = `/rest/storage/${StorageService.BlobService}`
 
 export class FileFacade {
 	_login: LoginFacadeImpl
@@ -208,93 +196,4 @@ export class FileFacade {
 		}
 	}
 
-	/**
-	 * @returns blobReferenceToken
-	 */
-	async uploadBlob(
-		instance: {
-			_type: TypeRef<any>
-		},
-		archiveDataType: ArchiveDataType,
-		blobData: Uint8Array,
-		ownerGroupId: Id
-	): Promise<BlobPutOut> {
-		const typeModel = await resolveTypeReference(instance._type)
-		const sessionKey = neverNull(await resolveSessionKey(typeModel, instance))
-		const encryptedData = encryptBytes(sessionKey, blobData)
-		const blobHash = uint8ArrayToBase64(sha256Hash(encryptedData).slice(0, 6))
-		const {blobAccessToken, servers} = await this.getUploadToken(archiveDataType, ownerGroupId)
-		const headers = Object.assign(
-			{
-				blobAccessToken,
-				v: BlobGetInTypeModel.version,
-			},
-			this._login.createAuthHeaders(),
-		)
-		return this._restClient.request(
-			STORAGE_REST_PATH,
-			HttpMethod.PUT,
-			{
-				queryParams: {
-					blobHash
-				},
-				headers,
-				body: encryptedData,
-				responseType: MediaType.Json,
-				baseUrl: servers[0].url,
-			},
-		).then(data => {
-			return resolveTypeReference(BlobPutOutTypeRef).then(responseTypeModel => {
-				let instance = JSON.parse(data)
-				return locator.instanceMapper.decryptAndMapToInstance(responseTypeModel, instance, null)
-			})
-
-		})
-	}
-
-	async downloadBlob(archiveDataType: ArchiveDataType, archiveId: Id, blobId: Id, key: Uint8Array): Promise<Uint8Array> {
-		const {blobAccessToken, servers} = await this.getDownloadTokenOwnArchive(archiveDataType, archiveId)
-		const headers = Object.assign(
-			{
-				blobAccessToken,
-				v: BlobGetInTypeModel.version,
-			},
-			this._login.createAuthHeaders(),
-		)
-		const getData = createBlobGetIn({
-			archiveId,
-			blobId,
-		})
-		const literalGetData = await this._instanceMapper.encryptAndMapToLiteral(BlobGetInTypeModel, getData, null)
-		const body = JSON.stringify(literalGetData)
-		const data = await this._restClient.request(STORAGE_REST_PATH, HttpMethod.GET, {
-			headers,
-			body,
-			responseType: MediaType.Binary,
-			baseUrl: servers[0].url,
-		})
-		return aes128Decrypt(uint8ArrayToKey(key), data)
-	}
-
-	async getUploadToken(archiveDataType: ArchiveDataType, ownerGroupId: Id): Promise<StorageServerAccessInfo> {
-		const tokenRequest = createBlobAccessTokenData({
-			archiveDataType,
-			write: createBlobWriteData({
-				archiveOwnerGroup: ownerGroupId,
-			}),
-		})
-		const {storageAccessInfo} = await serviceRequest(StorageService.BlobAccessTokenService, HttpMethod.POST, tokenRequest, BlobAccessTokenReturnTypeRef)
-		return storageAccessInfo
-	}
-
-	async getDownloadTokenOwnArchive(archiveDataType: ArchiveDataType, archiveId: Id): Promise<StorageServerAccessInfo> {
-		const tokenRequest = createBlobAccessTokenData({
-			archiveDataType,
-			read: createBlobReadData({
-				archiveId,
-			}),
-		})
-		const {storageAccessInfo} = await serviceRequest(StorageService.BlobAccessTokenService, HttpMethod.POST, tokenRequest, BlobAccessTokenReturnTypeRef)
-		return storageAccessInfo
-	}
 }

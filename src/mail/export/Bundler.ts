@@ -8,7 +8,7 @@ import {MailState} from "../../api/common/TutanotaConstants"
 import {getLetId} from "../../api/common/utils/EntityUtils"
 import type {HtmlSanitizer} from "../../misc/HtmlSanitizer"
 import {promiseMap} from "@tutao/tutanota-utils"
-import type {FileFacade} from "../../api/worker/facades/FileFacade"
+import type {FileFacade} from "../../api/worker/facades/FileFacade.js"
 import {DataFile} from "../../api/common/DataFile";
 import {MailAddress} from "../../api/entities/tutanota/MailAddress"
 

@@ -5,6 +5,8 @@ import {TutanotaService} from "../../entities/tutanota/Services"
 import {LoginFacadeImpl} from "./LoginFacade"
 import type {ConversationType} from "../../common/TutanotaConstants"
 import {
+	ArchiveDataType,
+	FeatureType,
 	GroupType,
 	MailAuthenticationStatus as MailAuthStatus,
 	MailMethod,
@@ -54,7 +56,8 @@ import {createDraftAttachment} from "../../entities/tutanota/DraftAttachment"
 import {createNewDraftAttachment} from "../../entities/tutanota/NewDraftAttachment"
 import type {File as TutanotaFile} from "../../entities/tutanota/File"
 import {_TypeModel as FileTypeModel, FileTypeRef} from "../../entities/tutanota/File"
-import type {FileFacade} from "./FileFacade"
+import {BlobFacade, ReferenceToken} from "./BlobFacade"
+import {FileFacade} from "./FileFacade"
 import {createAttachmentKeyData} from "../../entities/tutanota/AttachmentKeyData"
 import {assertWorkerOrNode, isApp} from "../../common/Env"
 import {TutanotaPropertiesTypeRef} from "../../entities/tutanota/TutanotaProperties"
@@ -88,6 +91,7 @@ import {
 } from "@tutao/tutanota-crypto"
 import {DataFile} from "../../common/DataFile";
 import {FileReference} from "../../common/utils/FileUtils";
+import {createBlobReferenceTokenWrapper} from "../../entities/sys/BlobReferenceTokenWrapper"
 
 assertWorkerOrNode()
 type Attachments = ReadonlyArray<TutanotaFile | DataFile | FileReference>
@@ -125,6 +129,7 @@ interface UpdateDraftParams {
 export class MailFacade {
 	_login: LoginFacadeImpl
 	_file: FileFacade
+	private blob: BlobFacade
 	_phishingMarkers: Set<string>
 	_deferredDraftId: IdTuple | null // the mail id of the draft that we are waiting for to be updated via websocket
 
@@ -133,9 +138,10 @@ export class MailFacade {
 	_entityClient: EntityClient
 	_crypto: CryptoFacade
 
-	constructor(login: LoginFacadeImpl, fileFacade: FileFacade, entity: EntityClient, crypto: CryptoFacade) {
+	constructor(login: LoginFacadeImpl, fileFacade: FileFacade, blobFacade: BlobFacade, entity: EntityClient, crypto: CryptoFacade) {
 		this._login = login
 		this._file = fileFacade
+		this.blob = blobFacade
 		this._phishingMarkers = new Set()
 		this._deferredDraftId = null
 		this._deferredDraftUpdate = null
@@ -206,7 +212,7 @@ export class MailFacade {
 			ccRecipients,
 			bccRecipients,
 			replyTos,
-			addedAttachments: await this._createAddedAttachments(attachments, [], mailGroupKey),
+			addedAttachments: await this._createAddedAttachments(attachments, [], senderMailGroupId, mailGroupKey, await this._login.isEnabled(FeatureType.Blobs)),
 		})
 		const createDraftReturn = await serviceRequest(TutanotaService.DraftService, HttpMethod.POST, service, DraftCreateReturnTypeRef, undefined, sk)
 		return this._entityClient.load(MailTypeRef, createDraftReturn.draft)
@@ -237,7 +243,7 @@ export class MailFacade {
 			bccRecipients,
 			attachments,
 			confidential,
-			draft
+			draft,
 		}: UpdateDraftParams,
 	): Promise<Mail> {
 		if (byteLength(body) > UNCOMPRESSED_MAX_SIZE) {
@@ -263,7 +269,7 @@ export class MailFacade {
 			bccRecipients,
 			replyTos: draft.replyTos,
 			removedAttachments: this._getRemovedAttachments(attachments, draft.attachments),
-			addedAttachments: await this._createAddedAttachments(attachments, draft.attachments, mailGroupKey),
+			addedAttachments: await this._createAddedAttachments(attachments, draft.attachments, senderMailGroupId, mailGroupKey, await this._login.isEnabled(FeatureType.Blobs)),
 		})
 		this._deferredDraftId = draft._id
 		// we have to wait for the updated mail because sendMail() might be called right after this update
@@ -300,27 +306,40 @@ export class MailFacade {
 	/**
 	 * Uploads the given data files or sets the file if it is already existing files (e.g. forwarded files) and returns all DraftAttachments
 	 */
-	_createAddedAttachments(
+	async _createAddedAttachments(
 		providedFiles: Attachments | null,
 		existingFileIds: ReadonlyArray<IdTuple>,
+		senderMailGroupId: Id,
 		mailGroupKey: Aes128Key,
+		useBlobs: boolean
 	): Promise<DraftAttachment[]> {
 		if (providedFiles) {
-			return promiseMap(providedFiles, providedFile => {
+			return promiseMap(providedFiles, async(providedFile) => {
 				// check if this is a new attachment or an existing one
 				if (providedFile._type === "DataFile") {
 					// user added attachment
 					const fileSessionKey = aes128RandomKey()
 					const dataFile = downcast<DataFile>(providedFile)
-					return this._file.uploadFileData(dataFile, fileSessionKey).then(fileDataId => {
-						return this.createAndEncryptDraftAttachment(fileDataId, fileSessionKey, dataFile, mailGroupKey)
-					})
+					if (useBlobs) {
+						// return
+						const referenceTokens = await this.blob.encryptAndUpload(ArchiveDataType.Attachments, dataFile.data, senderMailGroupId, fileSessionKey)
+						return this.createAndEncryptDraftAttachment(referenceTokens, fileSessionKey, dataFile, mailGroupKey)
+					} else {
+						return this._file.uploadFileData(dataFile, fileSessionKey).then(fileDataId => {
+							return this.createAndEncryptLegacyDraftAttachment(fileDataId, fileSessionKey, dataFile, mailGroupKey)
+						})
+					}
 				} else if (providedFile._type === "FileReference") {
 					const fileSessionKey = aes128RandomKey()
 					const fileRef = downcast<FileReference>(providedFile)
-					return this._file.uploadFileDataNative(fileRef, fileSessionKey).then(fileDataId => {
-						return this.createAndEncryptDraftAttachment(fileDataId, fileSessionKey, fileRef, mailGroupKey)
-					})
+					if (useBlobs) {
+						const referenceTokens = await this.blob.encryptAndUploadNative(ArchiveDataType.Attachments, fileRef, senderMailGroupId, fileSessionKey)
+						return this.createAndEncryptDraftAttachment(referenceTokens, fileSessionKey, fileRef, mailGroupKey)
+					} else {
+						return this._file.uploadFileDataNative(fileRef, fileSessionKey).then(fileDataId => {
+							return this.createAndEncryptLegacyDraftAttachment(fileDataId, fileSessionKey, fileRef, mailGroupKey)
+						})
+					}
 				} else if (!containsId(existingFileIds, getLetId(providedFile))) {
 					// forwarded attachment which was not in the draft before
 					return resolveSessionKey(FileTypeModel, providedFile).then(fileSessionKey => {
@@ -347,7 +366,7 @@ export class MailFacade {
 		}
 	}
 
-	createAndEncryptDraftAttachment(
+	createAndEncryptLegacyDraftAttachment(
 		fileDataId: Id,
 		fileSessionKey: Aes128Key,
 		providedFile: DataFile | FileReference,
@@ -358,6 +377,25 @@ export class MailFacade {
 		newAttachmentData.encFileName = encryptString(fileSessionKey, providedFile.name)
 		newAttachmentData.encMimeType = encryptString(fileSessionKey, providedFile.mimeType)
 		newAttachmentData.fileData = fileDataId
+		newAttachmentData.referenceTokens = []
+		newAttachmentData.encCid = providedFile.cid == null ? null : encryptString(fileSessionKey, providedFile.cid)
+		attachment.newFile = newAttachmentData
+		attachment.ownerEncFileSessionKey = encryptKey(mailGroupKey, fileSessionKey)
+		return attachment
+	}
+
+	private createAndEncryptDraftAttachment(
+		referenceTokens: ReferenceToken[],
+		fileSessionKey: Aes128Key,
+		providedFile: DataFile | FileReference,
+		mailGroupKey: Aes128Key,
+	): DraftAttachment {
+		let attachment = createDraftAttachment()
+		let newAttachmentData = createNewDraftAttachment()
+		newAttachmentData.encFileName = encryptString(fileSessionKey, providedFile.name)
+		newAttachmentData.encMimeType = encryptString(fileSessionKey, providedFile.mimeType)
+		newAttachmentData.fileData = null
+		newAttachmentData.referenceTokens = referenceTokens.map(rt => createBlobReferenceTokenWrapper({blobReferenceToken: rt}))
 		newAttachmentData.encCid = providedFile.cid == null ? null : encryptString(fileSessionKey, providedFile.cid)
 		attachment.newFile = newAttachmentData
 		attachment.ownerEncFileSessionKey = encryptKey(mailGroupKey, fileSessionKey)

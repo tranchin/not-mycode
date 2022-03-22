@@ -1,10 +1,10 @@
 import {Request} from "../../api/common/MessageDispatcher"
-import {uint8ArrayToBase64} from "@tutao/tutanota-utils"
+import {promiseMap, uint8ArrayToBase64} from "@tutao/tutanota-utils"
 import type {MailBundle} from "../../mail/export/Bundler"
-import {promiseMap} from "@tutao/tutanota-utils"
 import type {NativeInterface} from "./NativeInterface"
 import {FileReference} from "../../api/common/utils/FileUtils";
 import {DataFile} from "../../api/common/DataFile";
+import {MAX_BLOB_SIZE_BYTES} from "../../api/common/TutanotaConstants"
 
 export type DataTaskResponse = {
 	statusCode: number
@@ -16,12 +16,25 @@ export type DownloadTaskResponse = DataTaskResponse & {
 	encryptedFileUri: string | null
 }
 
+export type UploadTaskResponse = DataTaskResponse & {
+	responseBody: string
+}
+
 export class NativeFileApp {
 	native: NativeInterface
 
 	constructor(nativeInterface: NativeInterface) {
 		this.native = nativeInterface
 	}
+
+	// TODO native implementation must be adapted (just return fileUri[])
+	async splitFileIntoBlobs(file: FileReference): Promise<string[]> {
+		const fileURIs = await this.native.invokeNative(
+			new Request("splitFileIntoBlobs", [file.location, MAX_BLOB_SIZE_BYTES])
+		)
+		return fileURIs
+	}
+
 
 	/**
 	 * Open the file
@@ -97,6 +110,14 @@ export class NativeFileApp {
 		return this.native.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 	}
 
+	joinFiles(filename: string, files: Array<string>): Promise<string> {
+		return this.native.invokeNative(new Request('joinFiles', [filename, files]))
+	}
+
+	downloadBlob(sourceUrl: string, filename: string, headers: Dict, body: string): Promise<DownloadTaskResponse> {
+		return this.native.invokeNative(new Request('downloadBlob', [headers, body, sourceUrl, filename])) // FIXME args
+	}
+
 	saveBlob(data: DataFile): Promise<void> {
 		return this.native.invokeNative(new Request("saveBlob", [data.name, uint8ArrayToBase64(data.data)]))
 	}
@@ -104,7 +125,7 @@ export class NativeFileApp {
 	/**
 	 * Uploads the binary data of a file to tutadb
 	 */
-	upload(fileUrl: string, targetUrl: string, headers: Record<string, any>): Promise<DataTaskResponse> {
+	upload(fileUrl: string, targetUrl: string, headers: Dict): Promise<UploadTaskResponse> {
 		return this.native.invokeNative(new Request("upload", [fileUrl, targetUrl, headers]))
 	}
 
@@ -112,8 +133,16 @@ export class NativeFileApp {
 	 * Downloads the binary data of a file from tutadb and stores it in the internal memory.
 	 * @returns Resolves to the URI of the downloaded file
 	 */
-	download(sourceUrl: string, filename: string, headers: Record<string, any>): Promise<DownloadTaskResponse> {
+	download(sourceUrl: string, filename: string, headers: Dict): Promise<DownloadTaskResponse> {
 		return this.native.invokeNative(new Request("download", [sourceUrl, filename, headers]))
+	}
+
+	getTempFileUri(filename: string): Promise<string> {
+		return this.native.invokeNative(new Request("getTempFileUri", [filename]))
+	}
+
+	hashFile(filename: string): Promise<string> {
+		return this.native.invokeNative(new Request('hashFile', [filename]))
 	}
 
 	clearFileData(): Promise<any> {

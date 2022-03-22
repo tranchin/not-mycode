@@ -36,8 +36,10 @@ export class FileController {
 		const downloadPromise = Promise.resolve().then(async () => {
 			if (isApp()) {
 				let file
-
 				try {
+					// if (tutanotaFile.blobs.length === 0) {
+					// TODO handle blobs
+					// }
 					file = await fileFacade.downloadFileContentNative(tutanotaFile)
 
 					if (isAndroidApp() && !open) {
@@ -88,7 +90,6 @@ export class FileController {
 					fileFacade.downloadFileContentNative(f)
 							  .catch(ofClass(CryptoError, () => showErr("corrupted_msg", f.name)))
 							  .catch(ofClass(ConnectionError, () => showErr("couldNotAttachFile_msg", f.name))),
-				{concurrency: 1}
 			)
 			const files = fileResults.filter(isNotNull)
 			for (const file of files) {
@@ -101,7 +102,6 @@ export class FileController {
 					fileFacade.downloadFileContentNative(f)
 							  .catch(ofClass(CryptoError, () => showErr("corrupted_msg", f.name)))
 							  .catch(ofClass(ConnectionError, () => showErr("couldNotAttachFile_msg", f.name))),
-				{concurrency: 1}
 			)
 			const files = fileResults.filter(isNotNull)
 			for (const file of files) {
@@ -114,7 +114,6 @@ export class FileController {
 					fileFacade.downloadFileContent(f)
 							  .catch(ofClass(CryptoError, () => showErr("corrupted_msg", f.name)))
 							  .catch(ofClass(ConnectionError, () => showErr("couldNotAttachFile_msg", f.name))),
-				{concurrency: 1}
 			)
 			const files = fileResults.filter(isNotNull)
 			const zip = await this.zipDataFiles(files, `${sortableTimestamp()}-attachments.zip`)

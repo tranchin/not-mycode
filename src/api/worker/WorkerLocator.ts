@@ -8,7 +8,8 @@ import {EntityRestCache} from "./rest/EntityRestCache"
 import {GroupManagementFacadeImpl} from "./facades/GroupManagementFacade"
 import {MailFacade} from "./facades/MailFacade"
 import {MailAddressFacade} from "./facades/MailAddressFacade"
-import {FileFacade} from "./facades/FileFacade"
+import {BlobFacade} from "./facades/BlobFacade.js"
+import {FileFacade} from "./facades/FileFacade.js"
 import {SearchFacade} from "./search/SearchFacade"
 import {CustomerFacadeImpl} from "./facades/CustomerFacade"
 import {CounterFacade} from "./facades/CounterFacade"
@@ -58,6 +59,7 @@ export type WorkerLocatorType = {
 	userManagement: UserManagementFacade
 	customer: CustomerFacadeImpl
 	file: FileFacade
+	blob: BlobFacade
 	mail: MailFacade
 	calendar: CalendarFacade
 	mailAddress: MailAddressFacade
@@ -145,7 +147,8 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 	const fileApp = new NativeFileApp(worker)
 	const aesApp = new AesApp(worker)
 	locator.file = new FileFacade(locator.login, locator.restClient, suspensionHandler, fileApp, aesApp, locator.instanceMapper)
-	locator.mail = new MailFacade(locator.login, locator.file, locator.cachingEntityClient, locator.crypto)
+	locator.blob = new BlobFacade(locator.login, locator.restClient, suspensionHandler, fileApp, aesApp, locator.instanceMapper)
+	locator.mail = new MailFacade(locator.login, locator.file, locator.blob, locator.cachingEntityClient, locator.crypto)
 	// not needed for admin client
 	if (cache) {
 		locator.calendar = new CalendarFacade(locator.login, locator.groupManagement, cache, worker, worker, locator.instanceMapper)

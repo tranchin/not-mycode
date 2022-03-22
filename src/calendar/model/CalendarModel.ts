@@ -52,7 +52,7 @@ import type {Notifications} from "../../gui/Notifications"
 import m from "mithril"
 import {createGroupSettings} from "../../api/entities/tutanota/GroupSettings"
 import type {CalendarFacade} from "../../api/worker/facades/CalendarFacade"
-import type {FileFacade} from "../../api/worker/facades/FileFacade"
+import type {FileFacade} from "../../api/worker/facades/FileFacade.js"
 import {DataFile} from "../../api/common/DataFile";
 import {GroupMembership} from "../../api/entities/sys/GroupMembership";
 

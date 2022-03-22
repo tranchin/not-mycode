@@ -22,7 +22,7 @@ export const _TypeModel: TypeModel = {
 			"encrypted": false
 		},
 		"archiveDataType": {
-			"id": 155,
+			"id": 124,
 			"type": "Number",
 			"cardinality": "One",
 			"final": false,

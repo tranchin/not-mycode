@@ -20,7 +20,7 @@ import {
 	uint8ArrayToHex,
 	utf8Uint8ArrayToString,
 } from "@tutao/tutanota-utils"
-import {CloseEventBusOption, GroupType, OperationType} from "../../common/TutanotaConstants"
+import {CloseEventBusOption, FeatureType, GroupType, OperationType} from "../../common/TutanotaConstants"
 import {CryptoError} from "../../common/error/CryptoError"
 import {createSaltData} from "../../entities/sys/SaltData"
 import type {SaltReturn} from "../../entities/sys/SaltReturn"
@@ -95,6 +95,7 @@ import {Aes128Key} from "@tutao/tutanota-crypto/dist/encryption/Aes"
 import {SessionType} from "../../common/SessionType"
 import {LateInitializedCacheStorage} from "../rest/CacheStorageProxy"
 import {ServiceRestInterface} from "../rest/ServiceRestInterface"
+import {CustomerTypeRef} from "../../entities/sys/Customer"
 
 assertWorkerOrNode()
 const RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS = 30000
@@ -970,6 +971,14 @@ export class LoginFacadeImpl implements LoginFacade {
 
 	getTotpVerifier(): Promise<TotpVerifier> {
 		return Promise.resolve(new TotpVerifier())
+	}
+
+	async isEnabled(feature: FeatureType): Promise<boolean> {
+		if (!this._user) {
+			return false
+		}
+		const customer = await this.entityClient.load(CustomerTypeRef, neverNull(this._user.customer))
+		return customer.customizations.some(f => f.feature === feature)
 	}
 }
 

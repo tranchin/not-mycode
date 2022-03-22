@@ -9,20 +9,20 @@ export const _TypeModel: TypeModel = {
 	"name": "StorageServerAccessInfo",
 	"since": 4,
 	"type": "AGGREGATED_TYPE",
-	"id": 150,
-	"rootId": "B3N0b3JhZ2UAAJY",
+	"id": 151,
+	"rootId": "B3N0b3JhZ2UAAJc",
 	"versioned": false,
 	"encrypted": false,
 	"values": {
 		"_id": {
-			"id": 151,
+			"id": 152,
 			"type": "CustomId",
 			"cardinality": "One",
 			"final": true,
 			"encrypted": false
 		},
 		"blobAccessToken": {
-			"id": 152,
+			"id": 153,
 			"type": "String",
 			"cardinality": "One",
 			"final": false,
@@ -31,7 +31,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {
 		"servers": {
-			"id": 153,
+			"id": 154,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": false,

@@ -8,34 +8,34 @@ export const _TypeModel: TypeModel = {
 	"name": "BlobArchiveRef",
 	"since": 4,
 	"type": "LIST_ELEMENT_TYPE",
-	"id": 128,
-	"rootId": "B3N0b3JhZ2UAAIA",
+	"id": 129,
+	"rootId": "B3N0b3JhZ2UAAIE",
 	"versioned": false,
 	"encrypted": false,
 	"values": {
 		"_format": {
-			"id": 132,
+			"id": 133,
 			"type": "Number",
 			"cardinality": "One",
 			"final": false,
 			"encrypted": false
 		},
 		"_id": {
-			"id": 130,
+			"id": 131,
 			"type": "GeneratedId",
 			"cardinality": "One",
 			"final": true,
 			"encrypted": false
 		},
 		"_ownerGroup": {
-			"id": 133,
+			"id": 134,
 			"type": "GeneratedId",
 			"cardinality": "ZeroOrOne",
 			"final": true,
 			"encrypted": false
 		},
 		"_permissions": {
-			"id": 131,
+			"id": 132,
 			"type": "GeneratedId",
 			"cardinality": "One",
 			"final": true,
@@ -44,7 +44,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {
 		"archive": {
-			"id": 134,
+			"id": 135,
 			"type": "ELEMENT_ASSOCIATION",
 			"cardinality": "One",
 			"final": false,

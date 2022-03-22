@@ -8,20 +8,20 @@ export const _TypeModel: TypeModel = {
 	"name": "BlobPutOut",
 	"since": 4,
 	"type": "DATA_TRANSFER_TYPE",
-	"id": 124,
-	"rootId": "B3N0b3JhZ2UAfA",
+	"id": 125,
+	"rootId": "B3N0b3JhZ2UAfQ",
 	"versioned": false,
 	"encrypted": false,
 	"values": {
 		"_format": {
-			"id": 125,
+			"id": 126,
 			"type": "Number",
 			"cardinality": "One",
 			"final": false,
 			"encrypted": false
 		},
 		"blobReferenceToken": {
-			"id": 126,
+			"id": 127,
 			"type": "String",
 			"cardinality": "One",
 			"final": false,

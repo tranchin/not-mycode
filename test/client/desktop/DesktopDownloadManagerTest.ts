@@ -3,7 +3,6 @@ import n, {Mocked} from "../nodemocker"
 import {DesktopDownloadManager} from "../../../src/desktop/DesktopDownloadManager"
 import {assertThrows} from "@tutao/tutanota-test-utils"
 import {CancelledError} from "../../../src/api/common/error/CancelledError"
-import {delay} from "@tutao/tutanota-utils"
 import {DesktopNetworkClient} from "../../../src/desktop/DesktopNetworkClient"
 import {PreconditionFailedError, TooManyRequestsError} from "../../../src/api/common/error/RestError"
 import type * as fs from "fs"
@@ -307,7 +306,7 @@ o.spec("DesktopDownloadManagerTest", function () {
 				errorId: null,
 				precondition: null,
 				suspensionTime: null,
-				encryptedFileUri: expectedFilePath
+				encryptedFileUri: expectedFilePath,
 			})
 
 			const ws = WriteStream.mockedInstances[0]

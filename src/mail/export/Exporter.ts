@@ -16,7 +16,7 @@ import {isDesktop} from "../../api/common/Env"
 import {sanitizeFilename} from "../../api/common/utils/FileUtils"
 import type {Mail} from "../../api/entities/tutanota/Mail"
 import type {EntityClient} from "../../api/common/EntityClient"
-import type {FileFacade} from "../../api/worker/facades/FileFacade"
+import type {FileFacade} from "../../api/worker/facades/FileFacade.js"
 import {locator} from "../../api/main/MainLocator"
 // .msg export is handled in DesktopFileExport because it uses APIs that can't be loaded web side
 export type MailExportMode = "msg" | "eml"

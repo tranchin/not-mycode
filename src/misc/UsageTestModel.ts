@@ -143,8 +143,15 @@ export class UsageTestModel implements PingAdapter {
 
 		await this.serviceExecutor.serviceRequest(SysService.UsageTestParticipationService, HttpMethod.POST, data)
 				  .catch(ofClass(PreconditionFailedError, (e) => {
-					  test.active = false
-					  console.log("Tried to send ping for paused test", e)
+					  if (e.data === "invalid_state") {
+						  test.active = false
+						  console.log("Tried to send ping for paused test", e)
+					  } else if (e.data === "invalid_stage") {
+						  console.log("Tried to send ping for wrong stage", e)
+					  } else {
+						  console.log("Tried to send ping", e)
+					  }
+
 				  }))
 	}
 }

@@ -6,7 +6,7 @@ import {PingAdapter, Stage, UsageTest} from "@tutao/tutanota-usagetests"
 import {serviceRequest} from "../api/main/ServiceRequest"
 import {createUsageTestParticipationIn} from "../api/entities/sys/UsageTestParticipationIn"
 import {UsageTestState} from "../api/common/TutanotaConstants"
-import {filterInt, ofClass} from "@tutao/tutanota-utils"
+import {filterInt} from "@tutao/tutanota-utils"
 import {PreconditionFailedError} from "../api/common/error/RestError"
 import {createUsageTestMetricData} from "../api/entities/sys/UsageTestMetricData"
 import {_TypeModel as UsageTestTypeModel, UsageTestAssignment} from "../api/entities/sys/UsageTestAssignment"
@@ -141,10 +141,32 @@ export class UsageTestModel implements PingAdapter {
 			testDeviceId: testDeviceId,
 		})
 
-		await this.serviceExecutor.serviceRequest(SysService.UsageTestParticipationService, HttpMethod.POST, data)
-				  .catch(ofClass(PreconditionFailedError, (e) => {
-					  test.active = false
-					  console.log("Tried to send ping for paused test", e)
-				  }))
+		try {
+			await this.serviceExecutor.serviceRequest(
+				SysService.UsageTestParticipationService,
+				HttpMethod.POST,
+				data,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				SuspensionBehavior.Throw,
+			)
+		} catch (e) {
+			if (e instanceof SuspensionError) {
+				console.log("rate-limit for pings reached")
+			} else if (e instanceof PreconditionFailedError) {
+				if (e.data === "invalid_state") {
+					test.active = false
+					console.log("Tried to send ping for paused test", e)
+				} else if (e.data === "invalid_stage") {
+					console.log("Tried to send ping for wrong stage", e)
+				} else {
+					console.log("Tried to send ping", e)
+				}
+			} else {
+				throw e
+			}
+		}
 	}
 }

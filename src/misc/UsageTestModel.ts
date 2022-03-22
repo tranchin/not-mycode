@@ -142,9 +142,21 @@ export class UsageTestModel implements PingAdapter {
 		})
 
 		try {
-			await this.serviceExecutor.serviceRequest(SysService.UsageTestParticipationService, HttpMethod.POST, data)
+			await this.serviceExecutor.serviceRequest(
+				SysService.UsageTestParticipationService,
+				HttpMethod.POST,
+				data,
+				undefined,
+				undefined,
+				undefined,
+				undefined,
+				SuspensionBehavior.Throw,
+			)
 		} catch (e) {
-			if (e instanceof PreconditionFailedError) {
+			if (e instanceof SuspensionError) {
+				test.active = false
+				console.log("rate-limit for pings reached")
+			} else if (e instanceof PreconditionFailedError) {
 				if (e.data === "invalid_state") {
 					test.active = false
 					console.log("Tried to send ping for paused test", e)

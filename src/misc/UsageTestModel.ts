@@ -6,8 +6,8 @@ import {PingAdapter, Stage, UsageTest} from "@tutao/tutanota-usagetests"
 import {serviceRequest} from "../api/main/ServiceRequest"
 import {createUsageTestParticipationIn} from "../api/entities/sys/UsageTestParticipationIn"
 import {UsageTestState} from "../api/common/TutanotaConstants"
-import {filterInt, ofClass} from "@tutao/tutanota-utils"
-import {PreconditionFailedError} from "../api/common/error/RestError"
+import {filterInt} from "@tutao/tutanota-utils"
+import {BadRequestError, PreconditionFailedError} from "../api/common/error/RestError"
 import {createUsageTestMetricData} from "../api/entities/sys/UsageTestMetricData"
 import {_TypeModel as UsageTestTypeModel, UsageTestAssignment} from "../api/entities/sys/UsageTestAssignment"
 import {SuspensionError} from "../api/common/error/SuspensionError"
@@ -141,10 +141,27 @@ export class UsageTestModel implements PingAdapter {
 			testDeviceId: testDeviceId,
 		})
 
-		await this.serviceExecutor.serviceRequest(SysService.UsageTestParticipationService, HttpMethod.POST, data)
-				  .catch(ofClass(PreconditionFailedError, (e) => {
-					  test.active = false
-					  console.log("Tried to send ping for paused test", e)
-				  }))
+		try {
+			await this.serviceExecutor.serviceRequest(SysService.UsageTestParticipationService, HttpMethod.POST, data)
+		} catch (e) {
+			if (e instanceof PreconditionFailedError) {
+				test.active = false
+				console.log("Tried to send ping for paused test", e)
+			} else if (e instanceof BadRequestError) {
+				// Cached assignments are likely out of date if we run into a BadRequestError here.
+				// We should not attempt to re-send pings, as the relevant test has likely been deleted.
+				// Hence, we just invalidate the usage test assignments cache and disable the test.
+				test.active = false
+				await this.testStorage.storeAssignments({
+					assignments: [],
+					updatedAt: 0,
+					sysModelVersion: 0,
+				})
+				console.log("Tried to send ping. Invalidating assignments cache", e)
+			} else {
+				throw e
+			}
+		}
+
 	}
 }

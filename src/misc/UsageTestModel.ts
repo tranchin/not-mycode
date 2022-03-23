@@ -5,7 +5,6 @@ import {UsageTestAssignmentOutTypeRef} from "../api/entities/sys/UsageTestAssign
 import {PingAdapter, Stage, UsageTest} from "@tutao/tutanota-usagetests"
 import {serviceRequest} from "../api/main/ServiceRequest"
 import {createUsageTestParticipationIn} from "../api/entities/sys/UsageTestParticipationIn"
-import {UsageTestState} from "../api/common/TutanotaConstants"
 import {filterInt, ofClass} from "@tutao/tutanota-utils"
 import {PreconditionFailedError} from "../api/common/error/RestError"
 import {createUsageTestMetricData} from "../api/entities/sys/UsageTestMetricData"
@@ -110,7 +109,7 @@ export class UsageTestModel implements PingAdapter {
 				usageTestAssignment.testId,
 				usageTestAssignment.name,
 				Number(usageTestAssignment.variant),
-				UsageTestState.Live === usageTestAssignment.state,
+				usageTestAssignment.sendPings,
 			)
 
 			for (const index of usageTestAssignment.stages.keys()) {
@@ -146,6 +145,9 @@ export class UsageTestModel implements PingAdapter {
 					  if (e.data === "invalid_state") {
 						  test.active = false
 						  console.log("Tried to send ping for paused test", e)
+					  } else if (e.data === "invalid_restart") {
+						  test.active = false
+						  console.log("Tried to restart test in ParticipationMode.Once that device has already participated in", e)
 					  } else if (e.data === "invalid_stage") {
 						  console.log("Tried to send ping for wrong stage", e)
 					  } else {

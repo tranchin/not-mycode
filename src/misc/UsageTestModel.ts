@@ -7,7 +7,7 @@ import {serviceRequest} from "../api/main/ServiceRequest"
 import {createUsageTestParticipationIn} from "../api/entities/sys/UsageTestParticipationIn"
 import {UsageTestState} from "../api/common/TutanotaConstants"
 import {filterInt} from "@tutao/tutanota-utils"
-import {BadRequestError, PreconditionFailedError} from "../api/common/error/RestError"
+import {NotFoundError, PreconditionFailedError} from "../api/common/error/RestError"
 import {createUsageTestMetricData} from "../api/entities/sys/UsageTestMetricData"
 import {_TypeModel as UsageTestTypeModel, UsageTestAssignment} from "../api/entities/sys/UsageTestAssignment"
 import {SuspensionError} from "../api/common/error/SuspensionError"
@@ -147,17 +147,21 @@ export class UsageTestModel implements PingAdapter {
 			if (e instanceof PreconditionFailedError) {
 				test.active = false
 				console.log("Tried to send ping for paused test", e)
-			} else if (e instanceof BadRequestError) {
-				// Cached assignments are likely out of date if we run into a BadRequestError here.
+			} else if (e instanceof NotFoundError) {
+				// Cached assignments are likely out of date if we run into a NotFoundError here.
 				// We should not attempt to re-send pings, as the relevant test has likely been deleted.
-				// Hence, we just invalidate the usage test assignments cache and disable the test.
+				// Hence, we just remove the cached assignment and disable the test.
 				test.active = false
-				await this.testStorage.storeAssignments({
-					assignments: [],
-					updatedAt: 0,
-					sysModelVersion: 0,
-				})
-				console.log("Tried to send ping. Invalidating assignments cache", e)
+				console.log(`Tried to send ping. Removing test '${test.testId}' from storage`, e)
+
+				const storedAssignments = await this.testStorage.getAssignments()
+				if (storedAssignments) {
+					await this.testStorage.storeAssignments({
+						updatedAt: storedAssignments.updatedAt,
+						sysModelVersion: storedAssignments.sysModelVersion,
+						assignments: storedAssignments.assignments.filter(assignment => assignment.testId !== test.testId),
+					})
+				}
 			} else {
 				throw e
 			}

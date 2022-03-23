@@ -4,7 +4,7 @@ import type {MailBundle} from "../../mail/export/Bundler"
 import type {NativeInterface} from "./NativeInterface"
 import {FileReference} from "../../api/common/utils/FileUtils";
 import {DataFile} from "../../api/common/DataFile";
-import {MAX_BLOB_SIZE_BYTES} from "../../api/common/TutanotaConstants"
+
 
 export type DataTaskResponse = {
 	statusCode: number
@@ -20,21 +20,14 @@ export type UploadTaskResponse = DataTaskResponse & {
 	responseBody: string
 }
 
+export type FileUri = string
+
 export class NativeFileApp {
 	native: NativeInterface
 
 	constructor(nativeInterface: NativeInterface) {
 		this.native = nativeInterface
 	}
-
-	// TODO native implementation must be adapted (just return fileUri[])
-	async splitFileIntoBlobs(file: FileReference): Promise<string[]> {
-		const fileURIs = await this.native.invokeNative(
-			new Request("splitFileIntoBlobs", [file.location, MAX_BLOB_SIZE_BYTES])
-		)
-		return fileURIs
-	}
-
 
 	/**
 	 * Open the file
@@ -110,14 +103,6 @@ export class NativeFileApp {
 		return this.native.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 	}
 
-	joinFiles(filename: string, files: Array<string>): Promise<string> {
-		return this.native.invokeNative(new Request('joinFiles', [filename, files]))
-	}
-
-	downloadBlob(sourceUrl: string, filename: string, headers: Dict, body: string): Promise<DownloadTaskResponse> {
-		return this.native.invokeNative(new Request('downloadBlob', [headers, body, sourceUrl, filename])) // FIXME args
-	}
-
 	saveBlob(data: DataFile): Promise<void> {
 		return this.native.invokeNative(new Request("saveBlob", [data.name, uint8ArrayToBase64(data.data)]))
 	}
@@ -133,12 +118,8 @@ export class NativeFileApp {
 	 * Downloads the binary data of a file from tutadb and stores it in the internal memory.
 	 * @returns Resolves to the URI of the downloaded file
 	 */
-	download(sourceUrl: string, filename: string, headers: Dict): Promise<DownloadTaskResponse> {
+	download(sourceUrl: FileUri, filename: string, headers: Dict): Promise<DownloadTaskResponse> {
 		return this.native.invokeNative(new Request("download", [sourceUrl, filename, headers]))
-	}
-
-	getTempFileUri(filename: string): Promise<string> {
-		return this.native.invokeNative(new Request("getTempFileUri", [filename]))
 	}
 
 	hashFile(filename: string): Promise<string> {
@@ -202,4 +183,25 @@ export class NativeFileApp {
 			location: uri,
 		}))
 	}
+
+	/**
+	 * Joins the given files into one single file with a given name.
+	 * @param filename the resulting filename
+	 * @param files The files to join.
+	 *
+	 */
+	joinFiles(filename: string, files: Array<FileUri>): Promise<FileUri> {
+		return this.native.invokeNative(new Request('joinFiles', [filename, files]))
+	}
+
+	/**
+	 * Splits the given file into chunks of the given maximum size.
+	 * @param file
+	 * @param maxChunkSizeBytes
+	 */
+	async splitFile(file: FileReference, maxChunkSizeBytes:number): Promise<Array<FileUri>> {
+		return this.native.invokeNative( new Request("splitFile", [file.location, maxChunkSizeBytes]))
+	}
+
+
 }

@@ -108,6 +108,8 @@ declare type NativeRequestType = 'init'
 	| 'getTempFileUri'
 	// - needs to be implemented natively
 	| 'facade' // only for desktop
+	| 'joinFiles'
+	| 'splitFile'
 
 /** Requests from native to web */
 declare type JsRequestType = 'createMailEditor'

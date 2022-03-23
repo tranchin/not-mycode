@@ -71,7 +71,7 @@ export class BlobFacade {
 			return Promise.reject("Environment is not app or Desktop!")
 		}
 		const blobAccessInfo = await this.getUploadToken(archiveDataType, ownerGroupId)
-		const fileReferenceChunkUris = await this._fileApp.splitFileIntoBlobs(fileReference)
+		const fileReferenceChunkUris = await this._fileApp.splitFile(fileReference, MAX_BLOB_SIZE_BYTES)
 		return promiseMap(fileReferenceChunkUris, async (fileReferenceChunkUri) => {
 			const {uri} = await this._aesApp.aesEncryptFile(sessionKey, fileReferenceChunkUri, random.generateRandomData(16))
 			const fileReferenceEncryptedChunk = await this._fileApp.uriToFileRef(uri)
@@ -106,7 +106,7 @@ export class BlobFacade {
 				return await this.parseBlobPutOutResponse(response)
 			} catch (e) {
 				error = e
-				console.log(`can't upload to server ${server}`)
+				console.log(`can't upload to server ${server.url}`, e)
 			}
 		}
 		throw error
@@ -134,7 +134,7 @@ export class BlobFacade {
 				return await this.parseBlobPutOutResponse(response)
 			} catch (e) {
 				error = e
-				console.log(`can't upload to server ${server}`)
+				console.log(`can't upload to server from native ${server.url}`, e)
 			}
 		}
 		throw error
@@ -255,14 +255,11 @@ export class BlobFacade {
 		})
 		const literalGetData = await this._instanceMapper.encryptAndMapToLiteral(BlobGetInTypeModel, getData, null)
 		const body = JSON.stringify(literalGetData)
-
 		const blobFilename = blobId + ".blob"
-		const fileUri = await this._fileApp.getTempFileUri(blobFilename)
-
 		let error = null
 		for (const server of servers) {
 			try {
-				return this.downloadNative(server, body, headers, sessionKey, fileUri)
+				return this.downloadNative(server, body, headers, sessionKey, blobFilename)
 			} catch (e) {
 				error = e
 				console.log(`can't download from server ${server}`)
@@ -274,14 +271,14 @@ export class BlobFacade {
 	/**
 	 * @return the uri of the decrypted blob
 	 */
-	private async downloadNative(server: StorageServerUrl, body: string, headers: Dict, sessionKey: Aes128Key, fileUri: string): Promise<string> {
+	private async downloadNative(server: StorageServerUrl, body: string, headers: Dict, sessionKey: Aes128Key, fileName: string): Promise<string> {
 		if (this._suspensionHandler.isSuspended()) {
-			return this._suspensionHandler.deferRequest(() => this.downloadNative(server, body, headers, sessionKey, fileUri))
+			return this._suspensionHandler.deferRequest(() => this.downloadNative(server, body, headers, sessionKey, fileName))
 		}
 
 		const serviceUrl = new URL(BLOB_SERVICE_REST_PATH, server.url)
 		const url = addParamsToUrl(serviceUrl, {"_body": body})
-		const {statusCode, encryptedFileUri, suspensionTime, errorId, precondition} = await this._fileApp.download(url.toString(), fileUri, headers)
+		const {statusCode, encryptedFileUri, suspensionTime, errorId, precondition} = await this._fileApp.download(url.toString(), fileName, headers)
 		if (statusCode == 200 && encryptedFileUri != null) {
 			const decryptedFileUrl = await this._aesApp.aesDecryptFile(sessionKey, encryptedFileUri)
 			if (encryptedFileUri != null) {
@@ -294,7 +291,7 @@ export class BlobFacade {
 			return decryptedFileUrl
 		} else if (isSuspensionResponse(statusCode, suspensionTime)) {
 			this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
-			return this._suspensionHandler.deferRequest(() => this.downloadNative(server, body, headers, sessionKey, fileUri))
+			return this._suspensionHandler.deferRequest(() => this.downloadNative(server, body, headers, sessionKey, fileName))
 		} else {
 			throw handleRestError(statusCode, ` | GET failed to natively download attachment`, errorId, precondition)
 		}

@@ -1,5 +1,6 @@
 import Foundation
 import DictionaryCoding
+import CryptoTokenKit
 
 /// Gateway for communicating with Javascript code in WebView. Can send messages and handle requests.
 class WebViewBridge : NSObject {
@@ -13,6 +14,7 @@ class WebViewBridge : NSObject {
   private let userPreferences: UserPreferenceFacade
   private let alarmManager: AlarmManager
   private let credentialsEncryption: CredentialsEncryption
+  private let blobUtils: BlobUtil
 
   private var requestId = 0
   private var requests = [String : ((Any?) -> Void)]()
@@ -29,7 +31,8 @@ class WebViewBridge : NSObject {
     userPreferences: UserPreferenceFacade,
     alarmManager: AlarmManager,
     fileFacade: FileFacade,
-    credentialsEncryption: CredentialsEncryption
+    credentialsEncryption: CredentialsEncryption,
+    blobUtils: BlobUtil
   ) {
     self.webView = webView
     self.viewController = viewController
@@ -41,6 +44,7 @@ class WebViewBridge : NSObject {
     self.alarmManager = alarmManager
     self.fileFacade = fileFacade
     self.credentialsEncryption = credentialsEncryption
+    self.blobUtils = blobUtils
 
     super.init()
     self.webView.configuration.userContentController.add(self, name: "nativeApp")
@@ -283,6 +287,10 @@ class WebViewBridge : NSObject {
         self.credentialsEncryption.decryptUsingKeychain(encryptedData: args[1] as! Base64, encryptionMode: encryptionMode, completion: respond)
       case "getSupportedEncryptionModes":
         self.credentialsEncryption.getSupportedEncryptionModes(completion: respond)
+      case "joinFiles":
+        let outFileName = try!  args[0] as! String
+        let filesToJoin = try! String.arrayFrom(nsArray: args[1] as! NSArray)
+        self.blobUtils.joinFiles(fileName: outFileName, filePathsToJoin: filesToJoin, completion: respond)
       default:
         let message = "Unknown comand: \(type)"
         TUTSLog(message)

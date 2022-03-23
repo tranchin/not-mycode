@@ -5,7 +5,6 @@ import {UsageTestAssignmentOutTypeRef} from "../api/entities/sys/UsageTestAssign
 import {PingAdapter, Stage, UsageTest} from "@tutao/tutanota-usagetests"
 import {serviceRequest} from "../api/main/ServiceRequest"
 import {createUsageTestParticipationIn} from "../api/entities/sys/UsageTestParticipationIn"
-import {UsageTestState} from "../api/common/TutanotaConstants"
 import {filterInt} from "@tutao/tutanota-utils"
 import {NotFoundError, PreconditionFailedError} from "../api/common/error/RestError"
 import {createUsageTestMetricData} from "../api/entities/sys/UsageTestMetricData"

@@ -90,7 +90,7 @@ class LoginListener implements LoginEventHandler {
 			await this.credentialsProvider.setCredentialsEncryptionMode(CredentialEncryptionMode.DEVICE_LOCK)
 		}
 
-		locator.usageTestController.addTests(await locator.usageTestModel.loadActiveUsageTests(TtlBehavior.PossiblyOutdated))
+		locator.usageTestController.setTests(await locator.usageTestModel.loadActiveUsageTests(TtlBehavior.PossiblyOutdated))
 
 		// Do not wait
 		this.asyncActions()
@@ -128,7 +128,7 @@ class LoginListener implements LoginEventHandler {
 		})
 
 		// Get any tests, as soon as possible even if they are stale
-		locator.usageTestController.addTests(await locator.usageTestModel.loadActiveUsageTests(TtlBehavior.UpToDateOnly))
+		locator.usageTestController.setTests(await locator.usageTestModel.loadActiveUsageTests(TtlBehavior.UpToDateOnly))
 
 		this.enforcePasswordChange()
 

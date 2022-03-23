@@ -1,6 +1,6 @@
 import {addParamsToUrl, isSuspensionResponse, RestClient} from "../rest/RestClient"
-import {encryptBytes} from "../crypto/CryptoFacade"
-import {concat, promiseMap, splitUint8ArrayInChunks, uint8ArrayToBase64} from "@tutao/tutanota-utils"
+import {encryptBytes, resolveSessionKey} from "../crypto/CryptoFacade"
+import {concat, neverNull, promiseMap, splitUint8ArrayInChunks, TypeRef, uint8ArrayToBase64} from "@tutao/tutanota-utils"
 import {LoginFacadeImpl} from "./LoginFacade"
 import {ArchiveDataType, MAX_BLOB_SIZE_BYTES} from "../../common/TutanotaConstants"
 import {_TypeModel as BlobGetInTypeModel, createBlobGetIn} from "../../entities/storage/BlobGetIn"
@@ -13,7 +13,7 @@ import {serviceRequest} from "../ServiceRequestWorker"
 import {createBlobAccessTokenData} from "../../entities/storage/BlobAccessTokenData"
 import {BlobAccessTokenReturnTypeRef} from "../../entities/storage/BlobAccessTokenReturn"
 import {createBlobWriteData} from "../../entities/storage/BlobWriteData"
-import {aes128Decrypt, random, sha256Hash} from "@tutao/tutanota-crypto"
+import {aes128Decrypt, bitArrayToUint8Array, random, sha256Hash} from "@tutao/tutanota-crypto"
 import type {NativeFileApp} from "../../../native/common/FileApp"
 import type {AesApp} from "../../../native/worker/AesApp"
 import {InstanceMapper} from "../crypto/InstanceMapper"
@@ -26,11 +26,19 @@ import {Blob} from "../../entities/sys/Blob"
 import {FileReference} from "../../common/utils/FileUtils"
 import {handleRestError} from "../../common/error/RestError"
 import {StorageServerUrl} from "../../entities/storage/StorageServerUrl"
+import {File} from "../../entities/tutanota/File"
 
 assertWorkerOrNode()
 const BLOB_SERVICE_REST_PATH = `/rest/storage/${StorageService.BlobService}`
 
 export type ReferenceToken = string
+
+export type Instance = {
+	_type: TypeRef<File>;
+	_ownerEncSessionKey: null | Uint8Array;
+	_ownerGroup: null | Id;
+	_id: Id | IdTuple;
+}
 
 export class BlobFacade {
 	_login: LoginFacadeImpl
@@ -171,21 +179,23 @@ export class BlobFacade {
 		return response.blobReferenceToken
 	}
 
-	async downloadAndDecrypt(archiveDataType: ArchiveDataType, blobs: Blob[], sessionKey: Aes128Key): Promise<Uint8Array> {
+	async downloadAndDecrypt(archiveDataType: ArchiveDataType, blobs: Blob[], referencingInstance: Instance): Promise<Uint8Array> {
 		const archiveId = this.getArchiveId(blobs)
 		// FIXME download from other archive
 		const blobAccessInfo = await this.getDownloadTokenOwnArchive(archiveDataType, archiveId)
+		const sessionKey = neverNull(await resolveSessionKey(await resolveTypeReference(referencingInstance._type), referencingInstance))
 		const blobData = await promiseMap(blobs, (blob) => this.downloadAndDecryptChunk(blob, blobAccessInfo, sessionKey))
 		return concat(...blobData)
 	}
 
-	async downloadAndDecryptNative(archiveDataType: ArchiveDataType, blobs: Blob[], sessionKey: Aes128Key, fileName: string, mimeType: string): Promise<FileReference> {
+	async downloadAndDecryptNative(archiveDataType: ArchiveDataType, blobs: Blob[], referencingInstance: Instance, fileName: string, mimeType: string): Promise<FileReference> {
 		if (!isApp() && !isDesktop()) {
 			return Promise.reject("Environment is not app or Desktop!")
 		}
 		const archiveId = this.getArchiveId(blobs)
 		// FIXME download from other archive
 		const blobAccessInfo = await this.getDownloadTokenOwnArchive(archiveDataType, archiveId)
+		const sessionKey = neverNull(await resolveSessionKey(await resolveTypeReference(referencingInstance._type), referencingInstance))
 		const decryptedChunkFileUris = await promiseMap(blobs, (blob) => this.downloadAndDecryptChunkNative(blob, blobAccessInfo, sessionKey))
 		// now decryptedChunkFileUris has the correct order of downloaded blobs, and we need to tell native to join them
 		// check if output already exists and return cached?

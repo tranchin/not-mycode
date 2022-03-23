@@ -42,6 +42,7 @@ import type {SecondFactorAuthHandler} from "../../misc/2fa/SecondFactorHandler"
 import type {EntityRestInterface} from "./rest/EntityRestClient"
 import {WsConnectionState} from "../main/WorkerClient";
 import {RestClient} from "./rest/RestClient"
+import {BlobFacade} from "./facades/BlobFacade"
 
 assertWorkerOrNode()
 
@@ -61,6 +62,7 @@ export interface WorkerInterface {
 	readonly bookingFacade: BookingFacade
 	readonly mailAddressFacade: MailAddressFacade
 	readonly fileFacade: FileFacade
+	readonly blobFacade: BlobFacade
 	readonly userManagementFacade: UserManagementFacade
 	readonly contactFormFacade: ContactFormFacade
 	readonly deviceEncryptionFacade: DeviceEncryptionFacade
@@ -177,6 +179,10 @@ export class WorkerImpl implements NativeInterface {
 
 			get fileFacade() {
 				return locator.file
+			},
+
+			get blobFacade() {
+				return locator.blob
 			},
 
 			get userManagementFacade() {

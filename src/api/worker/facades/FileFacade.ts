@@ -8,7 +8,7 @@ import {LoginFacadeImpl} from "./LoginFacade"
 import {createFileDataDataPost} from "../../entities/tutanota/FileDataDataPost"
 import {_service} from "../rest/ServiceRestClient"
 import {FileDataReturnPostTypeRef} from "../../entities/tutanota/FileDataReturnPost"
-import {ArchiveDataType, GroupType} from "../../common/TutanotaConstants"
+import {GroupType} from "../../common/TutanotaConstants"
 import {_TypeModel as FileDataDataReturnTypeModel} from "../../entities/tutanota/FileDataDataReturn"
 
 import {HttpMethod, MediaType} from "../../common/EntityFunctions"
@@ -22,7 +22,6 @@ import type {AesApp} from "../../../native/worker/AesApp"
 import {InstanceMapper} from "../crypto/InstanceMapper"
 import {FileReference} from "../../common/utils/FileUtils";
 import {TutanotaService} from "../../entities/tutanota/Services";
-import {BlobFacade} from "./BlobFacade"
 
 assertWorkerOrNode()
 const REST_PATH = "/rest/tutanota/filedataservice"
@@ -34,7 +33,6 @@ export class FileFacade {
 	_fileApp: NativeFileApp
 	_aesApp: AesApp
 	_instanceMapper: InstanceMapper
-	_blobFacade:BlobFacade
 
 	constructor(
 		login: LoginFacadeImpl,
@@ -43,7 +41,6 @@ export class FileFacade {
 		fileApp: NativeFileApp,
 		aesApp: AesApp,
 		instanceMapper: InstanceMapper,
-		blobFacade: BlobFacade
 	) {
 		this._login = login
 		this._restClient = restClient
@@ -51,7 +48,6 @@ export class FileFacade {
 		this._fileApp = fileApp
 		this._aesApp = aesApp
 		this._instanceMapper = instanceMapper
-		this._blobFacade = blobFacade
 	}
 
 	clearFileData(): Promise<void> {
@@ -84,55 +80,51 @@ export class FileFacade {
 
 		const sessionKey = assertNotNull(await resolveSessionKey(FileTypeModel, file), "Session key for TutanotaFile is null")
 
-		if( file.blobs.length > 0) {
-			return this._blobFacade.downloadAndDecryptNative(ArchiveDataType.Attachments, file.blobs, sessionKey, file.name, neverNull(file.mimeType))
+		const requestData = createFileDataDataGet({
+			file: file._id,
+			base64: false,
+		})
+
+		const entityToSend = await this._instanceMapper.encryptAndMapToLiteral(FileDataDataGetTypModel, requestData, null)
+
+		const headers = this._login.createAuthHeaders()
+
+		headers["v"] = FileDataDataGetTypModel.version
+		const body = JSON.stringify(entityToSend)
+		const queryParams = {
+			_body: body,
+		}
+		const url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
+		const {
+			statusCode,
+			encryptedFileUri,
+			errorId,
+			precondition,
+			suspensionTime
+		} = await this._fileApp.download(url.toString(), file.name, headers)
+
+		if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
+			this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
+
+			return this._suspensionHandler.deferRequest(() => this.downloadFileContentNative(file))
+		} else if (statusCode === 200 && encryptedFileUri != null) {
+			const decryptedFileUri = await this._aesApp.aesDecryptFile(neverNull(sessionKey), encryptedFileUri)
+
+			try {
+				await this._fileApp.deleteFile(encryptedFileUri)
+			} catch (e) {
+				console.warn("Failed to delete encrypted file", encryptedFileUri)
+			}
+
+			return {
+				_type: "FileReference",
+				name: file.name,
+				mimeType: file.mimeType ?? MediaType.Binary,
+				location: decryptedFileUri,
+				size: filterInt(file.size),
+			}
 		} else {
-			const requestData = createFileDataDataGet({
-				file: file._id,
-				base64: false,
-			})
-
-			const entityToSend = await this._instanceMapper.encryptAndMapToLiteral(FileDataDataGetTypModel, requestData, null)
-
-			const headers = this._login.createAuthHeaders()
-
-			headers["v"] = FileDataDataGetTypModel.version
-			const body = JSON.stringify(entityToSend)
-			const queryParams = {
-				_body: body,
-			}
-			const url = addParamsToUrl(new URL(getHttpOrigin() + REST_PATH), queryParams)
-			const {
-				statusCode,
-				encryptedFileUri,
-				errorId,
-				precondition,
-				suspensionTime
-			} = await this._fileApp.download(url.toString(), file.name, headers)
-
-			if (suspensionTime && isSuspensionResponse(statusCode, suspensionTime)) {
-				this._suspensionHandler.activateSuspensionIfInactive(Number(suspensionTime))
-
-				return this._suspensionHandler.deferRequest(() => this.downloadFileContentNative(file))
-			} else if (statusCode === 200 && encryptedFileUri != null) {
-				const decryptedFileUri = await this._aesApp.aesDecryptFile(neverNull(sessionKey), encryptedFileUri)
-
-				try {
-					await this._fileApp.deleteFile(encryptedFileUri)
-				} catch (e) {
-					console.warn("Failed to delete encrypted file", encryptedFileUri)
-				}
-
-				return {
-					_type: "FileReference",
-					name: file.name,
-					mimeType: file.mimeType ?? MediaType.Binary,
-					location: decryptedFileUri,
-					size: filterInt(file.size),
-				}
-			} else {
-				throw handleRestError(statusCode, ` | GET ${url.toString()} failed to natively download attachment`, errorId, precondition)
-			}
+			throw handleRestError(statusCode, ` | GET ${url.toString()} failed to natively download attachment`, errorId, precondition)
 		}
 	}
 

@@ -101,11 +101,7 @@ declare type NativeRequestType = 'init'
 	| 'encryptUsingKeychain'
 	| 'decryptUsingKeychain'
 	| 'getSupportedEncryptionModes'
-	// needs to be implemented natively
-	| 'joinFiles'
-	| 'splitFileIntoBlobs'
 	| 'hashFile'
-	| 'getTempFileUri'
 	// - needs to be implemented natively
 	| 'facade' // only for desktop
 	| 'joinFiles'

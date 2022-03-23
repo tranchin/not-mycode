@@ -53,6 +53,7 @@ import {BrowserWebauthn} from "../../misc/2fa/webauthn/BrowserWebauthn.js"
 import {UsageTestController} from "@tutao/tutanota-usagetests"
 import {UsageTestModel} from "../../misc/UsageTestModel"
 import {deviceConfig} from "../../misc/DeviceConfig"
+import {BlobFacade} from "../worker/facades/BlobFacade"
 
 assertMainOrNode()
 
@@ -89,6 +90,7 @@ export interface IMainLocator {
 	readonly bookingFacade: BookingFacade
 	readonly mailAddressFacade: MailAddressFacade
 	readonly fileFacade: FileFacade
+	readonly blobFacade: BlobFacade
 	readonly userManagementFacade: UserManagementFacade
 	readonly contactFormFacade: ContactFormFacade
 	readonly deviceEncryptionFacade: DeviceEncryptionFacade
@@ -127,6 +129,7 @@ class MainLocator implements IMainLocator {
 	bookingFacade!: BookingFacade
 	mailAddressFacade!: MailAddressFacade
 	fileFacade!: FileFacade
+	blobFacade!: BlobFacade
 	userManagementFacade!: UserManagementFacade
 	contactFormFacade!: ContactFormFacade
 	deviceEncryptionFacade!: DeviceEncryptionFacade
@@ -215,6 +218,7 @@ class MainLocator implements IMainLocator {
 			bookingFacade,
 			mailAddressFacade,
 			fileFacade,
+			blobFacade,
 			userManagementFacade,
 			contactFormFacade,
 			deviceEncryptionFacade,
@@ -234,6 +238,7 @@ class MainLocator implements IMainLocator {
 		this.bookingFacade = bookingFacade
 		this.mailAddressFacade = mailAddressFacade
 		this.fileFacade = fileFacade
+		this.blobFacade = blobFacade
 		this.userManagementFacade = userManagementFacade
 		this.contactFormFacade = contactFormFacade
 		this.deviceEncryptionFacade = deviceEncryptionFacade

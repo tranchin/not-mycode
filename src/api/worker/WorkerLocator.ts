@@ -147,7 +147,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 	const fileApp = new NativeFileApp(worker)
 	const aesApp = new AesApp(worker)
 	locator.blob = new BlobFacade(locator.login, locator.restClient, suspensionHandler, fileApp, aesApp, locator.instanceMapper)
-	locator.file = new FileFacade(locator.login, locator.restClient, suspensionHandler, fileApp, aesApp, locator.instanceMapper, locator.blob)
+	locator.file = new FileFacade(locator.login, locator.restClient, suspensionHandler, fileApp, aesApp, locator.instanceMapper)
 	locator.mail = new MailFacade(locator.login, locator.file, locator.blob, locator.cachingEntityClient, locator.crypto)
 	// not needed for admin client
 	if (cache) {

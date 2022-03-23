@@ -29,7 +29,7 @@ export const MAX_NBR_MOVE_DELETE_MAIL_SERVICE = 50
 export const MAX_BLOB_SIZE_BYTES = 1024 * 1024 * 10
 export const REQUEST_SIZE_LIMIT_DEFAULT = 1024 * 1024
 export const REQUEST_SIZE_LIMIT_MAP: Map<string, number> = new Map([
-	["/rest/storage/blobservice", MAX_BLOB_SIZE_BYTES],
+	["/rest/storage/blobservice", MAX_BLOB_SIZE_BYTES + 100], // overhead for encryption
 	["/rest/tutanota/filedataservice", 1024 * 1024 * 25],
 	["/rest/tutanota/draftservice", 1024 * 1024], // should be large enough
 ])

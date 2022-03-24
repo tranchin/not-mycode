@@ -154,6 +154,7 @@ export class UsageTestModel implements PingAdapter {
 			)
 		} catch (e) {
 			if (e instanceof SuspensionError) {
+				test.active = false
 				console.log("rate-limit for pings reached")
 			} else if (e instanceof PreconditionFailedError) {
 				if (e.data === "invalid_state") {

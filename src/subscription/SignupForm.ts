@@ -39,7 +39,8 @@ export type SignupFormAttrs = {
 	campaign: lazy<string | null>
 	// only used if readonly is true
 	prefilledMailAddress?: string | undefined
-	readonly: boolean
+	readonly: boolean,
+	repeatPassword: boolean,
 }
 
 export class SignupForm implements Component<SignupFormAttrs> {
@@ -51,8 +52,8 @@ export class SignupForm implements Component<SignupFormAttrs> {
 	private _mailAddress!: string
 	private _isMailVerificationBusy: boolean
 
-	constructor() {
-		this._passwordForm = new PasswordForm(false, true, true, "passwordImportance_msg")
+	constructor(vnode: Vnode<SignupFormAttrs>) {
+		this._passwordForm = new PasswordForm(false, true, vnode.attrs.repeatPassword, "passwordImportance_msg")
 		this._confirmTerms = stream(false)
 		this._confirmAge = stream(false)
 		this._code = stream("")

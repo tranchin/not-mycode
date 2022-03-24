@@ -280,6 +280,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 			isBusinessUse: () => false,
 			isPaidSubscription: () => false,
 			campaign: () => null,
+			repeatPassword: true,
 		}
 		return m(SignupForm, signupFormAttrs)
 	}

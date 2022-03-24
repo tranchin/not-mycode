@@ -117,7 +117,7 @@ import {IndexingNotSupportedError} from "../../api/common/error/IndexingNotSuppo
 import {CancelledError} from "../../api/common/error/CancelledError"
 import type {ConfigurationDatabase} from "../../api/worker/facades/ConfigurationDatabase"
 import type {NativeInterface} from "../../native/common/NativeInterface"
-import {copyToClipboard} from "../../misc/ClipboardUtils";
+import {copyToClipboard} from "../../misc/ClipboardUtils"
 
 assertMainOrNode()
 // map of inline image cid to InlineImageReference
@@ -789,6 +789,9 @@ export class MailViewer implements Component {
 			}),
 		)
 
+		const test = locator.usageTestController.getTest("test")
+		const wrongOrderTest = locator.usageTestController.getTest("wrongOrder")
+
 		if (mail.state !== MailState.DRAFT) {
 			actions.push(
 				m(ButtonN, {
@@ -796,6 +799,11 @@ export class MailViewer implements Component {
 					icon: () => Icons.More,
 					colors,
 					click: createDropdown(() => {
+						test.getStage(0)?.setMetric(
+							{name: "foo1", value: "3.01"}
+						)
+						test.getStage(0)?.complete()
+						const startTime = new Date()
 						const moreButtons: Array<ButtonAttrs> = []
 
 						if (this.mail.unread) {
@@ -880,6 +888,83 @@ export class MailViewer implements Component {
 								type: ButtonType.Dropdown,
 							})
 						}
+
+						wrongOrderTest.renderVariant({
+							[0]: () => {
+								moreButtons.push({
+									label: () => "wrongOrder-noParticipation",
+									click: () => {
+									},
+									icon: () => Icons.Picture,
+									type: ButtonType.Dropdown,
+								})
+							},
+							[1]: () => {
+								moreButtons.push({
+									label: () => "wrongOrder-Variant 1",
+									click: async () => {
+										await wrongOrderTest.getStage(0)?.complete()
+										await wrongOrderTest.getStage(1)?.complete()
+										await wrongOrderTest.getStage(4)?.complete()
+										await wrongOrderTest.getStage(2)?.complete()
+										await wrongOrderTest.getStage(3)?.complete()
+										await wrongOrderTest.getStage(4)?.complete()
+									},
+									icon: () => Icons.Picture,
+									type: ButtonType.Dropdown,
+								})
+							}
+						})
+
+						test.renderVariant({
+							[0]: () => {
+							},
+							[1]: () => {
+								moreButtons.push({
+									label: () => "Variant 1",
+									click: () => {
+										const stage = test.getStage(1)
+										stage?.setMetric({
+											name: "timePassed",
+											value: ((new Date().getTime() - startTime.getTime()) / 1000).toString()
+										})
+										test.getStage(1)?.complete()
+									},
+									icon: () => Icons.Picture,
+									type: ButtonType.Dropdown,
+								})
+							},
+							[2]: () => {
+								moreButtons.push({
+									label: () => "Variant 2",
+									click: () => {
+										const stage = test.getStage(1)
+										stage?.setMetric({
+											name: "timePassed",
+											value: ((new Date().getTime() - startTime.getTime()) / 1000).toString()
+										})
+										test.getStage(1)?.complete()
+									},
+									icon: () => Icons.Picture,
+									type: ButtonType.Dropdown,
+								})
+							},
+							[3]: () => {
+								moreButtons.push({
+									label: () => "Variant 3",
+									click: () => {
+										const stage = test.getStage(1)
+										stage?.setMetric({
+											name: "timePassed",
+											value: ((new Date().getTime() - startTime.getTime()) / 1000).toString()
+										})
+										test.getStage(1)?.complete()
+									},
+									icon: () => Icons.Picture,
+									type: ButtonType.Dropdown,
+								})
+							}
+						})
 
 						return moreButtons
 					}, 300),

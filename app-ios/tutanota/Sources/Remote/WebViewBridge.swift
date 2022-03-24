@@ -291,6 +291,13 @@ class WebViewBridge : NSObject {
         let outFileName = try!  args[0] as! String
         let filesToJoin = try! String.arrayFrom(nsArray: args[1] as! NSArray)
         self.blobUtils.joinFiles(fileName: outFileName, filePathsToJoin: filesToJoin, completion: respond)
+      case "splitFile":
+        let inFileName = try!  args[0] as! String
+        let maxBlobSize = try!  args[1] as! Int
+        self.blobUtils.splitFile(fileUri: inFileName, maxBlobSize: maxBlobSize, completion: respond)
+      case "hashFile":
+        let inFileUri = try!  args[0] as! String
+        self.blobUtils.hashFile(fileUri: inFileUri, completion: respond)
       default:
         let message = "Unknown comand: \(type)"
         TUTSLog(message)

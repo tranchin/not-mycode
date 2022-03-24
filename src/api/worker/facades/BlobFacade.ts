@@ -1,6 +1,6 @@
 import {addParamsToUrl, isSuspensionResponse, RestClient} from "../rest/RestClient"
 import {CryptoFacade, encryptBytes} from "../crypto/CryptoFacade"
-import {concat, decodeBase64, downcast, neverNull, promiseMap, splitUint8ArrayInChunks, uint8ArrayToBase64} from "@tutao/tutanota-utils"
+import {concat, decodeBase64, downcast, neverNull, promiseMap, splitUint8ArrayInChunks, uint8ArrayToBase64,} from "@tutao/tutanota-utils"
 import {LoginFacadeImpl} from "./LoginFacade"
 import {ArchiveDataType, MAX_BLOB_SIZE_BYTES} from "../../common/TutanotaConstants"
 import {_TypeModel as BlobGetInTypeModel, createBlobGetIn} from "../../entities/storage/BlobGetIn"
@@ -270,9 +270,9 @@ export class BlobFacade {
 		}
 	}
 
-	private async parseBlobPutOutResponse(data: string): Promise<ReferenceToken> {
+	private async parseBlobPutOutResponse(jsonData: string): Promise<ReferenceToken> {
 		const responseTypeModel = await resolveTypeReference(BlobPutOutTypeRef)
-		const instance = JSON.parse(data)
+		const instance = JSON.parse(jsonData)
 		const response = await this.instanceMapper.decryptAndMapToInstance<BlobPutOut>(responseTypeModel, instance, null)
 		return response.blobReferenceToken
 	}

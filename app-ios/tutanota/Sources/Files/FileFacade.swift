@@ -99,7 +99,9 @@ class FileFacade {
           return
         }
         let httpResponse = response as! HTTPURLResponse
-        let apiResponse = DataTaskResponse(httpResponse: httpResponse, encryptedFileUri: nil)
+        let base64Response = data?.base64EncodedString()
+        let apiResponse = DataTaskResponse(httpResponse: httpResponse, responseBody: base64Response)
+       
         completion(.success(apiResponse))
       }
       task.resume()
@@ -195,6 +197,7 @@ struct DataTaskResponse {
   let precondition: String?
   let suspensionTime: String?
   let encryptedFileUri: String?
+  let responseBody: String?
 }
 
 extension DataTaskResponse : Codable {}
@@ -206,10 +209,25 @@ extension DataTaskResponse {
       errorId: httpResponse.valueForHeaderField("Error-Id"),
       precondition: httpResponse.valueForHeaderField("Precondition"),
       suspensionTime: httpResponse.valueForHeaderField("Retry-After") ?? httpResponse.valueForHeaderField("Suspension-Time"),
-      encryptedFileUri: encryptedFileUri
+      encryptedFileUri: encryptedFileUri,
+      responseBody: nil
     )
   }
+  
+  init(httpResponse: HTTPURLResponse, responseBody: String?) {
+    self.init(
+      statusCode: httpResponse.statusCode,
+      errorId: httpResponse.valueForHeaderField("Error-Id"),
+      precondition: httpResponse.valueForHeaderField("Precondition"),
+      suspensionTime: httpResponse.valueForHeaderField("Retry-After") ?? httpResponse.valueForHeaderField("Suspension-Time"),
+      encryptedFileUri:nil,
+      responseBody: responseBody
+    )
+  }
+  
 }
+
+
 
 /// Reading header fields from HTTPURLResponse.allHeaderFields is case-sensitive, it is a bug: https://bugs.swift.org/browse/SR-2429
 /// From iOS13 we have a method to read headers case-insensitively: HTTPURLResponse.value(forHTTPHeaderField:)

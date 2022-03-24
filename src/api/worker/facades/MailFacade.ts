@@ -333,7 +333,7 @@ export class MailFacade {
 					const fileSessionKey = aes128RandomKey()
 					const fileRef = downcast<FileReference>(providedFile)
 					if (useBlobs) {
-						const referenceTokens = await this.blob.encryptAndUploadNative(ArchiveDataType.Attachments, fileRef, senderMailGroupId, fileSessionKey)
+						const referenceTokens = await this.blob.encryptAndUploadNative(ArchiveDataType.Attachments, fileRef.location, senderMailGroupId, fileSessionKey)
 						return this.createAndEncryptDraftAttachment(referenceTokens, fileSessionKey, fileRef, mailGroupKey)
 					} else {
 						return this._file.uploadFileDataNative(fileRef, fileSessionKey).then(fileDataId => {

@@ -21,13 +21,6 @@ export const _TypeModel: TypeModel = {
 			"final": true,
 			"encrypted": false
 		},
-		"accessGroupId": {
-			"id": 171,
-			"type": "GeneratedId",
-			"cardinality": "ZeroOrOne",
-			"final": true,
-			"encrypted": false
-		},
 		"archiveId": {
 			"id": 170,
 			"type": "GeneratedId",
@@ -36,7 +29,7 @@ export const _TypeModel: TypeModel = {
 			"encrypted": false
 		},
 		"instanceListId": {
-			"id": 172,
+			"id": 171,
 			"type": "GeneratedId",
 			"cardinality": "ZeroOrOne",
 			"final": true,
@@ -45,7 +38,7 @@ export const _TypeModel: TypeModel = {
 	},
 	"associations": {
 		"instanceIds": {
-			"id": 173,
+			"id": 172,
 			"type": "AGGREGATION",
 			"cardinality": "Any",
 			"final": true,
@@ -65,7 +58,6 @@ export type BlobReadData = {
 	_type: TypeRef<BlobReadData>;
 
 	_id: Id;
-	accessGroupId: null | Id;
 	archiveId: Id;
 	instanceListId: null | Id;
 

@@ -28,13 +28,6 @@ export const _TypeModel: TypeModel = {
 			"final": false,
 			"encrypted": false
 		},
-		"field": {
-			"id": 108,
-			"type": "String",
-			"cardinality": "One",
-			"final": false,
-			"encrypted": false
-		},
 		"instanceId": {
 			"id": 107,
 			"type": "GeneratedId",
@@ -73,7 +66,6 @@ export type BlobReferenceDataPut = {
 
 	_format: NumberString;
 	archiveDataType: NumberString;
-	field: string;
 	instanceId: Id;
 	instanceListId: null | Id;
 

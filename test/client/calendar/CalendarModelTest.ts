@@ -37,7 +37,7 @@ import {EntityClient} from "../../../src/api/common/EntityClient"
 import {MailModel} from "../../../src/mail/model/MailModel"
 import {AlarmScheduler} from "../../../src/calendar/date/AlarmScheduler"
 import {CalendarFacade} from "../../../src/api/worker/facades/CalendarFacade"
-import {FileFacade} from "../../../src/api/worker/facades/BlobFacade.js"
+import {FileFacade} from "../../../src/api/worker/facades/FileFacade.js"
 import {asResult, mapToObject} from "@tutao/tutanota-test-utils"
 import type {WorkerClient} from "../../../src/api/main/WorkerClient"
 

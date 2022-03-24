@@ -28,13 +28,6 @@ export const _TypeModel: TypeModel = {
 			"final": false,
 			"encrypted": false
 		},
-		"field": {
-			"id": 109,
-			"type": "String",
-			"cardinality": "One",
-			"final": false,
-			"encrypted": false
-		},
 		"instanceId": {
 			"id": 103,
 			"type": "GeneratedId",
@@ -73,7 +66,6 @@ export type BlobReferenceDataDelete = {
 
 	_format: NumberString;
 	archiveDataType: NumberString;
-	field: string;
 	instanceId: Id;
 	instanceListId: null | Id;
 

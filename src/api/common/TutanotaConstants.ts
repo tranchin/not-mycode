@@ -26,6 +26,7 @@ import {AccountingInfo} from "../entities/sys/AccountingInfo";
 
 export const MAX_NBR_MOVE_DELETE_MAIL_SERVICE = 50
 
+// visible for testing
 export const MAX_BLOB_SIZE_BYTES = 1024 * 1024 * 10
 export const REQUEST_SIZE_LIMIT_DEFAULT = 1024 * 1024
 export const REQUEST_SIZE_LIMIT_MAP: Map<string, number> = new Map([

@@ -66,7 +66,7 @@ export class NativeFileApp {
 	 * Deletes the file.
 	 * @param  file The uri of the file to delete.
 	 */
-	deleteFile(file: string): Promise<void> {
+	deleteFile(file: FileUri): Promise<void> {
 		return this.native.invokeNative(new Request("deleteFile", [file]))
 	}
 
@@ -74,7 +74,7 @@ export class NativeFileApp {
 	 * Returns the name of the file
 	 * @param file The uri of the file
 	 */
-	getName(file: string): Promise<string> {
+	getName(file: FileUri): Promise<string> {
 		return this.native.invokeNative(new Request("getName", [file]))
 	}
 
@@ -82,7 +82,7 @@ export class NativeFileApp {
 	 * Returns the mime type of the file
 	 * @param file The uri of the file
 	 */
-	getMimeType(file: string): Promise<string> {
+	getMimeType(file: FileUri): Promise<string> {
 		return this.native.invokeNative(new Request("getMimeType", [file]))
 	}
 
@@ -90,7 +90,7 @@ export class NativeFileApp {
 	 * Returns the byte size of a file
 	 * @param file The uri of the file
 	 */
-	getSize(file: string): Promise<number> {
+	getSize(file: FileUri): Promise<number> {
 		return this.native.invokeNative(new Request("getSize", [file])).then(sizeString => Number(sizeString))
 	}
 
@@ -99,7 +99,7 @@ export class NativeFileApp {
 	 * @param localFileUri URI for the source file
 	 * @returns {*} absolute path of the destination file
 	 */
-	putFileIntoDownloadsFolder(localFileUri: string): Promise<string> {
+	putFileIntoDownloadsFolder(localFileUri: FileUri): Promise<string> {
 		return this.native.invokeNative(new Request("putFileIntoDownloads", [localFileUri]))
 	}
 
@@ -122,8 +122,8 @@ export class NativeFileApp {
 		return this.native.invokeNative(new Request("download", [sourceUrl, filename, headers]))
 	}
 
-	hashFile(filename: string): Promise<string> {
-		return this.native.invokeNative(new Request('hashFile', [filename]))
+	hashFile(fileUri: FileUri): Promise<string> {
+		return this.native.invokeNative(new Request('hashFile', [fileUri]))
 	}
 
 	clearFileData(): Promise<any> {
@@ -196,11 +196,11 @@ export class NativeFileApp {
 
 	/**
 	 * Splits the given file into chunks of the given maximum size.
-	 * @param file
+	 * @param fileUri
 	 * @param maxChunkSizeBytes
 	 */
-	async splitFile(file: FileReference, maxChunkSizeBytes:number): Promise<Array<FileUri>> {
-		return this.native.invokeNative( new Request("splitFile", [file.location, maxChunkSizeBytes]))
+	async splitFile(fileUri: FileUri, maxChunkSizeBytes:number): Promise<FileUri[]> {
+		return this.native.invokeNative( new Request("splitFile", [fileUri, maxChunkSizeBytes]))
 	}
 
 

@@ -1,6 +1,7 @@
 import {AssociationType, Cardinality, Type, ValueType} from "./EntityConstants"
 import {TypeRef} from "@tutao/tutanota-utils"
 import type {Element, ListElement} from "./utils/EntityUtils"
+import {File} from "../entities/tutanota/File"
 
 export type TypeModel = {
 	id: number
@@ -38,6 +39,12 @@ export type ModelAssociation = {
 	 * which can be imported across models.
 	 */
 	dependency?: string | null
+}
+
+export interface Instance extends Entity {
+	_ownerEncSessionKey: null | Uint8Array;
+	_ownerGroup: null | Id;
+	_id: Id | IdTuple;
 }
 
 export interface Entity {

@@ -11,7 +11,7 @@ import {createBlob} from "../../../../src/api/entities/sys/Blob"
 import {createFile} from "../../../../src/api/entities/tutanota/File.js"
 import {ServiceRestInterface} from "../../../../src/api/worker/rest/ServiceRestInterface"
 import {instance, matchers, object, verify, when} from "testdouble"
-import {HttpMethod} from "../../../../src/api/common/EntityFunctions"
+import {HttpMethod, resolveTypeReference} from "../../../../src/api/common/EntityFunctions"
 import {StorageService} from "../../../../src/api/entities/storage/Services"
 import {BlobAccessTokenReturnTypeRef, createBlobAccessTokenReturn} from "../../../../src/api/entities/storage/BlobAccessTokenReturn"
 import {createStorageServerAccessInfo} from "../../../../src/api/entities/storage/StorageServerAccessInfo"
@@ -21,11 +21,13 @@ import {createInstanceId} from "../../../../src/api/entities/storage/InstanceId"
 import {getElementId, getEtId, getListId} from "../../../../src/api/common/utils/EntityUtils"
 import {createMailBody} from "../../../../src/api/entities/tutanota/MailBody"
 import {createBlobWriteData} from "../../../../src/api/entities/storage/BlobWriteData"
-import {aes128Decrypt, aes128RandomKey, sha256Hash} from "@tutao/tutanota-crypto"
+import {aes128Decrypt, aes128Encrypt, aes128RandomKey, generateIV, sha256Hash} from "@tutao/tutanota-crypto"
 import {createBlobPutOut} from "../../../../src/api/entities/storage/BlobPutOut"
 import {createStorageServerUrl} from "../../../../src/api/entities/storage/StorageServerUrl"
-import {arrayEquals, uint8ArrayToBase64} from "@tutao/tutanota-utils"
+import {arrayEquals, stringToBase64, uint8ArrayToBase64} from "@tutao/tutanota-utils"
 import {Mode} from "../../../../src/api/common/Env"
+import {CryptoFacade} from "../../../../src/api/worker/crypto/CryptoFacade"
+import {FileTypeRef} from "../../../../src/api/entities/tutanota/File"
 
 const {anything, captor} = matchers
 
@@ -41,6 +43,7 @@ o.spec("BlobFacade test", function () {
 	const archiveId = "archiveId1"
 	const blobs = [createBlob({archiveId}), createBlob({archiveId}), createBlob({archiveId})]
 	let archiveDataType = ArchiveDataType.Attachments
+	let cryptoFacadeMock: CryptoFacade
 
 
 	o.beforeEach(function () {
@@ -51,8 +54,9 @@ o.spec("BlobFacade test", function () {
 		fileAppMock = instance(NativeFileApp)
 		aesAppMock = instance(AesApp)
 		instanceMapperMock = instance(InstanceMapper)
+		cryptoFacadeMock = object<CryptoFacade>()
 
-		facade = new BlobFacade(loginMock, serviceMock, restClientMock, suspensionHandlerMock, fileAppMock, aesAppMock, instanceMapperMock)
+		facade = new BlobFacade(loginMock, serviceMock, restClientMock, suspensionHandlerMock, fileAppMock, aesAppMock, instanceMapperMock, cryptoFacadeMock)
 	})
 
 	o.afterEach(function () {
@@ -154,16 +158,18 @@ o.spec("BlobFacade test", function () {
 			o(optionsCaptor.value.queryParams.blobHash).equals(expectedBlobHash)
 		})
 
-		o.only("encryptAndUploadNative", async function () {
+		o("encryptAndUploadNative", async function () {
 			const ownerGroup = "ownerId"
 			const sessionKey = aes128RandomKey()
-			const blobData = new Uint8Array([1, 2, 3])
 
 			const expectedReferenceTokens = ["blobRefToken"]
 			const uploadedFileUri = "rawFileUri"
 			const chunkUris = ["uri1"]
 
-			let storageAccessInfo = createStorageServerAccessInfo({blobAccessToken: "123", servers: [createStorageServerUrl({url: "http://w1.api.tutanota.com"})]})
+			let storageAccessInfo = createStorageServerAccessInfo({
+				blobAccessToken: "123",
+				servers: [createStorageServerUrl({url: "http://w1.api.tutanota.com"})]
+			})
 			facade.requestWriteToken = () => Promise.resolve(storageAccessInfo)
 			let blobServiceResponse = createBlobPutOut({blobReferenceToken: expectedReferenceTokens[0]})
 
@@ -176,7 +182,10 @@ o.spec("BlobFacade test", function () {
 			when(aesAppMock.aesEncryptFile(sessionKey, chunkUris[0], anything())).thenResolve(encryptedFileInfo)
 			const blobHash = "blobHash"
 			when(fileAppMock.hashFile(encryptedFileInfo.uri)).thenResolve(blobHash)
-			when(fileAppMock.upload(anything(), anything(), anything())).thenResolve({statusCode: 200, responseBody: JSON.stringify(blobServiceResponse)})
+			when(fileAppMock.upload(anything(), anything(), anything())).thenResolve({
+				statusCode: 200,
+				responseBody: stringToBase64(JSON.stringify(blobServiceResponse))
+			})
 
 			env.mode = Mode.Desktop
 			const referenceTokens = await facade.encryptAndUploadNative(archiveDataType, uploadedFileUri, ownerGroup, sessionKey)
@@ -191,7 +200,25 @@ o.spec("BlobFacade test", function () {
 
 	o.spec("download", function () {
 		o("downloadAndDecrypt", async function () {
+			const sessionKey = aes128RandomKey()
+			const file = createFile()
+			const blobData = new Uint8Array([1, 2, 3])
+			const encryptedBlobData = aes128Encrypt(sessionKey, blobData, generateIV(), true, true)
 
+			let storageAccessInfo = createStorageServerAccessInfo({blobAccessToken: "123", servers: [createStorageServerUrl({url: "w1"})]})
+			facade.requestReadToken = () => Promise.resolve(storageAccessInfo)
+			when(cryptoFacadeMock.resolveSessionKey(await resolveTypeReference(FileTypeRef), file)).thenResolve(sessionKey)
+			const requestBody = {"request-body": true}
+			when(instanceMapperMock.encryptAndMapToLiteral(anything(), anything(), anything())).thenResolve(requestBody)
+			when(restClientMock.request(BLOB_SERVICE_REST_PATH, HttpMethod.GET, anything())).thenResolve(encryptedBlobData)
+
+			const decryptedData = await facade.downloadAndDecrypt(archiveDataType, [blobs[0]], file)
+			o(arrayEquals(decryptedData, blobData)).equals(true)
+			const optionsCaptor = captor()
+			verify(restClientMock.request(BLOB_SERVICE_REST_PATH, HttpMethod.GET, optionsCaptor.capture()))
+			o(optionsCaptor.value.baseUrl).equals("w1")
+			o(optionsCaptor.value.headers.blobAccessToken).deepEquals(storageAccessInfo.blobAccessToken)
+			o(optionsCaptor.value.body).deepEquals(JSON.stringify(requestBody))
 		})
 
 		o("downloadAndDecryptNative", async function () {

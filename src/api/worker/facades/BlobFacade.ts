@@ -1,6 +1,6 @@
 import {addParamsToUrl, isSuspensionResponse, RestClient} from "../rest/RestClient"
-import {encryptBytes, resolveSessionKey} from "../crypto/CryptoFacade"
-import {concat, downcast, neverNull, promiseMap, splitUint8ArrayInChunks, uint8ArrayToBase64} from "@tutao/tutanota-utils"
+import {CryptoFacade, encryptBytes} from "../crypto/CryptoFacade"
+import {concat, decodeBase64, downcast, neverNull, promiseMap, splitUint8ArrayInChunks, uint8ArrayToBase64} from "@tutao/tutanota-utils"
 import {LoginFacadeImpl} from "./LoginFacade"
 import {ArchiveDataType, MAX_BLOB_SIZE_BYTES} from "../../common/TutanotaConstants"
 import {_TypeModel as BlobGetInTypeModel, createBlobGetIn} from "../../entities/storage/BlobGetIn"
@@ -50,6 +50,7 @@ export class BlobFacade {
 	private readonly fileApp: NativeFileApp
 	private readonly aesApp: AesApp
 	private readonly instanceMapper: InstanceMapper
+	private readonly cryptoFacade: CryptoFacade
 
 	constructor(
 		login: LoginFacadeImpl,
@@ -59,6 +60,7 @@ export class BlobFacade {
 		fileApp: NativeFileApp,
 		aesApp: AesApp,
 		instanceMapper: InstanceMapper,
+		cryptoFacade: CryptoFacade
 	) {
 		this.login = login
 		this.service = service
@@ -67,6 +69,7 @@ export class BlobFacade {
 		this.fileApp = fileApp
 		this.aesApp = aesApp
 		this.instanceMapper = instanceMapper
+		this.cryptoFacade = cryptoFacade
 	}
 
 	/**
@@ -108,7 +111,7 @@ export class BlobFacade {
 	 */
 	async downloadAndDecrypt(archiveDataType: ArchiveDataType, blobs: Blob[], referencingInstance: Instance): Promise<Uint8Array> {
 		const blobAccessInfo = await this.requestReadToken(archiveDataType, blobs, referencingInstance)
-		const sessionKey = neverNull(await resolveSessionKey(await resolveTypeReference(referencingInstance._type), referencingInstance))
+		const sessionKey = neverNull(await this.cryptoFacade.resolveSessionKey(await resolveTypeReference(referencingInstance._type), referencingInstance))
 		const blobData = await promiseMap(blobs, (blob) => this.downloadAndDecryptChunk(blob, blobAccessInfo, sessionKey))
 		return concat(...blobData)
 	}
@@ -129,7 +132,7 @@ export class BlobFacade {
 			return Promise.reject("Environment is not app or Desktop!")
 		}
 		const blobAccessInfo = await this.requestReadToken(archiveDataType, blobs, referencingInstance)
-		const sessionKey = neverNull(await resolveSessionKey(await resolveTypeReference(referencingInstance._type), referencingInstance))
+		const sessionKey = neverNull(await this.cryptoFacade.resolveSessionKey(await resolveTypeReference(referencingInstance._type), referencingInstance))
 		const decryptedChunkFileUris = await promiseMap(blobs, (blob) => this.downloadAndDecryptChunkNative(blob, blobAccessInfo, sessionKey))
 		// now decryptedChunkFileUris has the correct order of downloaded blobs, and we need to tell native to join them
 		// check if output already exists and return cached?
@@ -199,13 +202,7 @@ export class BlobFacade {
 		const {blobAccessToken, servers} = blobAccessInfo
 		const encryptedData = encryptBytes(sessionKey, chunk)
 		const blobHash = uint8ArrayToBase64(sha256Hash(encryptedData).slice(0, 6))
-		const headers = Object.assign(
-			{
-				blobAccessToken,
-				v: BlobGetInTypeModel.version,
-			},
-			this.login.createAuthHeaders(),
-		)
+		const headers = this.createHeaders(blobAccessToken)
 		let error = null
 		for (const server of servers) {
 			try {
@@ -234,13 +231,7 @@ export class BlobFacade {
 		const encryptedChunkUri = encryptedFileInfo.uri
 		const blobHash = await this.fileApp.hashFile(encryptedChunkUri)
 
-		const headers = Object.assign(
-			{
-				blobAccessToken,
-				v: BlobGetInTypeModel.version,
-			},
-			this.login.createAuthHeaders(),
-		)
+		const headers = this.createHeaders(blobAccessToken)
 		let error = null
 		for (const server of servers) {
 			try {
@@ -268,7 +259,7 @@ export class BlobFacade {
 		} = await this.fileApp.upload(location, fullUrl.toString(), headers) // blobReferenceToken in the response body
 
 		if (statusCode === 200 && responseBody != null) {
-			return this.parseBlobPutOutResponse(responseBody)
+			return this.parseBlobPutOutResponse(decodeBase64("utf-8", responseBody))
 		} else if (responseBody == null) {
 			throw new Error("no response body")
 		} else if (isSuspensionResponse(statusCode, suspensionTime)) {
@@ -289,13 +280,7 @@ export class BlobFacade {
 	private async downloadAndDecryptChunk(blob: Blob, blobAccessInfo: StorageServerAccessInfo, sessionKey: Aes128Key): Promise<Uint8Array> {
 		const {blobAccessToken, servers} = blobAccessInfo
 		const {archiveId, blobId} = blob
-		const headers = Object.assign(
-			{
-				blobAccessToken,
-				v: BlobGetInTypeModel.version,
-			},
-			this.login.createAuthHeaders(),
-		)
+		const headers = this.createHeaders(blobAccessToken)
 		const getData = createBlobGetIn({
 			archiveId,
 			blobId,
@@ -321,16 +306,20 @@ export class BlobFacade {
 		throw error
 	}
 
-	private async downloadAndDecryptChunkNative(blob: Blob, blobAccessInfo: StorageServerAccessInfo, sessionKey: Aes128Key): Promise<string> {
-		const {blobAccessToken, servers} = blobAccessInfo
-		const {archiveId, blobId} = blob
-		const headers = Object.assign(
+	private createHeaders(blobAccessToken: string) {
+		return Object.assign(
 			{
 				blobAccessToken,
 				v: BlobGetInTypeModel.version,
 			},
 			this.login.createAuthHeaders(),
 		)
+	}
+
+	private async downloadAndDecryptChunkNative(blob: Blob, blobAccessInfo: StorageServerAccessInfo, sessionKey: Aes128Key): Promise<string> {
+		const {blobAccessToken, servers} = blobAccessInfo
+		const {archiveId, blobId} = blob
+		const headers = this.createHeaders(blobAccessToken)
 		const getData = createBlobGetIn({
 			archiveId,
 			blobId,

@@ -1,3 +1,4 @@
+import type {Hex} from "@tutao/tutanota-utils"
 import {neverNull} from "@tutao/tutanota-utils"
 import type {Customer} from "../api/entities/sys/Customer"
 import {CustomerTypeRef} from "../api/entities/sys/Customer"
@@ -23,13 +24,12 @@ import type {UpgradePriceServiceReturn} from "../api/entities/sys/UpgradePriceSe
 import {UpgradePriceServiceReturnTypeRef} from "../api/entities/sys/UpgradePriceServiceReturn"
 import type {TranslationKey} from "../misc/LanguageViewModel"
 import {assertTranslation} from "../misc/LanguageViewModel"
-import {createWizardDialog, wizardPageWrapper, WizardPageWrapper} from "../gui/base/WizardDialogN"
+import {createWizardDialog, wizardPageWrapper} from "../gui/base/WizardDialogN"
 import {Dialog} from "../gui/base/Dialog"
 import {InvoiceAndPaymentDataPage, InvoiceAndPaymentDataPageAttrs} from "./InvoiceAndPaymentDataPage"
 import {UpgradeConfirmPage, UpgradeConfirmPageAttrs} from "./UpgradeConfirmPage"
 import {SignupPage, SignupPageAttrs} from "./SignupPage"
 import {assertMainOrNode} from "../api/common/Env"
-import type {Hex} from "@tutao/tutanota-utils"
 import {getCampaignFromLocalStorage} from "../misc/LoginUtils"
 import {locator} from "../api/main/MainLocator"
 import {TtlBehavior} from "../misc/UsageTestModel"
@@ -187,7 +187,7 @@ export async function loadSignupWizard(subscriptionParameters: SubscriptionParam
 	}
 	const wizardPages = [
 		wizardPageWrapper(UpgradeSubscriptionPage, new UpgradeSubscriptionPageAttrs(signupData)),
-		wizardPageWrapper(SignupPage, new SignupPageAttrs(signupData)),
+		wizardPageWrapper(SignupPage, new SignupPageAttrs(signupData, locator.usageTestController)),
 		wizardPageWrapper(InvoiceAndPaymentDataPage, new InvoiceAndPaymentDataPageAttrs(signupData)),
 		wizardPageWrapper(UpgradeConfirmPage, new UpgradeConfirmPageAttrs(signupData)),
 	]

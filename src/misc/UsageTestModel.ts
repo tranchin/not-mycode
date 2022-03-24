@@ -41,7 +41,7 @@ export interface ServiceExecutor {
 	serviceRequest: typeof serviceRequest
 }
 
-const USAGE_TESTS_ENABLED = isTest()
+const USAGE_TESTS_ENABLED = true
 
 export class UsageTestModel implements PingAdapter {
 

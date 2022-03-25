@@ -928,6 +928,10 @@ export class MailViewer implements Component {
 											name: "timePassed",
 											value: ((new Date().getTime() - startTime.getTime()) / 1000).toString()
 										})
+										stage?.setMetric({
+											name: "paymentMethod",
+											value: "paypal"
+										})
 										test.getStage(1)?.complete()
 									},
 									icon: () => Icons.Picture,
@@ -943,6 +947,10 @@ export class MailViewer implements Component {
 											name: "timePassed",
 											value: ((new Date().getTime() - startTime.getTime()) / 1000).toString()
 										})
+										stage?.setMetric({
+											name: "paymentMethod",
+											value: "credit"
+										})
 										test.getStage(1)?.complete()
 									},
 									icon: () => Icons.Picture,
@@ -957,6 +965,10 @@ export class MailViewer implements Component {
 										stage?.setMetric({
 											name: "timePassed",
 											value: ((new Date().getTime() - startTime.getTime()) / 1000).toString()
+										})
+										stage?.setMetric({
+											name: "paymentMethod",
+											value: "bankTransfer"
 										})
 										test.getStage(1)?.complete()
 									},

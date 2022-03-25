@@ -204,6 +204,7 @@ const map = {
     UsageTestAssignmentIn: () => import('./UsageTestAssignmentIn.js'),
     UsageTestAssignment: () => import('./UsageTestAssignment.js'),
     UsageTestAssignmentOut: () => import('./UsageTestAssignmentOut.js'),
-    UsageTestParticipationIn: () => import('./UsageTestParticipationIn.js')
+    UsageTestParticipationIn: () => import('./UsageTestParticipationIn.js'),
+    UsageTestMetricConfigValue: () => import('./UsageTestMetricConfigValue.js')
 }
 export default map

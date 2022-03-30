@@ -5,6 +5,7 @@ import type {UpgradeSubscriptionData} from "./UpgradeSubscriptionWizard"
 import {InvoiceDataInput} from "./InvoiceDataInput"
 import {PaymentMethodInput} from "./PaymentMethodInput"
 import stream from "mithril/stream"
+import Stream from "mithril/stream"
 import type {InvoiceData, PaymentData, PaymentMethodType} from "../api/common/TutanotaConstants"
 import {getClientType, Keys, PaymentDataResultType} from "../api/common/TutanotaConstants"
 import {showProgressDialog} from "../gui/dialogs/ProgressDialog"
@@ -32,6 +33,7 @@ import {promiseMap} from "@tutao/tutanota-utils"
 import Stream from "mithril/stream"
 import {Credentials} from "../misc/credentials/Credentials";
 import {SessionType} from "../api/common/SessionType.js";
+import {UsageTest} from "@tutao/tutanota-usagetests"
 
 /**
  * Wizard page for editing invoice and payment data.
@@ -42,9 +44,12 @@ export class InvoiceAndPaymentDataPage implements WizardPageN<UpgradeSubscriptio
 	private _availablePaymentMethods: Array<SegmentControlItem<PaymentMethodType>> | null = null
 	private _selectedPaymentMethod: Stream<PaymentMethodType>
 	private _upgradeData: UpgradeSubscriptionData
-	private dom!: HTMLElement;
+	private dom!: HTMLElement
+	private __signupPaidTest?: UsageTest
 
 	constructor(upgradeData: UpgradeSubscriptionData) {
+		this.__signupPaidTest = locator.usageTestController.getTest("signup.paid")
+
 		this._upgradeData = upgradeData
 		this._selectedPaymentMethod = stream()
 
@@ -151,6 +156,13 @@ export class InvoiceAndPaymentDataPage implements WizardPageN<UpgradeSubscriptio
 								   neverNull(a.data.accountingInfo),
 							   ).then(success => {
 								   if (success) {
+									   // Payment method confirmation (click on next), send selected payment method as an enum
+									   const paymentMethodConfirmationStage = this.__signupPaidTest?.getStage(4)
+									   paymentMethodConfirmationStage?.setMetric({
+										   name: "paymentMethod",
+										   value: a.data.paymentData.paymentMethod,
+									   })
+									   paymentMethodConfirmationStage?.complete()
 									   emitWizardEvent(this.dom, WizardEventType.SHOWNEXTPAGE)
 								   }
 							   }),

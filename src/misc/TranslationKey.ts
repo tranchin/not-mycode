@@ -482,6 +482,8 @@ export type TranslationKeyType =
 	| "executableOpen_msg"
 	| "existingAccount_label"
 	| "existingMailAddress_msg"
+	| "experienceSampling_header_label"
+	| "experienceSampling_thankYou_msg"
 	| "expiredLink_msg"
 	| "exportSelectedAsVCard_action"
 	| "exportVCard_action"

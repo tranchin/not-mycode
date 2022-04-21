@@ -497,6 +497,8 @@ export default {
 		"executableOpen_msg": "This file looks like a program. Are you sure you want to execute it now?",
 		"existingAccount_label": "Use existing account",
 		"existingMailAddress_msg": "The following email addresses could not be invited because they have already received an invitation:",
+		"experienceSampling_header_label": "Experience Questionnaire",
+		"experienceSampling_thankYou_msg": "Thank you for your participation!",
 		"expiredLink_msg": "Sorry, this link is not valid anymore. You should have received a new notification email with the currently valid link. Previous links are deactivated for security reasons.",
 		"exportSelectedAsVCard_action": "Export selected contacts as vCard",
 		"exportVCard_action": "Export vCard",

@@ -16,7 +16,7 @@ import {
 	SpamRuleType,
 	TabIndex,
 } from "../../api/common/TutanotaConstants"
-import type {File as TutanotaFile} from "../../api/entities/tutanota/TypeRefs.js"
+import type {File as TutanotaFile, Mail} from "../../api/entities/tutanota/TypeRefs.js"
 import {InfoLink, lang} from "../../misc/LanguageViewModel"
 import {assertMainOrNode, isAndroidApp, isDesktop, isIOSApp} from "../../api/common/Env"
 import {Dialog} from "../../gui/base/Dialog"
@@ -52,7 +52,6 @@ import {styles} from "../../gui/styles"
 import {attachDropdown, createAsyncDropdown, createDropdown, showDropdownAtPosition} from "../../gui/base/DropdownN"
 import {navButtonRoutes} from "../../misc/RouteChange"
 import {RecipientButton} from "../../gui/base/RecipientButton"
-import type {Mail} from "../../api/entities/tutanota/TypeRefs.js"
 import {EventBanner} from "./EventBanner"
 import type {InlineImageReference} from "./MailGuiUtils"
 import {moveMails, promptAndDeleteMails, replaceCidsWithInlineImages} from "./MailGuiUtils"
@@ -70,6 +69,7 @@ import {animations, DomMutation, scroll} from "../../gui/animation/Animations"
 import {ease} from "../../gui/animation/Easing"
 import {isNewMailActionAvailable} from "../../gui/nav/NavFunctions"
 import {CancelledError} from "../../api/common/error/CancelledError"
+import {showExperienceSamplingDialog} from "../../misc/UsageTestModel"
 
 assertMainOrNode()
 // map of inline image cid to InlineImageReference
@@ -837,6 +837,49 @@ export class MailViewer implements Component<MailViewerAttrs> {
 									type: ButtonType.Dropdown,
 								})
 							}
+
+							const test = locator.usageTestController.getTest("test")
+
+							test.renderVariant({
+								[0]: () => {
+								},
+								[1]: () => {
+									moreButtons.push({
+										label: () => "stage 0",
+										click: async () => {
+											const stage = test.getStage(0)
+											await stage.complete()
+										},
+										icon: () => Icons.Picture,
+										type: ButtonType.Dropdown,
+									})
+
+									moreButtons.push({
+										label: () => "EXP sampling, stage 1",
+										click: async () => {
+											const stage = test.getStage(1)
+											await showExperienceSamplingDialog(
+												stage,
+												{
+													explanationText: () => "Hi, you just tried Tutanota's new feature X! Thanks a lot for that. Please take a minute and answer the following questions so we can continue to improve our service.",
+													perMetric: {
+														"likert1": {
+															question: () => "How satisfied were you with Tutanota's new feature X?",
+															answerOptions: ["very dissatisfied", "dissatisfied", "ok", "satisfied", "very satisfied"],
+														},
+														"likert2": {
+															question: () => "question2",
+															answerOptions: ["very satisfied", "satisfied", "ok", "dissatisfied", "very dissatisfied"],
+														}
+													}
+												}
+											)
+										},
+										icon: () => Icons.Picture,
+										type: ButtonType.Dropdown,
+									})
+								},
+							})
 
 							return moreButtons
 						}, width: 300

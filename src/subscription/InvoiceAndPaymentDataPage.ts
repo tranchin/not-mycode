@@ -30,7 +30,6 @@ import {locator} from "../api/main/MainLocator"
 import {getPaymentWebRoot} from "../api/common/Env"
 import {InvoiceInfoTypeRef} from "../api/entities/sys/TypeRefs.js"
 import {promiseMap} from "@tutao/tutanota-utils"
-import Stream from "mithril/stream"
 import {Credentials} from "../misc/credentials/Credentials";
 import {SessionType} from "../api/common/SessionType.js";
 import {UsageTest} from "@tutao/tutanota-usagetests"

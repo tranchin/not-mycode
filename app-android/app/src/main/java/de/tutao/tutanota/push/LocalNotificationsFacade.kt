@@ -2,18 +2,23 @@ package de.tutao.tutanota.push
 
 import android.annotation.TargetApi
 import android.app.*
-import android.content.*
+import android.content.ClipData
+import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.media.AudioAttributes
 import android.media.RingtoneManager
-import android.os.*
+import android.os.Build
 import android.text.TextUtils
 import android.util.Log
 import androidx.annotation.ColorInt
 import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import de.tutao.tutanota.*
+import de.tutao.tutanota.BuildConfig
+import de.tutao.tutanota.MainActivity
+import de.tutao.tutanota.R
+import de.tutao.tutanota.Utils
 import de.tutao.tutanota.alarms.AlarmBroadcastReceiver
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -131,10 +136,12 @@ class LocalNotificationsFacade(private val context: Context) {
 		notificationManager.notify(makeNotificationId("downloads"), notification)
 	}
 
-	private fun sendSummaryNotification(notificationManager: NotificationManager,
-										title: String,
-										notificationInfo: NotificationInfo,
-										sound: Boolean) {
+	private fun sendSummaryNotification(
+		notificationManager: NotificationManager,
+		title: String,
+		notificationInfo: NotificationInfo,
+		sound: Boolean,
+	) {
 		var summaryCounter = 0
 		val addresses = ArrayList<String?>()
 		val inboxStyle = NotificationCompat.InboxStyle()
@@ -247,8 +254,10 @@ class LocalNotificationsFacade(private val context: Context) {
 				PendingIntent.FLAG_UPDATE_CURRENT)
 	}
 
-	private fun intentOpenMailbox(notificationInfo: NotificationInfo,
-								  isSummary: Boolean): PendingIntent {
+	private fun intentOpenMailbox(
+		notificationInfo: NotificationInfo,
+		isSummary: Boolean,
+	): PendingIntent {
 		val openMailboxIntent = Intent(context, MainActivity::class.java)
 		openMailboxIntent.action = MainActivity.OPEN_USER_MAILBOX_ACTION
 		openMailboxIntent.putExtra(MainActivity.OPEN_USER_MAILBOX_MAILADDRESS_KEY,
@@ -270,10 +279,12 @@ class LocalNotificationsFacade(private val context: Context) {
 		private const val NOTIFICATION_EMAIL_GROUP = "de.tutao.tutanota.email"
 		private const val SUMMARY_NOTIFICATION_ID = 45
 		private const val PERSISTENT_NOTIFICATION_CHANNEL_ID = "service_intent"
-		fun notificationDismissedIntent(context: Context?,
-										emailAddresses: ArrayList<String>?,
-										sender: String?,
-										isSummary: Boolean): Intent {
+		fun notificationDismissedIntent(
+			context: Context?,
+			emailAddresses: ArrayList<String>?,
+			sender: String?,
+			isSummary: Boolean,
+		): Intent {
 			val deleteIntent = Intent(context, PushNotificationService::class.java)
 			deleteIntent.putStringArrayListExtra(NOTIFICATION_DISMISSED_ADDR_EXTRA, emailAddresses)
 			deleteIntent.putExtra("sender", sender)

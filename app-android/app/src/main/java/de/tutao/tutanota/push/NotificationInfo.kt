@@ -2,7 +2,6 @@ package de.tutao.tutanota.push
 
 import org.json.JSONException
 import org.json.JSONObject
-import java.util.*
 
 data class NotificationInfo(val address: String, val counter: Int, val userId: String) {
 

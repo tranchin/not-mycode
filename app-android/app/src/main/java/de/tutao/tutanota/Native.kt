@@ -31,18 +31,14 @@ import java.io.IOException
 import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.*
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 /**
  * Created by mpfau on 4/8/17.
  */
 class Native internal constructor(
-		private val activity: MainActivity,
-		private val sseStorage: SseStorage,
-		private val alarmNotificationsManager: AlarmNotificationsManager
+	private val activity: MainActivity,
+	private val sseStorage: SseStorage,
+	private val alarmNotificationsManager: AlarmNotificationsManager,
 ) {
 	private val crypto: Crypto = Crypto(activity)
 	private val files: FileUtil = FileUtil(activity, LocalNotificationsFacade(activity))
@@ -170,72 +166,72 @@ class Native internal constructor(
 		val promise: Deferred<Any?, Exception, Void> = DeferredObject()
 		try {
 			when (method) {
-				"init" -> {
+				"init"                        -> {
 					if (!webAppInitialized.isResolved) {
 						webAppInitialized.resolve(null)
 					}
 					promise.resolve(null)
 				}
-				"reload" -> {
+				"reload"                      -> {
 					webAppInitialized = DeferredObject()
 					activity.reload(Utils.jsonObjectToMap(args.getJSONObject(0)))
 					promise.resolve(null)
 				}
-				"initPushNotifications" -> return initPushNotifications()
-				"generateRsaKey" -> promise.resolve(crypto.generateRsaKey(Utils.base64ToBytes(args.getString(0))))
-				"rsaEncrypt" -> promise.resolve(crypto.rsaEncrypt(args.getJSONObject(0), Utils.base64ToBytes(args.getString(1)), Utils.base64ToBytes(args.getString(2))))
-				"rsaDecrypt" -> promise.resolve(crypto.rsaDecrypt(args.getJSONObject(0), Utils.base64ToBytes(args.getString(1))))
-				"aesEncryptFile" -> {
+				"initPushNotifications"       -> return initPushNotifications()
+				"generateRsaKey"              -> promise.resolve(crypto.generateRsaKey(Utils.base64ToBytes(args.getString(0))))
+				"rsaEncrypt"                  -> promise.resolve(crypto.rsaEncrypt(args.getJSONObject(0), Utils.base64ToBytes(args.getString(1)), Utils.base64ToBytes(args.getString(2))))
+				"rsaDecrypt"                  -> promise.resolve(crypto.rsaDecrypt(args.getJSONObject(0), Utils.base64ToBytes(args.getString(1))))
+				"aesEncryptFile"              -> {
 					val efi = crypto.aesEncryptFile(Utils.base64ToBytes(args.getString(0)), args.getString(1),
 							Utils.base64ToBytes(args.getString(2)))
 					promise.resolve(efi.toJSON())
 				}
-				"aesDecryptFile" -> {
+				"aesDecryptFile"              -> {
 					val key = Utils.base64ToBytes(args.getString(0))
 					val fileUrl = args.getString(1)
 					promise.resolve(crypto.aesDecryptFile(key, fileUrl))
 				}
-				"open" -> return files.openFile(args.getString(0), args.getString(1))
-				"openFileChooser" -> return files.openFileChooser()
-				"deleteFile" -> {
+				"open"                        -> return files.openFile(args.getString(0), args.getString(1))
+				"openFileChooser"             -> return files.openFileChooser()
+				"deleteFile"                  -> {
 					files.delete(args.getString(0))
 					promise.resolve(null)
 				}
-				"getName" -> promise.resolve(files.getName(args.getString(0)))
-				"getMimeType" -> promise.resolve(files.getMimeType(Uri.parse(args.getString(0))))
-				"getSize" -> promise.resolve(files.getSize(args.getString(0)).toString() + "")
-				"upload" -> {
+				"getName"                     -> promise.resolve(files.getName(args.getString(0)))
+				"getMimeType"                 -> promise.resolve(files.getMimeType(Uri.parse(args.getString(0))))
+				"getSize"                     -> promise.resolve(files.getSize(args.getString(0)).toString() + "")
+				"upload"                      -> {
 					val fileUri = args.getString(0)
 					val targetUrl = args.getString(1)
 					val httpMethod = args.getString(2)
 					val headers = args.getJSONObject(3)
 					promise.resolve(files.upload(fileUri, targetUrl, httpMethod, headers))
 				}
-				"download" -> {
+				"download"                    -> {
 					val url = args.getString(0)
 					val filename = args.getString(1)
 					val headers = args.getJSONObject(2)
 					promise.resolve(files.download(url, filename, headers))
 				}
-				"joinFiles" -> {
+				"joinFiles"                   -> {
 					val filename = args.getString(0)
 					val filesTojoin = jsonArrayToTypedList<String>(args.getJSONArray(1))
 					promise.resolve(files.joinFiles(filename, filesTojoin))
 				}
-				"splitFile" -> {
+				"splitFile"                   -> {
 					val fileUri = args.getString(0)
 					val maxChunkSize = args.getInt(1)
 					promise.resolve(files.splitFile(fileUri, maxChunkSize))
 				}
-				"clearFileData" -> {
+				"clearFileData"               -> {
 					files.clearFileData()
 					promise.resolve(null)
 				}
-				"findSuggestions" -> return contact.findSuggestions(args.getString(0))
-				"openLink" -> promise.resolve(openLink(args.getString(0)))
-				"shareText" -> promise.resolve(shareText(args.getString(0), args.getString(1)))
-				"getPushIdentifier" -> promise.resolve(sseStorage.pushIdentifier)
-				"storePushIdentifierLocally" -> {
+				"findSuggestions"             -> return contact.findSuggestions(args.getString(0))
+				"openLink"                    -> promise.resolve(openLink(args.getString(0)))
+				"shareText"                   -> promise.resolve(shareText(args.getString(0), args.getString(1)))
+				"getPushIdentifier"           -> promise.resolve(sseStorage.pushIdentifier)
+				"storePushIdentifierLocally"  -> {
 					val deviceIdentifier = args.getString(0)
 					val userId = args.getString(1)
 					val sseOrigin = args.getString(2)
@@ -246,61 +242,61 @@ class Native internal constructor(
 					sseStorage.storePushIdentifierSessionKey(userId, pushIdentifierId, pushIdentifierSessionKeyB64)
 					promise.resolve(true)
 				}
-				"closePushNotifications" -> {
+				"closePushNotifications"      -> {
 					val addressesArray = args.getJSONArray(0)
 					cancelNotifications(addressesArray)
 					promise.resolve(true)
 				}
-				"readFile" -> promise.resolve(Utils.bytesToBase64(
+				"readFile"                    -> promise.resolve(Utils.bytesToBase64(
 						Utils.readFile(File(activity.filesDir, args.getString(0)))))
-				"writeFile" -> {
+				"writeFile"                   -> {
 					val filename = args.getString(0)
 					val contentInBase64 = args.getString(1)
 					Utils.writeFile(File(activity.filesDir, filename),
 							Utils.base64ToBytes(contentInBase64))
 					promise.resolve(true)
 				}
-				"getSelectedTheme" -> {
+				"getSelectedTheme"            -> {
 					promise.resolve(themeManager.selectedThemeId)
 				}
-				"setSelectedTheme" -> {
+				"setSelectedTheme"            -> {
 					val themeId = args.getString(0)
 					themeManager.setSelectedThemeId(themeId)
 					activity.applyTheme()
 					promise.resolve(null)
 				}
-				"getThemes" -> {
+				"getThemes"                   -> {
 					val themesList = themeManager.themes
 					promise.resolve(JSONArray(themesList))
 				}
-				"setThemes" -> {
+				"setThemes"                   -> {
 					val jsonThemes = args.getJSONArray(0)
 					themeManager.setThemes(jsonThemes)
 					activity.applyTheme() // reapply theme in case the current selected theme definition has changed
 					promise.resolve(null)
 				}
-				"saveDataFile" -> {
+				"saveDataFile"                -> {
 					val fileUri = files.saveDataFile(args.getString(0), args.getString(1))
 					promise.resolve(fileUri)
 				}
-				"putFileIntoDownloads" -> {
+				"putFileIntoDownloads"        -> {
 					val path = args.getString(0)
 					return files.putToDownloadFolder(path)
 				}
-				"getDeviceLog" -> return Utils.resolvedDeferred(LogReader.getLogFile(activity).toString())
-				"changeLanguage" -> promise.resolve(null)
-				"scheduleAlarms" -> {
+				"getDeviceLog"                -> return Utils.resolvedDeferred(LogReader.getLogFile(activity).toString())
+				"changeLanguage"              -> promise.resolve(null)
+				"scheduleAlarms"              -> {
 					scheduleAlarms(args.getJSONArray(0))
 					promise.resolve(null)
 				}
-				"encryptUsingKeychain" -> {
+				"encryptUsingKeychain"        -> {
 					val encryptionMode = args.getString(0)
 					val dataToEncrypt = args.getString(1)
 					val mode = CredentialEncryptionMode.fromName(encryptionMode)
 					val encryptedData = credentialsEncryption.encryptUsingKeychain(dataToEncrypt, mode)
 					promise.resolve(encryptedData)
 				}
-				"decryptUsingKeychain" -> {
+				"decryptUsingKeychain"        -> {
 					val encryptionMode = args.getString(0)
 					val dataToDecrypt = args.getString(1)
 					val mode = CredentialEncryptionMode.fromName(encryptionMode)
@@ -315,11 +311,11 @@ class Native internal constructor(
 					}
 					promise.resolve(jsonArray)
 				}
-				"hashFile" -> {
+				"hashFile"                    -> {
 					val file = args.getString(0)
 					return promise.resolve(files.hashFile(file))
 				}
-				else -> throw Exception("unsupported method: $method")
+				else                          -> throw Exception("unsupported method: $method")
 			}
 		} catch (e: Exception) {
 			Log.e(TAG, "failed invocation", e)

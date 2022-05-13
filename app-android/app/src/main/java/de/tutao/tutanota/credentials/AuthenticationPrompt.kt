@@ -25,8 +25,10 @@ class AuthenticationPrompt internal constructor() {
 	 * @throws CredentialAuthenticationException If authentication fails by either cancelling authentication or exceeded limit of failed attempts.
 	 */
 	@Throws(CredentialAuthenticationException::class)
-	fun authenticate(activity: FragmentActivity,
-					 promptInfo: PromptInfo) {
+	fun authenticate(
+		activity: FragmentActivity,
+		promptInfo: PromptInfo,
+	) {
 		showPrompt(activity, promptInfo, null)
 	}
 
@@ -38,16 +40,20 @@ class AuthenticationPrompt internal constructor() {
 	 * @throws CredentialAuthenticationException If authentication fails by either cancelling authentication or exceeded limit of failed attempts.
 	 */
 	@Throws(CredentialAuthenticationException::class)
-	fun authenticateCryptoObject(activity: FragmentActivity,
-								 promptInfo: PromptInfo,
-								 cryptoObject: BiometricPrompt.CryptoObject?) {
+	fun authenticateCryptoObject(
+		activity: FragmentActivity,
+		promptInfo: PromptInfo,
+		cryptoObject: BiometricPrompt.CryptoObject?,
+	) {
 		showPrompt(activity, promptInfo, cryptoObject)
 	}
 
 	@Throws(CredentialAuthenticationException::class)
-	private fun showPrompt(activity: FragmentActivity,
-						   promptInfo: PromptInfo,
-						   cryptoObject: BiometricPrompt.CryptoObject?) {
+	private fun showPrompt(
+		activity: FragmentActivity,
+		promptInfo: PromptInfo,
+		cryptoObject: BiometricPrompt.CryptoObject?,
+	) {
 		sem.acquireUninterruptibly()
 		val error = arrayOf<String?>(null)
 		activity.runOnUiThread {
@@ -58,7 +64,8 @@ class AuthenticationPrompt internal constructor() {
 				}
 
 				override fun onAuthenticationSucceeded(
-						result: BiometricPrompt.AuthenticationResult) {
+					result: BiometricPrompt.AuthenticationResult,
+				) {
 					sem.release()
 				}
 

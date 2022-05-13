@@ -6,7 +6,6 @@ import androidx.room.PrimaryKey
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import de.tutao.tutanota.data.SseInfo.UserIdsConverter
-import java.util.*
 
 @Entity
 @TypeConverters(UserIdsConverter::class)

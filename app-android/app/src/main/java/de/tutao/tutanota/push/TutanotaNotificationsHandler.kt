@@ -19,9 +19,11 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-class TutanotaNotificationsHandler(private val localNotificationsFacade: LocalNotificationsFacade,
-								   private val sseStorage: SseStorage,
-								   private val alarmNotificationsManager: AlarmNotificationsManager) {
+class TutanotaNotificationsHandler(
+	private val localNotificationsFacade: LocalNotificationsFacade,
+	private val sseStorage: SseStorage,
+	private val alarmNotificationsManager: AlarmNotificationsManager,
+) {
 	fun onNewNotificationAvailable(sseInfo: SseInfo?) {
 		Log.d(TAG, "onNewNotificationAvailable")
 		if (sseInfo == null) {
@@ -140,21 +142,21 @@ class TutanotaNotificationsHandler(private val localNotificationsFacade: LocalNo
 	@Throws(FileNotFoundException::class, ServerResponseException::class, ClientRequestException::class, ServiceUnavailableException::class, TooManyRequestsException::class)
 	private fun handleResponseCode(urlConnection: HttpURLConnection, responseCode: Int) {
 		when (responseCode) {
-			404 -> {
+			404                              -> {
 				throw FileNotFoundException("Missed notification not found: " + 404)
 			}
 			ServiceUnavailableException.CODE -> {
 				val suspensionTime = extractSuspensionTime(urlConnection)
 				throw ServiceUnavailableException(suspensionTime)
 			}
-			TooManyRequestsException.CODE -> {
+			TooManyRequestsException.CODE    -> {
 				val suspensionTime = extractSuspensionTime(urlConnection)
 				throw TooManyRequestsException(suspensionTime)
 			}
-			in 400..499 -> {
+			in 400..499                      -> {
 				throw ClientRequestException(responseCode)
 			}
-			in 500..600 -> {
+			in 500..600                      -> {
 				throw ServerResponseException(responseCode)
 			}
 		}

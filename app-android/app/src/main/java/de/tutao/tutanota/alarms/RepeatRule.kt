@@ -8,11 +8,11 @@ import org.json.JSONObject
 import java.util.*
 
 class RepeatRule(
-		val frequency: String,
-		val interval: String,
-		val timeZone: String,
-		val endType: String,
-		val endValue: String?
+	val frequency: String,
+	val interval: String,
+	val timeZone: String,
+	val endType: String,
+	val endValue: String?,
 ) {
 	@Throws(CryptoError::class)
 	fun getFrequencyDec(crypto: Crypto, sessionKey: ByteArray): RepeatPeriod {

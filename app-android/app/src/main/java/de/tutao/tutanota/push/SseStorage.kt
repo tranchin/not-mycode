@@ -2,15 +2,21 @@ package de.tutao.tutanota.push
 
 import androidx.annotation.WorkerThread
 import androidx.lifecycle.LiveData
-import de.tutao.tutanota.*
+import de.tutao.tutanota.AndroidKeyStoreFacade
+import de.tutao.tutanota.CryptoError
+import de.tutao.tutanota.Utils
 import de.tutao.tutanota.alarms.AlarmNotification
-import de.tutao.tutanota.data.*
+import de.tutao.tutanota.data.AppDatabase
+import de.tutao.tutanota.data.PushIdentifierKey
+import de.tutao.tutanota.data.User
 import java.security.KeyStoreException
 import java.security.UnrecoverableEntryException
 import java.util.*
 
-class SseStorage(private val db: AppDatabase,
-				 private val keyStoreFacade: AndroidKeyStoreFacade) {
+class SseStorage(
+	private val db: AppDatabase,
+	private val keyStoreFacade: AndroidKeyStoreFacade,
+) {
 	val pushIdentifier: String?
 		get() = db.keyValueDao().getString(DEVICE_IDENTIFIER)
 
@@ -26,9 +32,11 @@ class SseStorage(private val db: AppDatabase,
 	}
 
 	@Throws(KeyStoreException::class, CryptoError::class)
-	fun storePushIdentifierSessionKey(userId: String,
-									  pushIdentifierId: String,
-									  pushIdentifierSessionKeyB64: String) {
+	fun storePushIdentifierSessionKey(
+		userId: String,
+		pushIdentifierId: String,
+		pushIdentifierSessionKeyB64: String,
+	) {
 		val deviceEncSessionKey = keyStoreFacade.encryptKey(Utils.base64ToBytes(pushIdentifierSessionKeyB64))
 		db.userInfoDao().insertPushIdentifierKey(PushIdentifierKey(pushIdentifierId, deviceEncSessionKey))
 		db.userInfoDao().insertUser(User(userId))

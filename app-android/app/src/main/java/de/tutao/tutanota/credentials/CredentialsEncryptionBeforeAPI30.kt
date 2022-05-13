@@ -13,9 +13,11 @@ import java.util.*
 import javax.crypto.Cipher
 
 @RequiresApi(23)
-class CredentialsEncryptionBeforeAPI30(private val keyStoreFacade: AndroidKeyStoreFacade,
-									   private val activity: FragmentActivity,
-									   private val authenticationPrompt: AuthenticationPrompt) : ICredentialsEncryption {
+class CredentialsEncryptionBeforeAPI30(
+	private val keyStoreFacade: AndroidKeyStoreFacade,
+	private val activity: FragmentActivity,
+	private val authenticationPrompt: AuthenticationPrompt,
+) : ICredentialsEncryption {
 	@Throws(KeyStoreException::class, CryptoError::class, CredentialAuthenticationException::class, KeyPermanentlyInvalidatedException::class)
 	override fun encryptUsingKeychain(base64EncodedData: String, encryptionMode: CredentialEncryptionMode): String {
 		val dataToEncrypt = Utils.base64ToBytes(base64EncodedData)
@@ -76,7 +78,7 @@ class CredentialsEncryptionBeforeAPI30(private val keyStoreFacade: AndroidKeySto
 
 	private fun createPromptInfo(mode: CredentialEncryptionMode): PromptInfo {
 		return when (mode) {
-			CredentialEncryptionMode.ENCRYPTION_MODE_BIOMETRICS -> {
+			CredentialEncryptionMode.ENCRYPTION_MODE_BIOMETRICS      -> {
 				val promptInfoBuilder = PromptInfo.Builder()
 						.setTitle(activity.getString(R.string.unlockCredentials_action)) // see AuthentorUtils#isSupportedCombination from androidx.biometrics
 						.setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
@@ -89,7 +91,7 @@ class CredentialsEncryptionBeforeAPI30(private val keyStoreFacade: AndroidKeySto
 						.setAllowedAuthenticators(BiometricManager.Authenticators.DEVICE_CREDENTIAL or BiometricManager.Authenticators.BIOMETRIC_WEAK)
 				promptInfoBuilder.build()
 			}
-			else -> {
+			else                                                     -> {
 				throw AssertionError("")
 			}
 		}

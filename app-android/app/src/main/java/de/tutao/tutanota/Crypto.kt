@@ -2,7 +2,6 @@ package de.tutao.tutanota
 
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import androidx.annotation.VisibleForTesting
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.input.CountingInputStream
@@ -103,7 +102,7 @@ class Crypto @VisibleForTesting constructor(private val context: Context, val ra
 		}
 	}
 
-	constructor(context: Context) : this(context, SecureRandom()) {}
+	constructor(context: Context) : this(context, SecureRandom())
 
 	@Synchronized
 	@Throws(JSONException::class, NoSuchAlgorithmException::class)
@@ -444,12 +443,12 @@ class Crypto @VisibleForTesting constructor(private val context: Context, val ra
 }
 
 private class SubKeys(
-		var cKey: SecretKeySpec?,
-		var mKey: ByteArray?
+	var cKey: SecretKeySpec?,
+	var mKey: ByteArray?,
 )
 
 
 class CryptoError : Exception {
-	constructor(message: String) : super(message) {}
-	constructor(cause: Throwable) : super(cause) {}
+	constructor(message: String) : super(message)
+	constructor(cause: Throwable) : super(cause)
 }

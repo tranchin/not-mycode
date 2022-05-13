@@ -8,8 +8,8 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 
 class AlarmInfo(
-		val trigger: String,
-		val identifier: String
+	val trigger: String,
+	val identifier: String,
 ) {
 
 	@Throws(CryptoError::class)

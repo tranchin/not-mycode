@@ -11,10 +11,10 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 class AlarmNotificationsManager(
-		private val sseStorage: SseStorage,
-		private val crypto: Crypto,
-		private val systemAlarmFacade: SystemAlarmFacade,
-		private val localNotificationsFacade: LocalNotificationsFacade
+	private val sseStorage: SseStorage,
+	private val crypto: Crypto,
+	private val systemAlarmFacade: SystemAlarmFacade,
+	private val localNotificationsFacade: LocalNotificationsFacade,
 ) {
 	private val pushKeyResolver: PushKeyResolver = PushKeyResolver(sseStorage)
 
@@ -94,10 +94,10 @@ class AlarmNotificationsManager(
 					occurrenceIsTooFar(alarmTime) -> {
 						Log.d(TAG, "Alarm $identifier is too far in the future, skipping")
 					}
-					alarmTime.after(now) -> {
+					alarmTime.after(now)          -> {
 						systemAlarmFacade.scheduleAlarmOccurrenceWithSystem(alarmTime, 0, identifier, summary, eventStart, alarmNotification.user)
 					}
-					else -> {
+					else                          -> {
 						Log.d(TAG, "Alarm $identifier is before $now, skipping")
 					}
 				}
@@ -128,8 +128,10 @@ class AlarmNotificationsManager(
 	 *
 	 * @param alarmNotification may come from the server or may be a saved one
 	 */
-	private fun cancelScheduledAlarm(alarmNotification: AlarmNotification,
-									 pushKeyResolver: PushKeyResolver) {
+	private fun cancelScheduledAlarm(
+		alarmNotification: AlarmNotification,
+		pushKeyResolver: PushKeyResolver,
+	) {
 		// The DELETE notification we receive from the server has only placeholder fields and no keys. We must use our saved alarm to cancel notifications.
 		val alarmNotifications = sseStorage.readAlarmNotifications()
 		val indexOfExistingAlarm = alarmNotifications.indexOf(alarmNotification)
@@ -164,10 +166,10 @@ class AlarmNotificationsManager(
 
 	@Throws(CryptoError::class)
 	private fun iterateAlarmOccurrences(
-			alarmNotification: AlarmNotification,
-			crypto: Crypto,
-			sessionKey: ByteArray,
-			callback: AlarmIterationCallback
+		alarmNotification: AlarmNotification,
+		crypto: Crypto,
+		sessionKey: ByteArray,
+		callback: AlarmIterationCallback,
 	) {
 		val repeatRule = alarmNotification.repeatRule!!
 		val timeZone = repeatRule.getTimeZoneDec(crypto, sessionKey)

@@ -1,7 +1,9 @@
 package de.tutao.tutanota.push
 
 import android.util.Log
-import de.tutao.tutanota.*
+import de.tutao.tutanota.Crypto
+import de.tutao.tutanota.Utils
+import de.tutao.tutanota.addCommonHeaders
 import de.tutao.tutanota.data.SseInfo
 import org.json.JSONArray
 import org.json.JSONException
@@ -16,10 +18,12 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.math.abs
 
-class SseClient internal constructor(private val crypto: Crypto,
-									 private val sseStorage: SseStorage,
-									 private val networkObserver: NetworkObserver,
-									 private val sseListener: SseListener) {
+class SseClient internal constructor(
+	private val crypto: Crypto,
+	private val sseStorage: SseStorage,
+	private val networkObserver: NetworkObserver,
+	private val sseListener: SseListener,
+) {
 	@Volatile
 	private var connectedSseInfo: SseInfo? = null
 
@@ -117,11 +121,11 @@ class SseClient internal constructor(private val crypto: Crypto,
 				Log.e(TAG, "Too many failed connection attempts, will try to sync notifications next time system wakes app up")
 				sseListener.onStoppingReconnectionAttempts()
 			}
-			networkObserver.hasNetworkConnection() -> {
+			networkObserver.hasNetworkConnection()           -> {
 				Log.e(TAG, "error opening sse, rescheduling after $delay, failedConnectionAttempts: $failedConnectionAttempts", exception)
 				reschedule(delay)
 			}
-			else -> {
+			else                                             -> {
 				Log.e(TAG, "network is not connected, do not reschedule ", exception)
 				sseListener.onStoppingReconnectionAttempts()
 			}

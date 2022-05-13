@@ -11,7 +11,6 @@ import android.provider.MediaStore
 import android.util.Log
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
-import de.tutao.tutanota.Crypto
 import de.tutao.tutanota.push.LocalNotificationsFacade
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.input.BoundedInputStream

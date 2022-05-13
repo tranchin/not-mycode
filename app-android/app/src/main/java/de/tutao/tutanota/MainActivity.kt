@@ -94,7 +94,7 @@ class MainActivity : FragmentActivity() {
 			}
 			firstLoaded = true
 			webView.post { // use webView.post to switch to main thread again to be able to observe sseStorage
-				sseStorage.observeUsers()!!.observe(this, { userInfos: List<User?>? ->
+				sseStorage.observeUsers().observe(this, { userInfos: List<User?>? ->
 					if (userInfos!!.isEmpty()) {
 						Log.d(TAG, "invalidateAlarms")
 						nativeImpl.sendRequest(JsRequest.invalidateAlarms, arrayOf())

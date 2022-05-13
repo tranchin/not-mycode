@@ -1,13 +1,14 @@
 package de.tutao.tutanota.push
 
 import android.app.job.JobParameters
-import android.content.*
+import android.content.Context
+import android.content.Intent
 import android.util.Log
 import de.tutao.tutanota.*
 import de.tutao.tutanota.alarms.AlarmNotificationsManager
 import de.tutao.tutanota.alarms.SystemAlarmFacade
-import de.tutao.tutanota.data.*
-import de.tutao.tutanota.push.LocalNotificationsFacade
+import de.tutao.tutanota.data.AppDatabase
+import de.tutao.tutanota.data.SseInfo
 import de.tutao.tutanota.push.PushNotificationService
 import de.tutao.tutanota.push.SseClient.SseListener
 import java.util.*

@@ -5,9 +5,11 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.util.*
 
-class MissedNotification private constructor(val alarmNotifications: List<AlarmNotification>,
-											 val notificationInfos: List<NotificationInfo>,
-											 val lastProcessedNotificationId: String) {
+class MissedNotification private constructor(
+	val alarmNotifications: List<AlarmNotification>,
+	val notificationInfos: List<NotificationInfo>,
+	val lastProcessedNotificationId: String,
+) {
 	companion object {
 		@Throws(JSONException::class)
 		fun fromJson(jsonObject: JSONObject): MissedNotification {

@@ -48,16 +48,16 @@ class CredentialsEncryptionFromAPI30(private val keyStoreFacade: AndroidKeyStore
 	@Throws(CredentialAuthenticationException::class)
 	private fun authenticateCipher(cipher: Cipher?, encryptionMode: CredentialEncryptionMode) {
 		when (encryptionMode) {
-			CredentialEncryptionMode.ENCRYPTION_MODE_BIOMETRICS -> authenticateUsingBiometrics(BiometricPrompt.CryptoObject(cipher!!), encryptionMode)
+			CredentialEncryptionMode.ENCRYPTION_MODE_BIOMETRICS      -> authenticateUsingBiometrics(BiometricPrompt.CryptoObject(cipher!!), encryptionMode)
 			CredentialEncryptionMode.ENCRYPTION_MODE_SYSTEM_PASSWORD -> authenticateUsingBiometrics(BiometricPrompt.CryptoObject(cipher!!), encryptionMode)
-			CredentialEncryptionMode.ENCRYPTION_MODE_DEVICE_LOCK -> {}
+			CredentialEncryptionMode.ENCRYPTION_MODE_DEVICE_LOCK     -> {}
 		}
 	}
 
 	@Throws(CredentialAuthenticationException::class)
 	fun authenticateUsingBiometrics(
-			cryptoObject: BiometricPrompt.CryptoObject?,
-			encryptionMode: CredentialEncryptionMode
+		cryptoObject: BiometricPrompt.CryptoObject?,
+		encryptionMode: CredentialEncryptionMode,
 	) {
 		// see AuthentorUtils#isSupportedCombination from androidx.biometrics
 		val allowedAuthenticators = if (encryptionMode == CredentialEncryptionMode.ENCRYPTION_MODE_BIOMETRICS) BiometricManager.Authenticators.BIOMETRIC_STRONG else BiometricManager.Authenticators.DEVICE_CREDENTIAL or BiometricManager.Authenticators.BIOMETRIC_STRONG

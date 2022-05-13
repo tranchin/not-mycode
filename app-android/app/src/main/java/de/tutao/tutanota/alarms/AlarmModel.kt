@@ -8,17 +8,17 @@ object AlarmModel {
 	private const val OCCURRENCES_SCHEDULED_AHEAD = 10
 
 	fun iterateAlarmOccurrences(
-			now: Date,
-			timeZone: TimeZone,
-			eventStart: Date,
-			eventEnd: Date,
-			frequency: RepeatPeriod,
-			interval: Int,
-			endType: EndType?,
-			endValue: Long,
-			alarmTrigger: AlarmTrigger,
-			localTimeZone: TimeZone,
-			callback: AlarmIterationCallback
+		now: Date,
+		timeZone: TimeZone,
+		eventStart: Date,
+		eventEnd: Date,
+		frequency: RepeatPeriod,
+		interval: Int,
+		endType: EndType?,
+		endValue: Long,
+		alarmTrigger: AlarmTrigger,
+		localTimeZone: TimeZone,
+		callback: AlarmIterationCallback,
 	) {
 		val isAllDayEvent = isAllDayEventByTimes(eventStart, eventEnd)
 		val calcEventStart = if (isAllDayEvent) getAllDayDateLocal(eventStart, localTimeZone) else eventStart
@@ -43,23 +43,25 @@ object AlarmModel {
 		}
 	}
 
-	fun incrementByRepeatPeriod(calendar: Calendar, period: RepeatPeriod?,
-								interval: Int) {
+	fun incrementByRepeatPeriod(
+		calendar: Calendar, period: RepeatPeriod?,
+		interval: Int,
+	) {
 		val field: Int
 		field = when (period) {
-			RepeatPeriod.DAILY -> Calendar.DAY_OF_MONTH
-			RepeatPeriod.WEEKLY -> Calendar.WEEK_OF_YEAR
-			RepeatPeriod.MONTHLY -> Calendar.MONTH
+			RepeatPeriod.DAILY    -> Calendar.DAY_OF_MONTH
+			RepeatPeriod.WEEKLY   -> Calendar.WEEK_OF_YEAR
+			RepeatPeriod.MONTHLY  -> Calendar.MONTH
 			RepeatPeriod.ANNUALLY -> Calendar.YEAR
-			else -> throw AssertionError("Unknown repeatPeriod: $period")
+			else                  -> throw AssertionError("Unknown repeatPeriod: $period")
 		}
 		calendar.add(field, interval)
 	}
 
 	fun calculateAlarmTime(
-			eventStart: Date,
-			timeZone: TimeZone?,
-			alarmTrigger: AlarmTrigger
+		eventStart: Date,
+		timeZone: TimeZone?,
+		alarmTrigger: AlarmTrigger,
 	): Date {
 		val calendar: Calendar = if (timeZone != null) {
 			Calendar.getInstance(timeZone)
@@ -68,14 +70,14 @@ object AlarmModel {
 		}
 		calendar.time = eventStart
 		when (alarmTrigger) {
-			AlarmTrigger.FIVE_MINUTES -> calendar.add(Calendar.MINUTE, -5)
-			AlarmTrigger.TEN_MINUTES -> calendar.add(Calendar.MINUTE, -10)
+			AlarmTrigger.FIVE_MINUTES   -> calendar.add(Calendar.MINUTE, -5)
+			AlarmTrigger.TEN_MINUTES    -> calendar.add(Calendar.MINUTE, -10)
 			AlarmTrigger.THIRTY_MINUTES -> calendar.add(Calendar.MINUTE, -30)
-			AlarmTrigger.ONE_HOUR -> calendar.add(Calendar.HOUR, -1)
-			AlarmTrigger.ONE_DAY -> calendar.add(Calendar.DAY_OF_MONTH, -1)
-			AlarmTrigger.TWO_DAYS -> calendar.add(Calendar.DAY_OF_MONTH, -2)
-			AlarmTrigger.THREE_DAYS -> calendar.add(Calendar.DAY_OF_MONTH, -3)
-			AlarmTrigger.ONE_WEEK -> calendar.add(Calendar.WEEK_OF_MONTH, -1)
+			AlarmTrigger.ONE_HOUR       -> calendar.add(Calendar.HOUR, -1)
+			AlarmTrigger.ONE_DAY        -> calendar.add(Calendar.DAY_OF_MONTH, -1)
+			AlarmTrigger.TWO_DAYS       -> calendar.add(Calendar.DAY_OF_MONTH, -2)
+			AlarmTrigger.THREE_DAYS     -> calendar.add(Calendar.DAY_OF_MONTH, -3)
+			AlarmTrigger.ONE_WEEK       -> calendar.add(Calendar.WEEK_OF_MONTH, -1)
 		}
 		return calendar.time
 	}

@@ -13,15 +13,15 @@ import java.util.*
 @Entity(primaryKeys = ["identifier"])
 @TypeConverters(OperationTypeConverter::class)
 class AlarmNotification(
-		val operation: OperationType,
-		val summary: String,
-		val eventStart: String,
-		val eventEnd: String,
-		@field:Embedded val alarmInfo: AlarmInfo,
-		@field:Embedded val repeatRule: RepeatRule?,
+	val operation: OperationType,
+	val summary: String,
+	val eventStart: String,
+	val eventEnd: String,
+	@field:Embedded val alarmInfo: AlarmInfo,
+	@field:Embedded val repeatRule: RepeatRule?,
 		// in case of a delete operation there is no session key
-		@field:Embedded(prefix = "key") val notificationSessionKey: NotificationSessionKey?,
-		val user: String
+	@field:Embedded(prefix = "key") val notificationSessionKey: NotificationSessionKey?,
+	val user: String,
 ) {
 
 	@Throws(CryptoError::class)
@@ -50,8 +50,10 @@ class AlarmNotification(
 		return Objects.hash(alarmInfo.identifier)
 	}
 
-	class NotificationSessionKey(@field:Embedded val pushIdentifier: IdTuple,
-								 val pushIdentifierSessionEncSessionKey: String) {
+	class NotificationSessionKey(
+		@field:Embedded val pushIdentifier: IdTuple,
+		val pushIdentifierSessionEncSessionKey: String,
+	) {
 
 		companion object {
 			@Throws(JSONException::class)

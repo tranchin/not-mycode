@@ -18,9 +18,9 @@ class DataKeyGeneratorBeforeAPI30 : DataKeyGenerator {
 					.setRandomizedEncryptionRequired(true)
 					.setUserAuthenticationRequired(credentialEncryptionMode.requiresAuthentication)
 			when (credentialEncryptionMode) {
-				CredentialEncryptionMode.ENCRYPTION_MODE_BIOMETRICS -> builder.setUserAuthenticationValidityDurationSeconds(-1)
+				CredentialEncryptionMode.ENCRYPTION_MODE_BIOMETRICS      -> builder.setUserAuthenticationValidityDurationSeconds(-1)
 				CredentialEncryptionMode.ENCRYPTION_MODE_SYSTEM_PASSWORD -> builder.setUserAuthenticationValidityDurationSeconds(10)
-				CredentialEncryptionMode.ENCRYPTION_MODE_DEVICE_LOCK -> {}
+				CredentialEncryptionMode.ENCRYPTION_MODE_DEVICE_LOCK     -> {}
 			}
 			keyGenerator.init(builder.build())
 			keyGenerator.generateKey()

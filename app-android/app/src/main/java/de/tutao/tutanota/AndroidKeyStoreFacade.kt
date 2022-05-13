@@ -5,7 +5,6 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.util.Log
-import de.tutao.tutanota.Crypto
 import de.tutao.tutanota.CryptoError
 import de.tutao.tutanota.credentials.CredentialEncryptionMode
 import de.tutao.tutanota.credentials.DataKeyGenerator

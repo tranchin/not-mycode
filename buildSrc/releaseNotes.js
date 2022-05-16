@@ -4,13 +4,26 @@ import {fileURLToPath} from "url"
 import path from "path"
 import fs from "fs"
 
+const releaseToken = process.env.GITHUB_TOKEN
+
+if (!releaseToken) {
+	throw new Error("No GITHUB_TOKEN set!")
+}
+
+const OCTOKIT = OctokitWrapper({
+	auth: releaseToken,
+	userAgent: 'tuta-github-release-v0.0.1',
+	owner: "tutao",
+	repo: "tutanota",
+})
+
 const wasRunFromCli = fileURLToPath(import.meta.url).startsWith(process.argv[1])
 
 if (wasRunFromCli) {
 	program
-		.requiredOption('--releaseName <releaseName>', "Name of the release")
-		.requiredOption('--milestone <milestone>', "Milestone to reference")
 		.requiredOption('--tag <tag>', "The commit tag to reference")
+		.option('--milestone <milestone>', "Milestone to reference")
+		.option('--releaseName <releaseName>', "Name of the release")
 		.addOption(
 			new Option("--platform <platform>", 'Which platform to build')
 				.choices(["android", "ios", "desktop", "all"])
@@ -21,6 +34,8 @@ if (wasRunFromCli) {
 		.option('--toFile <toFile>', "If provided, the release notes will be written to the given file path. Implies `--dryRun`")
 		.option('--dryRun', "Don't make any changes to github")
 		.option('--format <format>', "Format to generate notes in", "github")
+		.option('--existing', "reference an existing release notes page rather than creating a new one")
+		.option('--append <text>', "extra text to append to the bottom of the release notes")
 		.action(async (options) => {
 			await createReleaseNotes(options)
 		})
@@ -37,84 +52,64 @@ async function createReleaseNotes(
 		apkChecksum,
 		toFile,
 		dryRun,
-		format
+		format,
+		existing,
+		append
 	}
 ) {
-
-	const releaseToken = process.env.GITHUB_TOKEN
-
-	if (!releaseToken) {
-		throw new Error("No GITHUB_TOKEN set!")
+	if (!existing && !milestone) {
+		throw new Error("--milestone must be provided in order to create a new release. Specify --existing otherwise")
 	}
 
-	const octokit = new Octokit({
-		auth: releaseToken,
-		userAgent: 'tuta-github-release-v0.0.1'
-	})
+	const shouldUpload = !dryRun && !toFile
 
-	let releaseNotes
+	let releaseId, uploadUrl, releaseNotes
 
-	const githubMilestone = await getMilestone(octokit, milestone)
-	const issues = await getIssuesForMilestone(octokit, githubMilestone)
-	const {bugs, other} = sortIssues(filterIssues(issues, platform))
+	if (!existing) {
+		const githubMilestone = await getMilestone(milestone)
+		const issues = await getIssuesForMilestone(githubMilestone)
+		const {bugs, other} = sortIssues(filterIssues(issues, platform))
+		releaseNotes = format === "ios"
+			? renderIosReleaseNotes(bugs, other)
+			: renderGithubReleaseNotes({
+				milestoneUrl: githubMilestone.html_url,
+				bugIssues: bugs,
+				otherIssues: other,
+				apkChecksum: apkChecksum
+			})
 
-	if (format === "ios") {
-		releaseNotes = renderIosReleaseNotes(bugs, other)
-	} else {
-		releaseNotes = renderGithubReleaseNotes({
-			milestoneUrl: githubMilestone.html_url,
-			bugIssues: bugs,
-			otherIssues: other,
-			apkChecksum: apkChecksum
-		})
-	}
+		console.log("Release notes:")
+		console.log(releaseNotes)
 
-	console.log("Release notes:")
-	console.log(releaseNotes)
-
-	if (!dryRun && !toFile) {
-		const draftResponse = await createReleaseDraft(octokit, releaseName, tag, releaseNotes)
-
-		const {upload_url, id} = draftResponse.data
-
-		if (uploadFile) {
-			console.log(`Uploading asset "${uploadFile}"`)
-			await uploadAsset(octokit, upload_url, id, uploadFile)
+		if (shouldUpload) {
+			console.log("Creating release at: ", createDraftResponse.html_url)
+			const result = await createReleaseDraft(releaseName ?? tag, tag, releaseNotes)
+			releaseId = result.id
+			uploadUrl = result.upload_url
+		} else if (toFile) {
+			console.log(`writing release notes to ${toFile}`)
+			await fs.promises.writeFile(toFile, releaseNotes, "utf-8")
 		}
-	}
-
-	if (toFile) {
-		console.log(`writing release notes to ${toFile}`)
-		await fs.promises.writeFile(toFile, releaseNotes, "utf-8")
-	}
-}
-
-async function getMilestone(octokit, milestoneName) {
-	const {data} = await octokit.issues.listMilestones({
-		owner: "tutao",
-		repo: "tutanota",
-		direction: "desc",
-		state: "all"
-	})
-
-	const milestone = data.find(m => m.title === milestoneName)
-
-	if (milestone) {
-		return milestone
 	} else {
-		const titles = data.map(m => m.title)
-		throw new Error(`No milestone named ${milestoneName} found. Milestones: ${titles.join(", ")}`)
+		const release = await getExistingReleaseByTagName(tag)
+		uploadUrl = release.upload_url
+		releaseId = release.id
+		releaseNotes = release.body
 	}
-}
 
-async function getIssuesForMilestone(octokit, milestone) {
-	const response = await octokit.issues.listForRepo({
-		owner: "tutao",
-		repo: "tutanota",
-		milestone: milestone.number,
-		state: "all"
-	})
-	return response.data
+	if (shouldUpload && uploadFile) {
+		console.log(`Uploading asset "${uploadFile} to ${uploadUrl}"`)
+		await uploadAsset(uploadUrl, releaseId, uploadFile)
+	}
+
+	if (append && existing) {
+		const newBody = `${releaseNotes}\n${append}`
+		console.log(`Updating release body to ${newBody}`)
+		await updateReleaseBody(
+			releaseId,
+			newBody
+		)
+	}
 }
 
 /**
@@ -158,7 +153,6 @@ function sortIssues(issues) {
 }
 
 function renderGithubReleaseNotes({milestoneUrl, bugIssues, otherIssues, apkChecksum}) {
-
 	const whatsNewListRendered = otherIssues.map(issue => {
 		return ` - ${issue.title} #${issue.number}`
 	}).join("\n")
@@ -195,10 +189,31 @@ bugfixes:
 ${bugs.map(issue => issue.title).join("\n")}`.trim()
 }
 
-async function createReleaseDraft(octokit, name, tag, body) {
-	return octokit.repos.createRelease({
-		owner: "tutao",
-		repo: "tutanota",
+async function getMilestone(milestoneName) {
+	const milestones = await OCTOKIT.issues.listMilestones({
+		direction: "desc",
+		state: "all"
+	})
+
+	const milestone = milestones.find(m => m.title === milestoneName)
+
+	if (milestone) {
+		return milestone
+	} else {
+		const titles = milestones.map(m => m.title)
+		throw new Error(`No milestone named ${milestoneName} found. Milestones: ${titles.join(", ")}`)
+	}
+}
+
+async function getIssuesForMilestone(milestone) {
+	return OCTOKIT.issues.listForRepo({
+		milestone: milestone.number,
+		state: "all"
+	})
+}
+
+async function createReleaseDraft(name, tag, body) {
+	return OCTOKIT.repos.createRelease({
 		draft: true,
 		name,
 		tag_name: tag,
@@ -206,17 +221,45 @@ async function createReleaseDraft(octokit, name, tag, body) {
 	})
 }
 
-async function uploadAsset(octokit, uploadUrl, releaseId, assetPath) {
-	const response = octokit.rest.repos.uploadReleaseAsset({
-		owner: "tutao",
-		repo: "tutanota",
+async function updateReleaseBody(releaseId, body) {
+	return OCTOKIT.repos.updateRelease({
+		release_id: releaseId,
+		body
+	})
+}
+
+async function getExistingReleaseByTagName(tagName) {
+	return OCTOKIT.repos.getReleaseByTag({
+		tag: tagName
+	})
+}
+
+async function uploadAsset(uploadUrl, releaseId, assetPath) {
+	return OCTOKIT.repos.uploadReleaseAsset({
 		release_id: releaseId,
 		data: await fs.promises.readFile(assetPath),
 		name: path.basename(assetPath),
 		upload_url: uploadUrl
-	});
+	})
+}
 
-	if (response.status < 200 || response.status > 299) {
-		console.error(`Asset upload failed "${assetPath}. Response:"`, response)
+function OctokitWrapper({auth, userAgent, owner, repo}) {
+	const handler = {
+		get: (target, prop, receiver) => new Proxy(Reflect.get(target, prop, receiver), handler),
+		apply: async (target, receiver, [params]) => {
+			const response = await Reflect.apply(
+				target,
+				receiver,
+				[
+					{
+						owner,
+						repo,
+						...params
+					}
+				]
+			)
+			return response.data
+		}
 	}
+	return new Proxy(new Octokit({auth, userAgent}), handler)
 }

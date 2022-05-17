@@ -21,7 +21,7 @@ import {assertThrows, mockAttribute, unmockAttribute} from "@tutao/tutanota-test
 import {EphemeralCacheStorage} from "../../../src/api/worker/rest/EphemeralCacheStorage"
 import {QueuedBatch} from "../../../src/api/worker/search/EventQueue"
 import {matchers, object, when} from "testdouble"
-import {OfflineStorage} from "../../../src/api/worker/rest/OfflineStorage"
+import {OfflineStorage} from "../../../src/api/worker/offline/OfflineStorage.js"
 import {RestClient} from "../../../src/api/worker/rest/RestClient"
 import {WorkerDateProvider} from "../../../src/api/worker/utils/WorkerDateProvider"
 

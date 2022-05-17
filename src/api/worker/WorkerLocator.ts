@@ -49,8 +49,9 @@ import {DesktopConfigKey} from "../../desktop/config/ConfigKeys"
 import {CacheStorage} from "./rest/EntityRestCache.js"
 import {UserFacade} from "./facades/UserFacade"
 import {exposeRemote} from "../common/WorkerProxy"
-import {OfflineStorage} from "./rest/OfflineStorage"
+import {OfflineStorage} from "./offline/OfflineStorage.js"
 import {exposeNativeInterface} from "../common/ExposeNativeInterface"
+import {OfflineStorageMigrator} from "./offline/Migrator.js"
 
 assertWorkerOrNode()
 
@@ -110,13 +111,12 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 	locator.booking = new BookingFacade(locator.serviceExecutor)
 
 	const offlineStorageProvider = async () => {
-		if (isDesktop() && await systemApp.getConfigValue(DesktopConfigKey.offlineStorageEnabled)) {
+		if (isOfflineStorageAvailable() && await systemApp.getConfigValue(DesktopConfigKey.offlineStorageEnabled)) {
 			const {offlineDbFacade} = exposeNativeInterface(locator.native)
-			return new OfflineStorage(offlineDbFacade, new WorkerDateProvider())
+			return new OfflineStorage(offlineDbFacade, new WorkerDateProvider(), new OfflineStorageMigrator())
 		} else {
 			return null
 		}
-
 	}
 
 	const maybeUninitializedStorage = isOfflineStorageAvailable()

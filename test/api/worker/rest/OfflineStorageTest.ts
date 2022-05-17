@@ -1,6 +1,6 @@
 import o from "ospec"
 import {verify} from "@tutao/tutanota-test-utils"
-import {customTypeEncoders, OfflineStorage} from "../../../../src/api/worker/rest/OfflineStorage"
+import {customTypeEncoders, OfflineStorage} from "../../../../src/api/worker/offline/OfflineStorage.js"
 import {OfflineDbFacade, OfflineDbFactory} from "../../../../src/desktop/db/OfflineDbFacade"
 import {instance, matchers, object, when} from "testdouble"
 import * as cborg from "cborg"

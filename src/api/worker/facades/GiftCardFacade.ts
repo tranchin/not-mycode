@@ -20,7 +20,7 @@ import {CryptoFacade} from "../crypto/CryptoFacade"
 import {UserFacade} from "./UserFacade"
 
 export interface GiftCardFacade {
-	generateGiftCard(message: string, value: NumberString, countryCode: string): Promise<IdTuple>
+	generateGiftCard(message: string, value: NumberString): Promise<IdTuple>
 
 	getGiftCardInfo(id: Id, key: string): Promise<GiftCardRedeemGetReturn>
 
@@ -42,7 +42,7 @@ export class GiftCardFacadeImpl implements GiftCardFacade {
 	) {
 	}
 
-	generateGiftCard(message: string, value: NumberString, countryCode: string): Promise<IdTuple> {
+	generateGiftCard(message: string, value: NumberString): Promise<IdTuple> {
 		const sessionKey = aes128RandomKey()
 		const keyHash = sha256Hash(bitArrayToUint8Array(sessionKey))
 
@@ -59,7 +59,6 @@ export class GiftCardFacadeImpl implements GiftCardFacade {
 			message: message,
 			keyHash,
 			value,
-			country: countryCode,
 			ownerEncSessionKey,
 		})
 		return this.serviceExecutor.post(GiftCardService, data, {sessionKey})

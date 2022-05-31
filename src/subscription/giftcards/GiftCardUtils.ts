@@ -213,7 +213,7 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 	})
 }
 
-export function renderGiftCardSvg(price: number, country: Country, link: string | null, message: string): Children {
+export function renderGiftCardSvg(price: number, link: string | null, message: string): Children {
 	let qrCode: string | null = null
 	const qrCodeSize = 80
 

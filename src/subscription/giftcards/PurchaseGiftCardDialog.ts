@@ -9,8 +9,6 @@ import {showProgressDialog} from "../../gui/dialogs/ProgressDialog"
 import {locator} from "../../api/main/MainLocator"
 import type {Country} from "../../api/common/CountryList"
 import {getByAbbreviation} from "../../api/common/CountryList"
-import {DropDownSelector} from "../../gui/base/DropDownSelector"
-import {createCountryDropdown} from "../../gui/base/GuiUtils"
 import {BuyOptionBox} from "../BuyOptionBox"
 import {ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import type {SubscriptionData, SubscriptionOptions, SubscriptionPlanPrices} from "../SubscriptionUtils"
@@ -45,7 +43,6 @@ export type GiftCardPurchaseViewAttrs = {
 }
 
 class GiftCardPurchaseView implements Component<GiftCardPurchaseViewAttrs> {
-	countrySelector: DropDownSelector<Country | null>
 	message: Stream<string>
 	selectedPackage: Stream<number>
 	selectedCountry: Stream<Country | null>
@@ -56,7 +53,6 @@ class GiftCardPurchaseView implements Component<GiftCardPurchaseViewAttrs> {
 		this.selectedPackage = stream(a.initiallySelectedPackage)
 		this.selectedCountry = stream(a.country)
 		this.message = stream(a.message)
-		this.countrySelector = createCountryDropdown(this.selectedCountry, () => lang.get("invoiceCountryInfoConsumer_msg"), "selectRecipientCountry_msg")
 		this.isConfirmed = stream<boolean>(false)
 	}
 
@@ -111,7 +107,6 @@ class GiftCardPurchaseView implements Component<GiftCardPurchaseViewAttrs> {
 			m(
 				".flex-center",
 				m(".flex-grow-shrink-auto.max-width-m.pt.pb.plr-l", [
-					m("", m(this.countrySelector)),
 					m(".pt", renderAcceptGiftCardTermsCheckbox(this.isConfirmed)),
 					m(
 						".mt-l.mb-l",

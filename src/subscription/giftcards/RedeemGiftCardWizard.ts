@@ -1,14 +1,9 @@
 import m, {Children, Vnode, VnodeDOM} from "mithril"
 import stream from "mithril/stream"
-import {neverNull, noOp} from "@tutao/tutanota-utils"
+import Stream from "mithril/stream"
+import {downcast, neverNull, noOp, ofClass} from "@tutao/tutanota-utils"
 import type {WizardPageAttrs, WizardPageN} from "../../gui/base/WizardDialogN"
-import {
-	createWizardDialog,
-	emitWizardEvent,
-	WizardEventType,
-	wizardPageWrapper,
-	WizardPageWrapper
-} from "../../gui/base/WizardDialogN"
+import {createWizardDialog, emitWizardEvent, WizardEventType, wizardPageWrapper} from "../../gui/base/WizardDialogN"
 import {logins} from "../../api/main/LoginController"
 import type {NewAccountData} from "../UpgradeSubscriptionWizard"
 import {loadUpgradePrices} from "../UpgradeSubscriptionWizard"
@@ -20,13 +15,11 @@ import {showProgressDialog} from "../../gui/dialogs/ProgressDialog"
 import {ButtonAttrs, ButtonN, ButtonType} from "../../gui/base/ButtonN"
 import type {SignupFormAttrs} from "../SignupForm"
 import {SignupForm} from "../SignupForm"
-import {NotAuthorizedError} from "../../api/common/error/RestError"
 import {UserError} from "../../api/main/UserError"
 import {showUserError} from "../../misc/ErrorHandlerImpl"
-import {CustomerInfoTypeRef} from "../../api/entities/sys/TypeRefs.js"
-import {locator} from "../../api/main/MainLocator"
-import {AccountingInfoTypeRef} from "../../api/entities/sys/TypeRefs.js"
 import type {GiftCardRedeemGetReturn} from "../../api/entities/sys/TypeRefs.js"
+import {AccountingInfoTypeRef, CustomerInfoTypeRef} from "../../api/entities/sys/TypeRefs.js"
+import {locator} from "../../api/main/MainLocator"
 import {redeemGiftCard, renderAcceptGiftCardTermsCheckbox, renderGiftCardSvg} from "./GiftCardUtils"
 import {CancelledError} from "../../api/common/error/CancelledError"
 import {lang} from "../../misc/LanguageViewModel"
@@ -37,13 +30,9 @@ import {PaymentMethodType} from "../../api/common/TutanotaConstants"
 import type {SubscriptionData, SubscriptionOptions, SubscriptionPlanPrices} from "../SubscriptionUtils"
 import {SubscriptionType, UpgradePriceType} from "../SubscriptionUtils"
 import {formatPrice, getPaymentMethodName, getSubscriptionPrice} from "../PriceUtils"
-import {TextFieldAttrs, TextFieldN} from "../../gui/base/TextFieldN"
-import {getByAbbreviation} from "../../api/common/CountryList"
+import {TextFieldN} from "../../gui/base/TextFieldN"
 import {isSameId} from "../../api/common/utils/EntityUtils"
-import {ofClass} from "@tutao/tutanota-utils"
 import type {CredentialsInfo} from "../../misc/credentials/CredentialsProvider"
-import Stream from "mithril/stream";
-import {downcast} from "@tutao/tutanota-utils";
 import {SessionType} from "../../api/common/SessionType.js";
 
 type GetCredentialsMethod = "login" | "signup"
@@ -80,31 +69,24 @@ class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 
 		let message = a.data.giftCardInfo.message
 		return [
-			m(
-				".flex-center.full-width.pt-l",
-				m(
-					"",
+			m(".flex-center.full-width.pt-l",
+				m("",
 					{
 						style: {
 							width: "480px",
-						},
+						}
 					},
-					m(
-						".pt-l",
+					m(".pt-l",
 						renderGiftCardSvg(
 							parseFloat(a.data.giftCardInfo.value),
-							neverNull(getByAbbreviation(a.data.giftCardInfo.country)),
-							/*link=*/
 							null,
 							message,
 						),
 					),
 				),
 			),
-			m(
-				".flex-center.full-width.pt-l",
-				m(
-					"",
+			m(".flex-center.full-width.pt-l",
+				m("",
 					{
 						style: {
 							width: "260px",
@@ -117,10 +99,8 @@ class GiftCardWelcomePage implements WizardPageN<RedeemGiftCardWizardData> {
 					}),
 				),
 			),
-			m(
-				".flex-center.full-width.pt-l.pb-m",
-				m(
-					"",
+			m(".flex-center.full-width.pt-l.pb-m",
+				m("",
 					{
 						style: {
 							width: "260px",
@@ -167,10 +147,10 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 
 		switch (data.credentialsMethod) {
 			case "login":
-				return this._renderLoginPage(data)
+				return this.renderLoginPage(data)
 
 			case "signup":
-				return this._renderSignupPage(data)
+				return this.renderSignupPage(data)
 		}
 	}
 
@@ -178,7 +158,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 		this._password("")
 	}
 
-	_renderLoginPage(data: RedeemGiftCardWizardData): Children {
+	private renderLoginPage(data: RedeemGiftCardWizardData): Children {
 		const loginFormAttrs: LoginFormAttrs = {
 			onSubmit: (mailAddress, password) => {
 				if (mailAddress === "" || password === "") {
@@ -187,7 +167,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 					const loginPromise = logins
 						.logout(false)
 						.then(() => logins.createSession(mailAddress, password, SessionType.Temporary))
-						.then(() => this._postLogin())
+						.then(() => this.postLogin())
 						.catch(e => {
 							this._loginFormHelpText = lang.getMaybeLazy(getLoginErrorMessage(e, false))
 						})
@@ -207,7 +187,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 
 				if (credentials) {
 					await logins.resumeSession(credentials, null, null)
-					await this._postLogin()
+					await this.postLogin()
 				}
 
 			} catch (e) {
@@ -222,7 +202,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 				if (logins.isUserLoggedIn() && isSameId(logins.getUserController().user._id, encryptedCredentials.userId)) {
 					// If the user is logged in already (because they selected credentials and then went back) we dont have to do
 					// anything, so just move on
-					await this._postLogin()
+					await this.postLogin()
 				} else {
 					await showProgressDialog("pleaseWait_msg", loginWithStoredCredentials(encryptedCredentials))
 				}
@@ -239,7 +219,7 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 		]
 	}
 
-	_renderSignupPage(data: RedeemGiftCardWizardData): Children {
+	private renderSignupPage(data: RedeemGiftCardWizardData): Children {
 		const existingAccountData = data.newAccountData()
 		const isReadOnly = existingAccountData != null
 		const signupFormAttrs: SignupFormAttrs = {
@@ -281,26 +261,20 @@ class GiftCardCredentialsPage implements WizardPageN<RedeemGiftCardWizardData> {
 		return m(SignupForm, signupFormAttrs)
 	}
 
-	_postLogin(): Promise<void> {
-		return Promise.resolve()
-					  .then(() => {
-						  if (!logins.getUserController().isGlobalAdmin()) throw new UserError("onlyAccountAdminFeature_msg")
-					  })
-					  .then(() => logins.getUserController().loadCustomer())
-					  .then(customer => {
-						  return locator.entityClient
-										.load(CustomerInfoTypeRef, customer.customerInfo)
-										.then(customerInfo => locator.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo))
-										.then(accountingInfo => {
-											if (customer.businessUse || accountingInfo.business) {
-												throw new UserError("onlyPrivateAccountFeature_msg")
-											}
-										})
-					  })
-					  .then(() => {
-						  emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
-					  })
-					  .catch(ofClass(UserError, showUserError))
+	private async postLogin(): Promise<void> {
+		if (!logins.getUserController().isGlobalAdmin()) {
+			return Dialog.message("onlyAccountAdminFeature_msg")
+		}
+
+		const customer = await logins.getUserController().loadCustomer()
+		const customerInfo = await locator.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
+		const accountingInfo = await locator.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo)
+
+		if (customer.businessUse || accountingInfo.business) {
+			return Dialog.message("onlyPrivateAccountFeature_msg")
+		}
+
+		emitWizardEvent(this._domElement, WizardEventType.SHOWNEXTPAGE)
 	}
 }
 
@@ -338,7 +312,7 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardWizardData> {
 					return
 				}
 
-				redeemGiftCard(data.giftCardInfo.giftCard, data.key, data.giftCardInfo.country, Dialog.confirm)
+				redeemGiftCard(data.giftCardInfo.giftCard, data.key, Dialog.confirm)
 					.then(() => emitWizardEvent(this.dom, WizardEventType.CLOSEDIALOG))
 					.catch(ofClass(UserError, showUserError))
 					.catch(ofClass(CancelledError, noOp))

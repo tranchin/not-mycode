@@ -885,9 +885,6 @@ export class Dialog implements ModalComponent {
 		})
 	}
 
-	/**
-	 * @deprecated useLargeDialogN instead
-	 */
 	static largeDialog(headerBarAttrs: DialogHeaderBarAttrs, child: Component): Dialog {
 		return new Dialog(DialogType.EditLarge, {
 			view: () => {

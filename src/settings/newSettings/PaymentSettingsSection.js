@@ -166,8 +166,7 @@ export class PaymentSettingsSection implements SettingsSection {
 	}
 
 	createAccountBalanceSetting(): SettingsValue<TextFieldAttrs> {
-
-		const balance = Number.parseFloat(this.postings[0].balance)
+		const balance = this.postings.length > 0 ? Number.parseFloat(this.postings[0].balance) : 0
 		const balanceValue = formatPrice(balance, true) + (this.accountBalance()
 		!== balance ? ` (${formatPrice(this.accountBalance(), true)})` : "")
 		const balanceHelpLabel = (this.accountBalance() !== balance)

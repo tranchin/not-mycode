@@ -147,12 +147,12 @@ export class LoginSettingsSection implements SettingsSection {
 		}
 
 		const secondFactorTableSetting: SettingsTableAttrs = {
-			tableHeading: "secondFactor_label",
+			tableHeading: "secondFactorAuthentication_label",
 			tableAttrs: secondFactorTableAttrs
 		}
 
 		return {
-			name: "secondFactor_label",
+			name: "secondFactorAuthentication_label",
 			component: SettingsTable,
 			attrs: secondFactorTableSetting
 		}

@@ -14,6 +14,7 @@ import {keyManager} from "../../misc/KeyManager"
 import {CounterBadge} from "../base/CounterBadge.js"
 import {px} from "../size.js"
 import {theme} from "../theme.js"
+import {showUsageTestOptInDialog} from "../../misc/UsageTestModel.js"
 
 type Attrs = {
 	openNewWindow(): unknown
@@ -30,15 +31,13 @@ export class DrawerMenu implements Component<Attrs> {
 			},
 			m(".flex.col.height-100p.items-center.pt.pb", [
 				m(".flex-grow"),
-				logins.isUserLoggedIn() // FIXME Check whether user has opted in to usage testing here
+				logins.isUserLoggedIn() && logins.getUserController().userSettingsGroupRoot.usageDataOptedIn === null
 					?
 					m(".news-button", [
 						m(ButtonN, {
-							icon: () => Icons.QuestionMark,
+							icon: () => Icons.Bulb,
 							label: () => "Usage testing opt-in", // FIXME Add translation string
-							click: () => {
-								// nuffin
-							},
+							click: showUsageTestOptInDialog,
 							type: ButtonType.ActionLarge,
 							colors: ButtonColor.DrawerNav,
 						}),
@@ -91,31 +90,31 @@ export class DrawerMenu implements Component<Attrs> {
 					Button,
 					attachDropdown(
 						{
-                            mainButtonAttrs: {
-                                label: "showHelp_action",
-                                icon: () => BootIcons.Help,
-                                type: ButtonType.ActionLarge,
-                                click: () => keyManager.openF1Help(),
-                                noBubble: true,
-                                colors: ButtonColor.DrawerNav,
-                            },
-                            childAttrs: () => [
-                                {
-                                    label: "supportMenu_label",
-                                    click: () => showSupportDialog(),
-                                    type: ButtonType.Dropdown,
-                                    colors: ButtonColor.DrawerNav,
-                                },
-                                {
-                                    label: "keyboardShortcuts_title",
-                                    click: () => keyManager.openF1Help(true),
-                                    type: ButtonType.Dropdown,
-                                    colors: ButtonColor.DrawerNav,
-                                },
-                            ],
-                            showDropdown: () => logins.isUserLoggedIn() && logins.getUserController().isPremiumAccount(),
-                            width: 300
-                        },
+							mainButtonAttrs: {
+								label: "showHelp_action",
+								icon: () => BootIcons.Help,
+								type: ButtonType.ActionLarge,
+								click: () => keyManager.openF1Help(),
+								noBubble: true,
+								colors: ButtonColor.DrawerNav,
+							},
+							childAttrs: () => [
+								{
+									label: "supportMenu_label",
+									click: () => showSupportDialog(),
+									type: ButtonType.Dropdown,
+									colors: ButtonColor.DrawerNav,
+								},
+								{
+									label: "keyboardShortcuts_title",
+									click: () => keyManager.openF1Help(true),
+									type: ButtonType.Dropdown,
+									colors: ButtonColor.DrawerNav,
+								},
+							],
+							showDropdown: () => logins.isUserLoggedIn() && logins.getUserController().isPremiumAccount(),
+							width: 300
+						},
 					),
 				),
 				isNewMailActionAvailable() && logins.getUserController().isGlobalAdmin()

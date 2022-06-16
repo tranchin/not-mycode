@@ -30,6 +30,16 @@
 					"info": "RemoveValue GiftCard/country/1780."
 				}
 			]
+		},
+		{
+			"version": 77,
+			"changes": [
+				{
+					"name": "AddValue",
+					"sourceType": "CustomerProperties",
+					"info": "AddValue CustomerProperties/usageDataOptedOut/1996."
+				}
+			]
 		}
 	]
 }

@@ -1,22 +1,27 @@
 import {FULL_INDEXED_TIMESTAMP, MailFolderType, MailState, NOTHING_INDEXED_TIMESTAMP, OperationType} from "../../common/TutanotaConstants"
-import type {MailBody} from "../../entities/tutanota/TypeRefs.js"
-import {MailBodyTypeRef} from "../../entities/tutanota/TypeRefs.js"
+import type {File as TutanotaFile, Mail, MailBody, MailBox, MailFolder} from "../../entities/tutanota/TypeRefs.js"
+import {FileTypeRef, MailBodyTypeRef, MailboxGroupRootTypeRef, MailBoxTypeRef, MailFolderTypeRef, MailTypeRef} from "../../entities/tutanota/TypeRefs.js"
 import {ConnectionError, NotAuthorizedError, NotFoundError} from "../../common/error/RestError"
-import {MailboxGroupRootTypeRef} from "../../entities/tutanota/TypeRefs.js"
-import type {MailBox} from "../../entities/tutanota/TypeRefs.js"
-import {MailBoxTypeRef} from "../../entities/tutanota/TypeRefs.js"
-import type {MailFolder} from "../../entities/tutanota/TypeRefs.js"
-import {MailFolderTypeRef} from "../../entities/tutanota/TypeRefs.js"
-import type {Mail} from "../../entities/tutanota/TypeRefs.js"
-import {MailTypeRef} from "../../entities/tutanota/TypeRefs.js"
 import {typeModels} from "../../entities/tutanota/TypeModels"
 import {containsEventOfType, getMailBodyText} from "../../common/utils/Utils"
-import {flat, groupBy, isNotNull, neverNull, noOp, ofClass, promiseMap, splitInChunks, TypeRef} from "@tutao/tutanota-utils"
+import {
+	assertNotNull,
+	flat, getFromMap,
+	groupBy,
+	groupByAndMap,
+	isNotNull, isSameTypeRefByAttr,
+	neverNull,
+	noOp,
+	ofClass,
+	partition,
+	promiseMap,
+	splitInChunks,
+	TypeRef
+} from "@tutao/tutanota-utils"
 import {elementIdPart, isSameId, listIdPart, timestampToGeneratedId} from "../../common/utils/EntityUtils"
 import {_createNewIndexUpdate, encryptIndexKeyBase64, filterMailMemberships, getPerformanceTimestamp, htmlToText, typeRefToTypeInfo} from "./IndexUtils"
 import type {Db, GroupData, IndexUpdate, SearchIndexEntry} from "./SearchTypes"
-import type {File as TutanotaFile} from "../../entities/tutanota/TypeRefs.js"
-import {FileTypeRef} from "../../entities/tutanota/TypeRefs.js"
+import {IndexingErrorReason} from "./SearchTypes"
 import {CancelledError} from "../../common/error/CancelledError"
 import {IndexerCore} from "./IndexerCore"
 import {ElementDataOS, GroupDataOS, Metadata, MetaDataOS} from "./Indexer"
@@ -24,17 +29,15 @@ import type {WorkerImpl} from "../WorkerImpl"
 import {DbError} from "../../common/error/DbError"
 import {EntityRestCache} from "../rest/EntityRestCache"
 import type {DateProvider} from "../DateProvider"
-import type {EntityUpdate} from "../../entities/sys/TypeRefs.js"
-import type {User} from "../../entities/sys/TypeRefs.js"
-import type {GroupMembership} from "../../entities/sys/TypeRefs.js"
+import type {EntityUpdate, GroupMembership, User} from "../../entities/sys/TypeRefs.js"
 import {EntityRestClient} from "../rest/EntityRestClient"
 import {EntityClient} from "../../common/EntityClient"
 import {ProgressMonitor} from "../../common/utils/ProgressMonitor"
 import type {SomeEntity} from "../../common/EntityTypes"
 import {EntityUpdateData} from "../../main/EventController";
 import {EphemeralCacheStorage} from "../rest/EphemeralCacheStorage";
-import {IndexingErrorReason} from "./SearchTypes"
 import {CustomCacheHandlerMap} from "../rest/CustomCacheHandler.js"
+import {batchMod, EntityModificationType, QueuedBatch} from "./EventQueue.js"
 
 export const INITIAL_MAIL_INDEX_INTERVAL_DAYS = 28
 const ENTITY_INDEXER_CHUNK = 20
@@ -125,43 +128,33 @@ export class MailIndexer {
 		return keyToIndexEntries
 	}
 
-	processNewMail(
-		event: EntityUpdate,
-	): Promise<| {
-		mail: Mail
-		keyToIndexEntries: Map<string, SearchIndexEntry[]>
-	}
-		| null> {
+	async processNewMail(event: EntityUpdate): Promise<{mail: Mail, keyToIndexEntries: Map<string, SearchIndexEntry[]>} | null> {
 		if (this._isExcluded(event)) {
-			return Promise.resolve(null)
+			return null
 		}
 
-		return this._defaultCachingEntity
-				   .load(MailTypeRef, [event.instanceListId, event.instanceId])
-				   .then(mail => {
-					   return Promise.all([
-						   promiseMap(mail.attachments, attachmentId => this._defaultCachingEntity.load(FileTypeRef, attachmentId)),
-						   this._defaultCachingEntity.load(MailBodyTypeRef, mail.body),
-					   ]).then(([files, body]) => {
-						   let keyToIndexEntries = this.createMailIndexEntries(mail, body, files)
-						   return {
-							   mail,
-							   keyToIndexEntries,
-						   }
-					   })
-				   })
-				   .catch(
-					   ofClass(NotFoundError, () => {
-						   console.log("tried to index non existing mail")
-						   return null
-					   }),
-				   )
-				   .catch(
-					   ofClass(NotAuthorizedError, () => {
-						   console.log("tried to index contact without permission")
-						   return null
-					   }),
-				   )
+		try {
+			const mail = await this._defaultCachingEntity.load(MailTypeRef, [event.instanceListId, event.instanceId])
+			const attachmentsByListId = groupByAndMap(mail.attachments, id => listIdPart(id), id => elementIdPart(id))
+			const [body, files] = await Promise.all([
+				this._defaultCachingEntity.load(MailBodyTypeRef, mail.body),
+				promiseMap(attachmentsByListId.entries(),
+					([listId, elementIds]) => this._defaultCachingEntity.loadMultiple(FileTypeRef, listId, elementIds))
+			])
+
+			const keyToIndexEntries = this.createMailIndexEntries(mail, body, flat(files))
+			return {mail, keyToIndexEntries}
+		} catch (e) {
+			if (e instanceof NotFoundError) {
+				console.log("tried to index nonexistent mail")
+			} else if (e instanceof NotAuthorizedError) {
+				console.log("tried to index mail without permission")
+			} else {
+				throw e
+			}
+
+			return null
+		}
 	}
 
 	processMovedMail(event: EntityUpdate, indexUpdate: IndexUpdate): Promise<void> {
@@ -334,14 +327,14 @@ export class MailIndexer {
 
 			const success = this._core.isStoppedProcessing() || e instanceof CancelledError
 
-			const failedIndexingUpTo =  success
+			const failedIndexingUpTo = success
 				? null
 				: oldestTimestamp
 
 			const error = success
 				? null
 				: e instanceof ConnectionError
-				? IndexingErrorReason.ConnectionLost
+					? IndexingErrorReason.ConnectionLost
 					: IndexingErrorReason.Unknown
 
 			await this._worker.sendIndexState({
@@ -590,7 +583,6 @@ export class MailIndexer {
 								  .then(folders => neverNull(folders.find(folder => folder.folderType === MailFolderType.SPAM)))
 				   })
 	}
-
 	/**
 	 * Prepare IndexUpdate in response to the new entity events.
 	 * {@see MailIndexerTest.js}
@@ -600,48 +592,82 @@ export class MailIndexer {
 	 * @param indexUpdate which will be populated with operations
 	 * @returns {Promise<*>} Indication that we're done.
 	 */
-	processEntityEvents(events: EntityUpdate[], groupId: Id, batchId: Id, indexUpdate: IndexUpdate): Promise<void> {
-		if (!this.mailIndexingEnabled) return Promise.resolve()
-		return promiseMap(events, event => {
+	async _processEntityEvents(events: readonly EntityUpdate[], groupId: Id, batchId: Id, indexUpdate: IndexUpdate): Promise<void> {
+		if (!this.mailIndexingEnabled) return
+
+		for (let event of events) {
 			if (event.operation === OperationType.CREATE) {
 				if (containsEventOfType(events as readonly EntityUpdateData[], OperationType.DELETE, event.instanceId)) {
 					// do not execute move operation if there is a delete event or another move event.
-					return this.processMovedMail(event, indexUpdate)
+					await this.processMovedMail(event, indexUpdate)
 				} else {
-					return this.processNewMail(event).then(result => {
-						if (result) {
-							this._core.encryptSearchIndexEntries(result.mail._id, neverNull(result.mail._ownerGroup), result.keyToIndexEntries, indexUpdate)
-						}
-					})
+					// Ideally there would be no create operations happening here, but in SendDraftService
+					// we change the Id of the mail before moving it, so even though it is basically a move, it isn't detected as such
+					const result = await this.processNewMail(event)
+					if (result) {
+						this._core.encryptSearchIndexEntries(result.mail._id, neverNull(result.mail._ownerGroup), result.keyToIndexEntries, indexUpdate)
+					}
 				}
 			} else if (event.operation === OperationType.UPDATE) {
-				return this._defaultCachingEntity
-						   .load(MailTypeRef, [event.instanceListId, event.instanceId])
-						   .then(mail => {
-							   if (mail.state === MailState.DRAFT) {
-								   return Promise.all([
-									   this._core._processDeleted(event, indexUpdate),
-									   this.processNewMail(event).then(result => {
-										   if (result) {
-											   this._core.encryptSearchIndexEntries(
-												   result.mail._id,
-												   neverNull(result.mail._ownerGroup),
-												   result.keyToIndexEntries,
-												   indexUpdate,
-											   )
-										   }
-									   }),
-								   ])
-							   }
-						   })
-						   .catch(ofClass(NotFoundError, () => console.log("tried to index update event for non existing mail")))
+				const mail: Mail | null = await this._defaultCachingEntity.load(MailTypeRef, [event.instanceListId, event.instanceId])
+											  .catch(ofClass(NotFoundError, () => {
+												  console.log("tried to index update event for non existing mail")
+												  return null
+											  }))
+
+				if (mail && mail.state === MailState.DRAFT) {
+					await Promise.all([
+						this._core._processDeleted(event, indexUpdate),
+						this.processNewMail(event).then(result => {
+							if (result) {
+								this._core.encryptSearchIndexEntries(result.mail._id, neverNull(result.mail._ownerGroup), result.keyToIndexEntries,
+									indexUpdate)
+							}
+						})
+					])
+				}
 			} else if (event.operation === OperationType.DELETE) {
 				if (!containsEventOfType(events as readonly EntityUpdateData[], OperationType.CREATE, event.instanceId)) {
-					// Check that this is *not* a move event. Move events are handled separately.
-					return this._core._processDeleted(event, indexUpdate)
+					// This is *not* a move event. Move events are handled above
+					await this._core._processDeleted(event, indexUpdate)
 				}
 			}
-		}).then(noOp)
+		}
+	}
+
+	async processMailUpdates(indexUpdate: IndexUpdate, groupId: Id, batches: Array<QueuedBatch>): Promise<void> {
+		if (!this.mailIndexingEnabled) return
+
+		const indexLoader = new IndexLoader(this._entityRestClient, this._defaultCachingEntityRestClient, this.isUsingOfflineCache)
+
+
+		// It might be that there's some batch that doesn't include mail update (as result of optimization or otherwise).
+		// We don't care about them.
+		batches = batches.filter((b) => b.events.some(e => e.type === MailTypeRef.type))
+
+		const [createBatches, otherBatches] = partition(batches, batch => {
+			const mailEvent = assertNotNull(batch.events.find(e => e.type === MailTypeRef.type))
+			return batchMod(batch.events, mailEvent.instanceId) === EntityModificationType.CREATE
+		})
+
+		const eventsByListId = new Map()
+		for (let {events} of createBatches) {
+			for (const event of events) {
+				if (!this._isExcluded(event) && isSameTypeRefByAttr(MailTypeRef, event.application, event.type)) {
+					getFromMap(eventsByListId, event.instanceListId, () => []).push(event.instanceId)
+				}
+			}
+		}
+
+		for (let [listId, instanceIds] of eventsByListId.entries()) {
+			const mails = await this._defaultCachingEntity.loadMultiple(MailTypeRef, listId, instanceIds)
+			await this._processIndexMails(mails, indexUpdate, indexLoader)
+		}
+
+		for (let {events, batchId} of otherBatches) {
+			const mailEvents = events.filter(event => isSameTypeRefByAttr(MailTypeRef, event.application, event.type))
+			await this._processEntityEvents(mailEvents, groupId, batchId, indexUpdate)
+		}
 	}
 }
 

@@ -91,4 +91,8 @@ export class SchedulerMock implements Scheduler {
 	_incAlarmId(): ScheduledTimeoutId {
 		return this.alarmId++
 	}
+
+	scheduleIn(callback: Thunk, ms: number): ScheduledTimeoutId {
+		throw new Error("scheduleIn mock is not implemented, you can implement me if you want to ;)")
+	}
 }

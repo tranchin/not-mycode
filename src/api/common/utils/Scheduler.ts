@@ -12,6 +12,8 @@ export interface Scheduler {
 	schedulePeriodic(thunk: Thunk, period: number): ScheduledPeriodicId
 
 	unschedulePeriodic(id: ScheduledPeriodicId): void;
+
+	scheduleIn(callback: Thunk, ms: number): ScheduledTimeoutId;
 }
 
 /**
@@ -104,5 +106,9 @@ export class SchedulerImpl implements Scheduler {
 
 	unschedulePeriodic(id: ScheduledPeriodicId) {
 		this.systemInterval.clearInterval(id)
+	}
+
+	scheduleIn(callback: Thunk, ms: number): ScheduledTimeoutId {
+		return this.scheduleAt(callback, new Date(this.dateProvider.now() + ms))
 	}
 }

@@ -142,7 +142,13 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 	locator.cache = cache ?? entityRestClient
 
 	locator.cachingEntityClient = new EntityClient(locator.cache)
-	locator.indexer = new Indexer(entityRestClient, worker, browserData, locator.cache as EntityRestCache)
+	locator.indexer = new Indexer(
+		entityRestClient,
+		worker,
+		browserData,
+		locator.cache as EntityRestCache,
+		new SchedulerImpl(new WorkerDateProvider(), self, self)
+	)
 	const mainInterface = worker.getMainInterface()
 
 	locator.crypto = new CryptoFacadeImpl(locator.user, locator.cachingEntityClient, locator.restClient, locator.rsa, locator.serviceExecutor)

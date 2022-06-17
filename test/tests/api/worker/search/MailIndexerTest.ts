@@ -665,7 +665,7 @@ o.spec("MailIndexer test", () => {
                 createUpdate(OperationType.UPDATE, "mail-list", "2"),
                 createUpdate(OperationType.DELETE, "mail-list", "3"),
             ]
-            await indexer.processEntityEvents(events, "group-id", "batch-id", indexUpdate)
+            await indexer._processEntityEvents(events, "group-id", "batch-id", indexUpdate)
             // nothing changed
             o(indexUpdate.create.encInstanceIdToElementData.size).equals(0)
             o(indexUpdate.move.length).equals(0)
@@ -675,7 +675,7 @@ o.spec("MailIndexer test", () => {
             const indexer = _prepareProcessEntityTests(true)
 
             let events = [createUpdate(OperationType.CREATE, "new-mail-list", mailId)]
-            await indexer.processEntityEvents(events, "group-id", "batch-id", indexUpdate)
+            await indexer._processEntityEvents(events, "group-id", "batch-id", indexUpdate)
             // nothing changed
 	        // @ts-ignore
             o(indexer.processNewMail.invocations.length).equals(1)
@@ -691,7 +691,7 @@ o.spec("MailIndexer test", () => {
                 createUpdate(OperationType.CREATE, "new-mail-list", mailId),
                 createUpdate(OperationType.DELETE, "old-mail-list", mailId),
             ]
-            await indexer.processEntityEvents(events, "group-id", "batch-id", indexUpdate)
+            await indexer._processEntityEvents(events, "group-id", "batch-id", indexUpdate)
             // nothing changed
             o(indexUpdate.create.encInstanceIdToElementData.size).equals(0)
 	        // @ts-ignore
@@ -705,7 +705,7 @@ o.spec("MailIndexer test", () => {
             const indexer = _prepareProcessEntityTests(true)
 
             let events = [createUpdate(OperationType.DELETE, "mail-list", mailId)]
-            await indexer.processEntityEvents(events, "group-id", "batch-id", indexUpdate)
+            await indexer._processEntityEvents(events, "group-id", "batch-id", indexUpdate)
             o(indexUpdate.create.encInstanceIdToElementData.size).equals(0)
             o(indexUpdate.move.length).equals(0)
 	        // @ts-ignore
@@ -717,7 +717,7 @@ o.spec("MailIndexer test", () => {
             const indexer = _prepareProcessEntityTests(true, MailState.DRAFT)
 
             let events = [createUpdate(OperationType.UPDATE, "new-mail-list", mailId)]
-            await indexer.processEntityEvents(events, "group-id", "batch-id", indexUpdate)
+            await indexer._processEntityEvents(events, "group-id", "batch-id", indexUpdate)
             o(indexUpdate.create.encInstanceIdToElementData.size).equals(1)
             o(indexUpdate.move.length).equals(0)
 	        // @ts-ignore
@@ -729,7 +729,7 @@ o.spec("MailIndexer test", () => {
             const indexer = _prepareProcessEntityTests(true, MailState.RECEIVED)
 
             let events = [createUpdate(OperationType.UPDATE, "new-mail-list", mailId)]
-            await indexer.processEntityEvents(events, "group-id", "batch-id", indexUpdate)
+            await indexer._processEntityEvents(events, "group-id", "batch-id", indexUpdate)
             o(indexUpdate.create.encInstanceIdToElementData.size).equals(0)
             o(indexUpdate.move.length).equals(0)
 	        // @ts-ignore

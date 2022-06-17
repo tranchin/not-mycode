@@ -10,7 +10,7 @@ import {
 	daysToMillis,
 	defer,
 	downcast,
-	getFromMap,
+	getFromMap, groupBy,
 	isNotNull,
 	isSameTypeRef,
 	isSameTypeRefByAttr,
@@ -22,7 +22,7 @@ import {
 	TypeRef,
 } from "@tutao/tutanota-utils"
 import {firstBiggerThanSecond, GENERATED_MAX_ID, generatedIdToTimestamp, getElementId, isSameId, timestampToGeneratedId} from "../../common/utils/EntityUtils"
-import {_createNewIndexUpdate, filterIndexMemberships, markEnd, markStart, typeRefToTypeInfo} from "./IndexUtils"
+import {_createNewIndexUpdate, filterIndexMemberships, isIndexMembership, markEnd, markStart, typeRefToTypeInfo} from "./IndexUtils"
 import type {Db, GroupData} from "./SearchTypes"
 import {IndexingErrorReason} from "./SearchTypes"
 import type {WorkerImpl} from "../WorkerImpl"
@@ -48,6 +48,8 @@ import {deleteObjectStores} from "../utils/DbUtils"
 import {aes256Decrypt, aes256Encrypt, aes256RandomKey, decrypt256Key, encrypt256Key, IV_BYTE_LENGTH, random} from "@tutao/tutanota-crypto"
 import {EntityRestCache} from "../rest/EntityRestCache"
 import {CacheInfo} from "../facades/LoginFacade.js"
+import {BufferingProcessor} from "./BufferingProcessor.js"
+import {Scheduler} from "../../common/utils/Scheduler.js"
 
 export const Metadata = {
 	userEncDbKey: "userEncDbKey",
@@ -102,12 +104,12 @@ export function newSearchIndexDB(): DbFacade {
 		})
 	})
 }
+const PROCESS_MAIL_BODY_BATCHES_DELAY = 4000
 
 export class Indexer {
 	readonly db: Db
-	private readonly _dbInitializedDeferredObject: DeferredObject<void>
-	private readonly _worker: WorkerImpl
-	private _initParams!: InitParams
+	private readonly dbInitializedDeferredObject: DeferredObject<void>
+	private initParams!: InitParams
 	readonly _contact: ContactIndexer
 	readonly _mail: MailIndexer
 	readonly _groupInfo: GroupInfoIndexer
@@ -117,7 +119,7 @@ export class Indexer {
 	 * Last batch id per group from initial loading.
 	 * In case we get duplicate events from loading and websocket we want to filter them out to avoid processing duplicates.
 	 * */
-	_initiallyLoadedBatchIdsPerGroup: Map<Id, Id>
+	_initiallyLoadedBatchIdsPerGroup = new Map<Id, Id>()
 
 	/**
 	 * Queue which gets all the websocket events and dispatches them to the core. It is paused until we load initial events to avoid
@@ -126,35 +128,32 @@ export class Indexer {
 	_realtimeEventQueue: EventQueue
 	_core: IndexerCore
 	_entity: EntityClient
-	_entityRestClient: EntityRestClient
-	_indexedGroupIds: Array<Id>
+	_indexedGroupIds: Array<Id> = []
+
+	private readonly newMailBuffer: BufferingProcessor<QueuedBatch>
 
 	constructor(
-		entityRestClient: EntityRestClient,
-		worker: WorkerImpl,
+		private readonly entityRestClient: EntityRestClient,
+		private readonly worker: WorkerImpl,
 		browserData: BrowserData,
 		defaultEntityRestCache: EntityRestCache,
+		scheduler: Scheduler
 	) {
 		let deferred = defer<void>()
-		this._dbInitializedDeferredObject = deferred
+		this.dbInitializedDeferredObject = deferred
 		this.db = {
 			dbFacade: newSearchIndexDB(),
 			key: downcast<BitArray>(null),
 			iv: downcast<Uint8Array>(null),
 			initialized: deferred.promise,
 		}
-		// correctly initialized during init()
-		this._worker = worker
 		this._core = new IndexerCore(this.db, new EventQueue(true, batch => this._processEntityEvents(batch)), browserData)
-		this._entityRestClient = entityRestClient
 		this._entity = new EntityClient(defaultEntityRestCache)
 		this._contact = new ContactIndexer(this._core, this.db, this._entity, new SuggestionFacade(ContactTypeRef, this.db))
 		this._whitelabelChildIndexer = new WhitelabelChildIndexer(this._core, this.db, this._entity, new SuggestionFacade(WhitelabelChildTypeRef, this.db))
 		const dateProvider = new LocalTimeDateProvider()
 		this._mail = new MailIndexer(this._core, this.db, worker, entityRestClient, defaultEntityRestCache, dateProvider)
 		this._groupInfo = new GroupInfoIndexer(this._core, this.db, this._entity, new SuggestionFacade(GroupInfoTypeRef, this.db))
-		this._indexedGroupIds = []
-		this._initiallyLoadedBatchIdsPerGroup = new Map()
 		this._realtimeEventQueue = new EventQueue(false, (nextElement: QueuedBatch) => {
 			// During initial loading we remember the last batch we loaded
 			// so if we get updates from EventBusClient here for things that are already loaded we discard them
@@ -166,6 +165,17 @@ export class Indexer {
 
 			return Promise.resolve()
 		})
+		this.newMailBuffer = new BufferingProcessor(scheduler, async (batches) => {
+			const indexUpdate = _createNewIndexUpdate(typeRefToTypeInfo(MailTypeRef))
+
+			const perGroup = groupBy(batches, (batch) => batch.groupId)
+			for (const [groupId, batches] of perGroup.entries()) {
+				await this._mail.processMailUpdates(indexUpdate, groupId, batches)
+			}
+
+			// write update with all the batch ids but without updating the timestamp
+			await this._core.writeIndexUpdate([], indexUpdate)
+		}, PROCESS_MAIL_BODY_BATCHES_DELAY)
 
 		this._realtimeEventQueue.pause()
 	}
@@ -174,7 +184,7 @@ export class Indexer {
 	 * Opens a new DbFacade and initializes the metadata if it is not there yet
 	 */
 	async init({user, userGroupKey, retryOnError, cacheInfo}: IndexerInitParams): Promise<void> {
-		this._initParams = {
+		this.initParams = {
 			user,
 			groupKey: userGroupKey,
 		}
@@ -195,7 +205,7 @@ export class Indexer {
 			}
 
 			await transaction.wait()
-			await this._worker.sendIndexState({
+			await this.worker.sendIndexState({
 				initializing: false,
 				mailIndexEnabled: this._mail.mailIndexingEnabled,
 				progress: 0,
@@ -224,7 +234,7 @@ export class Indexer {
 				console.log("disable mail indexing and init again", e)
 				return this._reCreateIndex()
 			} else {
-				await this._worker.sendIndexState({
+				await this.worker.sendIndexState({
 					initializing: false,
 					mailIndexEnabled: this._mail.mailIndexingEnabled,
 					progress: 0,
@@ -236,7 +246,7 @@ export class Indexer {
 						: IndexingErrorReason.Unknown
 				})
 
-				this._dbInitializedDeferredObject.reject(e)
+				this.dbInitializedDeferredObject.reject(e)
 
 				throw e
 			}
@@ -265,7 +275,7 @@ export class Indexer {
 
 	enableMailIndexing(): Promise<void> {
 		return this.db.initialized.then(() => {
-			return this._mail.enableMailIndexing(this._initParams.user).then(() => {
+			return this._mail.enableMailIndexing(this.initParams.user).then(() => {
 				// We don't have to disable mail indexing when it's stopped now
 				this._mail.mailboxIndexingPromise.catch(ofClass(CancelledError, noOp))
 			})
@@ -282,12 +292,12 @@ export class Indexer {
 		if (!this._core.isStoppedProcessing()) {
 			this._core.stopProcessing()
 			await this._mail.disableMailIndexing()
-			await this.init({user: this._initParams.user, userGroupKey: this._initParams.groupKey})
+			await this.init({user: this.initParams.user, userGroupKey: this.initParams.groupKey})
 		}
 	}
 
 	extendMailIndex(newOldestTimestamp: number): Promise<void> {
-		return this._mail.extendIndexIfNeeded(this._initParams.user, newOldestTimestamp)
+		return this._mail.extendIndexIfNeeded(this.initParams.user, newOldestTimestamp)
 	}
 
 	cancelMailIndexing(): Promise<void> {
@@ -311,8 +321,8 @@ export class Indexer {
 		return this._mail.disableMailIndexing().then(() => {
 			// do not try to init again on error
 			return this.init({
-				user: this._initParams.user,
-				userGroupKey: this._initParams.groupKey,
+				user: this.initParams.user,
+				userGroupKey: this.initParams.groupKey,
 				retryOnError: false
 			}).then(() => {
 				if (mailIndexingWasEnabled) {
@@ -331,10 +341,10 @@ export class Indexer {
 		await transaction.put(MetaDataOS, Metadata.mailIndexingEnabled, this._mail.mailIndexingEnabled)
 		await transaction.put(MetaDataOS, Metadata.excludedListIds, this._mail._excludedListIds)
 		await transaction.put(MetaDataOS, Metadata.encDbIv, aes256Encrypt(this.db.key, this.db.iv, random.generateRandomData(IV_BYTE_LENGTH), true, false))
-		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, this._entityRestClient.getRestClient().getServerTimestampMs())
+		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, this.entityRestClient.getRestClient().getServerTimestampMs())
 		await this._initGroupData(groupBatches, transaction)
 		await this._updateIndexedGroups()
-		await this._dbInitializedDeferredObject.resolve()
+		await this.dbInitializedDeferredObject.resolve()
 	}
 
 	async _loadIndexTables(transaction: DbTransaction, user: User, userGroupKey: Aes128Key, userEncDbKey: Uint8Array): Promise<void> {
@@ -354,7 +364,7 @@ export class Indexer {
 		])
 		await this._updateIndexedGroups()
 
-		this._dbInitializedDeferredObject.resolve()
+		this.dbInitializedDeferredObject.resolve()
 
 		await Promise.all([
 			this._contact.suggestionFacade.load(),
@@ -650,109 +660,93 @@ export class Indexer {
 		})
 	}
 
-	_processEntityEvents(batch: QueuedBatch): Promise<any> {
+	async _processEntityEvents(batch: QueuedBatch): Promise<void> {
 		const {events, groupId, batchId} = batch
-		return this.db.initialized
-				   .then(async () => {
-					   if (!this.db.dbFacade.indexingSupported) {
-						   return Promise.resolve()
-					   }
+		const {user} = this.initParams
+		await this.db.initialized
+		try {
+			if (!this.db.dbFacade.indexingSupported) {
+				return
+			}
 
-					   if (
-						   filterIndexMemberships(this._initParams.user)
-							   .map(m => m.group)
-							   .indexOf(groupId) === -1
-					   ) {
-						   return Promise.resolve()
-					   }
+			const membership = user.memberships.find(membership => isSameId(membership.group, groupId))
+			if (!membership || !isIndexMembership(membership)) {
+				return
+			}
 
-					   if (this._indexedGroupIds.indexOf(groupId) === -1) {
-						   return Promise.resolve()
-					   }
+			if (!this._indexedGroupIds.includes(groupId)) {
+				return
+			}
 
-					   markStart("processEntityEvents")
-					   const groupedEvents: Map<TypeRef<any>, EntityUpdate[]> = new Map() // define map first because Webstorm has problems with type annotations
+			if (membership.groupType === GroupType.Mail) {
+				this.newMailBuffer.add(batch)
+				return
+			}
 
-					   events.reduce((all, update) => {
-						   if (isSameTypeRefByAttr(MailTypeRef, update.application, update.type)) {
-							   getFromMap(all, MailTypeRef, () => []).push(update)
-						   } else if (isSameTypeRefByAttr(ContactTypeRef, update.application, update.type)) {
-							   getFromMap(all, ContactTypeRef, () => []).push(update)
-						   } else if (isSameTypeRefByAttr(GroupInfoTypeRef, update.application, update.type)) {
-							   getFromMap(all, GroupInfoTypeRef, () => []).push(update)
-						   } else if (isSameTypeRefByAttr(UserTypeRef, update.application, update.type)) {
-							   getFromMap(all, UserTypeRef, () => []).push(update)
-						   } else if (isSameTypeRefByAttr(WhitelabelChildTypeRef, update.application, update.type)) {
-							   getFromMap(all, WhitelabelChildTypeRef, () => []).push(update)
-						   }
+			markStart("processEntityEvents")
+			const groupedEventsByTypeRef: Map<TypeRef<any>, EntityUpdate[]> = new Map()
+			for (let event of events) {
+				if (isSameTypeRefByAttr(ContactTypeRef, event.application, event.type)) {
+					getFromMap(groupedEventsByTypeRef, ContactTypeRef, () => []).push(event)
+				} else if (isSameTypeRefByAttr(GroupInfoTypeRef, event.application, event.type)) {
+					getFromMap(groupedEventsByTypeRef, GroupInfoTypeRef, () => []).push(event)
+				} else if (isSameTypeRefByAttr(UserTypeRef, event.application, event.type)) {
+					getFromMap(groupedEventsByTypeRef, UserTypeRef, () => []).push(event)
+				} else if (isSameTypeRefByAttr(WhitelabelChildTypeRef, event.application, event.type)) {
+					getFromMap(groupedEventsByTypeRef, WhitelabelChildTypeRef, () => []).push(event)
+				}
+			}
 
-						   return all
-					   }, groupedEvents)
-					   markStart("processEvent")
-					   return promiseMap(groupedEvents.entries(), ([key, value]) => {
-						   let promise = Promise.resolve()
+			markStart("processEvent")
+			for (let [typeRef, events] of groupedEventsByTypeRef.entries()) {
 
-						   if (isSameTypeRef(UserTypeRef, key)) {
-							   return this._processUserEntityEvents(value)
-						   }
+				// Handle user first so that we don't create an unnecessary index update
+				if (isSameTypeRef(UserTypeRef, typeRef)) {
+					await this._processUserEntityEvents(events)
+					continue
+				}
+				const indexUpdate = _createNewIndexUpdate(typeRefToTypeInfo(typeRef))
 
-						   const indexUpdate = _createNewIndexUpdate(typeRefToTypeInfo(key))
+				if (isSameTypeRef(ContactTypeRef, typeRef)) {
+					await this._contact.processEntityEvents(events, groupId, batchId, indexUpdate)
+				} else if (isSameTypeRef(GroupInfoTypeRef, typeRef)) {
+					await this._groupInfo.processEntityEvents(events, groupId, batchId, indexUpdate, this.initParams.user)
+				} else if (isSameTypeRef(WhitelabelChildTypeRef, typeRef)) {
+					await this._whitelabelChildIndexer.processEntityEvents(events, groupId, batchId, indexUpdate, this.initParams.user)
+				}
 
-						   if (isSameTypeRef(MailTypeRef, key)) {
-							   promise = this._mail.processEntityEvents(value, groupId, batchId, indexUpdate)
-						   } else if (isSameTypeRef(ContactTypeRef, key)) {
-							   promise = this._contact.processEntityEvents(value, groupId, batchId, indexUpdate)
-						   } else if (isSameTypeRef(GroupInfoTypeRef, key)) {
-							   promise = this._groupInfo.processEntityEvents(value, groupId, batchId, indexUpdate, this._initParams.user)
-						   } else if (isSameTypeRef(UserTypeRef, key)) {
-							   promise = this._processUserEntityEvents(value)
-						   } else if (isSameTypeRef(WhitelabelChildTypeRef, key)) {
-							   promise = this._whitelabelChildIndexer.processEntityEvents(value, groupId, batchId, indexUpdate, this._initParams.user)
-						   }
-
-						   return promise
-							   .then(() => {
-								   markEnd("processEvent")
-								   markStart("writeIndexUpdate")
-								   return this._core.writeIndexUpdateWithBatchId(groupId, batchId, indexUpdate)
-							   })
-							   .then(() => {
-								   markEnd("writeIndexUpdate")
-								   markEnd("processEntityEvents") // if (!env.dist && env.mode !== "Test") {
-								   // 	printMeasure("Update of " + key.type + " " + batch.events.map(e => operationTypeKeys[e.operation]).join(","), [
-								   // 		"processEntityEvents", "processEvent", "writeIndexUpdate"
-								   // 	])
-								   // }
-							   })
-					   })
-				   })
-				   .catch(ofClass(CancelledError, noOp))
-				   .catch(
-					   ofClass(DbError, e => {
-						   if (this._core.isStoppedProcessing()) {
-							   console.log("Ignoring DBerror when indexing is disabled", e)
-						   } else {
-							   throw e
-						   }
-					   }),
-				   )
-				   .catch(
-					   ofClass(InvalidDatabaseStateError, e => {
-						   console.log("InvalidDatabaseStateError during _processEntityEvents")
-
-						   this._core.stopProcessing()
-
-						   return this._reCreateIndex()
-					   }),
-				   )
+				markEnd("processEvent")
+				markStart("writeIndexUpdate")
+				await this._core.writeIndexUpdateWithBatchId(groupId, batchId, indexUpdate)
+				markEnd("writeIndexUpdate")
+				markEnd("processEntityEvents")
+				// if (shouldMeasure()) {
+				// 	printMeasure("Update of " + typeRef.type + " " + batch.events.map(e => operationTypeKeys[e.operation]).join(","), [
+				// 		"processEntityEvents", "processEvent", "writeIndexUpdate"
+				// 	])
+				// }
+			}
+		} catch (e) {
+			if (e instanceof CancelledError) {
+				// do nothing
+			} else if (e instanceof DbError && this._core.isStoppedProcessing()) {
+				console.log("Ignoring DBerror when indexing is disabled", e)
+			} else if (e instanceof InvalidDatabaseStateError) {
+				console.log("InvalidDatabaseStateError during _processEntityEvents")
+				this._core.stopProcessing()
+				await this._reCreateIndex()
+			} else {
+				throw e
+			}
+		}
 	}
 
 	_processUserEntityEvents(events: EntityUpdate[]): Promise<void> {
 		return Promise.all(
 			events.map(event => {
-				if (event.operation === OperationType.UPDATE && isSameId(this._initParams.user._id, event.instanceId)) {
+				if (event.operation === OperationType.UPDATE && isSameId(this.initParams.user._id, event.instanceId)) {
 					return this._entity.load(UserTypeRef, event.instanceId).then(updatedUser => {
-						this._initParams.user = updatedUser
+						this.initParams.user = updatedUser
 					})
 				}
 
@@ -766,7 +760,7 @@ export class Indexer {
 		const lastIndexTimeMs = await transaction.get(MetaDataOS, Metadata.lastEventIndexTimeMs)
 
 		if (lastIndexTimeMs != null) {
-			const now = this._entityRestClient.getRestClient().getServerTimestampMs()
+			const now = this.entityRestClient.getRestClient().getServerTimestampMs()
 
 			const timeSinceLastIndex = now - lastIndexTimeMs
 
@@ -783,7 +777,7 @@ export class Indexer {
 	async _writeServerTimestamp() {
 		const transaction = await this.db.dbFacade.createTransaction(false, [MetaDataOS])
 
-		const now = this._entityRestClient.getRestClient().getServerTimestampMs()
+		const now = this.entityRestClient.getRestClient().getServerTimestampMs()
 
 		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, now)
 	}

@@ -109,11 +109,12 @@ const PROCESS_MAIL_BODY_BATCHES_DELAY = 4000
 export class Indexer {
 	readonly db: Db
 	private readonly dbInitializedDeferredObject: DeferredObject<void>
-	private initParams!: InitParams
 	readonly _contact: ContactIndexer
 	readonly _mail: MailIndexer
 	readonly _groupInfo: GroupInfoIndexer
 	readonly _whitelabelChildIndexer: WhitelabelChildIndexer
+
+	_initParams!: InitParams
 
 	/**
 	 * Last batch id per group from initial loading.
@@ -184,7 +185,7 @@ export class Indexer {
 	 * Opens a new DbFacade and initializes the metadata if it is not there yet
 	 */
 	async init({user, userGroupKey, retryOnError, cacheInfo}: IndexerInitParams): Promise<void> {
-		this.initParams = {
+		this._initParams = {
 			user,
 			groupKey: userGroupKey,
 		}
@@ -275,7 +276,7 @@ export class Indexer {
 
 	enableMailIndexing(): Promise<void> {
 		return this.db.initialized.then(() => {
-			return this._mail.enableMailIndexing(this.initParams.user).then(() => {
+			return this._mail.enableMailIndexing(this._initParams.user).then(() => {
 				// We don't have to disable mail indexing when it's stopped now
 				this._mail.mailboxIndexingPromise.catch(ofClass(CancelledError, noOp))
 			})
@@ -292,12 +293,12 @@ export class Indexer {
 		if (!this._core.isStoppedProcessing()) {
 			this._core.stopProcessing()
 			await this._mail.disableMailIndexing()
-			await this.init({user: this.initParams.user, userGroupKey: this.initParams.groupKey})
+			await this.init({user: this._initParams.user, userGroupKey: this._initParams.groupKey})
 		}
 	}
 
 	extendMailIndex(newOldestTimestamp: number): Promise<void> {
-		return this._mail.extendIndexIfNeeded(this.initParams.user, newOldestTimestamp)
+		return this._mail.extendIndexIfNeeded(this._initParams.user, newOldestTimestamp)
 	}
 
 	cancelMailIndexing(): Promise<void> {
@@ -321,8 +322,8 @@ export class Indexer {
 		return this._mail.disableMailIndexing().then(() => {
 			// do not try to init again on error
 			return this.init({
-				user: this.initParams.user,
-				userGroupKey: this.initParams.groupKey,
+				user: this._initParams.user,
+				userGroupKey: this._initParams.groupKey,
 				retryOnError: false
 			}).then(() => {
 				if (mailIndexingWasEnabled) {
@@ -662,7 +663,7 @@ export class Indexer {
 
 	async _processEntityEvents(batch: QueuedBatch): Promise<void> {
 		const {events, groupId, batchId} = batch
-		const {user} = this.initParams
+		const {user} = this._initParams
 		await this.db.initialized
 		try {
 			if (!this.db.dbFacade.indexingSupported) {
@@ -710,9 +711,9 @@ export class Indexer {
 				if (isSameTypeRef(ContactTypeRef, typeRef)) {
 					await this._contact.processEntityEvents(events, groupId, batchId, indexUpdate)
 				} else if (isSameTypeRef(GroupInfoTypeRef, typeRef)) {
-					await this._groupInfo.processEntityEvents(events, groupId, batchId, indexUpdate, this.initParams.user)
+					await this._groupInfo.processEntityEvents(events, groupId, batchId, indexUpdate, this._initParams.user)
 				} else if (isSameTypeRef(WhitelabelChildTypeRef, typeRef)) {
-					await this._whitelabelChildIndexer.processEntityEvents(events, groupId, batchId, indexUpdate, this.initParams.user)
+					await this._whitelabelChildIndexer.processEntityEvents(events, groupId, batchId, indexUpdate, this._initParams.user)
 				}
 
 				markEnd("processEvent")
@@ -744,9 +745,9 @@ export class Indexer {
 	_processUserEntityEvents(events: EntityUpdate[]): Promise<void> {
 		return Promise.all(
 			events.map(event => {
-				if (event.operation === OperationType.UPDATE && isSameId(this.initParams.user._id, event.instanceId)) {
+				if (event.operation === OperationType.UPDATE && isSameId(this._initParams.user._id, event.instanceId)) {
 					return this._entity.load(UserTypeRef, event.instanceId).then(updatedUser => {
-						this.initParams.user = updatedUser
+						this._initParams.user = updatedUser
 					})
 				}
 

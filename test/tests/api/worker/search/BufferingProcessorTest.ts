@@ -15,13 +15,13 @@ o.spec("BufferingProcessor", function () {
 	let processor: Processor<string | number>
 	let buffer: BufferingProcessor<string | number>
 
-	o.beforeEach(function() {
+	o.beforeEach(function () {
 		scheduler = object<Scheduler>()
 		processor = func() as Processor<string | number>
 		buffer = new BufferingProcessor(scheduler, processor, timeout)
 	})
 
-	o.only("should not call the processor until after scheduler has completed", async function() {
+	o("should not call the processor until after scheduler has completed", async function () {
 		buffer.add("hewwo")
 		verify(processor(["hewwo"]), {times: 0})
 	})
@@ -76,7 +76,10 @@ o.spec("BufferingProcessor", function () {
 		verify(scheduler.scheduleIn(captor.capture(), timeout))
 		await captor.value()
 
-		o(processor.calls.map(call => call.args)).deepEquals([[[1, 2, 3]], [['a', 'b', 'c']], [["foo", "bar", "baz"]]])
+		verify(processor([1, 2, 3]))
+		verify(processor(['a', 'b', 'c']))
+		verify(processor(['foo', 'bar', 'baz']))
+
 	})
 
 	o("should keep a batch when an error occurs, and then try to reprocess it again", async function () {
@@ -105,19 +108,19 @@ o.spec("BufferingProcessor", function () {
 
 		await scheduler.schedule.get(downcast(scheduler.currentId))?.thunk()
 
-
-		o(processor.calls.map(call => call.args)).deepEquals([[[1, 2, 3]], [['a', 'b', 'c']], [['a', 'b', 'c', "foo", "bar", "baz"]]])
+		verify(processor([1, 2, 3]))
+		verify(processor(['a', 'b', 'c']))
+		verify(processor(['a', 'b', 'c', "foo", "bar", "baz"]))
 	})
 
-	o("schedule multiple times, with overlap", async function () {
-		const scheduler = new SchedulerMock()
+	o("should not call processor again until after a previous call has resolved", async function () {
 
-		const firstCallDeferred = defer()
+		const firstCallDeferred = defer<void>()
 		const processorPromises = [firstCallDeferred.promise]
-		const processor = func() as Processor<number>
-		when(processor()).thenResolve(() => processorPromises.pop() ?? Promise.resolve())
 
-		const buffer = new BufferingProcessor(scheduler, processor, NaN)
+		const scheduler = new SchedulerMock()
+		processor = o.spy(() => processorPromises.pop() ?? Promise.resolve())
+		buffer = new BufferingProcessor(scheduler, processor, NaN)
 
 		buffer.add(1)
 		buffer.add(2)
@@ -141,14 +144,13 @@ o.spec("BufferingProcessor", function () {
 	})
 
 	o("schedule multiple times, has error, with overlap", async function () {
-		const scheduler = new SchedulerMock()
+
 
 		const firstCallDeferred = defer()
 		const processorPromises = [firstCallDeferred.promise]
-		const processor = func() as Processor<number | string>
-		when(processor()).thenDo(() => processorPromises.pop() ?? Promise.resolve())
-
-		const buffer = new BufferingProcessor(scheduler, processor, NaN)
+		const scheduler = new SchedulerMock()
+		processor = o.spy(() => processorPromises.pop() ?? Promise.resolve())
+		buffer = new BufferingProcessor(scheduler, processor, NaN)
 
 		buffer.add(1)
 		buffer.add(2)

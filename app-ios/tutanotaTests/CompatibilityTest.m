@@ -122,6 +122,34 @@ static int mock_rand_bytes(unsigned char *buf, int num)
     }
 }
 
+- (void)testAes128Key128Encryption{
+  for  (NSDictionary *td in self.testData[@"aes128Tests"]){
+    NSData *key = [TUTEncodingConverter hexToBytes:td[@"hexKey"]];
+    NSString *plainTextKeyToEncrypt = td[@"keyToEncrypt128"];
+    NSError *error = nil;
+    
+    NSData *encryptedKey = [TUTEncodingConverter base64ToBytes:td[@"encryptedKey128"]];
+    
+    NSData *decryptedKey = [TUTAes128Facade decryptKey:encryptedKey withEncryptionKey:key error:&error];
+    XCTAssertNil(error);
+    XCTAssertEqualObjects(plainTextKeyToEncrypt, [TUTEncodingConverter bytesToHex:decryptedKey]);
+    }
+}
+
+- (void)testAes128Key256Encryption{
+  for  (NSDictionary *td in self.testData[@"aes128Tests"]){
+    NSData *key = [TUTEncodingConverter hexToBytes:td[@"hexKey"]];
+    NSString *plainTextKeyToEncrypt = td[@"keyToEncrypt256"];
+    NSError *error = nil;
+    
+    NSData *encryptedKey = [TUTEncodingConverter base64ToBytes:td[@"encryptedKey256"]];
+    
+    NSData *decryptedKey = [TUTAes128Facade decryptKey:encryptedKey withEncryptionKey:key error:&error];
+    XCTAssertNil(error);
+    XCTAssertEqualObjects(plainTextKeyToEncrypt, [TUTEncodingConverter bytesToHex:decryptedKey]);
+    }
+}
+
 - (void)testAes128WithMac{
 	for	(NSDictionary *td in self.testData[@"aes128MacTests"]){
 		NSData *iv = [TUTEncodingConverter base64ToBytes:td[@"ivBase64"]];

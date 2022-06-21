@@ -25,6 +25,7 @@
 		3D3AFAEF285CB1DC0077F302 /* CommonSystemFacade.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3AFAED285CB1DC0077F302 /* CommonSystemFacade.swift */; };
 		3D3AFAF0285CB1DC0077F302 /* CommonSystemFacadeReceiveDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3AFAEE285CB1DC0077F302 /* CommonSystemFacadeReceiveDispatcher.swift */; };
 		3D3AFAF2285CB2CF0077F302 /* IosCommonSystemFacade.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D3AFAF1285CB2CF0077F302 /* IosCommonSystemFacade.swift */; };
+		3D3AFAF42861B2BF0077F302 /* CompatibilityTestData.json in Resources */ = {isa = PBXBuildFile; fileRef = 3D3AFAF32861B2BF0077F302 /* CompatibilityTestData.json */; };
 		3D4E16F4273D2F8A00256630 /* SyncCompletion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D4E16F3273D2F8A00256630 /* SyncCompletion.swift */; };
 		3D4F1BFA26EBADE500E87BF5 /* TUTBigNum.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F1BF926EBADE500E87BF5 /* TUTBigNum.m */; };
 		3D4F1BFB26EBADE500E87BF5 /* TUTBigNum.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D4F1BF926EBADE500E87BF5 /* TUTBigNum.m */; };
@@ -127,7 +128,6 @@
 		3D9B12AF2721966C002B46A1 /* IdTuple.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D9B12AE2721966C002B46A1 /* IdTuple.swift */; };
 		3D9B12B32721A1E2002B46A1 /* TUTErrorFactory.h in Headers */ = {isa = PBXBuildFile; fileRef = 3D9B12B12721A1E2002B46A1 /* TUTErrorFactory.h */; };
 		3D9B12B42721A1E2002B46A1 /* TUTErrorFactory.m in Sources */ = {isa = PBXBuildFile; fileRef = 3D9B12B22721A1E2002B46A1 /* TUTErrorFactory.m */; };
-		3DA047BF212C1BBE0062C36C /* CompatibilityTestData.json in Resources */ = {isa = PBXBuildFile; fileRef = 3DA047BE212C1BBD0062C36C /* CompatibilityTestData.json */; };
 		3DAA23A9267A208200219051 /* UIColorExtensionsTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DAA23A8267A208200219051 /* UIColorExtensionsTest.swift */; };
 		3DB07C7B27303F0600BFBB4D /* Keys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DB07C7A27303F0600BFBB4D /* Keys.swift */; };
 		3DBA56C72850AAA6004416BE /* FileFacade.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DBA56B72850AAA6004416BE /* FileFacade.swift */; };
@@ -205,6 +205,7 @@
 		3D3AFAED285CB1DC0077F302 /* CommonSystemFacade.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CommonSystemFacade.swift; sourceTree = "<group>"; };
 		3D3AFAEE285CB1DC0077F302 /* CommonSystemFacadeReceiveDispatcher.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CommonSystemFacadeReceiveDispatcher.swift; sourceTree = "<group>"; };
 		3D3AFAF1285CB2CF0077F302 /* IosCommonSystemFacade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IosCommonSystemFacade.swift; sourceTree = "<group>"; };
+		3D3AFAF32861B2BF0077F302 /* CompatibilityTestData.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = CompatibilityTestData.json; path = ../../test/tests/api/worker/crypto/CompatibilityTestData.json; sourceTree = "<group>"; };
 		3D4D3204210747000081813A /* PSPDFFastEnumeration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PSPDFFastEnumeration.h; sourceTree = "<group>"; };
 		3D4D3205210747240081813A /* Swiftier.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Swiftier.h; sourceTree = "<group>"; };
 		3D4E16F3273D2F8A00256630 /* SyncCompletion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCompletion.swift; sourceTree = "<group>"; };
@@ -315,7 +316,6 @@
 		3D9B12AE2721966C002B46A1 /* IdTuple.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdTuple.swift; sourceTree = "<group>"; };
 		3D9B12B12721A1E2002B46A1 /* TUTErrorFactory.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TUTErrorFactory.h; sourceTree = "<group>"; };
 		3D9B12B22721A1E2002B46A1 /* TUTErrorFactory.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TUTErrorFactory.m; sourceTree = "<group>"; };
-		3DA047BE212C1BBD0062C36C /* CompatibilityTestData.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = CompatibilityTestData.json; sourceTree = "<group>"; };
 		3DAA23A5267A202000219051 /* tutanotaTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "tutanotaTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		3DAA23A8267A208200219051 /* UIColorExtensionsTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIColorExtensionsTest.swift; sourceTree = "<group>"; };
 		3DB07C7A27303F0600BFBB4D /* Keys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keys.swift; sourceTree = "<group>"; };
@@ -1167,8 +1167,8 @@
 		3DD4A09E20F8C6260086EB36 /* tutanotaTests */ = {
 			isa = PBXGroup;
 			children = (
+				3D3AFAF32861B2BF0077F302 /* CompatibilityTestData.json */,
 				3DAA23A8267A208200219051 /* UIColorExtensionsTest.swift */,
-				3DA047BE212C1BBD0062C36C /* CompatibilityTestData.json */,
 				3D6A0AE9212C1701001CD791 /* CompatibilityTest.m */,
 				3DD4A0A120F8C6260086EB36 /* Info.plist */,
 				3D63A0E4233D0C1400D05259 /* TUTLogTest.m */,
@@ -1445,7 +1445,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3DA047BF212C1BBE0062C36C /* CompatibilityTestData.json in Resources */,
+				3D3AFAF42861B2BF0077F302 /* CompatibilityTestData.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

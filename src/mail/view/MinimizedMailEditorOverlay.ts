@@ -13,6 +13,7 @@ import {MinimizedEditorOverlay} from "./MinimizedEditorOverlay"
 import {windowFacade} from "../../misc/WindowFacade"
 import {assertMainOrNode} from "../../api/common/Env"
 import Stream from "mithril/stream";
+import {MailEditorViewModel} from "../editor/MailEditorViewModel.js"
 
 assertMainOrNode()
 const MINIMIZED_OVERLAY_WIDTH_WIDE = 350
@@ -21,7 +22,7 @@ const MINIMIZED_EDITOR_HEIGHT = size.button_height + 2 * size.vpad_xs
 
 export function showMinimizedMailEditor(
 	dialog: Dialog,
-	sendMailModel: SendMailModel,
+	model: MailEditorViewModel,
 	viewModel: MinimizedMailEditorViewModel,
 	eventController: EventController,
 	dispose: () => void,
@@ -29,7 +30,7 @@ export function showMinimizedMailEditor(
 ): void {
 	let closeOverlayFunction = () => Promise.resolve() // will be assigned with the actual close function when overlay is visible.
 
-	const minimizedEditor = viewModel.minimizeMailEditor(dialog, sendMailModel, dispose, saveStatus, () => closeOverlayFunction())
+	const minimizedEditor = viewModel.minimizeMailEditor(dialog, model, dispose, saveStatus, () => closeOverlayFunction())
 	// only show overlay once editor is gone
 	setTimeout(() => {
 		closeOverlayFunction = showMinimizedEditorOverlay(viewModel, minimizedEditor, eventController)

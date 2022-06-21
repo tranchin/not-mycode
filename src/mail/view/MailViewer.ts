@@ -1403,33 +1403,35 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		})
 	}
 
-	private editDraft(): Promise<void> {
-		return checkApprovalStatus(logins, false).then(sendAllowed => {
-			if (sendAllowed) {
-				// check if to be opened draft has already been minimized, iff that is the case, re-open it
-				const minimizedEditor = locator.minimizedMailModel.getEditorForDraft(this.viewModel.mail)
+	private async editDraft(): Promise<void> {
+		const sendAllowed = await checkApprovalStatus(logins, false)
+		if (sendAllowed) {
+			// check if to be opened draft has already been minimized, iff that is the case, re-open it
+			const minimizedEditor = locator.minimizedMailModel.getEditorForDraft(this.viewModel.mail)
 
-				if (minimizedEditor) {
-					locator.minimizedMailModel.reopenMinimizedEditor(minimizedEditor)
-				} else {
-					return Promise.all([this.viewModel.mailModel.getMailboxDetailsForMail(this.viewModel.mail), import("../editor/MailEditor")])
-								  .then(([mailboxDetails, {newMailEditorFromDraft}]) => {
-									  return newMailEditorFromDraft(
-										  this.viewModel.mail,
-										  this.viewModel.getAttachments(),
-										  this.viewModel.getMailBody(),
-										  this.viewModel.isBlockingExternalImages(),
-										  this.viewModel.getLoadedInlineImages(),
-										  mailboxDetails,
-									  )
-								  })
-								  .then(editorDialog => {
-									  editorDialog.show()
-								  })
-								  .catch(ofClass(UserError, showUserError))
+			if (minimizedEditor) {
+				locator.minimizedMailModel.reopenMinimizedEditor(minimizedEditor)
+			} else {
+				const {showDraftMailEditor} = await import("../editor/MailEditorDialog.js")
+
+				try {
+					await showDraftMailEditor(
+						this.viewModel.mail,
+						this.viewModel.getAttachments(),
+						this.viewModel.getMailBody(),
+						this.viewModel.isBlockingExternalImages(),
+						this.viewModel.getLoadedInlineImages(),
+						await this.viewModel.mailModel.getMailboxDetailsForMail(this.viewModel.mail),
+					)
+				} catch (e) {
+					if (e instanceof UserError) {
+						showUserError(e)
+					} else {
+						throw e
+					}
 				}
 			}
-		})
+		}
 	}
 
 	private scrollUp(): void {
@@ -1488,11 +1490,9 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 				if (isNewMailActionAvailable()) {
 					// disable new mails for external users.
-					import("../editor/MailEditor").then(({newMailtoUrlMailEditor}) => {
-						newMailtoUrlMailEditor(anchorElement.href, !logins.getUserController().props.defaultUnconfidential)
-							.then(editor => editor.show())
-							.catch(ofClass(CancelledError, noOp))
-					})
+					import("../editor/MailEditorDialog.js")
+						.then(({showMailToUrlMailEditor}) => showMailToUrlMailEditor(anchorElement.href, !logins.getUserController().props.defaultUnconfidential))
+						.catch(ofClass(CancelledError, noOp))
 				}
 			} else if (anchorElement && isSettingsLink(anchorElement, this.viewModel.mail)) {
 				// Navigate to the settings menu if they are linked within an email.

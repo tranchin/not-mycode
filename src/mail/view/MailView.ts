@@ -208,24 +208,35 @@ export class MailView implements CurrentView {
 						ev.preventDefault()
 					},
 					ondrop: (ev: DragEvent) => {
-						if (isNewMailActionAvailable() && ev.dataTransfer?.files && ev.dataTransfer.files.length > 0) {
-							Promise.all([
-								this.getMailboxDetails(),
-								locator.fileController.readLocalFiles(ev.dataTransfer.files),
-								import("../signature/Signature"),
-								import("../editor/MailEditor"),
-							])
-								   .then(([mailbox, dataFiles, {appendEmailSignature}, {newMailEditorFromTemplate}]) => {
-									   newMailEditorFromTemplate(
-										   mailbox,
-										   {},
-										   "",
-										   appendEmailSignature("", logins.getUserController().props),
-										   dataFiles,
-									   ).then(dialog => dialog.show())
-								   })
-								   .catch(ofClass(PermissionError, noOp))
-								   .catch(ofClass(UserError, showUserError))
+						const dataTransfer = ev.dataTransfer
+						if (isNewMailActionAvailable() && dataTransfer && dataTransfer.files.length > 0) {
+							Promise.resolve().then(async () => {
+								try {
+									const {appendEmailSignature} = await import("../signature/Signature")
+									const {showMailEditorWithTemplate} = await import("../editor/MailEditorDialog")
+									const [mailbox, dataFiles] = await Promise.all([
+										this.getMailboxDetails(),
+										locator.fileController.readLocalFiles(dataTransfer.files),
+									])
+
+									await showMailEditorWithTemplate(
+										mailbox,
+										{},
+										"",
+										appendEmailSignature("", logins.getUserController().props),
+										dataFiles,
+									)
+
+								} catch (e) {
+									if (e instanceof PermissionError) {
+										//
+									} else if (e instanceof UserError) {
+										showUserError(e)
+									} else {
+										throw e
+									}
+								}
+							})
 						}
 
 						// prevent in any case because firefox tries to open
@@ -526,15 +537,14 @@ export class MailView implements CurrentView {
 			if (location.hash.length > 5) {
 				let url = location.hash.substring(5)
 				let decodedUrl = decodeURIComponent(url)
-				Promise.all([locator.mailModel.getUserMailboxDetails(), import("../editor/MailEditor")]).then(([mailboxDetails, {newMailtoUrlMailEditor}]) => {
-					newMailtoUrlMailEditor(decodedUrl, false, mailboxDetails)
-						.then(editor => editor.show())
+				Promise.all([locator.mailModel.getUserMailboxDetails(), import("../editor/MailEditorDialog.js")]).then(([mailboxDetails, {showMailToUrlMailEditor}]) => {
+					showMailToUrlMailEditor(decodedUrl, false, mailboxDetails)
 						.catch(ofClass(CancelledError, noOp))
 					history.pushState("", document.title, window.location.pathname) // remove # from url
 				})
 			}
 		} else if (args.action === "supportMail" && logins.isGlobalAdminUserLoggedIn()) {
-			import("../editor/MailEditor").then(({writeSupportMail}) => writeSupportMail())
+			import("../editor/MailEditorDialog.js").then(({showSupportMailEditor}) => showSupportMailEditor())
 		}
 
 		if (isApp()) {
@@ -719,10 +729,10 @@ export class MailView implements CurrentView {
 		)
 	}
 
-	private showNewMailDialog(): Promise<Dialog> {
-		return Promise.all([this.getMailboxDetails(), import("../editor/MailEditor")])
-					  .then(([mailboxDetails, {newMailEditor}]) => newMailEditor(mailboxDetails))
-					  .then(dialog => dialog.show())
+	private async showNewMailDialog() {
+		const mailboxDetails = await this.getMailboxDetails()
+		const {showMailEditorDialog} = await import("../editor/MailEditorDialog.js")
+		await showMailEditorDialog(mailboxDetails)
 	}
 
 	private getMailboxDetails(): Promise<MailboxDetail> {

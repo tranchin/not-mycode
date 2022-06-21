@@ -253,8 +253,7 @@ export class SearchView implements CurrentView {
 			? isSameTypeRef(restriction.type, MailTypeRef) && isNewMailActionAvailable()
 				? m(ButtonN, {
 					click: () => {
-						newMailEditor()
-							.then(editor => editor.show())
+						showMailEditor()
 							.catch(ofClass(PermissionError, noOp))
 					},
 					label: "newMail_action",
@@ -448,8 +447,7 @@ export class SearchView implements CurrentView {
 					const restriction = getRestriction(m.route.get()).type
 
 					if (isSameTypeRef(restriction, MailTypeRef)) {
-						newMailEditor()
-							.then(editor => editor.show())
+						showMailEditor()
 							.catch(ofClass(PermissionError, noOp))
 					} else if (isSameTypeRef(restriction, ContactTypeRef)) {
 						locator.contactModel.contactListId().then(contactListId => {
@@ -627,8 +625,7 @@ export class SearchView implements CurrentView {
 		} else if (isSameTypeRef(typeRef, MailTypeRef) && isNewMailActionAvailable()) {
 			return {
 				click: () => {
-					newMailEditor()
-						.then(editor => editor.show())
+					showMailEditor()
 						.catch(ofClass(PermissionError, noOp))
 				},
 				label: "newMail_action",
@@ -648,8 +645,7 @@ export class SearchView implements CurrentView {
 	}
 }
 
-function newMailEditor(): Promise<Dialog> {
-	return Promise.all([locator.mailModel.getUserMailboxDetails(), import("../../mail/editor/MailEditor")]).then(([mailboxDetails, {newMailEditor}]) => {
-		return newMailEditor(mailboxDetails)
-	})
+async function showMailEditor() {
+	const {showMailEditorDialog} = await import("../../mail/editor/MailEditorDialog.js")
+	return showMailEditorDialog(await locator.mailModel.getUserMailboxDetails())
 }

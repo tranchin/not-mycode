@@ -10,8 +10,8 @@ import stream from "mithril/stream"
 import {faq, FaqEntry} from "./FaqModel"
 import {Keys} from "../api/common/TutanotaConstants"
 import {debounce} from "@tutao/tutanota-utils"
-import {writeSupportMail} from "../mail/editor/MailEditor"
 import {assertMainOrNode} from "../api/common/Env"
+import {showSupportMailEditor} from "../mail/editor/MailEditorDialog.js";
 
 assertMainOrNode()
 
@@ -45,7 +45,7 @@ export function showSupportDialog() {
 		label: "contactSupport_action",
 		type: ButtonType.Login,
 		click: () => {
-			writeSupportMail(searchValue().trim())
+			showSupportMailEditor(searchValue().trim())
 			closeAction()
 		},
 	}

@@ -19,6 +19,7 @@ import {CheckboxN} from "../../gui/base/CheckboxN"
 import {Keys} from "../../api/common/TutanotaConstants"
 import {formatPrice} from "../PriceUtils"
 import {CURRENT_GIFT_CARD_TERMS_VERSION, renderTermsAndConditionsButton, TermsSection} from "../TermsAndConditions"
+import {showGiftCardMailEditor} from "../../mail/editor/MailEditorDialog.js";
 
 export const enum GiftCardStatus {
 	Deactivated = "0",
@@ -108,7 +109,7 @@ export function showGiftCardToShare(giftCard: GiftCard) {
 								click: () => {
 									dialog.close()
 									setTimeout(
-										() => import("../../mail/editor/MailEditor").then(editor => editor.writeGiftCardMail(link, giftCardDomElement)),
+										() => import("../../mail/editor/MailEditorDialog").then(editor => showGiftCardMailEditor(link, giftCardDomElement)),
 										DefaultAnimationTime,
 									)
 								},

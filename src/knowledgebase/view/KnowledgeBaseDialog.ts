@@ -39,26 +39,6 @@ export function createKnowledgeBaseDialogInjection(
 	}
 }
 
-export function createOpenKnowledgeBaseButtonAttrs(
-	dialogInjectionAttrs: DialogInjectionRightAttrs<KnowledgebaseDialogContentAttrs>,
-	getEmailContent: () => string,
-): ButtonAttrs {
-	return {
-		label: "openKnowledgebase_action",
-		click: () => {
-			if (dialogInjectionAttrs.visible() === true) {
-				dialogInjectionAttrs.visible(false)
-			} else {
-				dialogInjectionAttrs.componentAttrs.model.sortEntriesByMatchingKeywords(getEmailContent())
-				dialogInjectionAttrs.visible(true)
-				dialogInjectionAttrs.componentAttrs.model.init()
-			}
-		},
-		icon: () => Icons.Book,
-		isSelected: dialogInjectionAttrs.visible,
-	}
-}
-
 function _createHeaderAttrs(attrs: KnowledgebaseDialogContentAttrs, isDialogVisible: Stream<boolean>): lazy<DialogHeaderBarAttrs> {
 	return () => {
 		const selectedEntry = attrs.model.selectedEntry()

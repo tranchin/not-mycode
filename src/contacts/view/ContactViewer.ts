@@ -12,7 +12,6 @@ import {ContactSocialType, getContactSocialType, Keys} from "../../api/common/Tu
 import type {Contact} from "../../api/entities/tutanota/TypeRefs.js"
 import type {ContactSocialId} from "../../api/entities/tutanota/TypeRefs.js"
 import {locator} from "../../api/main/MainLocator"
-import {newMailEditorFromTemplate} from "../../mail/editor/MailEditor"
 import {logins} from "../../api/main/LoginController"
 import {downcast, NBSP, noOp, ofClass} from "@tutao/tutanota-utils"
 import {ActionBar} from "../../gui/base/ActionBar"
@@ -24,6 +23,7 @@ import type {ContactAddress} from "../../api/entities/tutanota/TypeRefs.js"
 import {ButtonAttrs, ButtonN} from "../../gui/base/ButtonN"
 import type {ContactPhoneNumber} from "../../api/entities/tutanota/TypeRefs.js"
 import {assertMainOrNode} from "../../api/common/Env"
+import {showMailEditorWithTemplate} from "../../mail/editor/MailEditorDialog.js";
 
 assertMainOrNode()
 
@@ -272,7 +272,7 @@ export class ContactViewer implements ClassComponent {
 	_writeMail(mailAddress: string): Promise<any> {
 		return locator.mailModel.getUserMailboxDetails().then(mailboxDetails => {
 			const name = `${this.contact.firstName} ${this.contact.lastName}`.trim()
-			return newMailEditorFromTemplate(
+			return showMailEditorWithTemplate(
 				mailboxDetails,
 				{
 					to: [
@@ -284,7 +284,7 @@ export class ContactViewer implements ClassComponent {
 				},
 				"",
 				appendEmailSignature("", logins.getUserController().props),
-			).then(editor => editor.show())
+			)
 		})
 	}
 

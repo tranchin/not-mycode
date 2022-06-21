@@ -631,11 +631,10 @@ export class MailViewerViewModel {
 		const sendAllowed = await checkApprovalStatus(this.logins, false)
 		if (sendAllowed) {
 			const args = await this.createResponseMailArgsForForwarding([], [], true)
-			const [mailboxDetails, {newMailEditorAsResponse}] = await Promise.all([this.getMailboxDetails(), import("../editor/MailEditor")])
+			const [mailboxDetails, {showResponseMailEditor}] = await Promise.all([this.getMailboxDetails(), import("../editor/MailEditorDialog.js")])
 			// Call this again to make sure everything is loaded, including inline images because this can be called earlier than all the parts are loaded.
 			await this.loadAll()
-			const editor = await newMailEditorAsResponse(args, this.isBlockingExternalImages(), this.getLoadedInlineImages(), mailboxDetails)
-			editor.show()
+			await showResponseMailEditor(args, this.isBlockingExternalImages(), this.getLoadedInlineImages(), mailboxDetails)
 		}
 	}
 
@@ -721,7 +720,7 @@ export class MailViewerViewModel {
 			}
 
 			const {prependEmailSignature} = await import("../signature/Signature.js")
-			const {newMailEditorAsResponse} = await import("../editor/MailEditor")
+			const {showResponseMailEditor} = await import("../editor/MailEditorDialog.js")
 
 			await this.loadAll()
 			// It should be there after loadAll() but if not we just give up
@@ -732,7 +731,7 @@ export class MailViewerViewModel {
 			const attachmentsForReply = getReferencedAttachments(this.attachments, referencedCids)
 			try {
 
-				const editor = await newMailEditorAsResponse(
+				await showResponseMailEditor(
 					{
 						previousMail: this.mail,
 						conversationType: ConversationType.REPLY,
@@ -751,7 +750,6 @@ export class MailViewerViewModel {
 					this.getLoadedInlineImages(),
 					mailboxDetails,
 				)
-				editor.show()
 			} catch (e) {
 				if (e instanceof UserError) {
 					showUserError(e)

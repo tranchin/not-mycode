@@ -1,7 +1,6 @@
-import {downcast, isSameTypeRef, toLowerCase} from "@tutao/tutanota-utils"
+import {downcast, intersection, isSameTypeRef, toLowerCase} from "@tutao/tutanota-utils"
 import type {File as TutanotaFile} from "../../entities/tutanota/TypeRefs.js"
 import {FileTypeRef as TutanotaFileTypeRef} from "../../entities/tutanota/TypeRefs.js"
-import {intersection} from "@tutao/tutanota-utils"
 import {DataFile} from "../DataFile";
 
 type StringPredicate = (arg0: string) => boolean
@@ -131,7 +130,7 @@ export function isTutanotaFile(file: TutanotaFile | DataFile | FileReference): b
 	return file._type && file._type.hasOwnProperty("app") && file._type.hasOwnProperty("name") && isSameTypeRef(downcast(file._type), TutanotaFileTypeRef)
 }
 
-export function isDataFile(file: TutanotaFile | DataFile | FileReference): boolean {
+export function isDataFile(file: TutanotaFile | DataFile | FileReference): file is DataFile {
 	return file._type === "DataFile"
 }
 

@@ -11,14 +11,7 @@ import {
 import {UserError} from "../../api/main/UserError"
 import {getPasswordStrengthForUser, isSecurePassword, PASSWORD_MIN_SECURE_VALUE} from "../../misc/PasswordUtils"
 import {cleanMatch, deduplicate, downcast, findAndRemove, getFromMap, neverNull, noOp, ofClass, promiseMap, remove, typedValues} from "@tutao/tutanota-utils"
-import {
-	checkAttachmentSize,
-	getDefaultSender,
-	getEnabledMailAddressesWithUser,
-	getSenderNameForUser,
-	getTemplateLanguages,
-	RecipientField,
-} from "../model/MailUtils"
+import {checkAttachmentSize, getDefaultSender, getEnabledMailAddressesWithUser, getSenderNameForUser, RecipientField,} from "../model/MailUtils"
 import type {File as TutanotaFile, Mail} from "../../api/entities/tutanota/TypeRefs.js"
 import {ContactTypeRef, ConversationEntryTypeRef, FileTypeRef, MailTypeRef} from "../../api/entities/tutanota/TypeRefs.js"
 import {FileNotFoundError} from "../../api/common/error/FileNotFoundError"
@@ -32,8 +25,8 @@ import type {EntityUpdateData} from "../../api/main/EventController"
 import {EventController, isUpdateForTypeRef} from "../../api/main/EventController"
 import {isMailAddress} from "../../misc/FormatValidator"
 import type {ContactModel} from "../../contacts/model/ContactModel"
-import type {Language, TranslationKey, TranslationText} from "../../misc/LanguageViewModel"
-import {getAvailableLanguageCode, getSubstitutedLanguageCode, lang, languages} from "../../misc/LanguageViewModel"
+import type {TranslationKey, TranslationText} from "../../misc/LanguageViewModel"
+import {getAvailableLanguageCode, lang} from "../../misc/LanguageViewModel"
 import type {IUserController} from "../../api/main/UserController"
 import {RecipientsNotFoundError} from "../../api/common/error/RecipientsNotFoundError"
 import {checkApprovalStatus} from "../../misc/LoginUtils"
@@ -41,7 +34,6 @@ import {EntityClient} from "../../api/common/EntityClient"
 import {locator} from "../../api/main/MainLocator"
 import {getContactDisplayName} from "../../contacts/model/ContactUtils"
 import {getListId, isSameId, stringToCustomId} from "../../api/common/utils/EntityUtils"
-import {CustomerPropertiesTypeRef} from "../../api/entities/sys/TypeRefs.js"
 import type {InlineImages} from "../view/MailViewer"
 import {cloneInlineImages, revokeInlineImages} from "../view/MailGuiUtils"
 import {MailBodyTooLargeError} from "../../api/common/error/MailBodyTooLargeError"
@@ -69,7 +61,7 @@ export type InitAsResponseArgs = {
 	replyTos: RecipientList
 }
 
-type InitArgs = {
+export interface InitArgs {
 	conversationType: ConversationType
 	subject: string
 	bodyText: string
@@ -81,6 +73,7 @@ type InitArgs = {
 	replyTos?: RecipientList
 	previousMail?: Mail | null
 	previousMessageId?: string | null
+	inlineImages?: InlineImages
 }
 
 /**
@@ -91,7 +84,6 @@ export class SendMailModel {
 	onMailChanged: Stream<boolean> = stream(false)
 	onRecipientDeleted: Stream<{field: RecipientField, recipient: Recipient} | null> = stream(null)
 	onBeforeSend: () => void = noOp
-	loadedInlineImages: InlineImages = new Map()
 
 	// Isn't private because used by MinimizedEditorOverlay, refactor?
 	draft: Mail | null = null
@@ -112,7 +104,6 @@ export class SendMailModel {
 
 	private previousMail: Mail | null = null
 	private selectedNotificationLanguage: string
-	private availableNotificationTemplateLanguages: Array<Language> = []
 	private mailChanged: boolean = false
 	private passwords: Map<string, string> = new Map()
 
@@ -140,7 +131,6 @@ export class SendMailModel {
 		this.confidential = !userProps.defaultUnconfidential
 
 		this.selectedNotificationLanguage = getAvailableLanguageCode(userProps.notificationMailLanguage || lang.code)
-		this.updateAvailableNotificationTemplateLanguages()
 
 		this.eventController.addEntityListener(updates => this.entityEventReceived(updates))
 	}
@@ -148,22 +138,6 @@ export class SendMailModel {
 	private async entityEventReceived(updates: ReadonlyArray<EntityUpdateData>): Promise<void> {
 		for (let update of updates) {
 			await this.handleEntityEvent(update)
-		}
-	}
-
-	/**
-	 * Sort list of all languages alphabetically
-	 * then we see if the user has custom notification templates
-	 * in which case we replace the list with just the templates that the user has specified
-	 */
-	private async updateAvailableNotificationTemplateLanguages(): Promise<void> {
-		this.availableNotificationTemplateLanguages = languages.slice().sort((a, b) => lang.get(a.textId).localeCompare(lang.get(b.textId)))
-		const filteredLanguages = await getTemplateLanguages(this.availableNotificationTemplateLanguages, this.entity, this.logins)
-		if (filteredLanguages.length > 0) {
-			const languageCodes = filteredLanguages.map(l => l.code)
-			this.selectedNotificationLanguage =
-				getSubstitutedLanguageCode(this.logins.getUserController().props.notificationMailLanguage || lang.code, languageCodes) || languageCodes[0]
-			this.availableNotificationTemplateLanguages = filteredLanguages
 		}
 	}
 
@@ -288,9 +262,6 @@ export class SendMailModel {
 						  console.log("could not load conversation entry", e)
 					  }),
 				  )
-		// if we reuse the same image references, changing the displayed mail in mail view will cause the minimized draft to lose
-		// that reference, because it will be revoked
-		this.loadedInlineImages = cloneInlineImages(inlineImages)
 		return this.init({
 			conversationType,
 			subject,
@@ -305,54 +276,7 @@ export class SendMailModel {
 		})
 	}
 
-	async initWithDraft(draft: Mail, attachments: TutanotaFile[], bodyText: string, inlineImages: InlineImages): Promise<SendMailModel> {
-		let previousMessageId: string | null = null
-		let previousMail: Mail | null = null
-
-		const conversationEntry = await this.entity.load(ConversationEntryTypeRef, draft.conversationEntry)
-		const conversationType = downcast<ConversationType>(conversationEntry.conversationType)
-
-		if (conversationEntry.previous) {
-			try {
-				const previousEntry = await this.entity.load(ConversationEntryTypeRef, conversationEntry.previous)
-				previousMessageId = previousEntry.messageId
-				if (previousEntry.mail) {
-					previousMail = await this.entity.load(MailTypeRef, previousEntry.mail)
-				}
-			} catch (e) {
-				if (e instanceof NotFoundError) {
-					// ignore
-				} else {
-					throw e
-				}
-			}
-		}
-
-		// if we reuse the same image references, changing the displayed mail in mail view will cause the minimized draft to lose
-		// that reference, because it will be revoked
-		this.loadedInlineImages = cloneInlineImages(inlineImages)
-		const {confidential, sender, toRecipients, ccRecipients, bccRecipients, subject, replyTos} = draft
-		const recipients: Recipients = {
-			to: toRecipients,
-			cc: ccRecipients,
-			bcc: bccRecipients,
-		}
-		return this.init({
-			conversationType: conversationType,
-			subject,
-			bodyText,
-			recipients,
-			draft,
-			senderMailAddress: sender.address,
-			confidential,
-			attachments,
-			replyTos,
-			previousMail,
-			previousMessageId,
-		})
-	}
-
-	private async init(
+	async init(
 		{
 			conversationType,
 			subject,
@@ -518,7 +442,6 @@ export class SendMailModel {
 	dispose() {
 		this.eventController.removeEntityListener(this.entityEventReceived)
 
-		revokeInlineImages(this.loadedInlineImages)
 	}
 
 	/**
@@ -529,7 +452,11 @@ export class SendMailModel {
 	}
 
 	/** @throws UserError in case files are too big to add */
-	attachFiles(files: ReadonlyArray<Attachment>): void {
+	attachFiles(files: ReadonlyArray<Attachment>) {
+		if (files.length === 0) {
+			return
+		}
+
 		let sizeLeft = MAX_ATTACHMENT_SIZE - this.attachments.reduce((total, file) => total + Number(file.size), 0)
 
 		const sizeCheckResult = checkAttachmentSize(files, sizeLeft)
@@ -848,19 +775,6 @@ export class SendMailModel {
 		return this.entity.setup(listId, m).catch(ofClass(NotAuthorizedError, e => console.log("not authorized for approval message")))
 	}
 
-	getAvailableNotificationTemplateLanguages(): Array<Language> {
-		return this.availableNotificationTemplateLanguages
-	}
-
-	getSelectedNotificationLanguageCode(): string {
-		return this.selectedNotificationLanguage
-	}
-
-	setSelectedNotificationLanguageCode(code: string) {
-		this.selectedNotificationLanguage = code
-		this.setMailChanged(true)
-	}
-
 	private updateExternalLanguage() {
 		let props = this.user().props
 
@@ -965,8 +879,6 @@ export class SendMailModel {
 			}
 
 			this.setMailChanged(true)
-		} else if (isUpdateForTypeRef(CustomerPropertiesTypeRef, update)) {
-			this.updateAvailableNotificationTemplateLanguages()
 		}
 
 		return Promise.resolve()

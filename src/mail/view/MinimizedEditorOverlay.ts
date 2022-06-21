@@ -34,7 +34,7 @@ export class MinimizedEditorOverlay implements Component<MinimizedEditorOverlayA
 		this._listener = (updates: ReadonlyArray<EntityUpdateData>, eventOwnerGroupId: Id): Promise<unknown> => {
 			return promiseMap(updates, update => {
 				if (isUpdateForTypeRef(MailTypeRef, update) && update.operation === OperationType.DELETE) {
-					let draft = minimizedEditor.sendMailModel.getDraft()
+					let draft = minimizedEditor.model.getDraft()
 
 					if (draft && isSameId(draft._id, [update.instanceListId, update.instanceId])) {
 						viewModel.removeMinimizedEditor(minimizedEditor)
@@ -52,7 +52,7 @@ export class MinimizedEditorOverlay implements Component<MinimizedEditorOverlayA
 
 	view(vnode: Vnode<MinimizedEditorOverlayAttrs>): Children {
 		const {minimizedEditor, viewModel, eventController} = vnode.attrs
-		const subject = minimizedEditor.sendMailModel.getSubject()
+		const subject = minimizedEditor.model.getSubject()
 		return m(".elevated-bg.pl.border-radius", [
 			m(CounterBadge, {
 				count: viewModel.getMinimizedEditors().indexOf(minimizedEditor) + 1,
@@ -107,12 +107,12 @@ export class MinimizedEditorOverlay implements Component<MinimizedEditorOverlayA
 	}
 
 	private _onDeleteClicked(minimizedEditor: MinimizedEditor, viewModel: MinimizedMailEditorViewModel) {
-		const model = minimizedEditor.sendMailModel
+		const {model} = minimizedEditor
 		viewModel.removeMinimizedEditor(minimizedEditor)
 		// only delete once save has finished
 		minimizedEditor.saveStatus.map(async ({status}) => {
 			if (status !== SaveStatusEnum.Saving) {
-				const draft = model.draft
+				const draft = model.getDraft()
 
 				if (draft) {
 					await promptAndDeleteMails(model.mailModel, [draft], noOp)

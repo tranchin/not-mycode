@@ -7,10 +7,10 @@ import {downcast} from "@tutao/tutanota-utils"
 import {showUserError} from "../misc/ErrorHandlerImpl"
 import {locator} from "../api/main/MainLocator"
 import {InfoLink} from "../misc/LanguageViewModel"
-import {newMailEditorFromTemplate} from "../mail/editor/MailEditor"
 import {UserError} from "../api/main/UserError"
 import {Attachment} from "../mail/editor/SendMailModel";
 import {clientInfoString} from "../misc/ErrorReporter"
+import {showMailEditorWithTemplate} from "../mail/editor/MailEditorDialog.js";
 
 export class AboutDialog implements Component {
 	view(vnode: Vnode): Children {
@@ -81,7 +81,7 @@ export class AboutDialog implements Component {
 			.join("")
 
 		try {
-			const editor = await newMailEditorFromTemplate(
+			await showMailEditorWithTemplate(
 				mailboxDetails,
 				{},
 				`Device logs v${env.versionNumber} - ${type} - ${client}`,
@@ -89,7 +89,6 @@ export class AboutDialog implements Component {
 				attachments,
 				true,
 			)
-			editor.show()
 		} catch (e) {
 			if (e instanceof UserError) {
 				await showUserError(e)

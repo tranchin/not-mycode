@@ -18,16 +18,14 @@ export class WebCommonNativeFacade implements CommonNativeFacade {
 	 */
 	async createMailEditor(filesUris: ReadonlyArray<string>, text: string, addresses: ReadonlyArray<string>, subject: string, mailToUrlString: string): Promise<void> {
 		const {fileApp, mailModel} = await WebCommonNativeFacade.getInitializedLocator()
-		const {newMailEditorFromTemplate, newMailtoUrlMailEditor} = await import("../../mail/editor/MailEditor.js")
+		const {showMailEditorWithTemplate, showMailToUrlMailEditor} = await import("../../mail/editor/MailEditorDialog.js")
 		const {logins} = await import("../../api/main/LoginController.js")
 		const signatureModule = await import("../../mail/signature/Signature")
 		await logins.waitForPartialLogin()
 		const mailboxDetails = await mailModel.getUserMailboxDetails()
-		let editor
 
 		if (mailToUrlString) {
-			editor = await newMailtoUrlMailEditor(mailToUrlString, false, mailboxDetails).catch(ofClass(CancelledError, noOp))
-			if (!editor) return
+			 await showMailToUrlMailEditor(mailToUrlString, false, mailboxDetails).catch(ofClass(CancelledError, noOp))
 		} else {
 			const files = await fileApp.getFilesMetaData(filesUris)
 			const address = (addresses && addresses[0]) || ""
@@ -41,7 +39,7 @@ export class WebCommonNativeFacade implements CommonNativeFacade {
 					],
 				}
 				: {}
-			editor = await newMailEditorFromTemplate(
+			await showMailEditorWithTemplate(
 				mailboxDetails,
 				recipients,
 				subject || (files.length > 0 ? files[0].name : ""),
@@ -49,8 +47,6 @@ export class WebCommonNativeFacade implements CommonNativeFacade {
 				files,
 			)
 		}
-
-		editor.show()
 	}
 
 	async invalidateAlarms(): Promise<void> {

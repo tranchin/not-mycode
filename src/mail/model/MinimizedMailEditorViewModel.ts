@@ -1,9 +1,9 @@
 import type {Dialog} from "../../gui/base/Dialog"
-import type {SendMailModel} from "../editor/SendMailModel"
 import {lastThrow, remove} from "@tutao/tutanota-utils"
 import type {Mail} from "../../api/entities/tutanota/TypeRefs.js"
 import {isSameId} from "../../api/common/utils/EntityUtils"
 import Stream from "mithril/stream";
+import {MailEditorViewModel} from "../editor/MailEditorViewModel.js"
 
 export const enum SaveStatusEnum {
 	Saving = 0,
@@ -27,7 +27,7 @@ export type SaveStatus = {
 
 export type MinimizedEditor = {
 	dialog: Dialog
-	sendMailModel: SendMailModel
+	model: MailEditorViewModel
 	// we pass sendMailModel for easier access to contents of mail,
 	dispose: () => void
 	// disposes dialog and templatePopup eventListeners when minimized mail is removed
@@ -47,7 +47,7 @@ export class MinimizedMailEditorViewModel {
 
 	minimizeMailEditor(
 		dialog: Dialog,
-		sendMailModel: SendMailModel,
+		model: MailEditorViewModel,
 		dispose: () => void,
 		saveStatus: Stream<SaveStatus>,
 		closeOverlayFunction: () => Promise<void>,
@@ -57,7 +57,7 @@ export class MinimizedMailEditorViewModel {
 		// disallow creation of duplicate minimized mails
 		if (!this._minimizedEditors.find(editor => editor.dialog === dialog)) {
 			this._minimizedEditors.push({
-				sendMailModel: sendMailModel,
+				model,
 				dialog: dialog,
 				dispose: dispose,
 				saveStatus,
@@ -88,7 +88,7 @@ export class MinimizedMailEditorViewModel {
 
 	getEditorForDraft(mail: Mail): MinimizedEditor | null {
 		return this.getMinimizedEditors().find(e => {
-			const draft = e.sendMailModel.getDraft()
+			const draft = e.model.getDraft()
 			return draft ? isSameId(draft._id, mail._id) : null
 		}) ?? null
 	}

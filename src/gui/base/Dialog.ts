@@ -1,5 +1,4 @@
 import m, {Children, Component} from "mithril"
-import type Stream from "mithril/stream"
 import type {ModalComponent} from "./Modal"
 import {modal} from "./Modal"
 import {alpha, AlphaEnum, AnimationPromise, animations, DefaultAnimationTime, opacity, transform, TransformEnum} from "../animation/Animations"

@@ -5,12 +5,12 @@ class AppDelegate : UIResponder,
                     UIApplicationDelegate,
                     UNUserNotificationCenterDelegate {
   var window: UIWindow?
-  
+
   private var pushTokenCallback: ResponseCallback<String>?
   private let userPreferences = UserPreferenceFacade()
   private var alarmManager: AlarmManager!
   private var viewController: ViewController!
-  
+
   func registerForPushNotifications() async throws -> String {
     #if targetEnvironment(simulator)
     return ""
@@ -31,15 +31,15 @@ class AppDelegate : UIResponder,
     }
     #endif
   }
-  
+
   func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]?
   ) -> Bool {
     TUTSLog("Start Tutanota \(String(describing: launchOptions))")
-    
+
     let keychainManager = KeychainManager(keyGenerator: KeyGenerator())
-    
+
     self.alarmManager = AlarmManager(keychainManager: keychainManager, userPreference: userPreferences)
     self.window = UIWindow(frame: UIScreen.main.bounds)
     let credentialsEncryption = IosNativeCredentialsFacade(keychainManager: keychainManager)
@@ -53,18 +53,18 @@ class AppDelegate : UIResponder,
       blobUtils: BlobUtil()
     )
     self.window!.rootViewController = viewController
-    
+
     UNUserNotificationCenter.current().delegate = self
-    
+
     window!.makeKeyAndVisible()
-    
+
     return true
   }
-  
+
   func applicationWillEnterForeground(_ application: UIApplication) {
     UIApplication.shared.applicationIconBadgeNumber = 0
   }
-  
+
   func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
     if let callback = self.pushTokenCallback {
       let stringToken = deviceTokenAsString(deviceToken: deviceToken)
@@ -72,19 +72,19 @@ class AppDelegate : UIResponder,
       self.pushTokenCallback = nil
     }
   }
-  
+
   func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
     self.pushTokenCallback?(.failure(error))
     self.pushTokenCallback = nil
   }
-  
+
   func application(
     _ application: UIApplication,
     didReceiveRemoteNotification userInfo: [AnyHashable : Any],
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
     let apsDict = userInfo["aps"] as! Dictionary<String, Any>
     TUTSLog("Received notification \(userInfo)")
-    
+
     let contentAvailable = apsDict["content-available"]
     if contentAvailable as? Int == 1 {
       self.alarmManager.fetchMissedNotifications { result in
@@ -97,6 +97,12 @@ class AppDelegate : UIResponder,
         }
       }
     }
+  }
+
+  func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+    // We need to implement this method because it will not show a notification while we are in the foregroud otherwise
+    TUTSLog("About to show notification in foreground")
+    return .alert
   }
 }
 

@@ -76,7 +76,7 @@ export class ApplicationWindow {
 		private readonly offlineDbFacade: OfflineDbFacade,
 		private readonly remoteBridge: RemoteBridge,
 		dictUrl: string,
-		noAutoLogin?: boolean | null,
+		noAutoLogin?: boolean | null,         sdfsdfds
 	) {
 		this._themeFacade = themeFacade
 		this._electron = electron

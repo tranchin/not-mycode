@@ -8,28 +8,6 @@ import {PartialRecipient, Recipient, RecipientType} from "../common/recipients/R
 import {LazyLoaded} from "@tutao/tutanota-utils"
 import {Contact, ContactTypeRef} from "../entities/tutanota/TypeRefs"
 
-/**
- * A recipient that can be resolved to obtain contact and recipient type
- * It is defined as an interface, because it should only be created using RecipientsModel.resolve
- * rather than directly constructing one
- */
-export interface ResolvableRecipient extends Recipient {
-	/** get the resolved value of the recipient, when it's ready */
-	resolved(): Promise<Recipient>
-
-	/** check if resolution is complete */
-	isResolved(): boolean
-
-	/** provide a handler to run when resolution is done, handy for chaining */
-	whenResolved(onResolved: (resolvedRecipient: Recipient) => void): this
-
-	/** update the contact. will override whatever contact gets resolved */
-	setContact(contact: Contact): void
-
-	/** update the name. will override whatever the name has resolved to */
-	setName(name: string): void
-}
-
 export enum ResolveMode {
 	Lazy,
 	Eager
@@ -49,7 +27,7 @@ export class RecipientsModel {
 	 * If resolveLazily === true, Then resolution will not be initiated (i.e. no server calls will be made) until the first call to `resolved`
 	 */
 	resolve(recipient: PartialRecipient, resolveMode: ResolveMode): ResolvableRecipient {
-		return new ResolvableRecipientImpl(
+		return new ResolvableRecipient(
 			recipient,
 			this.contactModel,
 			this.loginController,
@@ -60,9 +38,16 @@ export class RecipientsModel {
 	}
 }
 
-class ResolvableRecipientImpl implements ResolvableRecipient {
+/**
+ * A recipient that can be resolved to obtain contact and recipient type
+ * It is defined as an interface, because it should only be created using RecipientsModel.resolve
+ * rather than directly constructing one
+ * also provides some useful mutation methods
+ */
+export class ResolvableRecipient implements Recipient {
 	public readonly address: string
 	private _name: string | null
+	private _password: string | null
 	private readonly lazyType: LazyLoaded<RecipientType>
 	private readonly lazyContact: LazyLoaded<Contact | null>
 
@@ -83,6 +68,10 @@ class ResolvableRecipientImpl implements ResolvableRecipient {
 		return this.lazyContact.getSync() ?? this.initialContact
 	}
 
+	get password(): string | null {
+		return this._password ?? this.contact?.presharedPassword ?? this.contact?.autoTransmitPassword ?? null
+	}
+
 	constructor(
 		arg: PartialRecipient,
 		private readonly contactModel: ContactModel,
@@ -93,8 +82,9 @@ class ResolvableRecipientImpl implements ResolvableRecipient {
 	) {
 		this.address = arg.address
 		this._name = arg.name ?? null
+		this._password = arg.password ?? (isContactInstance(arg.contact) ? arg.contact.presharedPassword : null)
 
-		if (!(arg.contact instanceof Array)) {
+		if (!isContactId(arg.contact)) {
 			this.initialContact = arg.contact ?? null
 		}
 
@@ -108,8 +98,10 @@ class ResolvableRecipientImpl implements ResolvableRecipient {
 		this.lazyContact = new LazyLoaded(
 			async () => {
 				const contact = await this.resolveContact(arg.contact)
-				if (contact != null && this._name == null) {
-					this._name = getContactDisplayName(contact)
+				if (contact != null) {
+					// don't want to overwrite existing values
+					this._name = this._name ?? getContactDisplayName(contact)
+					this._password = this._password ?? contact.presharedPassword
 				}
 				return contact
 			}
@@ -121,15 +113,22 @@ class ResolvableRecipientImpl implements ResolvableRecipient {
 		}
 	}
 
+	/** update the name. will override whatever the name has resolved to */
 	setName(newName: string) {
 		this._name = newName
 	}
 
+	/** update the contact. will override whatever contact gets resolved */
 	setContact(newContact: Contact) {
 		this.overrideContact = newContact
 		this.lazyContact.reload()
 	}
 
+	setPassword(newPassword: string) {
+		this._password = newPassword
+	}
+
+	/** get the resolved value of the recipient, when it's ready */
 	async resolved(): Promise<Recipient> {
 
 		await Promise.all([this.lazyType.getAsync(), this.lazyContact.getAsync()])
@@ -139,14 +138,17 @@ class ResolvableRecipientImpl implements ResolvableRecipient {
 			name: this.name,
 			type: this.type,
 			contact: this.contact,
+			password: this.password
 		}
 	}
 
+	/** check if resolution is complete */
 	isResolved(): boolean {
 		// We are only resolved when both type and contact are non-null and finished
 		return this.lazyType.isLoaded() && this.lazyContact.isLoaded()
 	}
 
+	/** provide a handler to run when resolution is done, handy for chaining */
 	whenResolved(handler: (resolvedRecipient: Recipient) => void): this {
 		this.resolved().then(handler)
 		return this
@@ -173,7 +175,7 @@ class ResolvableRecipientImpl implements ResolvableRecipient {
 		try {
 			if (this.overrideContact) {
 				return this.overrideContact
-			} else if (contact instanceof Array) {
+			} else if (isContactId(contact)) {
 				return await this.entityClient.load(ContactTypeRef, contact)
 			} else if (contact == null) {
 				return await this.contactModel.searchForContact(this.address)
@@ -186,4 +188,12 @@ class ResolvableRecipientImpl implements ResolvableRecipient {
 			return null
 		}
 	}
+}
+
+function isContactId(contact: Contact | IdTuple | None): contact is IdTuple {
+	return contact instanceof Array
+}
+
+function isContactInstance(contact: Contact | IdTuple | None): contact is Contact {
+	return contact != null && !(contact instanceof Array)
 }

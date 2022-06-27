@@ -336,7 +336,7 @@ export class ContactFormRequestDialog {
 							method: MailMethod.NONE,
 						},
 					)
-					await mailFacade.sendDraft(draft, [{name, address: mailAddress, type: RecipientType.INTERNAL, contact: null}], lang.code)
+					await mailFacade.sendDraft(draft, [{name, address: mailAddress, type: RecipientType.INTERNAL, contact: null, password: null}], lang.code)
 				} finally {
 					await logins.logout(false)
 				}

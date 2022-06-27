@@ -11,6 +11,8 @@ export interface Recipient {
 	readonly name: string
 	readonly type: RecipientType
 	readonly contact: Contact | null
+	/** might be different from the password on {@field contact} */
+	readonly password: string | null
 }
 
 /**
@@ -23,6 +25,7 @@ export interface PartialRecipient {
 	name?: string | None
 	type?: RecipientType | None
 	contact?: Contact | IdTuple | None
+	password?: string | None
 }
 
 export type RecipientList = Array<PartialRecipient>

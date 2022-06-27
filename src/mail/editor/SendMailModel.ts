@@ -13,7 +13,7 @@ import {getPasswordStrengthForUser, isSecurePassword, PASSWORD_MIN_SECURE_VALUE}
 import {cleanMatch, deduplicate, downcast, findAndRemove, getFromMap, neverNull, noOp, ofClass, promiseMap, remove, typedValues} from "@tutao/tutanota-utils"
 import {checkAttachmentSize, getDefaultSender, getEnabledMailAddressesWithUser, getSenderNameForUser, RecipientField,} from "../model/MailUtils"
 import type {File as TutanotaFile, Mail} from "../../api/entities/tutanota/TypeRefs.js"
-import {ContactTypeRef, ConversationEntryTypeRef, FileTypeRef, MailTypeRef} from "../../api/entities/tutanota/TypeRefs.js"
+import {ContactTypeRef, ConversationEntryTypeRef, FileTypeRef} from "../../api/entities/tutanota/TypeRefs.js"
 import {FileNotFoundError} from "../../api/common/error/FileNotFoundError"
 import type {LoginController} from "../../api/main/LoginController"
 import {logins} from "../../api/main/LoginController"
@@ -35,7 +35,6 @@ import {locator} from "../../api/main/MainLocator"
 import {getContactDisplayName} from "../../contacts/model/ContactUtils"
 import {getListId, isSameId, stringToCustomId} from "../../api/common/utils/EntityUtils"
 import type {InlineImages} from "../view/MailViewer"
-import {cloneInlineImages, revokeInlineImages} from "../view/MailGuiUtils"
 import {MailBodyTooLargeError} from "../../api/common/error/MailBodyTooLargeError"
 import type {MailFacade} from "../../api/worker/facades/MailFacade"
 import {assertMainOrNode} from "../../api/common/Env"
@@ -105,7 +104,6 @@ export class SendMailModel {
 	private previousMail: Mail | null = null
 	private selectedNotificationLanguage: string
 	private mailChanged: boolean = false
-	private passwords: Map<string, string> = new Map()
 
 	// The promise for the draft currently being saved
 	private currentSavePromise: Promise<void> | null = null
@@ -154,13 +152,12 @@ export class SendMailModel {
 	}
 
 	setPassword(mailAddress: string, password: string) {
-		this.passwords.set(mailAddress, password)
-
+		this.getRecipientWithAddress(mailAddress)?.setPassword(password)
 		this.setMailChanged(true)
 	}
 
 	getPassword(mailAddress: string): string {
-		return this.passwords.get(mailAddress) || ""
+		return this.getRecipientWithAddress(mailAddress)?.password ?? ""
 	}
 
 	getSubject(): string {
@@ -343,6 +340,10 @@ export class SendMailModel {
 		return getFromMap(this.recipients, type, () => [])
 	}
 
+	getRecipientWithAddress(mailAddress: string): ResolvableRecipient | null {
+		return this.allRecipients().find(recipient => recipient.address === mailAddress) ?? null
+	}
+
 	toRecipients(): Array<ResolvableRecipient> {
 		return this.getRecipientList(RecipientField.TO)
 	}
@@ -386,7 +387,6 @@ export class SendMailModel {
 	): Promise<void> {
 
 		let recipient = this.getRecipientList(fieldType).find(recipient => recipient.address === address)
-		// Only add a recipient if it doesn't exist
 		if (!recipient) {
 			recipient = this.recipientsModel.resolve({
 					address,
@@ -396,20 +396,9 @@ export class SendMailModel {
 				},
 				resolveMode
 			)
-
 			this.getRecipientList(fieldType).push(recipient)
-
-			recipient.resolved().then(({address, contact}) => {
-				if (!this.passwords.has(address) && contact != null) {
-					this.setPassword(address, contact.presharedPassword ?? "")
-				}
-				this.setMailChanged(true)
-			})
-
-			this.setMailChanged(true)
-
+			recipient.whenResolved(() => this.setMailChanged(true))
 		}
-
 		await recipient.resolved()
 	}
 

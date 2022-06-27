@@ -208,7 +208,8 @@ export async function sendFeedbackMail(content: FeedbackContent): Promise<void> 
 				name,
 				address: mailAddress,
 				type: RecipientType.INTERNAL,
-				contact: null
+				contact: null,
+				password: null
 			},
 		],
 		"de",

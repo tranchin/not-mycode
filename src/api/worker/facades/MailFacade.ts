@@ -10,7 +10,6 @@ import {
 	ReportMailService,
 	SendDraftService
 } from "../../entities/tutanota/Services.js"
-import {LoginFacadeImpl} from "./LoginFacade"
 import type {ConversationType} from "../../common/TutanotaConstants"
 import {
 	AccountType,
@@ -26,7 +25,6 @@ import {
 	ReportedMailFieldType,
 } from "../../common/TutanotaConstants"
 import type {
-	Contact,
 	DraftAttachment,
 	DraftRecipient,
 	EncryptedMailAddress,
@@ -43,8 +41,10 @@ import {
 	createDeleteMailFolderData,
 	createDraftAttachment,
 	createDraftCreateData,
-	createDraftData, createDraftRecipient,
-	createDraftUpdateData, createEncryptedMailAddress,
+	createDraftData,
+	createDraftRecipient,
+	createDraftUpdateData,
+	createEncryptedMailAddress,
 	createExternalUserData,
 	createListUnsubscribeData,
 	createMoveMailData,
@@ -61,7 +61,8 @@ import {NotFoundError} from "../../common/error/RestError"
 import type {EntityUpdate, PublicKeyReturn, User} from "../../entities/sys/TypeRefs.js"
 import {
 	BlobReferenceTokenWrapper,
-	createPublicKeyData, CustomerTypeRef,
+	createPublicKeyData,
+	CustomerTypeRef,
 	ExternalUserReferenceTypeRef,
 	GroupInfoTypeRef,
 	GroupRootTypeRef,
@@ -160,7 +161,8 @@ export class MailFacade {
 		private readonly crypto: CryptoFacade,
 		private readonly serviceExecutor: IServiceExecutor,
 		private readonly blobFacade: BlobFacade,
-	) {}
+	) {
+	}
 
 	async createMailFolder(name: string, parent: IdTuple, ownerGroupId: Id): Promise<void> {
 		const mailGroupKey = this.userFacade.getGroupKey(ownerGroupId)
@@ -471,7 +473,7 @@ export class MailFacade {
 
 				if (draft.confidential) {
 					sendDraftData.bucketEncMailSessionKey = encryptKey(bucketKey, sk)
-					const hasExternalSecureRecipient = recipients.some(r => r.type === RecipientType.EXTERNAL && !!this.getContactPassword(r.contact)?.trim())
+					const hasExternalSecureRecipient = recipients.some(r => r.type === RecipientType.EXTERNAL && !!r.password?.trim())
 
 					if (hasExternalSecureRecipient) {
 						sendDraftData.senderNameUnencrypted = draft.sender.name // needed for notification mail
@@ -587,16 +589,14 @@ export class MailFacade {
 			// copy password information if this is an external contact
 			// otherwise load the key information from the server
 			if (recipient.type === RecipientType.EXTERNAL) {
-				const password = this.getContactPassword(recipient.contact)
-
-				if (password == null || !isSameId(this.userFacade.getGroupId(GroupType.Mail), senderMailGroupId)) {
+				if (recipient.password == null || !isSameId(this.userFacade.getGroupId(GroupType.Mail), senderMailGroupId)) {
 					// no password given and prevent sending to secure externals from shared group
 					notFoundRecipients.push(recipient.address)
 					continue
 				}
 
 				const salt = generateRandomSalt()
-				const passwordKey = generateKeyFromPassphrase(password, salt, KeyLength.b128)
+				const passwordKey = generateKeyFromPassphrase(recipient.password, salt, KeyLength.b128)
 				const passwordVerifier = createAuthVerifier(passwordKey)
 				const externalGroupKeys = await this._getExternalGroupKey(recipient.address, passwordKey, passwordVerifier)
 				const data = createSecureExternalRecipientKeyData()
@@ -621,10 +621,6 @@ export class MailFacade {
 		if (notFoundRecipients.length > 0) {
 			throw new RecipientsNotFoundError(notFoundRecipients.join("\n"))
 		}
-	}
-
-	private getContactPassword(contact: Contact | null): string | null {
-		return contact?.presharedPassword ?? contact?.autoTransmitPassword ?? null
 	}
 
 	/**

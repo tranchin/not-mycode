@@ -164,7 +164,7 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 					),
 					m(".small", lang.get("sessionsWillBeDeleted_msg")),
 					m(".small", lang.get("sessionsInfo_msg")),
-					m(".h4.mt-l", "Usage data"),
+					m(".h4.mt-l", lang.get("usageData_label")),
 					m(DropDownSelectorN, usageDataOptInAttrs),
 				]),
 			])

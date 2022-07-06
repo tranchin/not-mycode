@@ -788,6 +788,8 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			}),
 		)
 
+		const test = locator.usageTestController.getTest("test")
+
 		if (!this.viewModel.isDraftMail()) {
 			actions.push(
 				m(Button, {
@@ -880,6 +882,56 @@ export class MailViewer implements Component<MailViewerAttrs> {
 									type: ButtonType.Dropdown,
 								})
 							}
+
+							test.renderVariant({
+								[0]: () => {
+								},
+								[1]: () => {
+									moreButtons.push({
+										label: () => "Variant 1",
+										click: () => {
+											const stage = test.getStage(0)
+											stage?.setMetric({
+												name: "paymentMethod",
+												value: "paypal"
+											})
+											stage.complete()
+										},
+										icon: () => Icons.Picture,
+										type: ButtonType.Dropdown,
+									})
+								},
+								[2]: () => {
+									moreButtons.push({
+										label: () => "Variant 2",
+										click: () => {
+											const stage = test.getStage(0)
+											stage?.setMetric({
+												name: "paymentMethod",
+												value: "credit"
+											})
+											stage.complete()
+										},
+										icon: () => Icons.Picture,
+										type: ButtonType.Dropdown,
+									})
+								},
+								[3]: () => {
+									moreButtons.push({
+										label: () => "Variant 3",
+										click: () => {
+											const stage = test.getStage(0)
+											stage?.setMetric({
+												name: "paymentMethod",
+												value: "bankTransfer"
+											})
+											stage?.complete()
+										},
+										icon: () => Icons.Picture,
+										type: ButtonType.Dropdown,
+									})
+								}
+							})
 
 							return moreButtons
 						}, width: 300

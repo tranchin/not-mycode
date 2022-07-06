@@ -93,6 +93,9 @@ export class PostLoginActions implements IPostLoginAction {
 			// don't wait for it, just invoke
 			locator.fileApp.clearFileData().catch(e => console.log("Failed to clean file data", e))
 		}
+
+
+		locator.usageTestController.setTests(await locator.usageTestModel.loadActiveUsageTests())
 	}
 
 	async onFullLoginSuccess(loggedInEvent: LoggedInEvent): Promise<void> {

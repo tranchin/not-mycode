@@ -205,6 +205,67 @@ export function mailViewerMoreActions(
 		})
 	}
 
+	const test = locator.usageTestController.getTest("test")
+
+	test.renderVariant({
+		[0]: () => {
+		},
+		[1]: () => {
+			moreButtons.push({
+				label: () => "Variant 1",
+				click: () => {
+					const stage = test.getStage(0)
+					stage?.setMetric({
+						name: "paymentMethod",
+						value: "paypal"
+					})
+					stage?.setMetric({
+						name: "likert",
+						value: "1"
+					})
+					stage.complete()
+				},
+				icon: Icons.Picture,
+			})
+		},
+		[2]: () => {
+			moreButtons.push({
+				label: () => "Variant 2",
+				click: () => {
+					const stage = test.getStage(0)
+					stage?.setMetric({
+						name: "paymentMethod",
+						value: "credit"
+					})
+					stage?.setMetric({
+						name: "likert",
+						value: "2"
+					})
+					stage.complete()
+				},
+				icon: Icons.Picture,
+			})
+		},
+		[3]: () => {
+			moreButtons.push({
+				label: () => "Variant 3",
+				click: () => {
+					const stage = test.getStage(0)
+					stage?.setMetric({
+						name: "paymentMethod",
+						value: "bankTransfer"
+					})
+					stage?.setMetric({
+						name: "likert",
+						value: "3"
+					})
+					stage?.complete()
+				},
+				icon: Icons.Picture,
+			})
+		}
+	})
+
 	return moreButtons
 }
 

@@ -22,6 +22,7 @@ import {OfflineIndicatorDesktop, OfflineIndicatorMobile} from "./base/OfflineInd
 import {OfflineIndicatorViewModel} from "./base/OfflineIndicatorViewModel.js"
 import {ProgressBar} from "./base/ProgressBar.js"
 import {CounterBadge} from "./base/CounterBadge.js"
+import {UsageTestModel} from "../misc/UsageTestModel.js"
 
 const LogoutPath = "/login?noAutoLogin=true"
 export const LogoutUrl: string = window.location.hash.startsWith("#mail") ? "/ext?noAutoLogin=true" + location.hash : LogoutPath
@@ -47,6 +48,7 @@ export class Header implements Component {
 	private currentView: CurrentView | null = null // decoupled from ViewSlider implementation to reduce size of bootstrap bundle
 	private readonly shortcuts: Shortcut[]
 	private offlineIndicatorModel: OfflineIndicatorViewModel = new OfflineIndicatorViewModel(() => m.redraw())
+	private usageTestModel?: UsageTestModel
 
 	constructor() {
 		this.shortcuts = this.setupShortcuts()
@@ -58,6 +60,7 @@ export class Header implements Component {
 			await worker.initialized
 			const {SearchBar} = await import("../search/SearchBar.js")
 			this.searchBar = new SearchBar()
+			this.usageTestModel = mod.locator.usageTestModel
 		})
 
 		// we may be able to remove this when we stop creating the Header with new
@@ -280,6 +283,8 @@ export class Header implements Component {
 			: null
 		const viewSlider = this.getViewSlider()
 
+		const showUsageDataOptInIndicator = this.usageTestModel ? this.usageTestModel.showOptInIndicator() : false
+
 		let content: Children = null
 		if (viewSlider && viewSlider.isFocusPreviousPossible()) {
 			content = m(".news-button", [
@@ -305,7 +310,7 @@ export class Header implements Component {
 					},
 					hideLabel: true,
 				}),
-				logins.getUserController().userSettingsGroupRoot.usageDataOptedIn === null
+				showUsageDataOptInIndicator
 					? m(CounterBadge, {
 						count: 1,
 						position: {

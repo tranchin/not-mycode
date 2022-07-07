@@ -45,8 +45,8 @@ import {theme} from "../../gui/theme"
 import {client} from "../../misc/ClientDetector"
 import {showProgressDialog} from "../../gui/dialogs/ProgressDialog"
 import Badge from "../../gui/base/Badge"
-import type {ButtonAttrs} from "../../gui/base/ButtonN"
-import {ButtonColor, ButtonN, ButtonType} from "../../gui/base/ButtonN"
+import type {ButtonAttrs} from "../../gui/base/Button.js"
+import {ButtonColor, Button, ButtonType} from "../../gui/base/Button.js"
 import {styles} from "../../gui/styles"
 import {
     attachDropdown,
@@ -54,7 +54,7 @@ import {
     createDropdown,
     DomRectReadOnlyPolyfilled,
     showDropdownAtPosition
-} from "../../gui/base/DropdownN"
+} from "../../gui/base/Dropdown.js"
 import {navButtonRoutes} from "../../misc/RouteChange"
 import {RecipientButton} from "../../gui/base/RecipientButton"
 import {EventBanner} from "./EventBanner"
@@ -664,7 +664,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 		if (this.viewModel.isDraftMail()) {
 			actions.push(
-				m(ButtonN, {
+				m(Button, {
 					label: "edit_action",
 					click: () => this.editDraft(),
 					icon: () => Icons.Edit,
@@ -674,7 +674,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		} else {
 			if (!this.viewModel.isAnnouncement()) {
 				actions.push(
-					m(ButtonN, {
+					m(Button, {
 						label: "reply_action",
 						click: () => this.viewModel.reply(false),
 						icon: () => Icons.Reply,
@@ -684,7 +684,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 				if (this.viewModel.canReplyAll()) {
 					actions.push(
-						m(ButtonN, {
+						m(Button, {
 							label: "replyAll_action",
 							click: () => this.viewModel.reply(true),
 							icon: () => Icons.ReplyAll,
@@ -695,7 +695,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 				if (this.viewModel.canForwardOrMove()) {
 					actions.push(
-						m(ButtonN, {
+						m(Button, {
 							label: "forward_action",
 							click: () => this.viewModel.forward()
 											 .catch(ofClass(UserError, showUserError)),
@@ -704,7 +704,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 						}),
 					)
 					actions.push(
-						m(ButtonN, {
+						m(Button, {
 							label: "move_action",
 							icon: () => Icons.Folder,
 							colors,
@@ -737,7 +737,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		}
 
 		actions.push(
-			m(ButtonN, {
+			m(Button, {
 				label: "delete_action",
 				click: () => {
 					promptAndDeleteMails(this.viewModel.mailModel, [this.viewModel.mail], noOp)
@@ -749,7 +749,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 		if (!this.viewModel.isDraftMail()) {
 			actions.push(
-				m(ButtonN, {
+				m(Button, {
 					label: "more_label",
 					icon: () => Icons.More,
 					colors,
@@ -882,7 +882,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 							),
 						),
 						m(".flex-wrap.flex-end", [
-							m(ButtonN, {
+							m(Button, {
 								label: "reportPhishing_action",
 								click: () => {
 									sendReport(MailReportType.PHISHING)
@@ -890,7 +890,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 								},
 								type: ButtonType.Secondary,
 							}),
-							m(ButtonN, {
+							m(Button, {
 								label: "reportSpam_action",
 								click: () => {
 									sendReport(MailReportType.SPAM)
@@ -919,7 +919,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			})
 		}
 
-		return m(ButtonN, {
+		return m(Button, {
 			label: "forward_action",
 			icon: () => Icons.Forward,
 			colors: ButtonColor.Content,
@@ -970,7 +970,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	private renderAttachmentButton(attachment: TutanotaFile): Children {
 
 		if (isAndroidApp() || isDesktop()) {
-			return m(ButtonN,
+			return m(Button,
 				attachDropdown(
 					{
 						mainButtonAttrs: {
@@ -1006,7 +1006,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				)
 			)
 		} else {
-			return m(ButtonN, {
+			return m(Button, {
 				label: () => attachment.name,
 				icon: () => Icons.Attachment,
 				click: () => this.viewModel.downloadAndOpenAttachment(attachment, true),
@@ -1020,7 +1020,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		return !isIOSApp() && this.viewModel.getAttachments().length > 2
 			? m(
 				".limit-width",
-				m(ButtonN, {
+				m(Button, {
 					label: "saveAll_action",
 					type: ButtonType.Secondary,
 					click: () => showProgressDialog("pleaseWait_msg", this.viewModel.downloadAll()),

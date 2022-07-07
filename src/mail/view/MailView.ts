@@ -42,7 +42,7 @@ import type {EntityUpdateData} from "../../api/main/EventController"
 import {isUpdateForTypeRef} from "../../api/main/EventController"
 import {PermissionError} from "../../api/common/error/PermissionError"
 import {MAIL_PREFIX, navButtonRoutes, throttleRoute} from "../../misc/RouteChange"
-import {attachDropdown, DropdownN} from "../../gui/base/DropdownN"
+import {attachDropdown, DomRectReadOnlyPolyfilled, DropdownN} from "../../gui/base/DropdownN"
 import {MailFolderRow} from "./MailFolderRow"
 import {styles} from "../../gui/styles"
 import {size} from "../../gui/size"
@@ -58,7 +58,6 @@ import {CancelledError} from "../../api/common/error/CancelledError"
 import Stream from "mithril/stream";
 import {MailViewerViewModel} from "./MailViewerViewModel"
 import {isOfflineError} from "../../api/common/utils/ErrorCheckUtils.js"
-import { DomRectReadOnlyPolyfilled } from "../../gui/base/Dropdown.js"
 
 assertMainOrNode()
 

@@ -897,7 +897,6 @@ export default {
 		"notificationsDisabled_label": "Deaktiviert",
 		"notificationSettings_action": "Benachrichtigungen",
 		"notificationSync_msg": "Synchronisiere Benachrichtigungen",
-		"notNow_Action": "Nicht jetzt",
 		"notSigned_msg": "Nicht unterschrieben.",
 		"noUpdateAvailable_msg": "Keine neue Version verfügbar.",
 		"no_label": "Nein",

@@ -399,18 +399,6 @@ o.spec("OfflineDb ", function () {
 			//without integrity check
 			o(() => db.init(database, theWrongKey, false)).throws(Error)
 		})
-		o("Integrity check works", function () {
-			//save something
-			db.putMetadata("lastUpdateTime", encodedDate)
-			o(() => db.checkIntegrity()).notThrows(Error)
-
-			//flip byte in database
-			let fileBuffer = new Uint8Array(fs.readFileSync(database))
-			fileBuffer[fileBuffer.length - 1] ^= fileBuffer[fileBuffer.length - 1]
-			fs.writeFileSync(database, fileBuffer)
-
-			o(() => db.checkIntegrity()).throws(Error)
-		})
 		o("Integrity of the database is checked on initialization", function () {
 			//save something
 			db.putMetadata("lastUpdateTime", encodedDate)

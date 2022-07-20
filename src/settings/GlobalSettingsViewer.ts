@@ -685,6 +685,9 @@ export class GlobalSettingsViewer implements UpdatableSettingsViewer {
 				this.customerInfo.reset()
 
 				return this.updateDomains()
+			} else if (isUpdateForTypeRef(CustomerPropertiesTypeRef, update)) {
+				this.customerProperties.reset()
+				this.customerProperties.getAsync().then(m.redraw)
 			}
 		}).then(noOp)
 	}

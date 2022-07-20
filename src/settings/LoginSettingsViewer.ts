@@ -5,7 +5,7 @@ import {TextField} from "../gui/base/TextField.js"
 import {InfoLink, lang} from "../misc/LanguageViewModel"
 import {logins} from "../api/main/LoginController"
 import {Icons} from "../gui/base/icons/Icons"
-import {Session, SessionTypeRef} from "../api/entities/sys/TypeRefs.js"
+import {CustomerPropertiesTypeRef, Session, SessionTypeRef} from "../api/entities/sys/TypeRefs.js"
 import {LazyLoaded, neverNull, noOp, ofClass} from "@tutao/tutanota-utils"
 import {formatDateTimeFromYesterdayOn} from "../misc/Formatter"
 import {SessionState} from "../api/common/TutanotaConstants"
@@ -30,7 +30,8 @@ import {locator} from "../api/main/MainLocator"
 import {elementIdPart, getElementId} from "../api/common/utils/EntityUtils"
 import {showChangeOwnPasswordDialog} from "./ChangePasswordDialogs.js";
 import {DropDownSelectorAttrs, DropDownSelectorN} from "../gui/base/DropDownSelectorN.js"
-import {showUsageTestOptInDialog} from "../misc/UsageTestModel.js"
+import {showUsageTestOptInDialog, UsageTestModel} from "../misc/UsageTestModel.js"
+import {UserSettingsGroupRootTypeRef} from "../api/entities/tutanota/TypeRefs.js"
 
 assertMainOrNode()
 
@@ -41,6 +42,7 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 	private _sessions: Session[] = []
 	private readonly _secondFactorsForm = new EditSecondFactorsForm(new LazyLoaded(() => Promise.resolve(logins.getUserController().user)))
 	private readonly credentialsEncryptionModeHelpLabel: (() => string) | null
+	private readonly _usageTestModel: UsageTestModel
 
 	constructor(
 		private readonly credentialsProvider: CredentialsProvider
@@ -48,6 +50,8 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 		this.credentialsEncryptionModeHelpLabel = this.credentialsProvider.getCredentialsEncryptionMode() === null
 			? () => lang.get("deviceEncryptionSaveCredentialsHelpText_msg")
 			: null
+		this._usageTestModel = locator.usageTestModel
+
 		this._updateSessions()
 	}
 
@@ -164,8 +168,12 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 					),
 					m(".small", lang.get("sessionsWillBeDeleted_msg")),
 					m(".small", lang.get("sessionsInfo_msg")),
-					m(".h4.mt-l", lang.get("usageData_label")),
-					m(DropDownSelectorN, usageDataOptInAttrs),
+					this._usageTestModel.isCustomerOptedOut()
+						? null
+						: m("", [
+							m(".h4.mt-l", lang.get("usageData_label")),
+							m(DropDownSelectorN, usageDataOptInAttrs)
+						]),
 				]),
 			])
 		} else {
@@ -243,7 +251,10 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 		for (const update of updates) {
 			if (isUpdateForTypeRef(SessionTypeRef, update)) {
 				await this._updateSessions()
+			} else if (isUpdateForTypeRef(CustomerPropertiesTypeRef, update) || isUpdateForTypeRef(UserSettingsGroupRootTypeRef, update)) {
+				m.redraw()
 			}
+
 			await this._secondFactorsForm.entityEventReceived(update)
 		}
 	}

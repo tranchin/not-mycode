@@ -13,7 +13,6 @@ import {px, size as sizes} from "./size.js"
 import {BootIcons} from "./base/icons/BootIcons.js"
 import type {SearchBar} from "../search/SearchBar.js"
 import type {IMainLocator} from "../api/main/MainLocator.js"
-import {client} from "../misc/ClientDetector.js"
 import {CALENDAR_PREFIX, CONTACTS_PREFIX, MAIL_PREFIX, navButtonRoutes, SEARCH_PREFIX} from "../misc/RouteChange.js"
 import {AriaLandmarks, landmarkAttrs} from "./AriaUtils.js"
 import type {ViewSlider} from "./nav/ViewSlider.js"
@@ -287,7 +286,7 @@ export class Header implements Component {
 
 		let content: Children = null
 		if (viewSlider && viewSlider.isFocusPreviousPossible()) {
-			content = m(".news-button", [
+			content = m("", [
 				m(NavButton, {
 					label: () => {
 						const prevColumn = viewSlider.getPreviousColumn()
@@ -314,8 +313,8 @@ export class Header implements Component {
 					? m(CounterBadge, {
 						count: 1,
 						position: {
-							top: px(4),
-							right: px(9),
+							top: px(2),
+							right: px(0),
 						},
 						color: "white",
 						background: theme.list_accent_fg,

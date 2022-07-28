@@ -1,121 +1,82 @@
-import type {DesktopConfig} from "../config/DesktopConfig"
-import {DesktopNativeCryptoFacade} from "../DesktopNativeCryptoFacade"
-import {elementIdPart} from "../../api/common/utils/EntityUtils"
-import {DesktopConfigKey} from "../config/ConfigKeys"
-import type {DesktopKeyStoreFacade} from "../KeyStoreFacadeImpl"
-import type {Base64} from "@tutao/tutanota-utils"
-import {base64ToUint8Array, findAllAndRemove, uint8ArrayToBase64} from "@tutao/tutanota-utils"
-import {log} from "../DesktopLog"
-import {EncryptedAlarmNotification, NotificationSessionKey} from "../../native/common/EncryptedAlarmNotification.js"
+import {SqlCipher} from "../SqlCipher.js"
+import {Aes256Key} from "@tutao/tutanota-crypto/dist/encryption/Aes.js"
+import {Base64, mapNullable} from "@tutao/tutanota-utils"
+import {EncryptedAlarmNotification} from "../../native/common/EncryptedAlarmNotification.js"
+import {log} from "../DesktopLog.js"
 
-/**
- * manages session keys used for decrypting alarm notifications, encrypting & persisting them to disk
- */
+const TableDefinitions = {
+	session_key: "id TEXT NOT NULL, key BLOB NOT NULL, PRIMARY KEY (id)",
+	scheduled_alarm: "identifier TEXT NOT NULL, user_id TEXT NOT NULL, alarm_json TEXT NOT NULL, PRIMARY KEY (identifier)"
+}
+
 export class DesktopAlarmStorage {
-	/** push identifier id to key */
-	private sessionKeys: Record<string, string>
+	private readonly sqlCipher: SqlCipher
 
 	constructor(
-		private readonly conf: DesktopConfig,
-		private readonly cryptoFacade: DesktopNativeCryptoFacade,
-		private readonly keyStoreFacade: DesktopKeyStoreFacade,
+		private readonly sqliteNativePath: string
 	) {
-		this.sessionKeys = {}
+		this.sqlCipher = new SqlCipher(sqliteNativePath, TableDefinitions)
 	}
 
-	/**
-	 * encrypt & store a session key to disk
-	 * @param pushIdentifierId pushIdentifier the key belongs to
-	 * @param pushIdentifierSessionKey unencrypted B64 encoded key to store
-	 * @returns {*}
-	 */
-	async storePushIdentifierSessionKey(pushIdentifierId: string, pushIdentifierSessionKey: Uint8Array): Promise<void> {
-		const keys : Record<string, Base64> = (await this.conf.getVar(DesktopConfigKey.pushEncSessionKeys)) || {}
-
-		if (!keys[pushIdentifierId]) {
-			this.sessionKeys[pushIdentifierId] = uint8ArrayToBase64(pushIdentifierSessionKey)
-			return this.keyStoreFacade.getDeviceKey().then(pw => {
-				keys[pushIdentifierId] = uint8ArrayToBase64(this.cryptoFacade.aes256EncryptKey(pw, pushIdentifierSessionKey))
-				return this.conf.setVar(DesktopConfigKey.pushEncSessionKeys, keys)
-			})
-		}
-
-		return Promise.resolve()
+	init(dbPath: string, databaseKey: Aes256Key, integrityCheck: boolean = true): this {
+		this.sqlCipher.init({dbPath, databaseKey, integrityCheck})
+		return this
 	}
 
-	removePushIdentifierKeys(): Promise<void> {
-		this.sessionKeys = {}
-		return this.conf.setVar(DesktopConfigKey.pushEncSessionKeys, null)
+	close() {
+		this.sqlCipher.close()
 	}
 
-	removePushIdentifierKey(piId: string): Promise<void> {
-		log.debug("Remove push identifier key. elementId=" + piId)
-		delete this.sessionKeys[piId]
-		return this.conf.setVar(DesktopConfigKey.pushEncSessionKeys, this.sessionKeys)
+	async storePushIdentifierSessionKey(id: string, key: Uint8Array) {
+		this.sqlCipher.run("INSERT OR IGNORE INTO session_key VALUES (:id, :key)", {id, key})
+	}
+
+	async removePushIdentifierKeys() {
+		this.sqlCipher.run("DELETE * FROM session_key")
+	}
+
+	async removePushIdentifierKey(pushId: string) {
+		log.debug("Remove push identifier key. elementId=" + pushId)
+		this.sqlCipher.run("DELETE FROM session_key WHERE id = :pushId", {pushId})
 	}
 
 	/**
 	 * try to get a B64 encoded PushIdentifierSessionKey that can decrypt a notificationSessionKey from memory or decrypt it from disk storage
-	 * @param notificationSessionKey one notificationSessionKey from an alarmNotification.
 	 * @return {Promise<?Base64>} a stored pushIdentifierSessionKey that should be able to decrypt the given notificationSessionKey
 	 */
-	async getPushIdentifierSessionKey(notificationSessionKey: NotificationSessionKey): Promise<Uint8Array | null> {
-		const pw = await this.keyStoreFacade.getDeviceKey()
-		const pushIdentifierId = elementIdPart(notificationSessionKey.pushIdentifier)
+	async getPushIdentifierSessionKey(sessionKeyId: string): Promise<Uint8Array | null> {
+		return mapNullable(
+			this.sqlCipher.get(
+				"SELECT key FROM session_key WHERE id = :id", {id: sessionKeyId}),
+			(row) => new Uint8Array(row.key.buffer)
+		)
+	}
 
-		if (this.sessionKeys[pushIdentifierId]) {
-			return base64ToUint8Array(this.sessionKeys[pushIdentifierId])
-		} else {
-			const keys: Record<string, Base64> = (await this.conf.getVar(DesktopConfigKey.pushEncSessionKeys)) || {}
-			const sessionKeyFromConf = keys[pushIdentifierId]
-
-			if (sessionKeyFromConf == null) {
-				// key with this id is not saved in local conf, so we can't resolve it
-				return null
+	async storeAlarm(alarm: EncryptedAlarmNotification) {
+		this.sqlCipher.run(
+			"INSERT OR REPLACE INTO scheduled_alarm VALUES (:identifier, :user_id, :alarm_json)",
+			{
+				identifier: alarm.alarmInfo.alarmIdentifier,
+				user_id: alarm.user,
+				alarm_json: JSON.stringify(alarm)
 			}
-
-			try {
-				const decryptedKey = this.cryptoFacade.aes256DecryptKey(pw, base64ToUint8Array(sessionKeyFromConf))
-				this.sessionKeys[pushIdentifierId] = uint8ArrayToBase64(decryptedKey)
-				return decryptedKey
-			} catch (e) {
-				console.warn("could not decrypt pushIdentifierSessionKey")
-				return null
-			}
-		}
+		)
 	}
 
-	async storeAlarm(alarm: EncryptedAlarmNotification): Promise<void> {
-		const allAlarms = await this.getScheduledAlarms()
-		findAllAndRemove(allAlarms, an => an.alarmInfo.alarmIdentifier === alarm.alarmInfo.alarmIdentifier)
-		allAlarms.push(alarm)
-		await this._saveAlarms(allAlarms)
+	async deleteAlarm(identifier: string) {
+		this.sqlCipher.run("DELETE FROM scheduled_alarm WHERE identifier = :identifier", {identifier})
 	}
 
-	async deleteAlarm(identifier: string): Promise<void> {
-		const allAlarms = await this.getScheduledAlarms()
-		findAllAndRemove(allAlarms, an => an.alarmInfo.alarmIdentifier === identifier)
-		await this._saveAlarms(allAlarms)
+	async deleteAllAlarms() {
+		this.sqlCipher.run("DELETE FROM scheduled_alarm")
 	}
 
-	/**
-	 * If userId is null then we delete alarms for all users
-	 */
-	async deleteAllAlarms(userId: Id | null): Promise<void> {
-		if (userId == null) {
-			return this._saveAlarms([])
-		} else {
-			const allScheduledAlarms = await this.getScheduledAlarms()
-			findAllAndRemove(allScheduledAlarms, alarm => alarm.user === userId)
-			return this._saveAlarms(allScheduledAlarms)
-		}
+	async deleteAllAlarmsForUser(userId: Id) {
+		this.sqlCipher.run("DELETE FROM scheduled_alarm WHERE user_id = :userId", {userId})
 	}
 
 	async getScheduledAlarms(): Promise<Array<EncryptedAlarmNotification>> {
-		return (await this.conf.getVar(DesktopConfigKey.scheduledAlarms)) || []
-	}
-
-	_saveAlarms(alarms: ReadonlyArray<EncryptedAlarmNotification>): Promise<void> {
-		return this.conf.setVar(DesktopConfigKey.scheduledAlarms, alarms)
+		return this.sqlCipher.all("SELECT alarm_json FROM scheduled_alarm")
+				   .map(row => JSON.parse(row.alarm_json))
 	}
 }

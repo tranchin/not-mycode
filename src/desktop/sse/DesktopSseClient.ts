@@ -10,7 +10,6 @@ import type {NativeAlarmScheduler} from "./DesktopAlarmScheduler"
 import type {DesktopNetworkClient} from "../net/DesktopNetworkClient.js"
 import {DesktopNativeCryptoFacade} from "../DesktopNativeCryptoFacade"
 import {typeModels} from "../../api/entities/sys/TypeModels"
-import type {DesktopAlarmStorage} from "./DesktopAlarmStorage"
 import type {LanguageViewModelType} from "../../misc/LanguageViewModel"
 import type {NotificationInfo} from "../../api/entities/sys/TypeRefs.js"
 import {handleRestError, NotAuthenticatedError, NotAuthorizedError, ServiceUnavailableError, TooManyRequestsError} from "../../api/common/error/RestError"
@@ -19,6 +18,7 @@ import {log} from "../DesktopLog"
 import {BuildConfigKey, DesktopConfigEncKey, DesktopConfigKey} from "../config/ConfigKeys"
 import http from "http";
 import {EncryptedAlarmNotification} from "../../native/common/EncryptedAlarmNotification.js"
+import {DesktopAlarmStorage} from "./DesktopAlarmStorage.js"
 
 export type SseInfo = {
 	identifier: string

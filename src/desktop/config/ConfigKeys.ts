@@ -7,8 +7,6 @@ export enum DesktopConfigKey {
 	showAutoUpdateOption = "showAutoUpdateOption",
 	runAsTrayApp = "runAsTrayApp",
 	lastBounds = "lastBounds",
-	pushEncSessionKeys = "pushEncSessionKeys",
-	scheduledAlarms = "scheduledAlarms",
 	lastProcessedNotificationId = "lastProcessedNotificationId",
 	lastMissedNotificationCheckTime = "lastMissedNotificationCheckTime",
 	desktopConfigVersion = "desktopConfigVersion",

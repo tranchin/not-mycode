@@ -15,11 +15,11 @@ import type {DesktopNotifier} from "../../../../src/desktop/DesktopNotifier.js"
 import type {WindowManager} from "../../../../src/desktop/DesktopWindowManager.js"
 import type {DesktopAlarmScheduler} from "../../../../src/desktop/sse/DesktopAlarmScheduler.js"
 import type {DesktopNativeCryptoFacade} from "../../../../src/desktop/DesktopNativeCryptoFacade.js"
-import type {DesktopAlarmStorage} from "../../../../src/desktop/sse/DesktopAlarmStorage.js"
 import type {LanguageViewModel} from "../../../../src/misc/LanguageViewModel.js"
 import type {DesktopNetworkClient} from "../../../../src/desktop/net/DesktopNetworkClient.js"
 import {ServiceUnavailableError, TooManyRequestsError} from "../../../../src/api/common/error/RestError.js"
 import modelInfo from "../../../../src/api/entities/sys/ModelInfo.js"
+import {DesktopAlarmStorage} from "../../../../src/desktop/sse/DesktopAlarmStorage.js"
 
 o.spec("DesktopSseClient Test", function () {
 	const identifier = 'identifier'

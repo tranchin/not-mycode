@@ -1,72 +1,122 @@
 import o from "ospec"
-import {instance, matchers, object, verify, when} from "testdouble"
+import {object} from "testdouble"
 import {DesktopAlarmStorage} from "../../../../src/desktop/sse/DesktopAlarmStorage.js"
-import {DesktopConfig} from "../../../../src/desktop/config/DesktopConfig.js"
-import {DesktopNativeCryptoFacade} from "../../../../src/desktop/DesktopNativeCryptoFacade.js"
-import type {DesktopKeyStoreFacade} from "../../../../src/desktop/KeyStoreFacadeImpl.js"
-import {makeKeyStoreFacade} from "../../TestUtils.js"
-import {DesktopConfigKey} from "../../../../src/desktop/config/ConfigKeys.js"
-import {assertNotNull, uint8ArrayToBase64} from "@tutao/tutanota-utils"
+import {SqlCipher} from "../../../../src/desktop/SqlCipher.js"
+import {uint8ArrayToKey} from "@tutao/tutanota-crypto"
+import {EncryptedAlarmNotification} from "../../../../src/native/common/EncryptedAlarmNotification.js"
+import {OperationType} from "../../../../src/api/common/TutanotaConstants.js"
+import {mapNullable} from "@tutao/tutanota-utils"
 
 o.spec("DesktopAlarmStorageTest", function () {
 
-	let cryptoMock: DesktopNativeCryptoFacade
-	let confMock: DesktopConfig
+	let sqlCipherMock: SqlCipher
+	let desktopStorage: DesktopAlarmStorage
 
-	const key1 = new Uint8Array([1])
-	const key2 = new Uint8Array([2])
-	const key3 = new Uint8Array([3])
-	const key4 = new Uint8Array([4])
-	const decryptedKey = new Uint8Array([0, 1])
-	const encryptedKey = new Uint8Array([1, 0])
+	const sessionKeyId1 = "keyId1"
+	const sessionKeyId2 = "keyId2"
+	const sessionKey1 = new Uint8Array([1])
+	const sessionKey2 = new Uint8Array([2])
 
-	o.beforeEach(function () {
-		cryptoMock = instance(DesktopNativeCryptoFacade)
-		when(cryptoMock.aes256DecryptKey(matchers.anything(), key3)).thenReturn(decryptedKey)
-		when(cryptoMock.aes256EncryptKey(matchers.anything(), matchers.anything())).thenReturn(encryptedKey)
+	const userId1 = "userId1"
+	const userId2 = "userId2"
+	const alarmIdentifier1 = "alarmIdentifier1"
+	const alarmIdentifier2 = "alarmIdentifier2"
+	const alarmIdentifier3 = "alarmIdentifier3"
+	const alarmIdentifier4 = "alarmIdentifier4"
+	const alarm1 = makeAlarm(userId1, alarmIdentifier1)
+	const alarm2 = makeAlarm(userId1, alarmIdentifier2)
+	const alarm3 = makeAlarm(userId2, alarmIdentifier3)
+	const alarm4 = makeAlarm(userId2, alarmIdentifier4)
 
-		confMock = object()
-		when(confMock.getVar(DesktopConfigKey.pushEncSessionKeys)).thenResolve({
-			"user1": uint8ArrayToBase64(key1),
-			"user2": uint8ArrayToBase64(key2),
-			"twoId": uint8ArrayToBase64(key3),
-			"fourId": uint8ArrayToBase64(key4),
-		})
+	o.beforeEach(async function () {
+		sqlCipherMock = object<SqlCipher>()
+		desktopStorage = new DesktopAlarmStorage(buildOptions.sqliteNativePath).init(":memory:", uint8ArrayToKey(new Uint8Array([0, 1, 2, 3])), false)
 	})
 
-	const keyStoreFacade: DesktopKeyStoreFacade = makeKeyStoreFacade(new Uint8Array([1, 2, 3]))
-
-	o("getPushIdentifierSessionKey with uncached sessionKey", async function () {
-		const desktopStorage = new DesktopAlarmStorage(confMock, cryptoMock, keyStoreFacade)
-		const key = await desktopStorage.getPushIdentifierSessionKey({
-			pushIdentifierSessionEncSessionKey: "abc",
-			pushIdentifier: ["oneId", "twoId"]
+	o.spec("session keys", function () {
+		o.beforeEach(async function () {
+			await desktopStorage.storePushIdentifierSessionKey(sessionKeyId1, sessionKey1)
+			await desktopStorage.storePushIdentifierSessionKey(sessionKeyId2, sessionKey2)
 		})
 
-		verify(confMock.getVar(DesktopConfigKey.pushEncSessionKeys), {times: 1})
-		o(Array.from(assertNotNull(key))).deepEquals(Array.from(decryptedKey))
+		o("should return stored keys", async function () {
+			await assertStoredKey(sessionKeyId1, sessionKey1)
+			await assertStoredKey(sessionKeyId2, sessionKey2)
+		})
+
+		o("should return null for keys that were never stored", async function () {
+			await assertStoredKey("nonexistentSessionKeyId", null)
+		})
+
+		o("should not return keys that were removed", async function () {
+			await desktopStorage.removePushIdentifierKey(sessionKeyId1)
+			await assertStoredKey(sessionKeyId1, null)
+			await assertStoredKey(sessionKeyId2, sessionKey2)
+		})
+
+		o("should not return any keys", async function () {
+			await desktopStorage.removePushIdentifierKey(sessionKeyId1)
+			await desktopStorage.removePushIdentifierKey(sessionKeyId2)
+			await assertStoredKey(sessionKeyId1, null)
+			await assertStoredKey(sessionKeyId2, null)
+		})
+
+		o("should not overwrite existing stored session key", async function () {
+			await desktopStorage.storePushIdentifierSessionKey(sessionKeyId1, sessionKey2)
+			await assertStoredKey(sessionKeyId1, sessionKey1)
+		})
+
+		async function assertStoredKey(id: string, expected: Uint8Array | null) {
+			const actual = mapNullable(await desktopStorage.getPushIdentifierSessionKey(id), Array.from)
+			if (expected) {
+				o(actual).deepEquals(Array.from(expected))
+			} else {
+				o(actual).equals(null)
+			}
+		}
 	})
 
-	o("getPushIdentifierSessionKey with cached sessionKey", async function () {
-		when(confMock.getVar(matchers.anything())).thenResolve(null)
-		const desktopStorage = new DesktopAlarmStorage(confMock, cryptoMock, keyStoreFacade)
-		await desktopStorage.storePushIdentifierSessionKey("fourId", key4)
-
-		verify(confMock.setVar(DesktopConfigKey.pushEncSessionKeys, {fourId: uint8ArrayToBase64(encryptedKey)}), {times: 1})
-
-		const key = await desktopStorage.getPushIdentifierSessionKey({
-			pushIdentifierSessionEncSessionKey: "def",
-			pushIdentifier: ["threeId", "fourId"]
+	o.spec("alarms", function () {
+		o.beforeEach(async function () {
+			await desktopStorage.storeAlarm(alarm1)
+			await desktopStorage.storeAlarm(alarm2)
+			await desktopStorage.storeAlarm(alarm3)
+			await desktopStorage.storeAlarm(alarm4)
 		})
-		o(Array.from(assertNotNull(key))).deepEquals(Array.from(key4))
-	})
 
-	o("getPushIdentifierSessionKey when sessionKey is unavailable", async function () {
-		const desktopStorage = new DesktopAlarmStorage(confMock, cryptoMock, keyStoreFacade)
-		const key1 = await desktopStorage.getPushIdentifierSessionKey({
-			pushIdentifierSessionEncSessionKey: "def",
-			pushIdentifier: ["fiveId", "sixId"]
+		o("should return all stored alarms", async function () {
+			o(await desktopStorage.getScheduledAlarms()).deepEquals([
+				alarm1, alarm2, alarm3, alarm4
+			])
 		})
-		o(key1).equals(null)
+
+		o("should not return deleted alarms", async function () {
+			await desktopStorage.deleteAlarm(alarmIdentifier1)
+			await desktopStorage.deleteAlarm(alarmIdentifier3)
+			o(await desktopStorage.getScheduledAlarms()).deepEquals([
+				alarm2, alarm4
+			])
+		})
+
+		o("should return no alarms", async function () {
+			await desktopStorage.deleteAllAlarms()
+			o(await desktopStorage.getScheduledAlarms()).deepEquals([])
+		})
+
+		o("should return no alarms for the specific user", async function () {
+			await desktopStorage.deleteAllAlarmsForUser(userId1)
+			o(await desktopStorage.getScheduledAlarms()).deepEquals([
+				alarm3, alarm4
+			])
+		})
 	})
 })
+
+function makeAlarm(userId, alarmIdentifier): EncryptedAlarmNotification {
+	return {
+		operation: OperationType.CREATE,
+		notificationSessionKeys: [],
+		alarmInfo: {alarmIdentifier},
+		user: userId
+	}
+}

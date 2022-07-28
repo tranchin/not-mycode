@@ -9,7 +9,6 @@ import {DesktopNotifier} from "./DesktopNotifier"
 import {ElectronUpdater} from "./ElectronUpdater.js"
 import {DesktopSseClient} from "./sse/DesktopSseClient"
 import {Socketeer} from "./Socketeer"
-import {DesktopAlarmStorage} from "./sse/DesktopAlarmStorage"
 import {DesktopAlarmScheduler} from "./sse/DesktopAlarmScheduler"
 import {lang} from "../misc/LanguageViewModel"
 import {DesktopNetworkClient} from "./net/DesktopNetworkClient.js"
@@ -56,6 +55,7 @@ import {ExposedNativeInterface} from "../native/common/NativeInterface.js"
 import {DesktopWebauthn} from "./2fa/DesktopWebauthn.js"
 import {DesktopPostLoginActions} from "./DesktopPostLoginActions.js"
 import {DesktopInterWindowEventFacade} from "./ipc/DesktopInterWindowEventFacade.js"
+import {DesktopAlarmStorage} from "./sse/DesktopAlarmStorage.js"
 
 /**
  * Should be injected during build time.
@@ -81,6 +81,7 @@ type Components = {
 	readonly tray: DesktopTray
 	readonly desktopThemeFacade: DesktopThemeFacade
 	readonly credentialsEncryption: NativeCredentialsFacade
+	readonly alarmStorage: DesktopAlarmStorage
 }
 const desktopUtils = new DesktopUtils(fs, electron, cryptoFns)
 const desktopCrypto = new DesktopNativeCryptoFacade(fs, cryptoFns, desktopUtils)
@@ -123,7 +124,12 @@ async function createComponents(): Promise<Components> {
 	lang.init(en)
 	const secretStorage = new KeytarSecretStorage()
 	const keyStoreFacade = new KeyStoreFacadeImpl(secretStorage, desktopCrypto)
-	const configMigrator = new DesktopConfigMigrator(desktopCrypto, keyStoreFacade, electron)
+	const alarmStorage = new DesktopAlarmStorage(buildOptions.sqliteNativePath)
+		.init(
+			path.join(app.getPath("userData"), "alarms.sqlite"),
+			await keyStoreFacade.getDeviceKey()
+		)
+	const configMigrator = new DesktopConfigMigrator(desktopCrypto, keyStoreFacade, electron, alarmStorage)
 	const conf = new DesktopConfig(app, configMigrator, keyStoreFacade, desktopCrypto)
 	// Fire config loading, dont wait for it
 	conf.init().catch(e => {
@@ -137,7 +143,6 @@ async function createComponents(): Promise<Components> {
 	const notifier = new DesktopNotifier(tray, new ElectronNotificationFactory())
 	const dateProvider = new DateProviderImpl()
 	const dl = new DesktopDownloadManager(conf, desktopNet, desktopUtils, dateProvider, fs, electron)
-	const alarmStorage = new DesktopAlarmStorage(conf, desktopCrypto, keyStoreFacade)
 	const updater = new ElectronUpdater(conf, notifier, desktopCrypto, app, appIcon, new UpdaterWrapperImpl())
 	const shortcutManager = new LocalShortcutManager()
 	const nativeCredentialsFacade = new DesktopNativeCredentialsFacade(keyStoreFacade, desktopCrypto)
@@ -255,12 +260,13 @@ async function createComponents(): Promise<Components> {
 		integrator,
 		tray,
 		desktopThemeFacade: themeFacade,
-		credentialsEncryption: nativeCredentialsFacade
+		credentialsEncryption: nativeCredentialsFacade,
+		alarmStorage
 	}
 }
 
 async function startupInstance(components: Components) {
-	const {dl, wm, sse} = components
+	const {dl, wm, sse, alarmStorage} = components
 	if (!(await desktopUtils.makeSingleInstance())) return
 	// Delete the temp directory on startup because we may not always be able to do it on shutdown.
 	//
@@ -292,6 +298,7 @@ async function startupInstance(components: Components) {
 		   }
 	   })
 	   .on("will-quit", e => {
+		   alarmStorage.close()
 		   dl.deleteTutanotaTempDirectory()
 	   })
 	app.whenReady().then(() => onAppReady(components))

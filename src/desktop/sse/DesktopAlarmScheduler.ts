@@ -4,7 +4,7 @@ import {AlarmNotificationTypeRef} from "../../api/entities/sys/TypeRefs.js"
 import type {DesktopNotifier} from "../DesktopNotifier"
 import {NotificationResult} from "../DesktopNotifier";
 import type {WindowManager} from "../DesktopWindowManager"
-import type {DesktopAlarmStorage} from "./DesktopAlarmStorage"
+import type {DesktopAlarmStorage} from "./DesktopAlarmStorage.js"
 import type {DesktopNativeCryptoFacade} from "../DesktopNativeCryptoFacade"
 import {log} from "../DesktopLog"
 import type {AlarmScheduler} from "../../calendar/date/AlarmScheduler"
@@ -54,12 +54,16 @@ export class DesktopAlarmScheduler implements NativeAlarmScheduler {
 
 	async unscheduleAllAlarms(userId: Id | null = null): Promise<void> {
 		const alarms = await this.alarmStorage.getScheduledAlarms()
-		alarms.forEach(alarm => {
+		for (const alarm of alarms) {
 			if (userId == null || alarm.user === userId) {
 				this.cancelAlarms(alarm)
 			}
-		})
-		return this.alarmStorage.deleteAllAlarms(userId)
+		}
+		if (userId == null) {
+			return this.alarmStorage.deleteAllAlarms()
+		} else {
+			return this.alarmStorage.deleteAllAlarmsForUser(userId)
+		}
 	}
 
 	/**
@@ -75,7 +79,7 @@ export class DesktopAlarmScheduler implements NativeAlarmScheduler {
 
 	private async decryptAndSchedule(an: EncryptedAlarmNotification): Promise<void> {
 		for (const currentKey of an.notificationSessionKeys) {
-			const pushIdentifierSessionKey = await this.alarmStorage.getPushIdentifierSessionKey(currentKey)
+			const pushIdentifierSessionKey = await this.alarmStorage.getPushIdentifierSessionKey(elementIdPart(currentKey.pushIdentifier))
 
 			if (!pushIdentifierSessionKey) {
 				// this key is either not for us (we don't have the right PushIdentifierSessionKey in our local storage)

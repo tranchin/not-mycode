@@ -4,6 +4,8 @@ import {DesktopNativeCryptoFacade} from "../../../../../src/desktop/DesktopNativ
 import {downcast} from "@tutao/tutanota-utils"
 import {makeKeyStoreFacade} from "../../../TestUtils.js"
 import {DesktopKeyStoreFacade} from "../../../../../src/desktop/KeyStoreFacadeImpl.js";
+import {DesktopAlarmStorage} from "../../../../../src/desktop/sse/DesktopAlarmStorage.js"
+import {object} from "testdouble"
 
 o.spec('DesktopConfigMigrator', function () {
 	let migrator
@@ -26,9 +28,11 @@ o.spec('DesktopConfigMigrator', function () {
 			}
 		})
 
+		const alarmStorageMock = object<DesktopAlarmStorage>()
+
 
 		keyStoreFacade = makeKeyStoreFacade(key)
-		migrator = new DesktopConfigMigrator(crypto, keyStoreFacade, electron)
+		migrator = new DesktopConfigMigrator(crypto, keyStoreFacade, electron, alarmStorageMock)
 	})
 	o("migrations result in correct default config, client", async function () {
 		const oldConfig = {
@@ -51,7 +55,7 @@ o.spec('DesktopConfigMigrator', function () {
 			"defaultDownloadPath": null,
 			"enableAutoUpdate": true,
 			"runAsTrayApp": true,
-			"desktopConfigVersion": 7,
+			"desktopConfigVersion": 8,
 			"showAutoUpdateOption": true,
 			"spellcheck": "de-DE",
 			"offlineStorageEnabled": false,
@@ -65,7 +69,9 @@ o.spec('DesktopConfigMigrator', function () {
 
 		}
 
-		o(await migrator.applyMigrations("migrateClient", oldConfig)).deepEquals(requiredResult)
+		const actualResult = await migrator.applyMigrations("migrateClient", oldConfig)
+
+		o(actualResult).deepEquals(requiredResult)
 	})
 
 	o("migrations result in correct default config, admin", async function () {
@@ -74,7 +80,7 @@ o.spec('DesktopConfigMigrator', function () {
 		}
 		const requiredResult = {
 			"runAsTrayApp": true,
-			"desktopConfigVersion": 7,
+			"desktopConfigVersion": 8,
 			"showAutoUpdateOption": true,
 			"mailExportMode": "eml",
 			"spellcheck": "",
@@ -86,6 +92,8 @@ o.spec('DesktopConfigMigrator', function () {
 			}
 		}
 
-		o(await migrator.applyMigrations("migrateAdmin", oldConfig)).deepEquals(requiredResult)
+		const actualResult = await migrator.applyMigrations("migrateAdmin", oldConfig)
+
+		o(actualResult).deepEquals(requiredResult)
 	})
 })

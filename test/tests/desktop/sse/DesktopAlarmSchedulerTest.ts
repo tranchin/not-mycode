@@ -7,10 +7,10 @@ import {CryptoError} from "../../../../src/api/common/error/CryptoError.js"
 import {downcast, lastThrow} from "@tutao/tutanota-utils"
 import {WindowManager} from "../../../../src/desktop/DesktopWindowManager.js";
 import {DesktopNotifier, NotificationResult} from "../../../../src/desktop/DesktopNotifier.js";
-import {DesktopAlarmStorage} from "../../../../src/desktop/sse/DesktopAlarmStorage.js";
 import {DesktopNativeCryptoFacade} from "../../../../src/desktop/DesktopNativeCryptoFacade.js";
 import {assertThrows} from "@tutao/tutanota-test-utils";
 import {EncryptedAlarmNotification} from "../../../../src/native/common/EncryptedAlarmNotification.js";
+import {DesktopAlarmStorage} from "../../../../src/desktop/sse/DesktopAlarmStorage.js"
 
 const oldTimezone = process.env.TZ
 

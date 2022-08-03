@@ -20,7 +20,7 @@ import {CloseEventBusOption, Const} from "../api/common/TutanotaConstants"
 import {showMoreStorageNeededOrderDialog} from "../misc/SubscriptionDialogs"
 import {notifications} from "../gui/Notifications"
 import {CustomerInfoTypeRef, CustomerPropertiesTypeRef} from "../api/entities/sys/TypeRefs.js"
-import {LockedError} from "../api/common/error/RestError"
+import {LockedError, NotFoundError} from "../api/common/error/RestError"
 import type {CredentialsProvider} from "../misc/credentials/CredentialsProvider.js"
 import {usingKeychainAuthentication} from "../misc/credentials/CredentialsProviderFactory"
 import type {ThemeCustomizations} from "../misc/WhitelabelCustomizations"
@@ -88,6 +88,10 @@ export class PostLoginActions implements IPostLoginAction {
 
 		if (!isAdminClient()) {
 			await locator.mailModel.init()
+				.catch(ofClass(NotFoundError, (e) => {
+					// Dispatch it to the global error handler, do not abort login
+					Promise.reject(e)
+				}))
 		}
 		if (isApp() || isDesktop()) {
 			// don't wait for it, just invoke

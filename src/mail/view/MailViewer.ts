@@ -955,34 +955,36 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		if (this.viewModel.isLoadingAttachments() && !this.viewModel.isConnectionLost()) {
 			return m(".flex", [m(".flex-v-center.pl-button", progressIcon()), m(".small.flex-v-center.plr.button-height", lang.get("loading_msg"))])
 		} else {
+			const attachments = this.viewModel.getNonInlineAttachments()
+			const attachmentCount = attachments.length
 
-			const attachments = this.viewModel
-									.getAttachments()
-									.filter(({cid}) => cid == null || !this.viewModel.getInlineCids().includes(cid))
-
-			const spoilerLimit = styles.isDesktopLayout() ? 4 : 2
-
-			return m(".flex.ml-negative-bubble.flex-wrap", [
-				attachments.length > spoilerLimit
-					? [
-						attachments.slice(0, spoilerLimit).map(attachment => this.renderAttachmentButton(attachment)),
-						m(ExpanderButton, {
-							style: {
-								paddingTop: "0px",
-								margin: "0px 6px",
-							},
-							label: "showAll_action",
-							expanded: this.filesExpanded(),
-							onExpandedChange: this.filesExpanded,
-						}),
-						m(ExpanderPanel, {
-								expanded: this.filesExpanded(),
-							},
-							attachments.slice(spoilerLimit).map(attachment => this.renderAttachmentButton(attachment)),
-						),
-					]
-					: attachments.map(attachment => this.renderAttachmentButton(attachment)),
-				this.renderDownloadAllButton(),
+			return m("", [
+				m(".flex.ml-negative-bubble.flex-space-between", [
+					attachmentCount > 1
+						? [
+							m(".flex.b.center-vertically", {style: {"margin-left": "5px"}}, attachmentCount + " attachments"),
+							m(".flex",
+								m(ExpanderButton, {
+									style: {
+										paddingTop: "0px",
+										margin: "0px 6px",
+									},
+									label: "showAll_action",
+									expanded: this.filesExpanded(),
+									onExpandedChange: this.filesExpanded,
+								})
+							)
+						]
+						: attachments.map(attachment => this.renderAttachmentButton(attachment)),
+				]),
+				attachments.length > 1 ? m(ExpanderPanel, {
+						expanded: this.filesExpanded(),
+					},
+					m(".flex.ml-negative-bubble.flex-wrap", [
+						m("", attachments.map(attachment => this.renderAttachmentButton(attachment))),
+						this.renderDownloadAllButton()
+					])
+				) : null,
 			])
 		}
 	}
@@ -1037,16 +1039,12 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	}
 
 	private renderDownloadAllButton(): Children {
-		return !isIOSApp() && this.viewModel.getNonInlineAttachments().length > 2
-			? m(
-				".limit-width",
-				m(Button, {
-					label: "saveAll_action",
-					type: ButtonType.Secondary,
-					click: () => showProgressDialog("pleaseWait_msg", this.viewModel.downloadAll()),
-				}),
-			)
-			: null
+		return !isIOSApp() && this.viewModel.getNonInlineAttachments().length > 1
+			? m(Button, {
+				label: "saveAll_action",
+				type: ButtonType.Secondary,
+				click: () => showProgressDialog("pleaseWait_msg", this.viewModel.downloadAll()),
+			}) : null
 	}
 
 	private tutaoBadge(): Vnode<any> | null {

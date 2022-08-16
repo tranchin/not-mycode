@@ -5,7 +5,7 @@ import {formatDateTimeFromYesterdayOn} from "../../misc/Formatter"
 import {getSenderOrRecipientHeading, isTutanotaTeamMail} from "../model/MailUtils"
 import {locator} from "../../api/main/MainLocator"
 import m, {Children} from "mithril"
-import Badge from "../../gui/base/Badge"
+import TutanotaTeamBadge from "../../gui/base/TutanotaTeamBadge.js"
 import {px} from "../../gui/size"
 import type {VirtualRow} from "../../gui/base/List"
 
@@ -126,14 +126,10 @@ export class MailRow implements VirtualRow<Mail> {
 			),
 			m(".flex-grow.min-width-0", [
 				m(".top.flex.badge-line-height", [
-					m(
-						Badge,
-						{
-							classes: ".small.mr-s",
-							oncreate: vnode => (this._domTeamLabel = vnode.dom as HTMLElement),
-						},
-						"Tutanota Team",
-					),
+					m(TutanotaTeamBadge, {
+						classes: ".small.mr-s",
+						oncreate: vnode => (this._domTeamLabel = vnode.dom as HTMLElement),
+					}),
 					m("small.text-ellipsis", {
 						oncreate: vnode => (this._domSender = vnode.dom as HTMLElement),
 					}),

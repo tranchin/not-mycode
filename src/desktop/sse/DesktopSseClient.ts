@@ -405,6 +405,7 @@ export class DesktopSseClient {
 		}
 
 		this._notifier.submitGroupedNotification(title, `${ni.mailAddress} (${ni.counter})`, ni.userId, res => {
+			console.log("Notification callback", res.toString())
 			if (res === NotificationResult.Click) {
 				this._wm.openMailBox({
 					userId: ni.userId,

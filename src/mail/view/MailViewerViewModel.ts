@@ -281,6 +281,12 @@ export class MailViewerViewModel {
 		return this.mail.replyTos
 	}
 
+	getAllRecipients(): Array<MailAddress> {
+		return this.getToRecipients()
+			.concat(this.getCcRecipients())
+			.concat(this.getBccRecipients())
+	}
+
 	getSender(): MailAddress {
 		return this.mail.sender
 	}

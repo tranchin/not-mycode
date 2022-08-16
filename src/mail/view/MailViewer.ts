@@ -1,4 +1,4 @@
-import {size} from "../../gui/size"
+import {px, size} from "../../gui/size"
 import m, {Children, Component, Vnode} from "mithril"
 import stream from "mithril/stream"
 import {ExpanderButton, ExpanderPanel} from "../../gui/base/Expander"
@@ -16,11 +16,11 @@ import {
 	SpamRuleType,
 	TabIndex,
 } from "../../api/common/TutanotaConstants"
-import type {File as TutanotaFile, Mail} from "../../api/entities/tutanota/TypeRefs.js"
+import type {File as TutanotaFile, Mail, MailAddress} from "../../api/entities/tutanota/TypeRefs.js"
 import {InfoLink, lang} from "../../misc/LanguageViewModel"
 import {assertMainOrNode, isAndroidApp, isDesktop, isIOSApp} from "../../api/common/Env"
 import {Dialog} from "../../gui/base/Dialog"
-import {defer, DeferredObject, isNotNull, neverNull, noOp, ofClass,} from "@tutao/tutanota-utils"
+import {defer, DeferredObject, firstThrow, isNotNull, neverNull, noOp, ofClass,} from "@tutao/tutanota-utils"
 import {
 	createNewContact,
 	getDisplayText,
@@ -44,19 +44,17 @@ import {BootIcons} from "../../gui/base/icons/BootIcons"
 import {theme} from "../../gui/theme"
 import {client} from "../../misc/ClientDetector"
 import {showProgressDialog} from "../../gui/dialogs/ProgressDialog"
-import Badge from "../../gui/base/Badge"
 import type {ButtonAttrs} from "../../gui/base/Button.js"
 import {Button, ButtonColor, ButtonType} from "../../gui/base/Button.js"
 import {styles} from "../../gui/styles"
 import {attachDropdown, createAsyncDropdown, createDropdown, DomRectReadOnlyPolyfilled, showDropdownAtPosition} from "../../gui/base/Dropdown.js"
 import {navButtonRoutes} from "../../misc/RouteChange"
-import {RecipientButton} from "../../gui/base/RecipientButton"
 import {EventBanner} from "./EventBanner"
 import type {InlineImageReference} from "./MailGuiUtils"
 import {moveMails, promptAndDeleteMails, replaceCidsWithInlineImages} from "./MailGuiUtils"
 import {locator} from "../../api/main/MainLocator"
 import {BannerType, InfoBanner} from "../../gui/base/InfoBanner"
-import {createMoreSecondaryButtonAttrs, getCoordsOfMouseOrTouchEvent, ifAllowedTutanotaLinks} from "../../gui/base/GuiUtils"
+import {clickHandler, createMoreSecondaryButtonAttrs, getCoordsOfMouseOrTouchEvent, ifAllowedTutanotaLinks} from "../../gui/base/GuiUtils"
 import {copyToClipboard} from "../../misc/ClipboardUtils";
 import {ContentBlockingStatus, MailViewerViewModel} from "./MailViewerViewModel"
 import {getListId} from "../../api/common/utils/EntityUtils"
@@ -69,6 +67,7 @@ import {ease} from "../../gui/animation/Easing"
 import {isNewMailActionAvailable} from "../../gui/nav/NavFunctions"
 import {CancelledError} from "../../api/common/error/CancelledError"
 import {ProgrammingError} from "../../api/common/error/ProgrammingError.js"
+import TutanotaTeamBadge from "../../gui/base/TutanotaTeamBadge.js"
 
 assertMainOrNode()
 // map of inline image cid to InlineImageReference
@@ -117,7 +116,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 	private viewModel!: MailViewerViewModel
 
-	private readonly detailsExpanded = stream<boolean>(false)
+	private readonly detailsExpanded = stream(false)
 
 	private readonly shortcuts: Array<Shortcut>
 
@@ -198,92 +197,11 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	view(vnode: Vnode<MailViewerAttrs>): Children {
 		this.setViewModel(vnode.attrs.viewModel)
 
-		const dateTime = formatDateWithWeekday(this.viewModel.mail.receivedDate) + " • " + formatTime(this.viewModel.mail.receivedDate)
 		return [
 			m(
 				"#mail-viewer.fill-absolute" + (client.isMobileDevice() ? ".scroll-no-overlay.overflow-x-hidden" : ".flex.flex-column"),
 				[
-					m(".header.plr-l.margin-are-inset-lr", [
-						m(".flex-space-between.button-min-height", [
-							// the natural height may vary in browsers (Firefox), so set it to button height here to make it similar to the MultiMailViewer
-							m(".flex.flex-column-reverse", [
-								this.detailsExpanded()
-									? m("small.flex.text-break", lang.get("from_label"))
-									: m(
-										".small.flex.text-break.selectable.badge-line-height.flex-wrap.pt-s",
-										{
-											title: getSenderOrRecipientHeadingTooltip(this.viewModel.mail),
-										},
-										[this.tutaoBadge(), getSenderOrRecipientHeading(this.viewModel.mail, false)],
-									),
-								this.viewModel.getFolderText()
-									? m(
-										"small.b.flex.pt",
-										{
-											style: {
-												color: theme.navigation_button,
-											},
-										},
-										this.viewModel.getFolderText(),
-									)
-									: null,
-							]),
-							!this.viewModel.isAnnouncement() && styles.isUsingBottomNavigation()
-								? null
-								: m(".pt-0", this.renderShowMoreButton()),
-						]),
-						m(
-							".mb-m",
-							m(ExpanderPanel, {
-									expanded: this.detailsExpanded(),
-								},
-								this.renderDetails({bubbleMenuWidth: 300}),
-							),
-						),
-						m(".subject-actions.flex-space-between.flex-wrap.mt-xs", [
-							m(".left.flex-grow-shrink-150", [
-								m(
-									".subject.text-break.selectable",
-									{
-										"aria-label": lang.get("subject_label") + ", " + (this.viewModel.getSubject() || ""),
-									},
-									this.viewModel.getSubject() || "",
-								),
-								m(
-									".flex.items-center.content-accent-fg.svg-content-accent-fg" + (this.viewModel.isConfidential() ? ".ml-negative-xs" : ""),
-									{
-										// Orca refuses to read ut unless it's not focusable
-										tabindex: TabIndex.Default,
-										"aria-label": lang.get(this.viewModel.isConfidential() ? "confidential_action" : "nonConfidential_action") + ", " + dateTime,
-									},
-									[
-										this.viewModel.isConfidential()
-											? m(Icon, {
-												icon: Icons.Lock,
-												style: {
-													fill: theme.content_fg,
-												},
-											})
-											: null,
-										m("small.date.mt-xs.content-fg.selectable", dateTime),
-										m(".flex-grow"),
-										m(
-											".flex.flex-column-reverse",
-											!this.viewModel.isAnnouncement() && styles.isUsingBottomNavigation()
-												? m(".pt-m", this.renderShowMoreButton())
-												: null,
-										),
-									],
-								),
-							]),
-							styles.isUsingBottomNavigation() ? null : this.actionButtons(),
-						]),
-						styles.isUsingBottomNavigation() ? this.actionButtons() : null,
-						this.renderConnectionLostBanner(),
-						this.renderEventBanner(),
-						this.renderAttachments(),
-						this.renderBanners(this.viewModel.mail),
-					]),
+					this.renderHeader(),
 					m(
 						".flex-grow.margin-are-inset-lr.scroll-x.plr-l.pb-floating.pt" +
 						(client.isMobileDevice() ? "" : ".scroll-no-overlay") +
@@ -298,6 +216,155 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				],
 			),
 		]
+	}
+
+	private renderSender() {
+		this.viewModel.isConfidential()
+			? m(Icon, {
+				icon: Icons.Lock,
+				style: {
+					fill: theme.content_fg,
+				},
+				container: "div"
+			})
+			: null
+
+		return m(".flex.flex-row", [
+			this.viewModel.isConfidential()
+				? m(Icon, {
+					icon: Icons.Lock,
+					style: {
+						fill: theme.content_fg,
+					},
+					container: "div"
+				})
+				: null,
+			getSenderOrRecipientHeading(this.viewModel.mail, false)
+		])
+	}
+
+	private renderHeader(): Children {
+		return m(".header.plr-l.margin-are-inset-lr", [
+			m(".flex-space-between.button-min-height", [
+				// the natural height may vary in browsers (Firefox), so set it to button height here to make it similar to the MultiMailViewer
+				m(".flex.flex-column-reverse", [
+					m(
+						".small.flex.text-break.selectable.badge-line-height.flex-wrap.pt-s",
+						{
+							title: getSenderOrRecipientHeadingTooltip(this.viewModel.mail),
+						},
+						isTutanotaTeamMail(this.viewModel.mail)
+							? m(TutanotaTeamBadge, {classes: ".mr-s"})
+							: this.renderSender()
+					),
+					this.viewModel.getFolderText()
+						? m(
+							"small.b.flex.pt",
+							{
+								style: {
+									color: theme.navigation_button,
+								},
+							},
+							this.viewModel.getFolderText(),
+						)
+						: null,
+				]),
+				!this.viewModel.isAnnouncement() && styles.isUsingBottomNavigation()
+					? null
+					: m(".pt-0", this.renderShowMoreButton()),
+			]),
+			m(".subject-actions.flex-space-between.flex-wrap.mt-xs", [
+				m(".left.flex-grow-shrink-150", [
+					m(
+						".subject.text-break.selectable",
+						{
+							"aria-label": lang.get("subject_label") + ", " + (this.viewModel.getSubject() || ""),
+							style: {
+								color: !this.viewModel.getSubject() ? theme.navigation_button : undefined
+							}
+						},
+						// TODO Translate
+						this.viewModel.getSubject() || "<No subject>",
+					),
+					this.renderFullDetails()
+				]),
+				styles.isUsingBottomNavigation() ? null : this.renderActionButtons(),
+			]),
+			styles.isUsingBottomNavigation() ? this.renderActionButtons() : null,
+			this.renderConnectionLostBanner(),
+			this.renderEventBanner(),
+			this.renderAttachments(),
+			this.renderBanners(this.viewModel.mail),
+		])
+	}
+
+	private renderRecipientDetails(): Children {
+		const dateTime = formatDateWithWeekday(this.viewModel.mail.receivedDate) + " • " + formatTime(this.viewModel.mail.receivedDate)
+		const recipients = this.viewModel.getToRecipients()
+							   .concat(this.viewModel.getCcRecipients())
+							   .concat(this.viewModel.getBccRecipients())
+
+		const previewRecipient = firstThrow(recipients).address
+		const extraRecipients = recipients.length - 1
+		// TODO translate
+		const previewText = extraRecipients === 0
+			? `To ${previewRecipient}`
+			: `To ${previewRecipient} and ${extraRecipients} more`
+
+		return m(".flex-space-between.items-center",
+			{
+				// Orca refuses to read ut unless it's not focusable
+				tabindex: TabIndex.Default,
+				"aria-label": lang.get(this.viewModel.isConfidential() ? "confidential_action" : "nonConfidential_action") + ", " + dateTime,
+			},
+			[
+				m("button.flex.flex-row", {
+					onclick: () => this.detailsExpanded(true)
+				}, [
+					this.viewModel.isConfidential()
+						? m(Icon, {
+							icon: Icons.Lock,
+							style: {
+								fill: theme.content_fg,
+							},
+							container: "div"
+						})
+						: null,
+					m(".font-small.text-break.content-fg.selectable", previewText),
+				]),
+				m("small.date.mt-xs.content-fg.selectable", dateTime),
+			]
+		)
+	}
+
+	private renderFullDetails(): Children {
+		const formatMailAddress = (mailAddress: MailAddress) => mailAddress.name
+			? `${mailAddress.name} <${mailAddress.address}>`
+			: mailAddress.address
+
+		const tos = this.viewModel.getToRecipients()
+		const ccs = this.viewModel.getCcRecipients()
+		const bccs = this.viewModel.getBccRecipients()
+		const allRecipients = tos.concat(ccs).concat(bccs)
+		return m(".font-small", [
+			m(".mt-xs", {}, [
+				// TODO Translate
+				allRecipients.length === 0
+					? null
+					: m(".flex-space-between.wrap", [
+						m("button", {
+								onclick: () => this.detailsExpanded(!this.detailsExpanded()),
+							}, allRecipients.length > 1
+								? `To ${formatMailAddress(firstThrow(allRecipients))} and ${allRecipients.length - 1} more`
+								: `To ${formatMailAddress(firstThrow(allRecipients))}`
+						),
+						m("", `${formatDateWithWeekday(this.viewModel.mail.receivedDate)} • ${formatTime(this.viewModel.mail.receivedDate)}`)
+					]),
+				m(ExpanderPanel, {
+					expanded: this.detailsExpanded()
+				}, this.renderDetails())
+			]),
+		])
 	}
 
 	private renderMailBodySection(): Children {
@@ -489,24 +556,39 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		})
 	}
 
-	private renderDetails({bubbleMenuWidth}: {bubbleMenuWidth: number}): Children {
+	private renderDetails(): Children {
 		const envelopeSender = this.viewModel.getDifferentEnvelopeSender()
+		const bubbleMenuWidth = 300
+
+		const renderRecipient = (label: string, click: clickHandler) => m("button.mr-button.secondary.print", {
+			style: {
+				"white-space": "normal",
+				"word-break": "break-all",
+				"margin-top": px(size.vpad_small),
+				"margin-bottom": px(size.vpad_small),
+				flex: "0 1 auto",
+			},
+			onclick: (e: MouseEvent) => click(e, e.target as HTMLElement),
+		}, label)
+
 		return [
-			m(RecipientButton, {
-				label: getDisplayText(this.viewModel.getSender().name, this.viewModel.getSender().address, false),
-				click: createAsyncDropdown({
+			m("hr.hr.mt-s.mb-xs"),
+			m(".small", lang.get("from_label")),
+			renderRecipient(
+				getDisplayText(this.viewModel.getSender().name, this.viewModel.getSender().address, false),
+				createAsyncDropdown({
 					lazyButtons: () => this.createMailAddressContextButtons({
 						mailAddress: this.viewModel.getSender(),
 						defaultInboxRuleField: InboxRuleType.FROM_EQUALS
 					}), width: bubbleMenuWidth
-				}),
-			}),
+				})
+			),
 			envelopeSender
 				? [
 					m(".small", lang.get("sender_label")),
-					m(RecipientButton, {
-						label: getDisplayText("", envelopeSender, false),
-						click: createAsyncDropdown({
+					renderRecipient(
+						getDisplayText("", envelopeSender, false),
+						createAsyncDropdown({
 							lazyButtons: async () => {
 								const childElements = [
 									{
@@ -532,8 +614,8 @@ export class MailViewer implements Component<MailViewerAttrs> {
 								)
 								return [...childElements, ...contextButtons]
 							}, width: bubbleMenuWidth
-						}),
-					}),
+						})
+					),
 				]
 				: null,
 			this.viewModel.getToRecipients().length
@@ -542,9 +624,9 @@ export class MailViewer implements Component<MailViewerAttrs> {
 					m(
 						".flex-start.flex-wrap",
 						this.viewModel.getToRecipients().map(recipient =>
-							m(RecipientButton, {
-								label: getDisplayText(recipient.name, recipient.address, false),
-								click: createAsyncDropdown(
+							renderRecipient(
+								getDisplayText(recipient.name, recipient.address, false),
+								createAsyncDropdown(
 									{
 										lazyButtons: () => this.createMailAddressContextButtons({
 											mailAddress: recipient,
@@ -552,11 +634,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 										}), width: bubbleMenuWidth
 									},
 								),
-								// To wrap text inside flex container, we need to allow element to shrink and pick own width
-								style: {
-									flex: "0 1 auto",
-								},
-							}),
+							),
 						),
 					),
 				]
@@ -564,12 +642,11 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			this.viewModel.getCcRecipients().length
 				? [
 					m(".small", lang.get("cc_label")),
-					m(
-						".flex-start.flex-wrap",
+					m(".flex-start.flex-wrap",
 						this.viewModel.getCcRecipients().map(recipient =>
-							m(RecipientButton, {
-								label: getDisplayText(recipient.name, recipient.address, false),
-								click: createAsyncDropdown(
+							renderRecipient(
+								getDisplayText(recipient.name, recipient.address, false),
+								createAsyncDropdown(
 									{
 										lazyButtons: () => this.createMailAddressContextButtons({
 											mailAddress: recipient,
@@ -577,10 +654,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 										}), width: bubbleMenuWidth
 									},
 								),
-								style: {
-									flex: "0 1 auto",
-								},
-							}),
+							),
 						),
 					),
 				]
@@ -591,9 +665,9 @@ export class MailViewer implements Component<MailViewerAttrs> {
 					m(
 						".flex-start.flex-wrap",
 						this.viewModel.getBccRecipients().map(recipient =>
-							m(RecipientButton, {
-								label: getDisplayText(recipient.name, recipient.address, false),
-								click: createAsyncDropdown(
+							renderRecipient(
+								getDisplayText(recipient.name, recipient.address, false),
+								createAsyncDropdown(
 									{
 										lazyButtons: () => this.createMailAddressContextButtons({
 											mailAddress: recipient,
@@ -601,10 +675,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 										}), width: bubbleMenuWidth
 									},
 								),
-								style: {
-									flex: "0 1 auto",
-								},
-							}),
+							),
 						),
 					),
 				]
@@ -615,18 +686,15 @@ export class MailViewer implements Component<MailViewerAttrs> {
 					m(
 						".flex-start.flex-wrap",
 						this.viewModel.getReplyTos().map(recipient =>
-							m(RecipientButton, {
-								label: getDisplayText(recipient.name, recipient.address, false),
-								click: createAsyncDropdown({
+							renderRecipient(
+								getDisplayText(recipient.name, recipient.address, false),
+								createAsyncDropdown({
 									lazyButtons: () => this.createMailAddressContextButtons({
 										mailAddress: recipient,
 										defaultInboxRuleField: null
 									}), width: bubbleMenuWidth
 								}),
-								style: {
-									flex: "0 1 auto",
-								},
-							}),
+							),
 						),
 					),
 				]
@@ -678,7 +746,12 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			})
 	}
 
-	private actionButtons(): Children {
+	private renderActionButtons(): Children {
+
+		if (2 * 8 === 16) {
+			return null
+		}
+
 		const actions: Children = []
 		const colors = ButtonColor.Content
 
@@ -1048,19 +1121,6 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			)
 			: null
 	}
-
-	private tutaoBadge(): Vnode<any> | null {
-		return isTutanotaTeamMail(this.viewModel.mail)
-			? m(
-				Badge,
-				{
-					classes: ".mr-s",
-				},
-				"Tutanota Team",
-			)
-			: null
-	}
-
 
 	private rescale(animate: boolean) {
 		const child = this.domBody

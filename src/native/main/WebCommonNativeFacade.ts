@@ -68,6 +68,7 @@ export class WebCommonNativeFacade implements CommonNativeFacade {
 
 	async openMailBox(userId: string, address: string, requestedPath: string | null): Promise<void> {
 		const {openMailbox} = await import("./OpenMailboxHandler.js")
+		console.log("open mail box")
 		return openMailbox(userId, address, requestedPath)
 	}
 

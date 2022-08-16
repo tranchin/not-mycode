@@ -159,6 +159,9 @@ styles.registerStyle("main", () => {
 		".smaller": {
 			"font-size": px(size.font_size_smaller),
 		},
+		".font-small": {
+			"font-size": "small",
+		},
 		".b": {
 			"font-weight": "bold",
 		},

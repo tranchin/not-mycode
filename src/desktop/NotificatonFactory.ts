@@ -5,6 +5,7 @@ import {NotificationResult} from "./DesktopNotifier";
 type Dismisser = () => void
 
 export class ElectronNotificationFactory {
+
 	isSupported(): boolean {
 		return Notification.isSupported()
 	}

@@ -29,7 +29,7 @@ import {assertMainOrNode} from "../api/common/Env"
 import {locator} from "../api/main/MainLocator"
 import {elementIdPart, getElementId} from "../api/common/utils/EntityUtils"
 import {showChangeOwnPasswordDialog} from "./ChangePasswordDialogs.js";
-import {DropDownSelectorAttrs, DropDownSelectorN} from "../gui/base/DropDownSelectorN.js"
+import {DropDownSelector, DropDownSelectorAttrs} from "../gui/base/DropDownSelector.js"
 import {showUsageTestOptInDialog, UsageTestModel} from "../misc/UsageTestModel.js"
 import {UserSettingsGroupRootTypeRef} from "../api/entities/tutanota/TypeRefs.js"
 
@@ -172,7 +172,7 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 						? null
 						: m("", [
 							m(".h4.mt-l", lang.get("usageData_label")),
-							m(DropDownSelectorN, usageDataOptInAttrs)
+							m(DropDownSelector, usageDataOptInAttrs)
 						]),
 				]),
 			])

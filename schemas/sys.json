@@ -32,12 +32,12 @@
 			]
 		},
 		{
-			"version": 77,
+			"version": 79,
 			"changes": [
 				{
 					"name": "AddValue",
 					"sourceType": "CustomerProperties",
-					"info": "AddValue CustomerProperties/usageDataOptedOut/1996."
+					"info": "AddValue CustomerProperties/usageDataOptedOut/2005."
 				}
 			]
 		}

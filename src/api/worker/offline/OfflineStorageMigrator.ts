@@ -5,7 +5,7 @@ import {ProgrammingError} from "../../common/error/ProgrammingError.js"
 import {sys75} from "./migrations/sys-v75.js"
 import {sys76} from "./migrations/sys-v76.js"
 import {tutanota54} from "./migrations/tutanota-v54.js"
-import {sys77} from "./migrations/sys-v77.js"
+import {sys79} from "./migrations/sys-v79.js"
 
 export interface OfflineMigration {
 	readonly app: Apps
@@ -18,7 +18,7 @@ export interface OfflineMigration {
 export const OFFLINE_STORAGE_MIGRATIONS: ReadonlyArray<OfflineMigration> = [
 	sys75,
 	sys76,
-	sys77,
+	sys79,
 	tutanota54,
 ]
 

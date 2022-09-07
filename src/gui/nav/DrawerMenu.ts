@@ -1,5 +1,5 @@
 import m, {Children, Component, Vnode} from "mithril"
-import {ButtonColor, Button, ButtonType} from "../base/Button.js"
+import {Button, ButtonColor, ButtonType} from "../base/Button.js"
 import {BootIcons} from "../base/icons/BootIcons"
 import {LogoutUrl} from "../Header.js"
 import {isNewMailActionAvailable, showSupportDialog, showUpgradeDialog, writeInviteMail} from "./NavFunctions"
@@ -37,7 +37,7 @@ export class DrawerMenu implements Component<Attrs> {
 				logins.isUserLoggedIn() && showUsageDataOptInIndicator
 					?
 					m(".news-button", [
-						m(ButtonN, {
+						m(Button, {
 							icon: () => Icons.Bulb,
 							label: "news_label",
 							click: showUsageTestOptInDialog,

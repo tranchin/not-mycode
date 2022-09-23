@@ -7,7 +7,7 @@ class RemoteBridge : NSObject, NativeInterface {
   private let webView: WKWebView
   private let viewController: ViewController
   private let commonSystemFacade: IosCommonSystemFacade
-  private var commonNativeFacade: CommonNativeFacade!
+  private(set) var commonNativeFacade: CommonNativeFacade!
   private var mobileFacade: MobileFacade!
   private var globalDispatcher: IosGlobalDispatcher!
 

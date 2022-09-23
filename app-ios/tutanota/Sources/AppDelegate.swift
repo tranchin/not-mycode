@@ -52,6 +52,7 @@ class AppDelegate : UIResponder,
       credentialsEncryption: credentialsEncryption,
       blobUtils: BlobUtil()
     )
+    self.viewController.setUserInfo(userInfo: launchOptions)
     self.window!.rootViewController = viewController
     
     UNUserNotificationCenter.current().delegate = self

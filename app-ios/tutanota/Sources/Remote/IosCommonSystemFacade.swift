@@ -16,10 +16,12 @@ class IosCommonSystemFacade: CommonSystemFacade {
   }
   
   func initializeRemoteBridge() async throws {
+    TUTSLog("CommonSystemFacade initialize remote bridge!")
     self.initialized.send(.initReceived)
   }
   
   func reload(_ query: [String : String]) async throws {
+    TUTSLog("CommonSystemFacade reload")
     self.initialized = CurrentValueSubject(.waitingForInit)
     await self.viewController.loadMainPage(params: query)
   }
@@ -31,15 +33,17 @@ class IosCommonSystemFacade: CommonSystemFacade {
   
   func awaitForInit() async {
     /// awaiting for the first and hopefully only void object in this publisher
-    /// could be simpler but .values is iOS > 15 
+    /// could be simpler but .values is iOS > 15
+    TUTSLog("CommonSystemFacade awaitForInit!")
     await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
       // first will end the subscription after the first match so we don't need to cancel manually
       // (it is anyway hard to do as .sink() is called sync right away before we get subscription)
       let _ = self.initialized
         .first(where: { $0 == .initReceived })
         .sink { v in
+          TUTSLog("CommonSystemFacade awaitForInit done!")
           continuation.resume()
-      }
+        }
     }
   }
 }

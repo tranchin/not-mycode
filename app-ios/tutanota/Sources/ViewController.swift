@@ -112,6 +112,23 @@ class ViewController : UIViewController, WKNavigationDelegate, UIScrollViewDeleg
     }
   }
   
+  func setUserInfo(userInfo:  [UIApplication.LaunchOptionsKey : Any]?) {
+    guard let userInfo = userInfo else {
+      return
+    }
+    
+    if let remoteInfo = userInfo[.remoteNotification] as? [String : Any],
+       let userId = remoteInfo["user_id"] as? String {
+      TUTSLog("CommonSystemFacade We got em! \(userId)")
+      
+      DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        Task {
+          try! await self.bridge.commonNativeFacade.openMailBox(userId, "", nil)
+        }
+      }
+    }
+  }
+  
   @objc
   private func onKeyboardDidShow(note: Notification) {
     let rect = note.userInfo![UIResponder.keyboardFrameEndUserInfoKey] as! CGRect
@@ -254,13 +271,14 @@ class ViewController : UIViewController, WKNavigationDelegate, UIScrollViewDeleg
   private func appUrl() -> URL {
     let env = ProcessInfo.processInfo.environment
     
-    let pagePath: String
+    // FIXME unhardcode me
+    let pagePath: String = "build/"
     // this var is set in the debug scheme: Product > Scheme > Manage Schemes in xcode.
-    if let envPath = env["TUT_PAGE_PATH"] {
-      pagePath = envPath
-    } else {
-      pagePath = Bundle.main.infoDictionary!["TutanotaApplicationPath"] as! String
-    }
+//    if let envPath = env["TUT_PAGE_PATH"] {
+//      pagePath = envPath
+//    } else {
+//      pagePath = Bundle.main.infoDictionary!["TutanotaApplicationPath"] as! String
+//    }
     let path = Bundle.main.path(forResource: pagePath + "index-app", ofType: "html")
     if path == nil {
       return Bundle.main.resourceURL!

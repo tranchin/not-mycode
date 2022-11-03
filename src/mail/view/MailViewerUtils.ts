@@ -205,6 +205,37 @@ export function mailViewerMoreActions(
 		})
 	}
 
+	const repeatableStagesTest = locator.usageTestController.getTest("repeatable")
+	repeatableStagesTest.strictStageOrder = true
+
+	repeatableStagesTest.renderVariant({
+		[0]: () => {
+		},
+		[1]: () => {
+			moreButtons.push({
+				label: () => "Stage 0",
+				click: () => repeatableStagesTest.getStage(0).complete(),
+			})
+
+			moreButtons.push({
+				label: () => "Stage 1",
+				click: () => {
+					const stage1 = repeatableStagesTest.getStage(1)
+					stage1.setMetric({
+						name: "enum",
+						value: "val",
+					})
+					stage1.complete()
+				},
+			})
+
+			moreButtons.push({
+				label: () => "Stage 2",
+				click: () => repeatableStagesTest.getStage(2).complete(),
+			})
+		}
+	})
+
 	return moreButtons
 }
 

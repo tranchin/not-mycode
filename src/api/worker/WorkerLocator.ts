@@ -53,6 +53,7 @@ import { ExportFacadeSendDispatcher } from "../../native/common/generatedipc/Exp
 import { assertNotNull } from "@tutao/tutanota-utils"
 import { InterWindowEventFacadeSendDispatcher } from "../../native/common/generatedipc/InterWindowEventFacadeSendDispatcher.js"
 import { SqlCipherFacadeSendDispatcher } from "../../native/common/generatedipc/SqlCipherFacadeSendDispatcher.js"
+import { BlobAccessTokenFacade } from "./facades/BlobAccessTokenFacade.js"
 
 assertWorkerOrNode()
 
@@ -68,6 +69,7 @@ export type WorkerLocatorType = {
 	userManagement: UserManagementFacade
 	customer: CustomerFacade
 	file: FileFacade
+	blobAccessToken: BlobAccessTokenFacade
 	blob: BlobFacade
 	mail: MailFacade
 	calendar: CalendarFacade
@@ -100,7 +102,8 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 	locator.rsa = await createRsaImplementation(worker)
 	locator.restClient = new RestClient(suspensionHandler)
 	locator.serviceExecutor = new ServiceExecutor(locator.restClient, locator.user, locator.instanceMapper, () => locator.crypto)
-	const entityRestClient = new EntityRestClient(locator.user, locator.restClient, () => locator.crypto, locator.instanceMapper)
+	locator.blobAccessToken = new BlobAccessTokenFacade(locator.serviceExecutor)
+	const entityRestClient = new EntityRestClient(locator.user, locator.restClient, () => locator.crypto, locator.instanceMapper, locator.blobAccessToken)
 	locator._browserData = browserData
 
 	locator.native = worker
@@ -125,7 +128,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 
 	const fileApp = new NativeFileApp(new FileFacadeSendDispatcher(worker), new ExportFacadeSendDispatcher(worker))
 
-	// We don't wont to cache within the admin client
+	// We don't want to cache within the admin client
 	let cache: DefaultEntityRestCache | null = null
 	if (!isAdminClient()) {
 		cache = new DefaultEntityRestCache(entityRestClient, maybeUninitializedStorage)
@@ -137,7 +140,14 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 	locator.indexer = new Indexer(entityRestClient, worker, browserData, locator.cache as DefaultEntityRestCache)
 	const mainInterface = worker.getMainInterface()
 
-	locator.crypto = new CryptoFacade(locator.user, locator.cachingEntityClient, locator.restClient, locator.rsa, locator.serviceExecutor)
+	locator.crypto = new CryptoFacade(
+		locator.user,
+		locator.cachingEntityClient,
+		locator.restClient,
+		locator.rsa,
+		locator.serviceExecutor,
+		locator.instanceMapper,
+	)
 	locator.login = new LoginFacade(
 		worker,
 		locator.restClient,
@@ -151,6 +161,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		maybeUninitializedStorage,
 		locator.serviceExecutor,
 		locator.user,
+		locator.blobAccessToken,
 	)
 	const suggestionFacades = [
 		locator.indexer._contact.suggestionFacade,
@@ -191,6 +202,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		aesApp,
 		locator.instanceMapper,
 		locator.crypto,
+		locator.blobAccessToken,
 	)
 	locator.file = new FileFacade(
 		locator.user,

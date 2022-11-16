@@ -1096,6 +1096,7 @@ export type TranslationKeyType =
 	| "recoverAccountAccess_action"
 	| "recoverResetFactors_action"
 	| "recoverSetNewPassword_action"
+	| "recoveryCodeDisplay_action"
 	| "recoveryCodeEmpty_msg"
 	| "recoveryCode_label"
 	| "recoveryCode_msg"

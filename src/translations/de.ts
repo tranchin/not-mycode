@@ -1115,6 +1115,7 @@ export default {
 		"recoverAccountAccess_action": "Zugangsdaten verloren",
 		"recoverResetFactors_action": "Zweiten Faktor zurücksetzen",
 		"recoverSetNewPassword_action": "Neues Passwort festlegen",
+		"recoveryCodeDisplay_action": "Recovery code anzeigen",
 		"recoveryCodeEmpty_msg": "Bitte gib deinen Wiederherstellungs-Code ein.",
 		"recoveryCode_label": "Wiederherstellungs-Code",
 		"recoveryCode_msg": "Bitte nimm dir die Zeit um den Wiederherstellungs-Code aufzuschreiben. Dieser ist die einzige Möglichkeit, um den Zugang zu deinem Account wiederherzustellen, falls du das Passwort oder den zweiten Faktor verlieren solltest.",

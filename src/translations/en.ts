@@ -1111,6 +1111,7 @@ export default {
 		"recoverAccountAccess_action": "Lost account access",
 		"recoverResetFactors_action": "Reset second factor",
 		"recoverSetNewPassword_action": "Set a new password",
+		"recoveryCodeDisplay_action": "Display recovery code",
 		"recoveryCodeEmpty_msg": "Please enter a recovery code",
 		"recoveryCode_label": "Recovery code",
 		"recoveryCode_msg": "Please take a minute to write down your recovery code. The recovery code is the only option to reset your password or second factor in case you lose either.",

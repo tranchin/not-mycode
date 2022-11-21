@@ -3,6 +3,8 @@ package de.tutao.tutanota.push
 import android.app.job.JobParameters
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import de.tutao.tutanota.*
 import de.tutao.tutanota.alarms.AlarmNotificationsManager
@@ -17,9 +19,29 @@ class PushNotificationService : LifecycleJobService() {
 	private lateinit var localNotificationsFacade: LocalNotificationsFacade
 	private lateinit var sseClient: SseClient
 
-	override fun onCreate() {
-		super.onCreate()
+	override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+		super.onStartCommand(intent, flags, startId)
+		Log.d(TAG, "Received onStartCommand, sender: " + intent?.getStringExtra("sender"))
 
+		initializeForegroundService()
+
+		if (atLeastOreo()) {
+			Log.d(TAG, "Starting foreground")
+			startForeground(1, localNotificationsFacade.makeConnectionNotification())
+		}
+
+		if (intent != null && intent.hasExtra(NOTIFICATION_DISMISSED_ADDR_EXTRA)) {
+			val dismissAddresses = intent.getStringArrayListExtra(NOTIFICATION_DISMISSED_ADDR_EXTRA)
+			localNotificationsFacade.notificationDismissed(
+					dismissAddresses,
+					intent.getBooleanExtra(MainActivity.IS_SUMMARY_EXTRA, false)
+			)
+		}
+
+		return START_NOT_STICKY
+	}
+
+	private fun initializeForegroundService() {
 		localNotificationsFacade = LocalNotificationsFacade(this)
 
 		val appDatabase: AppDatabase = AppDatabase.getDatabase(this, allowMainThreadAccess = true)
@@ -47,8 +69,8 @@ class PushNotificationService : LifecycleJobService() {
 			}
 			if (userIds.isEmpty()) {
 				sseClient.stopConnection()
-				removeBackgroundServiceNotification()
 				finishJobIfNeeded()
+				stopForegroundService()
 			} else {
 				sseClient.restartConnectionIfNeeded(
 						SseInfo(
@@ -61,28 +83,12 @@ class PushNotificationService : LifecycleJobService() {
 		}
 	}
 
-	private fun removeBackgroundServiceNotification() {
+	//FIXME start Foreground gets called multiple times and service is not stopping
+
+	private fun stopForegroundService() {
 		Log.d(TAG, "Stopping foreground")
 		stopForeground(true)
-	}
-
-	override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-		super.onStartCommand(intent, flags, startId)
-		Log.d(TAG, "Received onStartCommand, sender: " + intent?.getStringExtra("sender"))
-
-		if (atLeastOreo()) {
-			Log.d(TAG, "Starting foreground")
-			startForeground(1, localNotificationsFacade.makeConnectionNotification())
-		}
-
-		if (intent != null && intent.hasExtra(NOTIFICATION_DISMISSED_ADDR_EXTRA)) {
-			val dismissAddresses = intent.getStringArrayListExtra(NOTIFICATION_DISMISSED_ADDR_EXTRA)
-			localNotificationsFacade.notificationDismissed(
-					dismissAddresses, intent.getBooleanExtra(MainActivity.IS_SUMMARY_EXTRA, false)
-			)
-		}
-
-		return START_STICKY
+		stopSelf()
 	}
 
 	override fun onStartJob(params: JobParameters): Boolean {
@@ -98,15 +104,10 @@ class PushNotificationService : LifecycleJobService() {
 
 	private fun scheduleJobFinish() {
 		if (jobParameters != null) {
-			Thread({
-				Log.d(TAG, "Scheduling jobFinished")
-				try {
-					Thread.sleep(20000)
-				} catch (ignored: InterruptedException) {
-				}
-				Log.d(TAG, "Executing scheduled jobFinished")
+			Handler(Looper.getMainLooper()).postDelayed({
 				finishJobIfNeeded()
-			}, "FinishJobThread")
+				stopForegroundService()
+			}, 20000)
 		}
 	}
 
@@ -137,8 +138,7 @@ class PushNotificationService : LifecycleJobService() {
 			alarmNotificationsManager: AlarmNotificationsManager
 	) : SseListener {
 
-		private val tutanotaNotificationsHandler =
-				TutanotaNotificationsHandler(notificationsFacade, sseStorage, alarmNotificationsManager)
+		private val tutanotaNotificationsHandler = TutanotaNotificationsHandler(notificationsFacade, sseStorage, alarmNotificationsManager)
 
 		override fun onStartingConnection(): Boolean {
 			return tutanotaNotificationsHandler.onConnect()
@@ -148,12 +148,11 @@ class PushNotificationService : LifecycleJobService() {
 			if ("notification" == data) {
 				tutanotaNotificationsHandler.onNewNotificationAvailable(sseInfo)
 			}
-			removeBackgroundServiceNotification()
 		}
 
 		override fun onConnectionEstablished() {
-			removeBackgroundServiceNotification()
 			// After establishing connection we finish in some time.
+			Log.d(TAG, "onConnectionEstablished")
 			scheduleJobFinish()
 		}
 
@@ -162,8 +161,8 @@ class PushNotificationService : LifecycleJobService() {
 		}
 
 		override fun onStoppingReconnectionAttempts() {
-			removeBackgroundServiceNotification()
 			finishJobIfNeeded()
+			stopForegroundService()
 		}
 	}
 }

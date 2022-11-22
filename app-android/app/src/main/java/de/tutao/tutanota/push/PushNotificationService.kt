@@ -32,15 +32,12 @@ class PushNotificationService : LifecycleJobService() {
 
 		if (intent != null && intent.hasExtra(NOTIFICATION_DISMISSED_ADDR_EXTRA)) {
 			val dismissAddresses = intent.getStringArrayListExtra(NOTIFICATION_DISMISSED_ADDR_EXTRA)
-			localNotificationsFacade.notificationDismissed(
-					dismissAddresses,
-					intent.getBooleanExtra(MainActivity.IS_SUMMARY_EXTRA, false)
-			)
+			localNotificationsFacade.notificationDismissed(dismissAddresses, intent.getBooleanExtra(MainActivity.IS_SUMMARY_EXTRA, false))
 		}
 
-		return START_NOT_STICKY
+		return START_STICKY
 	}
-
+	
 	private fun initializeForegroundService() {
 		localNotificationsFacade = LocalNotificationsFacade(this)
 
@@ -70,7 +67,7 @@ class PushNotificationService : LifecycleJobService() {
 			if (userIds.isEmpty()) {
 				sseClient.stopConnection()
 				finishJobIfNeeded()
-				stopForegroundService()
+				removeForegroundServiceNotification()
 			} else {
 				sseClient.restartConnectionIfNeeded(
 						SseInfo(
@@ -83,9 +80,8 @@ class PushNotificationService : LifecycleJobService() {
 		}
 	}
 
-	//FIXME start Foreground gets called multiple times and service is not stopping
+	private fun removeForegroundServiceNotification() {
 
-	private fun stopForegroundService() {
 		Log.d(TAG, "Stopping foreground")
 		stopForeground(true)
 		stopSelf()
@@ -105,14 +101,17 @@ class PushNotificationService : LifecycleJobService() {
 	private fun scheduleJobFinish() {
 		if (jobParameters != null) {
 			Handler(Looper.getMainLooper()).postDelayed({
+				Log.d(TAG, "Executing scheduled jobFinished")
 				finishJobIfNeeded()
-				stopForegroundService()
 			}, 20000)
+			Log.d(TAG, "Scheduling jobFinished")
+
 		}
 	}
 
 	private fun finishJobIfNeeded() {
 		if (jobParameters != null) {
+			Log.d(TAG, "jobFinished: $jobParameters")
 			jobFinished(jobParameters, true)
 			jobParameters = null
 		}
@@ -148,12 +147,14 @@ class PushNotificationService : LifecycleJobService() {
 			if ("notification" == data) {
 				tutanotaNotificationsHandler.onNewNotificationAvailable(sseInfo)
 			}
+			removeForegroundServiceNotification()
 		}
 
 		override fun onConnectionEstablished() {
 			// After establishing connection we finish in some time.
 			Log.d(TAG, "onConnectionEstablished")
 			scheduleJobFinish()
+			removeForegroundServiceNotification()
 		}
 
 		override fun onNotAuthorized(userId: String) {
@@ -162,7 +163,7 @@ class PushNotificationService : LifecycleJobService() {
 
 		override fun onStoppingReconnectionAttempts() {
 			finishJobIfNeeded()
-			stopForegroundService()
+			removeForegroundServiceNotification()
 		}
 	}
 }

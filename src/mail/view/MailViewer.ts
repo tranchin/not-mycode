@@ -56,6 +56,7 @@ export type MailViewerAttrs = {
 	defaultQuoteBehavior: "collapse" | "expand"
 }
 
+let _self: MailViewer | null = null // :(
 /**
  * The MailViewer displays a mail. The mail body is loaded asynchronously.
  *
@@ -83,6 +84,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	private readonly resizeListener: windowSizeListener
 
 	private viewModel!: MailViewerViewModel
+	private topScrollValue = 0
 
 	private readonly shortcuts: Array<Shortcut>
 
@@ -103,6 +105,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	private quoteState: "noquotes" | "unset" | "collapsed" | "expanded" = "unset"
 
 	constructor(vnode: Vnode<MailViewerAttrs>) {
+		_self = this
 		this.setViewModel(vnode.attrs.viewModel, vnode.attrs.isPrimary)
 
 		this.resizeListener = () => this.domBodyDeferred.promise.then((dom) => this.updateLineHeight(dom))
@@ -158,12 +161,24 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 	view(vnode: Vnode<MailViewerAttrs>): Children {
 		this.handleContentBlockingOnRender()
+
+		const scrollingHeader = styles.isSingleColumnLayout()
 		return [
-			m(".mail-viewer.overflow-x-hidden", [
+			m("#mail-viewer.fill-absolute" + (scrollingHeader ? ".scroll-no-overlay.overflow-x-hidden" : ".flex.flex-column"), {
+				onscroll: function(e: Event) {
+					_self!.topScrollValue = this.scrollTop
+					console.log("scroll", this.scrollTop)
+					// Prevent auto-redraw
+					// @ts-ignore
+					e.redraw = false
+				}
+			}, [
 				this.renderMailHeader(vnode.attrs),
 				this.renderMailSubject(vnode.attrs),
 				m(
-					".flex-grow.mlr-safe-inset.scroll-x.pt.pb.border-radius-big" + (this.viewModel.isContrastFixNeeded() ? ".bg-white.content-black" : " "),
+					".flex-grow.mlr-safe-inset.scroll-x.pt.pb.border-radius-big" +
+					(scrollingHeader ? "" : ".scroll-no-overlay") +
+					(this.viewModel.isContrastFixNeeded() ? ".bg-white.content-black" : " "),
 					{
 						class: mailViewerPadding(),
 						oncreate: (vnode) => {
@@ -174,7 +189,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				),
 				this.renderQuoteExpanderButton(),
 			]),
-		]
+			]
 	}
 
 	private renderMailSubject(attrs: MailViewerAttrs) {
@@ -257,6 +272,10 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		// We skip rendering progress indicator when switching between emails.
 		// However if we already loaded the mail then we can just render it.
 		const shouldSkipRender = this.viewModel.isLoading() && this.delayProgressSpinner
+		if (shouldSkipRender) {
+			console.log("new mail")
+			this.saveScale()
+		}
 		return !shouldSkipRender
 	}
 
@@ -292,7 +311,8 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				const dom = vnode.dom as HTMLElement
 				this.setDomBody(dom)
 				this.updateLineHeight(dom)
-				this.rescale(false)
+				console.log("oncreate")
+				// this.rescale(false) //FIXME
 				this.renderShadowMailBody(sanitizedMailBody, attrs)
 			},
 			onupdate: (vnode) => {
@@ -306,6 +326,9 @@ export class MailViewer implements Component<MailViewerAttrs> {
 					this.updateLineHeight(vnode.dom as HTMLElement)
 				}
 
+				console.log("onupdate")
+				this.rescale(false) //FIXME
+				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs)
 				this.rescale(false)
 
 				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs)
@@ -375,20 +398,21 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		}
 
 		if (client.isMobileDevice()) {
-			wrapNode.addEventListener("touchstart", (event) => {
-				const touch = event.touches[0]
-				this.lastTouchStart.x = touch.clientX
-				this.lastTouchStart.y = touch.clientY
-				this.lastTouchStart.time = Date.now()
-			})
-			wrapNode.addEventListener("touchend", (event) => {
-				const href = (event.target as Element | null)?.closest("a")?.getAttribute("href") ?? null
-				this.handleDoubleTap(
-					event,
-					(e) => this.handleAnchorClick(e, href, true),
-					() => this.rescale(true),
-				)
-			})
+			this.initPinchToZoom(wrapNode)
+			// wrapNode.addEventListener("touchstart", (event) => {
+			// 	const touch = event.touches[0]
+			// 	this.lastTouchStart.x = touch.clientX
+			// 	this.lastTouchStart.y = touch.clientY
+			// 	this.lastTouchStart.time = Date.now()
+			// })
+			// wrapNode.addEventListener("touchend", (event) => {
+			// 	const href = (event.target as Element | null)?.closest("a")?.getAttribute("href") ?? null
+			// 	this.handleDoubleTap(
+			// 		event,
+			// 		e => this.handleAnchorClick(e, href, true),
+			// 		() => this.rescale(true),
+			// 	)
+			// })
 		} else {
 			wrapNode.addEventListener("click", (event) => {
 				const href = (event.target as Element | null)?.closest("a")?.getAttribute("href") ?? null
@@ -463,7 +487,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 					height: "200px",
 				},
 			},
-			[progressIcon(), m("small", lang.get("loading_msg"))],
+			[progressIcon(), m("small", lang.get("loading_msg"))]
 		)
 	}
 
@@ -487,7 +511,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 						},
 					],
 					coords.x,
-					coords.y,
+					coords.y
 				)
 			}
 		})
@@ -495,9 +519,10 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 	private rescale(animate: boolean) {
 		const child = this.domBody
-		if (!client.isMobileDevice() || !child) {
+		if (!client.isMobileDevice() || !child || this.currentScale != -1) {
 			return
 		}
+		console.log("rescaling")
 		const containerWidth = child.offsetWidth
 
 		if (!this.isScaling || containerWidth > child.scrollWidth) {
@@ -506,6 +531,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		} else {
 			const width = child.scrollWidth
 			const scale = containerWidth / width
+			this.saveScale(scale)
 			const heightDiff = child.scrollHeight - child.scrollHeight * scale
 			child.style.transform = `scale(${scale})`
 			child.style.marginBottom = `${-heightDiff}px`
@@ -720,7 +746,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 					value: address.trim().toLowerCase(),
 					type: spamRuleType,
 					field: spamRuleField,
-				}),
+				})
 			)
 		})
 	}
@@ -761,11 +787,158 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		if (target && target instanceof HTMLElement) {
 			return target.matches(
 				'input[type="text"], input[type="date"], input[type="datetime-local"], input[type="email"], input[type="month"], input[type="number"],' +
-					'input[type="password"], input[type="search"], input[type="tel"], input[type="time"], input[type="url"], input[type="week"], input[type="datetime"], textarea',
+				'input[type="password"], input[type="search"], input[type="tel"], input[type="time"], input[type="url"], input[type="week"], input[type="datetime"], textarea',
 			)
 		}
 		return false
 	}
+
+	//pinch to zoom
+
+	private evCache: PointerEvent[] = []
+	private touchCount = 0
+	private prevDiff = -1
+	private maxScale = -1
+	private minScale = -1
+	private currentScale = -1
+	private xMiddle = -1
+	private yMiddle = -1
+	private touchIDs: Set<number> = new Set<number>()
+
+	private initPinchToZoom(target: HTMLDivElement) {
+		target.ontouchend = (e) => {
+			this.removeTouches()
+			// console.log("touch end")
+		}
+		target.ontouchmove = (e) => {
+			this.touchmove_handler(e)
+			// console.log("touch move")
+		}
+		target.ontouchcancel = (e) => {
+			this.removeTouches()
+			// console.log("touch cancel")
+		}
+	}
+
+	private touchmove_handler(ev: TouchEvent) {
+		// console.log(ev)
+		if (ev.touches.length === 2) {
+			// Calculate the distance between the two pointers
+			const curDiff = Math.sqrt(
+				Math.pow(ev.touches[1].clientX - ev.touches[0].clientX, 2) + Math.pow(ev.touches[1].clientY - ev.touches[0].clientY, 2)
+			)
+			// console.log(this.touchIDs)
+			if (!(this.touchIDs.has(ev.touches[0].identifier) && this.touchIDs.has(ev.touches[1].identifier))) { // in case of a new touch
+				this.xMiddle = (ev.touches[1].pageX + ev.touches[0].pageX) / 2 // keep initial zoom center for whole zoom operation even if fingers are moving
+				this.yMiddle = (ev.touches[1].pageY + ev.touches[0].pageY) / 2
+				this.prevDiff = -1;
+			}
+			// console.log(curDiff)
+			// console.log("prev" + this.prevDiff)
+
+			if (this.prevDiff > 0) {
+				const additionalFactor = 1.01
+				const changeFactor = 40 * window.devicePixelRatio // should be dependent on the devices dpi?
+				this.zoom((curDiff - this.prevDiff) / changeFactor, this.xMiddle, this.yMiddle)
+			}
+
+			this.touchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
+
+			// Cache the distance for the next move event
+			this.prevDiff = curDiff
+		}
+	}
+
+	private zoom(zoomModifier: number, centerX: number, centerY: number) {
+		const child = this.domBody
+		console.log("zoom")
+		if (!client.isMobileDevice() || !child) {
+			return
+		}
+		// console.log("container Width", containerWidth)
+		// console.log("child scroll width", child.scrollWidth)
+
+		if (this.currentScale === -1) {
+			const realScale = child.getBoundingClientRect().width / child.offsetWidth
+			// console.log("actual scale", realScale)
+			const containerWidth = child.offsetWidth
+			const width = child.scrollWidth
+			this.saveScale(realScale) //containerWidth / width
+		}
+		// console.log("current scale", this.currentScale)
+		if (zoomModifier > 0) { // zooming in
+			this.currentScale = Math.min(this.currentScale + zoomModifier, this.maxScale) // * multiplier
+			child.style.transform = `scale(${this.currentScale})`
+			// const heightDiff = child.scrollHeight - child.scrollHeight * this.currentScale
+			// child.style.marginBottom = `${-heightDiff}px`
+		} else {
+			this.currentScale = Math.max(this.currentScale + zoomModifier, this.minScale) // * multiplier
+			child.style.transform = `scale(${this.currentScale})`
+			// const heightDiff = child.scrollHeight - child.scrollHeight * scale
+			// child.style.marginBottom = `${-heightDiff}px`
+		}
+
+		// ios 15 bug: transformOrigin magically disappears so we ensure that it's always set
+		// console.log(`${parseInt(centerX.toString())}px ${parseInt(centerY.toString())}px`)
+		const heightDiff = child.scrollHeight - child.scrollHeight * this.currentScale
+		const widthDiff = child.scrollWidth - child.scrollWidth * this.currentScale
+		// console.log(child.scrollHeight)
+		// console.log("heightDiff", heightDiff)
+		// console.log("widthDiff", widthDiff)
+		// console.log("x and y", centerX, centerY)
+		console.log(this.topScrollValue)
+		child.style.transformOrigin = `${centerX}px ${centerY + this.topScrollValue}px` // FIXME should consider were mail body is currently placed, especially when zoomed out
+		// child.style.transformOrigin = "top left"
+		// child.style.transformOrigin = `${centerX}px ${0}px`
+		// child.style.translate = `${-widthDiff}px`
+		// child.style.transformBox = ""
+		child.style.transition = "transform 300ms ease-in-out"
+	}
+
+	/**
+	 *
+	 * @param scale reset if no values given
+	 * @private
+	 */
+	private saveScale(scale: number = -1) {
+		console.log("change scale")
+		if (scale === -1) {
+			this.currentScale = -1
+			this.maxScale = -1
+			this.minScale = -1
+		} else {
+			this.currentScale = scale
+			this.minScale = scale - 0.1 // should further zooming out be possible? //FIXME
+			this.maxScale = scale + 1
+		}
+	}
+
+	private removeTouches() {
+		this.touchIDs.clear()
+	}
+
+	// private pointerup_handler(ev: PointerEvent) {
+	// 	// Remove this pointer from the cache and reset the target's
+	// 	// background and border
+	// 	// console.log("pointer up")
+	// 	console.log(ev)
+	// 	this.remove_event(ev)
+	//
+	// 	// If the number of pointers down is less than two then reset diff tracker
+	// 	if (this.evCache.length < 2) {
+	// 		this.prevDiff = -1
+	// 	}
+	// }
+
+	// private remove_event(ev: PointerEvent) {
+	// 	// Remove this event from the target's cache
+	// 	for (let i = 0; i < this.evCache.length; i++) {
+	// 		if (this.evCache[i].pointerId == ev.pointerId) {
+	// 			this.evCache.splice(i, 1)
+	// 			break
+	// 		}
+	// 	}
+	// }
 }
 
 export type CreateMailViewerOptions = {

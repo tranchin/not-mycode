@@ -1728,11 +1728,11 @@ styles.registerStyle("main", () => {
 			"align-items": "flex-end !important",
 		},
 		".calendar-checkbox": {
-			height: px(22),
-			width: px(22),
+			height: px(size.icon_size_large),
+			width: px(size.icon_size_large),
 			"border-width": "1.5px",
 			"border-style": "solid",
-			"border-radius": "2px",
+			"border-radius": px(size.border_radius_small),
 		},
 		".calendar-alternate-background": {
 			background: `${theme.list_alternate_bg} !important`,

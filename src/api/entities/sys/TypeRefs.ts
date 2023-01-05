@@ -2758,6 +2758,19 @@ export type UpdatePermissionKeyData = {
 	bucketPermission: IdTuple;
 	permission: IdTuple;
 }
+export const UpdateSessionKeysPostInTypeRef: TypeRef<UpdateSessionKeysPostIn> = new TypeRef("sys", "UpdateSessionKeysPostIn")
+
+export function createUpdateSessionKeysPostIn(values?: Partial<UpdateSessionKeysPostIn>): UpdateSessionKeysPostIn {
+	return Object.assign(create(typeModels.UpdateSessionKeysPostIn, UpdateSessionKeysPostInTypeRef), values)
+}
+
+export type UpdateSessionKeysPostIn = {
+	_type: TypeRef<UpdateSessionKeysPostIn>;
+
+	_format: NumberString;
+
+	ownerEncSessionKeys: InstanceSessionKey[];
+}
 export const UpgradePriceServiceDataTypeRef: TypeRef<UpgradePriceServiceData> = new TypeRef("sys", "UpgradePriceServiceData")
 
 export function createUpgradePriceServiceData(values?: Partial<UpgradePriceServiceData>): UpgradePriceServiceData {

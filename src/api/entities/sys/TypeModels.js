@@ -10883,6 +10883,40 @@ export const typeModels = {
         "app": "sys",
         "version": "82"
     },
+    "UpdateSessionKeysPostIn": {
+        "name": "UpdateSessionKeysPostIn",
+        "since": 82,
+        "type": "DATA_TRANSFER_TYPE",
+        "id": 2049,
+        "rootId": "A3N5cwAIAQ",
+        "versioned": false,
+        "encrypted": false,
+        "values": {
+            "_format": {
+                "final": false,
+                "name": "_format",
+                "id": 2050,
+                "since": 82,
+                "type": "Number",
+                "cardinality": "One",
+                "encrypted": false
+            }
+        },
+        "associations": {
+            "ownerEncSessionKeys": {
+                "final": false,
+                "name": "ownerEncSessionKeys",
+                "id": 2051,
+                "since": 82,
+                "type": "AGGREGATION",
+                "cardinality": "Any",
+                "refType": "InstanceSessionKey",
+                "dependency": null
+            }
+        },
+        "app": "sys",
+        "version": "82"
+    },
     "UpgradePriceServiceData": {
         "name": "UpgradePriceServiceData",
         "since": 39,

@@ -54,6 +54,7 @@ import { assertNotNull } from "@tutao/tutanota-utils"
 import { InterWindowEventFacadeSendDispatcher } from "../../native/common/generatedipc/InterWindowEventFacadeSendDispatcher.js"
 import { SqlCipherFacadeSendDispatcher } from "../../native/common/generatedipc/SqlCipherFacadeSendDispatcher.js"
 import { BlobAccessTokenFacade } from "./facades/BlobAccessTokenFacade.js"
+import {OwnerEncSessionKeysUpdateQueue, UPDATE_SESSION_KEYS_SERVICE_DEBOUNCE_MS} from "./crypto/OwnerEncSessionKeysUpdateQueue.js"
 
 assertWorkerOrNode()
 
@@ -87,6 +88,7 @@ export type WorkerLocatorType = {
 	deviceEncryptionFacade: DeviceEncryptionFacade
 	native: NativeInterface
 	rsa: RsaImplementation
+	ownerEncSessionKeysUpdateQueue: OwnerEncSessionKeysUpdateQueue
 	crypto: CryptoFacade
 	instanceMapper: InstanceMapper
 	booking: BookingFacade
@@ -140,6 +142,8 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 	locator.indexer = new Indexer(entityRestClient, worker, browserData, locator.cache as DefaultEntityRestCache)
 	const mainInterface = worker.getMainInterface()
 
+	locator.ownerEncSessionKeysUpdateQueue = new OwnerEncSessionKeysUpdateQueue(locator.user, locator.serviceExecutor, UPDATE_SESSION_KEYS_SERVICE_DEBOUNCE_MS)
+
 	locator.crypto = new CryptoFacade(
 		locator.user,
 		locator.cachingEntityClient,
@@ -147,6 +151,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		locator.rsa,
 		locator.serviceExecutor,
 		locator.instanceMapper,
+		locator.ownerEncSessionKeysUpdateQueue
 	)
 	locator.login = new LoginFacade(
 		worker,

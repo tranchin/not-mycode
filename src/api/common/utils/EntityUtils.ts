@@ -323,7 +323,7 @@ export function isElementEntity(e: SomeEntity): e is ElementEntity {
 }
 
 export function getElementIdFromInstance(instance: Record<string, any>): Id {
-	if (instance._id === "string") {
+	if (typeof instance._id === "string") {
 		return instance._id
 	} else {
 		var idTuple = instance._id as IdTuple

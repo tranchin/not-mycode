@@ -1268,7 +1268,6 @@ styles.registerStyle("main", () => {
 			"margin-bottom": px(12),
 		},
 		".folder-row": {
-			"border-left": px(size.border_selection) + " solid transparent",
 			"align-items": "center",
 			position: "relative",
 		},
@@ -1461,14 +1460,14 @@ styles.registerStyle("main", () => {
 		},
 		".nav-button:hover": !isApp()
 			? {
-					"text-decoration": "underline",
-					opacity: 0.7,
+					// "text-decoration": "underline",
+					// opacity: 0.7,
 			  }
 			: {},
 		".nav-button:focus": client.isDesktopDevice()
 			? {
-					"text-decoration": "underline",
-					opacity: 0.7,
+					// "text-decoration": "underline",
+					// opacity: 0.7,
 			  }
 			: {},
 		"button:focus, button:hover": client.isDesktopDevice()

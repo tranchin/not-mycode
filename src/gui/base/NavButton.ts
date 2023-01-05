@@ -33,7 +33,7 @@ export type NavButtonAttrs = {
 }
 
 const navButtonSelector = (vertical: boolean | undefined, centred?: boolean) =>
-	"a.nav-button.noselect.flex-no-shrink.items-center.click.plr-button.no-text-decoration.button-height" +
+	"a.nav-button.noselect.flex-no-shrink.items-center.click.plr-button.no-text-decoration.button-height.state-bg.border-radius" +
 	(vertical ? ".col" : "") +
 	(!centred ? ".flex-start" : ".flex-center")
 
@@ -110,13 +110,13 @@ export class NavButton implements Component<NavButtonAttrs> {
 			},
 			title: this.getLabel(a.label),
 			target: this._isExternalUrl(a.href) ? "_blank" : undefined,
-			oncreate: (vnode) => {
-				this._domButton = vnode.dom as HTMLElement
-				addFlash(vnode.dom)
-			},
-			onremove: (vnode) => {
-				removeFlash(vnode.dom)
-			},
+			// oncreate: (vnode) => {
+			// 	this._domButton = vnode.dom as HTMLElement
+			// 	addFlash(vnode.dom)
+			// },
+			// onremove: (vnode) => {
+			// 	removeFlash(vnode.dom)
+			// },
 			selector: navButtonSelector(a.vertical),
 			onclick: (e: MouseEvent) => this.click(e, a),
 			onkeyup: (e: KeyboardEvent) => {

@@ -23,7 +23,7 @@ export class MailFolderRow implements Component<MailFolderRowAttrs> {
 	view(vnode: Vnode<MailFolderRowAttrs>): Children {
 		const { count, button, rightButton, expanded, indentationLevel } = vnode.attrs
 		const indentationMargin = indentationLevel * size.hpad
-		return m(".folder-row.plr-l.flex.flex-row" + (isNavButtonSelected(button) ? ".row-selected" : ""), {}, [
+		return m(".folder-row.plr-l.flex.flex-row", {}, [
 			m(CounterBadge, {
 				count,
 				position: {

@@ -79,6 +79,8 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 	private viewModel!: MailViewerViewModel
 	private topScrollValue = 0
+	private pinchZoomable: PinchZoom | null = null
+	private topScrollValues: Array<stream<number>> = []
 
 	private readonly shortcuts: Array<Shortcut>
 
@@ -157,37 +159,36 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		this.handleContentBlockingOnRender()
 
 		const scrollingHeader = styles.isSingleColumnLayout()
+		const mailTopSteam: stream<number> = stream(0)
+		this.topScrollValues.push(mailTopSteam)
 		return [
-			m(
-				"#mail-viewer.fill-absolute" + (scrollingHeader ? ".scroll-no-overlay.overflow-x-hidden" : ".flex.flex-column"),
-				{
-					onscroll: function (e: Event) {
-						_self!.topScrollValue = this.scrollTop
-						console.log("scroll", this.scrollTop)
-						// Prevent auto-redraw
-						// @ts-ignore
-						e.redraw = false
-					},
-				},
-				[
-					this.renderMailHeader(vnode.attrs),
-					this.renderMailSubject(vnode.attrs),
-					m(
-						".flex-grow.mlr-safe-inset.scroll-x.pt.pb.border-radius-big" +
-							(scrollingHeader ? "" : ".scroll-no-overlay") +
-							(this.viewModel.isContrastFixNeeded() ? ".bg-white.content-black" : " "),
-						{
-							class: mailViewerPadding(),
-							oncreate: (vnode) => {
-								this.scrollDom = vnode.dom as HTMLElement
-							},
+			m("#mail-viewer.fill-absolute" + (scrollingHeader ? ".scroll-no-overlay.overflow-x-hidden" : ".flex.flex-column"), {
+				onscroll: function(e: Event) {
+					_self!.topScrollValue = this.scrollTop
+					mailTopSteam(this.scrollTop)
+					console.log("scroll", this.scrollTop)
+					// Prevent auto-redraw
+					// @ts-ignore
+					e.redraw = false
+				}
+			}, [
+				this.renderMailHeader(vnode.attrs),
+				this.renderMailSubject(vnode.attrs),
+				m(
+					".flex-grow.mlr-safe-inset.scroll-x.plr-l.pb-floating.pt" +
+					(scrollingHeader ? "" : ".scroll-no-overlay") +
+					(this.viewModel.isContrastFixNeeded() ? ".bg-white.content-black" : " "),
+					{
+						class: mailViewerPadding(),
+						oncreate: (vnode) => {
+							this.scrollDom = vnode.dom as HTMLElement
 						},
-						this.renderMailBodySection(vnode.attrs),
-					),
-					this.renderQuoteExpanderButton(),
-				],
-			),
-		]
+					},
+					this.renderMailBodySection(vnode.attrs)
+				),
+				this.renderQuoteExpanderButton(),
+			]),
+			]
 	}
 
 	private renderMailSubject(attrs: MailViewerAttrs) {
@@ -392,7 +393,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		}
 
 		if (client.isMobileDevice()) {
-			const pinchZoomable = new PinchZoom(wrapNode)
+			this.pinchZoomable = new PinchZoom(wrapNode, this.topScrollValues, [])
 		} else {
 			wrapNode.addEventListener("click", (event) => {
 				const href = (event.target as Element | null)?.closest("a")?.getAttribute("href") ?? null
@@ -513,7 +514,9 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		} else {
 			const width = child.scrollWidth
 			const scale = containerWidth / width
-			// this.saveScale(scale)
+			// if (this.pinchZoomable) {
+			// 	this.pinchZoomable.setInitialScale(scale)
+			// }
 			const heightDiff = child.scrollHeight - child.scrollHeight * scale
 			child.style.transform = `scale(${scale})`
 			child.style.marginBottom = `${-heightDiff}px`

@@ -307,8 +307,9 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				this.setDomBody(dom)
 				this.updateLineHeight(dom)
 				console.log("oncreate")
-				// this.rescale(false) //FIXME
-				this.renderShadowMailBody(sanitizedMailBody, attrs)
+				this.topScrollValues = []
+				this.rescale(false) //FIXME
+				this.renderShadowMailBody(sanitizedMailBody, attrs, vnode.dom as HTMLElement)
 			},
 			onupdate: (vnode) => {
 				const dom = vnode.dom as HTMLElement
@@ -322,11 +323,11 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				}
 
 				console.log("onupdate")
-				this.rescale(false) //FIXME
-				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs)
+				// this.rescale(false) //FIXME
+				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs, vnode.dom as HTMLElement)
 				this.rescale(false)
 
-				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs)
+				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs, vnode.dom as HTMLElement)
 				// If the quote behavior changes (e.g. after loading is finished) we should update the quotes.
 				// If we already rendered it correctly it will already be set in renderShadowMailBody() so we will avoid doing it twice.
 				if (this.currentQuoteBehavior !== attrs.defaultQuoteBehavior) {
@@ -371,7 +372,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	 * @param sanitizedMailBody the mail body to display
 	 * @private
 	 */
-	private renderShadowMailBody(sanitizedMailBody: DocumentFragment, attrs: MailViewerAttrs) {
+	private renderShadowMailBody(sanitizedMailBody: DocumentFragment, attrs: MailViewerAttrs, parent: HTMLElement) {
 		this.currentQuoteBehavior = attrs.defaultQuoteBehavior
 		assertNonNull(this.shadowDomRoot, "shadow dom root is null!")
 		while (this.shadowDomRoot.firstChild) {
@@ -393,7 +394,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		}
 
 		if (client.isMobileDevice()) {
-			this.pinchZoomable = new PinchZoom(wrapNode, this.topScrollValues, [])
+			this.pinchZoomable = new PinchZoom(wrapNode, parent, this.topScrollValues, [])
 		} else {
 			wrapNode.addEventListener("click", (event) => {
 				const href = (event.target as Element | null)?.closest("a")?.getAttribute("href") ?? null

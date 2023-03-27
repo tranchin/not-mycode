@@ -112,7 +112,7 @@ export async function showUpgradeWizard(): Promise<void> {
 			creditCardData: null,
 		},
 		price: "",
-		type: SubscriptionType.Premium,
+		type: SubscriptionType.Revolutionary,
 		priceNextYear: null,
 		accountingInfo: accountingInfo,
 		customer: customer,

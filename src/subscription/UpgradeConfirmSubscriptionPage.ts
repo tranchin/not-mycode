@@ -148,16 +148,16 @@ export class UpgradeConfirmSubscriptionPage implements WizardPageN<UpgradeSubscr
 
 	private subscriptionTypeToPaidSubscriptionType(subscriptionType: SubscriptionType): PaidSubscriptionType {
 		switch (subscriptionType) {
-			case SubscriptionType.Premium:
-				return PaidSubscriptionType.Premium
-			case SubscriptionType.PremiumBusiness:
-				return PaidSubscriptionType.Premium_Business
-			case SubscriptionType.Teams:
-				return PaidSubscriptionType.Teams
-			case SubscriptionType.TeamsBusiness:
-				return PaidSubscriptionType.Teams_Business
-			case SubscriptionType.Pro:
-				return PaidSubscriptionType.Pro
+			case SubscriptionType.Revolutionary:
+				return PaidSubscriptionType.Revolutionary
+			case SubscriptionType.Legend:
+				return PaidSubscriptionType.Legend
+			case SubscriptionType.Essential:
+				return PaidSubscriptionType.Essential
+			case SubscriptionType.Advanced:
+				return PaidSubscriptionType.Advanced
+			case SubscriptionType.Unlimited:
+				return PaidSubscriptionType.Unlimited
 			default:
 				throw new Error("not a valid Premium subscription type: " + subscriptionType)
 		}

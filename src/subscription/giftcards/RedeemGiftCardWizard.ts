@@ -548,7 +548,7 @@ async function loadModel(hashFromUrl: string): Promise<RedeemGiftCardModel> {
 		{
 			giftCardInfo,
 			key,
-			premiumPrice: pricesDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.PlanActualPrice),
+			premiumPrice: pricesDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Revolutionary, UpgradePriceType.PlanActualPrice),
 			storedCredentials,
 		},
 		locator.giftCardFacade,

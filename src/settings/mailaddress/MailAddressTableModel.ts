@@ -110,7 +110,7 @@ export class MailAddressTableModel {
 	}
 
 	private async updateAliasCount() {
-		const mailAddressAliasServiceReturn = await this.mailAddressFacade.getAliasCounters()
+		const mailAddressAliasServiceReturn = await this.mailAddressFacade.getAliasCounters(this.userGroupInfo.group)
 		const newNbr = Math.max(0, Number(mailAddressAliasServiceReturn.totalAliases) - Number(mailAddressAliasServiceReturn.usedAliases))
 		const newNbrToEnable = Math.max(0, Number(mailAddressAliasServiceReturn.totalAliases) - Number(mailAddressAliasServiceReturn.enabledAliases))
 		this._aliasCount = {

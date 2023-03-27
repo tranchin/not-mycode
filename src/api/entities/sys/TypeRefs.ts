@@ -871,6 +871,8 @@ export type CustomerInfo = {
 	erased: boolean;
 	includedEmailAliases: NumberString;
 	includedStorageCapacity: NumberString;
+	perUserAliasCount: NumberString;
+	perUserStorageCapacity: NumberString;
 	promotionEmailAliases: NumberString;
 	promotionStorageCapacity: NumberString;
 	registrationMailAddress: string;
@@ -1357,6 +1359,7 @@ export type Group = {
 	invitations: Id;
 	keys: KeyPair[];
 	members: Id;
+	storageCounter:  null | Id;
 	user:  null | Id;
 }
 export const GroupInfoTypeRef: TypeRef<GroupInfo> = new TypeRef("sys", "GroupInfo")
@@ -1589,6 +1592,19 @@ export type MailAddressAlias = {
 	_id: Id;
 	enabled: boolean;
 	mailAddress: string;
+}
+export const MailAddressAliasGetInTypeRef: TypeRef<MailAddressAliasGetIn> = new TypeRef("sys", "MailAddressAliasGetIn")
+
+export function createMailAddressAliasGetIn(values?: Partial<MailAddressAliasGetIn>): MailAddressAliasGetIn {
+	return Object.assign(create(typeModels.MailAddressAliasGetIn, MailAddressAliasGetInTypeRef), values)
+}
+
+export type MailAddressAliasGetIn = {
+	_type: TypeRef<MailAddressAliasGetIn>;
+
+	_format: NumberString;
+
+	targetGroup: Id;
 }
 export const MailAddressAliasServiceDataTypeRef: TypeRef<MailAddressAliasServiceData> = new TypeRef("sys", "MailAddressAliasServiceData")
 
@@ -2854,11 +2870,16 @@ export type UpgradePriceServiceReturn = {
 	business: boolean;
 	messageTextId: null | string;
 
+	advancedPrices: PlanPrices;
+	essentialPrices: PlanPrices;
+	legendaryPrices: PlanPrices;
 	premiumBusinessPrices: PlanPrices;
 	premiumPrices: PlanPrices;
 	proPrices: PlanPrices;
+	revolutionaryPrices: PlanPrices;
 	teamsBusinessPrices: PlanPrices;
 	teamsPrices: PlanPrices;
+	unlimitedPrices: PlanPrices;
 }
 export const UserTypeRef: TypeRef<User> = new TypeRef("sys", "User")
 

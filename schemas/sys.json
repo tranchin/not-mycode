@@ -95,6 +95,26 @@
 					"info": "AddAssociation RepeatRule/excludedDates/AGGREGATION/2076."
 				}
 			]
+		},
+		{
+			"version": 86,
+			"changes": [
+				{
+					"name": "AddAssociation",
+					"sourceType": "Group",
+					"info": "AddAssociation Group/storageCounter/ELEMENT_ASSOCIATION/2089."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "CustomerInfo",
+					"info": "AddValue CustomerInfo/perUserStorageCapacity/2090."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "CustomerInfo",
+					"info": "AddValue CustomerInfo/perUserAliasCount/2091."
+				}
+			]
 		}
 	]
 }

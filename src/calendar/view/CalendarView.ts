@@ -82,7 +82,6 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 		this.sidebarColumn = new ViewColumn(
 			{
 				view: () =>
-					// FIXME somewhere here buttons are still bold
 					m(FolderColumnView, {
 						drawer: vnode.attrs.drawerAttrs,
 						button: styles.isUsingBottomNavigation()

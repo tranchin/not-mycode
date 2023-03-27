@@ -153,6 +153,11 @@ export const enum PaidSubscriptionType {
 	Teams = "3",
 	Premium_Business = "4",
 	Teams_Business = "5",
+	Revolutionary = "6",
+	Legend = "7",
+	Essential = "8",
+	Advanced = "9",
+	Unlimited = "10",
 }
 
 export enum BookingItemFeatureType {
@@ -167,6 +172,11 @@ export enum BookingItemFeatureType {
 	Discount = "8",
 	Sharing = "9",
 	Business = "10",
+	Revolutionary = "11",
+	Legend = "12",
+	Essential = "13",
+	Advanced = "14",
+	Unlimited = "15",
 }
 
 export const BookingItemFeatureByCode = reverse(BookingItemFeatureType)

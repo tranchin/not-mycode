@@ -63,11 +63,11 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 					type: ButtonType.Login,
 				}
 			},
-			Premium: this.createUpgradeButton(data, SubscriptionType.Premium),
-			PremiumBusiness: this.createUpgradeButton(data, SubscriptionType.PremiumBusiness),
-			Teams: this.createUpgradeButton(data, SubscriptionType.Teams),
-			TeamsBusiness: this.createUpgradeButton(data, SubscriptionType.TeamsBusiness),
-			Pro: this.createUpgradeButton(data, SubscriptionType.Pro),
+			Revolutionary: this.createUpgradeButton(data, SubscriptionType.Revolutionary),
+			Legend: this.createUpgradeButton(data, SubscriptionType.Legend),
+			Essential: this.createUpgradeButton(data, SubscriptionType.Essential),
+			Advanced: this.createUpgradeButton(data, SubscriptionType.Advanced),
+			Unlimited: this.createUpgradeButton(data, SubscriptionType.Unlimited),
 		}
 		return m("#upgrade-account-dialog.pt", [
 			m(SubscriptionSelector, {
@@ -128,11 +128,11 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 					break
 
 				case SubscriptionTypeParameter.PREMIUM:
-					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Premium)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Revolutionary)
 					break
 
 				case SubscriptionTypeParameter.TEAMS:
-					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Teams)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Legend)
 					break
 
 				default:
@@ -144,15 +144,15 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 
 			switch (subscriptionParameters.subscription) {
 				case SubscriptionTypeParameter.PREMIUM:
-					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.PremiumBusiness)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Essential)
 					break
 
 				case SubscriptionTypeParameter.TEAMS:
-					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.TeamsBusiness)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Advanced)
 					break
 
 				case SubscriptionTypeParameter.PRO:
-					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Pro)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Unlimited)
 					break
 
 				default:

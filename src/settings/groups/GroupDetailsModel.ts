@@ -14,7 +14,7 @@ import { EntityClient } from "../../api/common/EntityClient.js"
 import { GENERATED_MAX_ID, GENERATED_MIN_ID, isSameId } from "../../api/common/utils/EntityUtils.js"
 import { BookingItemFeatureType, GroupType, OperationType } from "../../api/common/TutanotaConstants.js"
 import { localAdminGroupInfoModel } from "../LocalAdminGroupInfoModel.js"
-import { lang } from "../../misc/LanguageViewModel.js"
+import { lang, TranslationKey } from "../../misc/LanguageViewModel.js"
 import { SelectorItemList } from "../../gui/base/DropDownSelector.js"
 import { stringValidator } from "../../gui/base/Dialog.js"
 import { locator } from "../../api/main/MainLocator.js"
@@ -24,6 +24,7 @@ import { EntityUpdateData, isUpdateForTypeRef } from "../../api/main/EventContro
 import { MailboxPropertiesTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
 import { UserError } from "../../api/main/UserError.js"
 import { BookingParams } from "../../subscription/BuyDialog.js"
+import { isNewPlan, toFeatureType } from "../../subscription/FeatureListProvider.js"
 
 export class GroupDetailsModel {
 	groupInfo: GroupInfo
@@ -198,11 +199,23 @@ export class GroupDetailsModel {
 		if (deactivate && members.length > 0) {
 			throw new UserError("groupNotEmpty_msg")
 		} else {
-			const bookingItemType =
-				this.groupInfo.groupType === GroupType.LocalAdmin ? BookingItemFeatureType.LocalAdminGroup : BookingItemFeatureType.SharedMailGroup
+			let bookingItemType
+			let bookingText: TranslationKey
+
+			const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
+			const newPlan = isNewPlan(subscriptionType)
+
+			if (this.groupInfo.groupType === GroupType.LocalAdmin) {
+				bookingItemType = newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.LocalAdminGroup
+				bookingText = deactivate ? "cancelLocalAdminGroup_label" : "localAdminGroup_label"
+			} else {
+				bookingItemType = newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.SharedMailGroup
+				bookingText = deactivate ? "cancelSharedMailbox_label" : "sharedMailbox_label"
+			}
 
 			return {
 				featureType: bookingItemType,
+				bookingText: bookingText,
 				count: deactivate ? -1 : 1,
 				freeAmount: 0,
 				reactivate: !deactivate,

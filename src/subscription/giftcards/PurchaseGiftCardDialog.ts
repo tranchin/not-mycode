@@ -143,12 +143,14 @@ class GiftCardPurchaseView implements Component<GiftCardPurchaseViewAttrs> {
 								"{remainingCredit}": formatPrice(withSubscriptionAmount, true),
 								"{fullCredit}": formatPrice(value, true),
 							}),
-						features: [],
+						categories: [],
 						width: 230,
 						height: 250,
 						paymentInterval: null,
 						highlighted: model.selectedPackage === index,
 						showReferenceDiscount: false,
+						renderCategoryTitle: false,
+						mobile: false
 					})
 				}),
 			),
@@ -280,6 +282,6 @@ async function loadGiftCardModel(): Promise<PurchaseGiftCardModel> {
 		purchasePeriodMonths: filterInt(giftCardInfo.period),
 		availablePackages: giftCardInfo.options,
 		selectedPackage: Math.floor(giftCardInfo.options.length / 2),
-		premiumPrice: priceDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.PlanActualPrice),
+		premiumPrice: priceDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Revolutionary, UpgradePriceType.PlanActualPrice),
 	})
 }

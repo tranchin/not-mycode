@@ -239,10 +239,7 @@ async function showAddParticipantDialog(model: GroupSharingModel, texts: GroupSh
 				} catch (e) {
 					if (e instanceof PreconditionFailedError) {
 						if (locator.logins.getUserController().isGlobalAdmin()) {
-							if (await Dialog.confirm(() => texts.sharingNotOrderedAdmin)) {
-								const { showSharingBuyDialog } = await import("../../subscription/BuyDialog")
-								showSharingBuyDialog(true)
-							}
+							// FIXME show upgrade subscription dialog for legacy accounts
 						} else {
 							Dialog.message(() => `${texts.sharingNotOrderedUser} ${lang.get("contactAdmin_msg")}`)
 						}

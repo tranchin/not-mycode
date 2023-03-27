@@ -5,6 +5,7 @@ import type { AccountingInfo, Booking, Customer, CustomerInfo, GiftCard, OrderPr
 import {
 	AccountingInfoTypeRef,
 	BookingTypeRef,
+	createMailAddressAliasGetIn,
 	CustomerTypeRef,
 	GiftCardTypeRef,
 	GroupInfoTypeRef,
@@ -18,9 +19,7 @@ import { asPaymentInterval, formatPrice, formatPriceDataWithInfo, PaymentInterva
 import { formatDate, formatNameAndAddress, formatStorageSize } from "../misc/Formatter"
 import { getByAbbreviation } from "../api/common/CountryList"
 import * as AddUserDialog from "../settings/AddUserDialog"
-import * as EmailAliasOptionsDialog from "./EmailAliasOptionsDialog"
 import * as AddGroupDialog from "../settings/groups/AddGroupDialog.js"
-import * as ContactFormEditor from "../settings/contactform/ContactFormEditor"
 import { showUpgradeWizard } from "./UpgradeSubscriptionWizard"
 import { showSwitchDialog } from "./SwitchSubscriptionDialog"
 import stream from "mithril/stream"
@@ -31,7 +30,7 @@ import * as SwitchToBusinessInvoiceDataDialog from "./SwitchToBusinessInvoiceDat
 import { NotFoundError } from "../api/common/error/RestError"
 import type { EntityUpdateData } from "../api/main/EventController"
 import { isUpdateForTypeRef } from "../api/main/EventController"
-import { getCurrentCount, getTotalAliases, getTotalStorageCapacity, isBusinessFeatureActive, isSharingActive, isWhitelabelActive } from "./SubscriptionUtils"
+import { getCurrentCount, getTotalStorageCapacity, isBusinessFeatureActive, isSharingActive, isWhitelabelActive } from "./SubscriptionUtils"
 import { Button, ButtonType } from "../gui/base/Button.js"
 import { TextField } from "../gui/base/TextField.js"
 import { Dialog, DialogType } from "../gui/base/Dialog"
@@ -41,11 +40,9 @@ import { GiftCardStatus, loadGiftCards, showGiftCardToShare } from "./giftcards/
 import { locator } from "../api/main/MainLocator"
 import { GiftCardMessageEditorField } from "./giftcards/GiftCardMessageEditorField"
 import { attachDropdown } from "../gui/base/Dropdown.js"
-import { showBusinessBuyDialog, showSharingBuyDialog, showWhitelabelBuyDialog } from "./BuyDialog"
 import { createNotAvailableForFreeClickHandler } from "../misc/SubscriptionDialogs"
 import { SettingsExpander } from "../settings/SettingsExpander"
 import { elementIdPart, GENERATED_MAX_ID, getEtId } from "../api/common/utils/EntityUtils"
-import { showStorageCapacityOptionsDialog } from "./StorageCapacityOptionsDialog"
 import type { UpdatableSettingsViewer } from "../settings/SettingsView"
 import {
 	CURRENT_GIFT_CARD_TERMS_VERSION,
@@ -58,7 +55,7 @@ import { MailAddressAliasService } from "../api/entities/sys/Services"
 import { DropDownSelector, SelectorItemList } from "../gui/base/DropDownSelector.js"
 import { IconButton, IconButtonAttrs } from "../gui/base/IconButton.js"
 import { ButtonSize } from "../gui/base/ButtonSize.js"
-import { getDisplayNameOfSubscriptionType, SubscriptionType } from "./FeatureListProvider"
+import { getDisplayNameOfSubscriptionType, isLegacyPlan, LegacySubscriptionType, SubscriptionType } from "./FeatureListProvider"
 
 assertMainOrNode()
 const DAY = 1000 * 60 * 60 * 24
@@ -86,7 +83,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	private _accountingInfo: AccountingInfo | null = null
 	private _lastBooking: Booking | null = null
 	private _orderAgreement: OrderProcessingAgreement | null = null
-	private _currentSubscription: SubscriptionType | null = null
+	private _currentSubscription: SubscriptionType | LegacySubscriptionType | null = null
 	private _isCancelled: boolean | null = null
 	private _giftCards: Map<Id, GiftCard>
 	private _giftCardsExpanded: Stream<boolean>
@@ -172,160 +169,87 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					},
 					renderGiftCardTable(Array.from(this._giftCards.values()), isPremiumPredicate),
 				),
-				m(".h4.mt-l", lang.get("adminPremiumFeatures_action")),
-				m(TextField, {
-					label: "bookingItemUsers_label",
-					value: this._usersFieldValue(),
-					oninput: this._usersFieldValue,
-					disabled: true,
-					injectionsRight: () => [
-						m(IconButton, {
-							title: "addUsers_action",
-							click: createNotAvailableForFreeClickHandler(false, AddUserDialog.show, isPremiumPredicate),
-							icon: Icons.Add,
-							size: ButtonSize.Compact,
-						}),
-						m(IconButton, {
-							title: "bookingItemUsers_label",
-							click: createNotAvailableForFreeClickHandler(false, () => m.route.set("/settings/users"), isPremiumPredicate),
-							icon: Icons.Edit,
-							size: ButtonSize.Compact,
-						}),
-					],
-				}),
-				m(TextField, {
-					label: "storageCapacity_label",
-					value: this._storageFieldValue(),
-					oninput: this._storageFieldValue,
-					disabled: true,
-					injectionsRight: () =>
-						m(IconButton, {
-							title: "storageCapacity_label",
-							click: createNotAvailableForFreeClickHandler(false, () => showStorageCapacityOptionsDialog(), isPremiumPredicate),
-							icon: Icons.Edit,
-							size: ButtonSize.Compact,
-						}),
-				}),
-				m(TextField, {
-					label: "mailAddressAliases_label",
-					value: this._emailAliasFieldValue(),
-					oninput: this._emailAliasFieldValue,
-					disabled: true,
-					injectionsRight: () =>
-						m(IconButton, {
-							title: "emailAlias_label",
-							click: createNotAvailableForFreeClickHandler(true, EmailAliasOptionsDialog.show, isPremiumPredicate),
-							icon: Icons.Edit,
-							size: ButtonSize.Compact,
-						}),
-				}),
-				m(TextField, {
-					label: "groups_label",
-					value: this._groupsFieldValue(),
-					oninput: this._groupsFieldValue,
-					disabled: true,
-					injectionsRight: () => [
-						m(IconButton, {
-							title: "addGroup_label",
-							click: createNotAvailableForFreeClickHandler(false, AddGroupDialog.show, isPremiumPredicate),
-							icon: Icons.Add,
-							size: ButtonSize.Compact,
-						}),
-						m(IconButton, {
-							title: "groups_label",
-							click: createNotAvailableForFreeClickHandler(false, () => m.route.set("/settings/groups"), isPremiumPredicate),
-							icon: Icons.Edit,
-							size: ButtonSize.Compact,
-						}),
-					],
-				}),
-				m(TextField, {
-					label: "whitelabelFeature_label",
-					value: this._whitelabelFieldValue(),
-					oninput: this._whitelabelFieldValue,
-					disabled: true,
-					injectionsRight: () =>
-						getCurrentCount(BookingItemFeatureType.Whitelabel, this._lastBooking) === 0
-							? m(IconButton, {
-									title: "activate_action",
-									click: createNotAvailableForFreeClickHandler(false, () => showWhitelabelBuyDialog(true), isPremiumPredicate),
-									icon: Icons.Edit,
-									size: ButtonSize.Compact,
-							  })
-							: m(IconButton, {
-									title: "deactivate_action",
-									click: createNotAvailableForFreeClickHandler(false, () => showWhitelabelBuyDialog(false), isPremiumPredicate),
-									icon: Icons.Cancel,
-									size: ButtonSize.Compact,
-							  }),
-				}),
-				m(TextField, {
-					label: "sharingFeature_label",
-					value: this._sharingFieldValue(),
-					oninput: this._sharingFieldValue,
-					disabled: true,
-					injectionsRight: () =>
-						getCurrentCount(BookingItemFeatureType.Sharing, this._lastBooking) === 0
-							? m(IconButton, {
-									title: "activate_action",
-									click: createNotAvailableForFreeClickHandler(false, () => showSharingBuyDialog(true), isPremiumPredicate),
-									icon: Icons.Edit,
-									size: ButtonSize.Compact,
-							  })
-							: m(IconButton, {
-									title: "deactivate_action",
-									click: createNotAvailableForFreeClickHandler(false, () => showSharingBuyDialog(false), isPremiumPredicate),
-									icon: Icons.Cancel,
-									size: ButtonSize.Compact,
-							  }),
-				}),
-				m(TextField, {
-					label: "businessFeature_label",
-					value: this._businessFeatureFieldValue(),
-					oninput: this._businessFeatureFieldValue,
-					disabled: true,
-					injectionsRight: () => {
-						if (!this._customer || (this._customer.businessUse && isBusinessFeatureActive(this._lastBooking))) {
-							// viewer not initialized yet or customer is business customer as they are not allowed to disable business feature
-							return null
-						} else if (isBusinessFeatureActive(this._lastBooking)) {
-							return m(IconButton, {
-								title: "deactivate_action",
-								click: createNotAvailableForFreeClickHandler(false, () => showBusinessBuyDialog(false), isPremiumPredicate),
-								icon: Icons.Cancel,
-								size: ButtonSize.Compact,
-							})
-						} else {
-							return m(IconButton, {
-								title: "activate_action",
-								click: createNotAvailableForFreeClickHandler(false, () => showBusinessBuyDialog(true), isPremiumPredicate),
-								icon: Icons.Edit,
-								size: ButtonSize.Compact,
-							})
-						}
-					},
-				}),
-				m(TextField, {
-					label: "contactForms_label",
-					value: this._contactFormsFieldValue(),
-					oninput: this._contactFormsFieldValue,
-					disabled: true,
-					injectionsRight: () =>
-						m(".flex.ml-between-s", [
-							m(IconButton, {
-								title: "createContactForm_label",
-								click: createNotAvailableForFreeClickHandler(false, () => ContactFormEditor.show(null, true, noOp), isPremiumPredicate),
-								icon: Icons.Add,
-								size: ButtonSize.Compact,
+				isLegacyPlan(this._currentSubscription)
+					? []
+					: [
+							m(".h4.mt-l", lang.get("adminPremiumFeatures_action")),
+							m(TextField, {
+								label: "bookingItemUsers_label",
+								value: this._usersFieldValue(),
+								oninput: this._usersFieldValue,
+								disabled: true,
+								injectionsRight: () => [
+									m(IconButton, {
+										title: "addUsers_action",
+										click: createNotAvailableForFreeClickHandler(false, AddUserDialog.show, isPremiumPredicate),
+										icon: Icons.Add,
+										size: ButtonSize.Compact,
+									}),
+									m(IconButton, {
+										title: "bookingItemUsers_label",
+										click: createNotAvailableForFreeClickHandler(false, () => m.route.set("/settings/users"), isPremiumPredicate),
+										icon: Icons.Edit,
+										size: ButtonSize.Compact,
+									}),
+								],
 							}),
-							m(IconButton, {
-								title: "contactForms_label",
-								click: createNotAvailableForFreeClickHandler(false, () => m.route.set("/settings/contactforms"), isPremiumPredicate),
-								icon: Icons.Edit,
-								size: ButtonSize.Compact,
+							m(TextField, {
+								label: "storageCapacity_label",
+								value: this._storageFieldValue(),
+								oninput: this._storageFieldValue,
+								disabled: true,
 							}),
-						]),
-				}),
+							m(TextField, {
+								label: "mailAddressAliases_label",
+								value: this._emailAliasFieldValue(),
+								oninput: this._emailAliasFieldValue,
+								disabled: true,
+							}),
+							m(TextField, {
+								label: "groups_label",
+								value: this._groupsFieldValue(),
+								oninput: this._groupsFieldValue,
+								disabled: true,
+								injectionsRight: () => [
+									m(IconButton, {
+										title: "addGroup_label",
+										click: createNotAvailableForFreeClickHandler(false, AddGroupDialog.show, isPremiumPredicate),
+										icon: Icons.Add,
+										size: ButtonSize.Compact,
+									}),
+									m(IconButton, {
+										title: "groups_label",
+										click: createNotAvailableForFreeClickHandler(false, () => m.route.set("/settings/groups"), isPremiumPredicate),
+										icon: Icons.Edit,
+										size: ButtonSize.Compact,
+									}),
+								],
+							}),
+							m(TextField, {
+								label: "whitelabelFeature_label",
+								value: this._whitelabelFieldValue(),
+								oninput: this._whitelabelFieldValue,
+								disabled: true,
+							}),
+							m(TextField, {
+								label: "sharingFeature_label",
+								value: this._sharingFieldValue(),
+								oninput: this._sharingFieldValue,
+								disabled: true,
+							}),
+							m(TextField, {
+								label: "businessFeature_label",
+								value: this._businessFeatureFieldValue(),
+								oninput: this._businessFeatureFieldValue,
+								disabled: true,
+							}),
+							m(TextField, {
+								label: "contactForms_label",
+								value: this._contactFormsFieldValue(),
+								oninput: this._contactFormsFieldValue,
+								disabled: true,
+							}),
+					  ],
 				m(
 					".mb-l",
 					m(
@@ -501,48 +425,46 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	}
 
 	_updateBookings(): Promise<void> {
-		return locator.logins
-			.getUserController()
-			.loadCustomer()
-			.then((customer) => {
-				return locator.logins
-					.getUserController()
-					.loadCustomerInfo()
-					.catch(
-						ofClass(NotFoundError, (e) => {
-							console.log("could not update bookings as customer info does not exist (moved between free/premium lists)")
-						}),
-					)
-					.then((customerInfo) => {
-						if (!customerInfo) {
-							return
-						}
+		const userController = locator.logins.getUserController()
 
-						this._customerInfo = customerInfo
-						return locator.entityClient
-							.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
-							.then(async (bookings) => {
-								const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
-								this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
-								this._customer = customer
-								this._isCancelled = customer.canceledPremiumAccount
-								this._currentSubscription = priceAndConfigProvider.getSubscriptionType(this._lastBooking, customer, customerInfo)
+		return userController.loadCustomer().then((customer) => {
+			return userController
+				.loadCustomerInfo()
+				.catch(
+					ofClass(NotFoundError, (e) => {
+						console.log("could not update bookings as customer info does not exist (moved between free/premium lists)")
+					}),
+				)
+				.then((customerInfo) => {
+					if (!customerInfo) {
+						return
+					}
 
-								this._updateSubscriptionField(this._isCancelled)
+					this._customerInfo = customerInfo
+					return locator.entityClient
+						.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
+						.then(async (bookings) => {
+							const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
+							this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
+							this._customer = customer
+							this._isCancelled = customer.canceledPremiumAccount
+							this._currentSubscription = priceAndConfigProvider.getSubscriptionType(this._lastBooking, customer, customerInfo)
 
-								return Promise.all([
-									this._updateUserField(),
-									this._updateStorageField(customer, customerInfo),
-									this._updateAliasField(customer, customerInfo),
-									this._updateGroupsField(),
-									this._updateWhitelabelField(),
-									this._updateSharingField(),
-									this._updateBusinessFeatureField(),
-									this._updateContactFormsField(),
-								]).then(() => m.redraw())
-							})
-					})
-			})
+							this._updateSubscriptionField(this._isCancelled)
+
+							return Promise.all([
+								this._updateUserField(),
+								this._updateStorageField(customer, customerInfo),
+								this._updateAliasField(customer, customerInfo, userController.user.userGroup.group),
+								this._updateGroupsField(),
+								this._updateWhitelabelField(),
+								this._updateSharingField(),
+								this._updateBusinessFeatureField(),
+								this._updateContactFormsField(),
+							]).then(() => m.redraw())
+						})
+				})
+		})
 	}
 
 	_updateUserField(): Promise<void> {
@@ -565,27 +487,20 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		})
 	}
 
-	_updateAliasField(customer: Customer, customerInfo: CustomerInfo): Promise<void> {
-		const totalAmount = getTotalAliases(customer, customerInfo, this._lastBooking)
-
-		if (totalAmount === 0) {
-			this._emailAliasFieldValue("0")
-
-			return Promise.resolve()
-		} else {
-			return locator.serviceExecutor
-				.get(MailAddressAliasService, null)
-				.then((aliasServiceReturn) => {
-					this._emailAliasFieldValue(
-						lang.get("amountUsedAndActivatedOf_label", {
-							"{used}": aliasServiceReturn.usedAliases,
-							"{active}": aliasServiceReturn.enabledAliases,
-							"{totalAmount}": totalAmount,
-						}),
-					)
-				})
-				.then(noOp)
-		}
+	_updateAliasField(customer: Customer, customerInfo: CustomerInfo, userGroupId: Id): Promise<void> {
+		const data = createMailAddressAliasGetIn({ targetGroup: userGroupId })
+		return locator.serviceExecutor
+			.get(MailAddressAliasService, data)
+			.then((aliasServiceReturn) => {
+				this._emailAliasFieldValue(
+					lang.get("amountUsedAndActivatedOf_label", {
+						"{used}": aliasServiceReturn.usedAliases,
+						"{active}": aliasServiceReturn.enabledAliases,
+						"{totalAmount}": aliasServiceReturn.totalAliases,
+					}),
+				)
+			})
+			.then(noOp)
 	}
 
 	_updateGroupsField(): Promise<void> {
@@ -781,7 +696,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	}
 }
 
-function _getAccountTypeName(type: AccountType, subscription: SubscriptionType): string {
+function _getAccountTypeName(type: AccountType, subscription: SubscriptionType | LegacySubscriptionType): string {
 	if (type === AccountType.PREMIUM) {
 		return getDisplayNameOfSubscriptionType(subscription)
 	} else {

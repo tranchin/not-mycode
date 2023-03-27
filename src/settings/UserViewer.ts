@@ -4,7 +4,7 @@ import { Dialog } from "../gui/base/Dialog"
 import { formatDateWithMonth, formatStorageSize } from "../misc/Formatter"
 import { lang } from "../misc/LanguageViewModel"
 import type { Customer, GroupInfo, GroupMembership, User } from "../api/entities/sys/TypeRefs.js"
-import { CustomerTypeRef, GroupInfoTypeRef, GroupTypeRef, UserTypeRef } from "../api/entities/sys/TypeRefs.js"
+import { GroupInfoTypeRef, GroupTypeRef, UserTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { asyncFind, getFirstOrThrow, LazyLoaded, neverNull, ofClass, promiseMap, remove } from "@tutao/tutanota-utils"
 import { BookingItemFeatureType, GroupType, OperationType } from "../api/common/TutanotaConstants"
 import { BadRequestError, NotAuthorizedError, PreconditionFailedError } from "../api/common/error/RestError"
@@ -34,6 +34,7 @@ import { IconButton, IconButtonAttrs } from "../gui/base/IconButton.js"
 import { ButtonSize } from "../gui/base/ButtonSize.js"
 import { MailAddressTableModel } from "./mailaddress/MailAddressTableModel.js"
 import { progressIcon } from "../gui/base/Icon.js"
+import { isNewPlan, toFeatureType } from "../subscription/FeatureListProvider.js"
 
 assertMainOrNode()
 
@@ -458,7 +459,16 @@ export class UserViewer implements UpdatableSettingsDetailsViewer {
 	}
 
 	private async deleteUser() {
-		const confirmed = await showBuyDialog({ featureType: BookingItemFeatureType.Users, count: -1, freeAmount: 0, reactivate: false })
+		const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
+		const newPlan = isNewPlan(subscriptionType)
+
+		const confirmed = await showBuyDialog({
+			featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.Users,
+			bookingText: "cancelUserAccounts_label",
+			count: -1,
+			freeAmount: 0,
+			reactivate: false,
+		})
 		if (confirmed) {
 			return locator.userManagementFacade
 				.deleteUser(await this.user.getAsync(), false)
@@ -467,7 +477,15 @@ export class UserViewer implements UpdatableSettingsDetailsViewer {
 	}
 
 	private async restoreUser() {
-		const confirmed = await showBuyDialog({ featureType: BookingItemFeatureType.Users, count: 1, freeAmount: 0, reactivate: true })
+		const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
+		const newPlan = isNewPlan(subscriptionType)
+		const confirmed = await showBuyDialog({
+			featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.Users,
+			bookingText: "bookingItemUsersIncluding_label",
+			count: 1,
+			freeAmount: 0,
+			reactivate: true,
+		})
 		if (confirmed) {
 			await locator.userManagementFacade
 				.deleteUser(await this.user.getAsync(), true)

@@ -3,11 +3,12 @@ import { Dialog } from "../gui/base/Dialog"
 import { lang } from "../misc/LanguageViewModel"
 import { ButtonAttrs, ButtonType } from "../gui/base/Button.js"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
+import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { AccountType, BookingItemFeatureByCode, BookingItemFeatureType, Const, Keys, UnsubscribeFailureReason } from "../api/common/TutanotaConstants"
 import { SubscriptionActionButtons, SubscriptionSelector } from "./SubscriptionSelector"
 import stream from "mithril/stream"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
-import { buyAliases, buyBusiness, buySharing, buyStorage, buyWhitelabel } from "./SubscriptionUtils"
+import { bookItem, buyAliases, buyBusiness, buySharing, buyStorage, buyWhitelabel } from "./SubscriptionUtils"
 import type { DialogHeaderBarAttrs } from "../gui/base/DialogHeaderBar"
 import type { CurrentSubscriptionInfo } from "./SwitchSubscriptionDialogModel"
 import {
@@ -26,10 +27,9 @@ import {
 import { locator } from "../api/main/MainLocator"
 import { SwitchAccountTypeService } from "../api/entities/sys/Services.js"
 import { BadRequestError, InvalidDataError, PreconditionFailedError } from "../api/common/error/RestError.js"
-import { FeatureListProvider, getDisplayNameOfSubscriptionType, SubscriptionType } from "./FeatureListProvider"
+import { FeatureListProvider, getDisplayNameOfSubscriptionType, isNewPlan, SubscriptionType, toFeatureType } from "./FeatureListProvider"
 import { isSubscriptionDowngrade, PriceAndConfigProvider } from "./PriceUtils"
 import { lazy } from "@tutao/tutanota-utils"
-import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 
 /**
  * Only shown if the user is already a Premium user. Allows cancelling the subscription (only private use) and switching the subscription to a different paid subscription.
@@ -92,11 +92,11 @@ export async function showSwitchDialog(customer: Customer, customerInfo: Custome
 			click: () => cancelSubscription(dialog, currentSubscriptionInfo),
 			type: ButtonType.Login,
 		}),
-		Premium: createSubscriptionPlanButton(dialog, SubscriptionType.Premium, currentSubscriptionInfo),
-		PremiumBusiness: createSubscriptionPlanButton(dialog, SubscriptionType.PremiumBusiness, currentSubscriptionInfo),
-		Teams: createSubscriptionPlanButton(dialog, SubscriptionType.Teams, currentSubscriptionInfo),
-		TeamsBusiness: createSubscriptionPlanButton(dialog, SubscriptionType.TeamsBusiness, currentSubscriptionInfo),
-		Pro: createSubscriptionPlanButton(dialog, SubscriptionType.Pro, currentSubscriptionInfo),
+		Revolutionary: createSubscriptionPlanButton(dialog, SubscriptionType.Revolutionary, currentSubscriptionInfo),
+		Legend: createSubscriptionPlanButton(dialog, SubscriptionType.Legend, currentSubscriptionInfo),
+		Essential: createSubscriptionPlanButton(dialog, SubscriptionType.Essential, currentSubscriptionInfo),
+		Advanced: createSubscriptionPlanButton(dialog, SubscriptionType.Advanced, currentSubscriptionInfo),
+		Unlimited: createSubscriptionPlanButton(dialog, SubscriptionType.Unlimited, currentSubscriptionInfo),
 	}
 	dialog.show()
 }
@@ -209,12 +209,12 @@ async function getUpOrDowngradeMessage(targetSubscription: SubscriptionType, cur
 
 	if (isSubscriptionDowngrade(targetSubscription, currentSubscriptionInfo.subscriptionType)) {
 		msg = lang.get(
-			targetSubscription === SubscriptionType.Premium || targetSubscription === SubscriptionType.PremiumBusiness
+			targetSubscription === SubscriptionType.Revolutionary || targetSubscription === SubscriptionType.Essential
 				? "downgradeToPremium_msg"
 				: "downgradeToTeams_msg",
 		)
 
-		if (targetSubscription === SubscriptionType.PremiumBusiness || targetSubscription === SubscriptionType.TeamsBusiness) {
+		if (targetSubscription === SubscriptionType.Essential || targetSubscription === SubscriptionType.Advanced) {
 			msg = msg + " " + lang.get("businessIncluded_msg")
 		}
 	} else {
@@ -224,9 +224,9 @@ async function getUpOrDowngradeMessage(targetSubscription: SubscriptionType, cur
 		})
 
 		if (
-			targetSubscription === SubscriptionType.PremiumBusiness ||
-			targetSubscription === SubscriptionType.TeamsBusiness ||
-			targetSubscription === SubscriptionType.Pro
+			targetSubscription === SubscriptionType.Essential ||
+			targetSubscription === SubscriptionType.Advanced ||
+			targetSubscription === SubscriptionType.Unlimited
 		) {
 			msg += " " + lang.get("businessIncluded_msg")
 		}
@@ -245,6 +245,13 @@ async function getUpOrDowngradeMessage(targetSubscription: SubscriptionType, cur
 async function checkNeededUpgrades(targetSubscription: SubscriptionType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<void> {
 	const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
 	const targetSubscriptionConfig = priceAndConfigProvider.getSubscriptionConfig(targetSubscription)
+	if (isNewPlan(targetSubscription)) {
+		let targetFeatureType = toFeatureType(targetSubscription)
+		if (targetFeatureType != null) {
+			// bookItem(targetFeatureType, amount)
+		}
+	}
+
 	if (isUpgradeAliasesNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentTotalAliases)) {
 		await buyAliases(targetSubscriptionConfig.orderNbrOfAliases)
 	}

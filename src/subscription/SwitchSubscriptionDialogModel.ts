@@ -15,7 +15,7 @@ import type { AccountingInfo, Booking, Customer, CustomerInfo, PlanPrices, Price
 import { createPlanPrices } from "../api/entities/sys/TypeRefs.js"
 import { asPaymentInterval, getPriceFromPriceData, getPriceItem, isSubscriptionDowngrade, PaymentInterval, PriceAndConfigProvider } from "./PriceUtils"
 import type { BookingFacade } from "../api/worker/facades/lazy/BookingFacade.js"
-import { SubscriptionConfig, SubscriptionPlanPrices, SubscriptionType } from "./FeatureListProvider"
+import { LegacySubscriptionType, SubscriptionConfig, SubscriptionPlanPrices, SubscriptionType } from "./FeatureListProvider"
 
 type PlanPriceCalc = {
 	monthlyPrice: number
@@ -23,14 +23,14 @@ type PlanPriceCalc = {
 	includedAliases: number
 	includedStorage: number
 	readonly targetIsDowngrade: boolean
-	readonly targetSubscription: SubscriptionType
+	readonly targetSubscription: SubscriptionType | LegacySubscriptionType
 	readonly targetSubscriptionConfig: SubscriptionConfig
 	readonly paymentIntervalFactor: number
 }
 export type CurrentSubscriptionInfo = {
 	businessUse: boolean
 	nbrOfUsers: number
-	subscriptionType: SubscriptionType
+	subscriptionType: SubscriptionType | LegacySubscriptionType
 	paymentInterval: PaymentInterval
 	currentTotalStorage: number
 	currentTotalAliases: number
@@ -86,216 +86,6 @@ export class SwitchSubscriptionDialogModel {
 			currentlyBusinessOrdered: isBusinessFeatureActive(this.lastBooking),
 			orderedContactForms: getNbrOfContactForms(this.lastBooking),
 		}
-	}
-
-	async loadSwitchSubscriptionPrices(): Promise<SubscriptionPlanPrices> {
-		const upgradeDowngradePrices = await this.fetchUpgradeDowngradePrices()
-		return {
-			Premium: this.getPrice(
-				this.currentSubscriptionInfo,
-				upgradeDowngradePrices,
-				SubscriptionType.Premium,
-				this.priceAndConfigProvider.getSubscriptionConfig(SubscriptionType.Premium),
-			),
-			PremiumBusiness: this.getPrice(
-				this.currentSubscriptionInfo,
-				upgradeDowngradePrices,
-				SubscriptionType.PremiumBusiness,
-				this.priceAndConfigProvider.getSubscriptionConfig(SubscriptionType.PremiumBusiness),
-			),
-			Teams: this.getPrice(
-				this.currentSubscriptionInfo,
-				upgradeDowngradePrices,
-				SubscriptionType.Teams,
-				this.priceAndConfigProvider.getSubscriptionConfig(SubscriptionType.Teams),
-			),
-			TeamsBusiness: this.getPrice(
-				this.currentSubscriptionInfo,
-				upgradeDowngradePrices,
-				SubscriptionType.TeamsBusiness,
-				this.priceAndConfigProvider.getSubscriptionConfig(SubscriptionType.TeamsBusiness),
-			),
-			Pro: this.getPrice(
-				this.currentSubscriptionInfo,
-				upgradeDowngradePrices,
-				SubscriptionType.Pro,
-				this.priceAndConfigProvider.getSubscriptionConfig(SubscriptionType.Pro),
-			),
-		}
-	}
-
-	getPrice(
-		currentSubscription: CurrentSubscriptionInfo,
-		prices: UpgradeDowngradePrices,
-		targetSubscription: SubscriptionType,
-		targetSubscriptionConfig: SubscriptionConfig,
-	): PlanPrices {
-		const paymentInterval: PaymentInterval = asPaymentInterval(assertNotNull(prices.addUserPrice.futurePriceNextPeriod).paymentInterval)
-		let paymentIntervalFactor = paymentInterval === PaymentInterval.Yearly ? 0.1 : 1
-		let monthlyPrice = Number(assertNotNull(prices.addUserPrice.currentPriceNextPeriod).price)
-		let contactFormPrice = getMonthlySinglePrice(prices.contactFormPrice, BookingItemFeatureType.ContactForm, paymentIntervalFactor)
-		let singleUserPriceMonthly = getMonthlySinglePrice(prices.addUserPrice, BookingItemFeatureType.Users, paymentIntervalFactor)
-		let currentSharingPerUserMonthly = getMonthlySinglePrice(prices.addUserPrice, BookingItemFeatureType.Sharing, paymentIntervalFactor)
-		let currentBusinessPerUserMonthly = getMonthlySinglePrice(prices.addUserPrice, BookingItemFeatureType.Business, paymentIntervalFactor)
-		let currentWhitelabelPerUserMonthly = getMonthlySinglePrice(prices.addUserPrice, BookingItemFeatureType.Whitelabel, paymentIntervalFactor)
-		let planPrices = createPlanPrices()
-		planPrices.contactFormPriceMonthly = String(contactFormPrice)
-		planPrices.firstYearDiscount = "0"
-
-		if (currentSubscription.subscriptionType === targetSubscription) {
-			// show the price we are currently paying
-			monthlyPrice = Number((monthlyPrice * paymentIntervalFactor).toFixed(2))
-			planPrices.includedAliases = String(currentSubscription.currentTotalAliases)
-			planPrices.includedStorage = String(currentSubscription.currentTotalStorage)
-			planPrices.monthlyPrice = String(monthlyPrice)
-			planPrices.monthlyReferencePrice = String(monthlyPrice)
-			// Ugly rounding to floor
-			planPrices.additionalUserPriceMonthly = String(
-				Number((singleUserPriceMonthly + currentSharingPerUserMonthly + currentBusinessPerUserMonthly + currentWhitelabelPerUserMonthly).toFixed(2)),
-			)
-		} else {
-			const planPriceCalc: PlanPriceCalc = {
-				monthlyPrice: monthlyPrice,
-				additionalUserPriceMonthly: singleUserPriceMonthly,
-				includedAliases: 0,
-				includedStorage: 0,
-				targetIsDowngrade: isSubscriptionDowngrade(targetSubscription, currentSubscription.subscriptionType),
-				targetSubscription: targetSubscription,
-				targetSubscriptionConfig,
-				paymentIntervalFactor: paymentIntervalFactor,
-			}
-			// upgrade: show the current price plus all features not ordered yet
-			// downgrade: show the current prices minus all features not in the target subscription (keep users as is)
-			// singleUserPriceMonthly for feature is 0 for downgrade. therefore only added for upgrade or the current price (might be 0 as well)
-			calcWhitelabelFeature(
-				planPriceCalc,
-				currentSubscription.currentlyWhitelabelOrdered,
-				currentWhitelabelPerUserMonthly,
-				prices.upgradeWhitelabelPrice,
-				prices.downgradeWhitelabelPrice,
-			)
-			calcSharingFeature(
-				planPriceCalc,
-				currentSubscription.currentlySharingOrdered,
-				currentSharingPerUserMonthly,
-				prices.upgradeSharingPrice,
-				prices.downgradeSharingPrice,
-			)
-			calcBusinessFeature(
-				planPriceCalc,
-				currentSubscription.currentlyBusinessOrdered,
-				currentBusinessPerUserMonthly,
-				prices.upgradeBusinessPrice,
-				prices.downgradeBusinessPrice,
-			)
-			calcStorage(
-				planPriceCalc,
-				currentSubscription.currentTotalStorage,
-				currentSubscription.includedStorage,
-				prices.upgrade10GbStoragePrice,
-				prices.downgrade1GbStoragePrice,
-			)
-			calcAliases(
-				planPriceCalc,
-				currentSubscription.currentTotalAliases,
-				currentSubscription.includedAliases,
-				prices.upgrade20AliasesPrice,
-				prices.downgrade5AliasesPrice,
-			)
-			planPrices.includedAliases = String(planPriceCalc.includedAliases)
-			planPrices.includedStorage = String(planPriceCalc.includedStorage)
-			// TODO string number conversion needed for floor in test cases and string length -> fix floating point number calcs
-			planPrices.monthlyPrice = String(Number((planPriceCalc.monthlyPrice * paymentIntervalFactor).toFixed(2)))
-			planPrices.monthlyReferencePrice = planPrices.monthlyPrice
-			planPrices.additionalUserPriceMonthly = String(Number(planPriceCalc.additionalUserPriceMonthly.toFixed(2)))
-		}
-
-		return planPrices
-	}
-
-	private async fetchUpgradeDowngradePrices(): Promise<UpgradeDowngradePrices> {
-		const getPriceFeatureList = [
-			// the order is important!
-			{
-				type: BookingItemFeatureType.Users,
-				count: 1,
-			},
-			{
-				type: BookingItemFeatureType.Alias,
-				count: 20,
-			},
-			{
-				type: BookingItemFeatureType.Alias,
-				count: 0,
-			},
-			{
-				type: BookingItemFeatureType.Storage,
-				count: 10,
-			},
-			{
-				type: BookingItemFeatureType.Storage,
-				count: 0,
-			},
-			{
-				type: BookingItemFeatureType.Sharing,
-				count: 1,
-			},
-			{
-				type: BookingItemFeatureType.Sharing,
-				count: 0,
-			},
-			{
-				type: BookingItemFeatureType.Business,
-				count: 1,
-			},
-			{
-				type: BookingItemFeatureType.Business,
-				count: 0,
-			},
-			{
-				type: BookingItemFeatureType.Whitelabel,
-				count: 1,
-			},
-			{
-				type: BookingItemFeatureType.Whitelabel,
-				count: 0,
-			},
-			{
-				type: BookingItemFeatureType.ContactForm,
-				count: 1,
-			},
-		]
-		return promiseMap(getPriceFeatureList, (getPriceFeature) => this.bookingFacade.getPrice(getPriceFeature.type, getPriceFeature.count, false)).then(
-			([
-				addUserPrice,
-				upgrade20AliasesPrice,
-				downgrade5AliasesPrice,
-				upgrade10GbStoragePrice,
-				downgrade1GbStoragePrice,
-				upgradeSharingPrice,
-				downgradeSharingPrice,
-				upgradeBusinessPrice,
-				downgradeBusinessPrice,
-				upgradeWhitelabelPrice,
-				downgradeWhitelabelPrice,
-				contactFormPrice,
-			]) => {
-				return {
-					addUserPrice: addUserPrice,
-					upgrade20AliasesPrice: upgrade20AliasesPrice,
-					downgrade5AliasesPrice: downgrade5AliasesPrice,
-					upgrade10GbStoragePrice: upgrade10GbStoragePrice,
-					downgrade1GbStoragePrice: downgrade1GbStoragePrice,
-					upgradeSharingPrice: upgradeSharingPrice,
-					downgradeSharingPrice: downgradeSharingPrice,
-					upgradeBusinessPrice: upgradeBusinessPrice,
-					downgradeBusinessPrice: downgradeBusinessPrice,
-					upgradeWhitelabelPrice: upgradeWhitelabelPrice,
-					downgradeWhitelabelPrice: downgradeWhitelabelPrice,
-					contactFormPrice: contactFormPrice,
-				}
-			},
-		)
 	}
 }
 

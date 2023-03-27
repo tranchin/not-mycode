@@ -24,20 +24,20 @@ export class MailRow implements VirtualRow<Mail> {
 	domElement: HTMLElement | null = null // set from List
 
 	entity: Mail | null = null
-	private _domSubject!: HTMLElement
-	private _domSender!: HTMLElement
-	private _domDate!: HTMLElement
-	private _iconsDom!: HTMLElement
-	private _domUnread!: HTMLElement
-	private _showFolderIcon: boolean
-	private _domFolderIcons: Record<MailFolderType, HTMLElement>
-	private _domTeamLabel!: HTMLElement
+	private subjectDom!: HTMLElement
+	private senderDom!: HTMLElement
+	private dateDom!: HTMLElement
+	private iconsDom!: HTMLElement
+	private unreadDom!: HTMLElement
+	private showFolderIcon: boolean
+	private folderIconsDom: Record<MailFolderType, HTMLElement>
+	private teamLabelDom!: HTMLElement
 
 	constructor(showFolderIcon: boolean) {
 		this.top = 0
 		this.entity = null
-		this._showFolderIcon = showFolderIcon
-		this._domFolderIcons = {} as Record<MailFolderType, HTMLElement>
+		this.showFolderIcon = showFolderIcon
+		this.folderIconsDom = {} as Record<MailFolderType, HTMLElement>
 	}
 
 	update(mail: Mail, selected: boolean): void {
@@ -48,41 +48,90 @@ export class MailRow implements VirtualRow<Mail> {
 		if (selected) {
 			this.domElement.classList.add("row-selected")
 
-			this._iconsDom.classList.add("secondary")
+			this.iconsDom.classList.add("secondary")
 		} else {
 			this.domElement.classList.remove("row-selected")
 
-			this._iconsDom.classList.remove("secondary")
+			this.iconsDom.classList.remove("secondary")
 		}
 
-		this._iconsDom.textContent = this._iconsText(mail)
-		this._domDate.textContent = formatDateTimeFromYesterdayOn(mail.receivedDate)
-		this._domSender.textContent = getSenderOrRecipientHeading(mail, true)
-		this._domSubject.textContent = mail.subject
+		this.iconsDom.textContent = this.iconsText(mail)
+		this.dateDom.textContent = formatDateTimeFromYesterdayOn(mail.receivedDate)
+		this.senderDom.textContent = getSenderOrRecipientHeading(mail, true)
+		this.subjectDom.textContent = mail.subject
 
 		if (mail.unread) {
-			this._domUnread.classList.remove("hidden")
+			this.unreadDom.classList.remove("hidden")
 
-			this._domSubject.classList.add("b")
+			this.subjectDom.classList.add("b")
 		} else {
-			this._domUnread.classList.add("hidden")
+			this.unreadDom.classList.add("hidden")
 
-			this._domSubject.classList.remove("b")
+			this.subjectDom.classList.remove("b")
 		}
 
 		if (isTutanotaTeamMail(mail)) {
-			this._domTeamLabel.style.display = ""
+			this.teamLabelDom.style.display = ""
 		} else {
-			this._domTeamLabel.style.display = "none"
+			this.teamLabelDom.style.display = "none"
 		}
 	}
 
-	_iconsText(mail: Mail): string {
+	/**
+	 * Only the structure is managed by mithril. We set all contents on our own (see update) in order to avoid the vdom overhead (not negligible on mobiles)
+	 */
+	render(): Children {
+		return m(".flex", [
+			m(
+				".flex.items-start.flex-no-grow.no-shrink.pr-s.pb-xs",
+				m(".dot.bg-accent-fg.hidden", {
+					oncreate: (vnode) => (this.unreadDom = vnode.dom as HTMLElement),
+				}),
+			),
+			m(".flex-grow.min-width-0", [
+				m(".top.flex.badge-line-height", [
+					m(
+						Badge,
+						{
+							classes: ".small.mr-s",
+							oncreate: (vnode) => (this.teamLabelDom = vnode.dom as HTMLElement),
+						},
+						"Tutanota Team",
+					),
+					m("small.text-ellipsis", {
+						oncreate: (vnode) => (this.senderDom = vnode.dom as HTMLElement),
+					}),
+					m(".flex-grow"),
+					m("small.text-ellipsis.flex-fixed", {
+						oncreate: (vnode) => (this.dateDom = vnode.dom as HTMLElement),
+					}),
+				]),
+				m(
+					".bottom.flex-space-between",
+					{
+						style: {
+							marginTop: px(2),
+						},
+					},
+					[
+						m(".text-ellipsis.flex-grow", {
+							oncreate: (vnode) => (this.subjectDom = vnode.dom as HTMLElement),
+						}),
+						m("span.ion.ml-s.list-font-icons.secondary", {
+							oncreate: (vnode) => (this.iconsDom = vnode.dom as HTMLElement),
+						}),
+					],
+				),
+			]),
+		])
+	}
+
+	private iconsText(mail: Mail): string {
 		let iconText = ""
 
-		if (this._showFolderIcon) {
+		if (this.showFolderIcon) {
 			let folder = locator.mailModel.getMailFolder(mail._id[0])
-			iconText += folder ? this._getFolderIcon(getMailFolderType(folder)) : ""
+			iconText += folder ? this.folderIcon(getMailFolderType(folder)) : ""
 		}
 
 		iconText += mail._errors ? FontIcons.Warning : ""
@@ -117,56 +166,7 @@ export class MailRow implements VirtualRow<Mail> {
 		return iconText
 	}
 
-	/**
-	 * Only the structure is managed by mithril. We set all contents on our own (see update) in order to avoid the vdom overhead (not negligible on mobiles)
-	 */
-	render(): Children {
-		return m(".flex", [
-			m(
-				".flex.items-start.flex-no-grow.no-shrink.pr-s.pb-xs",
-				m(".dot.bg-accent-fg.hidden", {
-					oncreate: (vnode) => (this._domUnread = vnode.dom as HTMLElement),
-				}),
-			),
-			m(".flex-grow.min-width-0", [
-				m(".top.flex.badge-line-height", [
-					m(
-						Badge,
-						{
-							classes: ".small.mr-s",
-							oncreate: (vnode) => (this._domTeamLabel = vnode.dom as HTMLElement),
-						},
-						"Tutanota Team",
-					),
-					m("small.text-ellipsis", {
-						oncreate: (vnode) => (this._domSender = vnode.dom as HTMLElement),
-					}),
-					m(".flex-grow"),
-					m("small.text-ellipsis.flex-fixed", {
-						oncreate: (vnode) => (this._domDate = vnode.dom as HTMLElement),
-					}),
-				]),
-				m(
-					".bottom.flex-space-between",
-					{
-						style: {
-							marginTop: px(2),
-						},
-					},
-					[
-						m(".text-ellipsis.flex-grow", {
-							oncreate: (vnode) => (this._domSubject = vnode.dom as HTMLElement),
-						}),
-						m("span.ion.ml-s.list-font-icons.secondary", {
-							oncreate: (vnode) => (this._iconsDom = vnode.dom as HTMLElement),
-						}),
-					],
-				),
-			]),
-		])
-	}
-
-	_getFolderIcon(type: MailFolderType): string {
+	private folderIcon(type: MailFolderType): string {
 		return iconMap[type]
 	}
 }

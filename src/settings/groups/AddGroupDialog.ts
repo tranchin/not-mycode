@@ -18,6 +18,7 @@ import type { GroupManagementFacade } from "../../api/worker/facades/lazy/GroupM
 import { locator } from "../../api/main/MainLocator.js"
 import { assertMainOrNode } from "../../api/common/Env.js"
 import { getAvailableDomains } from "../mailaddress/MailAddressesUtils.js"
+import { isNewPlan, toFeatureType } from "../../subscription/FeatureListProvider.js"
 
 assertMainOrNode()
 
@@ -124,7 +125,7 @@ export function show(): void {
 		const viewModel = new AddGroupDialogViewModel(availableDomains, locator.groupManagementFacade)
 		if (viewModel.getAvailableGroupTypes().length === 0) return Dialog.message("selectionNotAvailable_msg")
 
-		let addGroupOkAction = (dialog: Dialog) => {
+		let addGroupOkAction = async (dialog: Dialog) => {
 			if (viewModel.isVerifactionBusy) return
 			const errorId = viewModel.validateAddGroupInput()
 
@@ -133,10 +134,19 @@ export function show(): void {
 				return
 			}
 
+			const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
+			const newPlan = isNewPlan(subscriptionType)
+
 			if (viewModel.groupType === GroupType.Mail) {
 				showProgressDialog(
 					"pleaseWait_msg",
-					showBuyDialog({ featureType: BookingItemFeatureType.SharedMailGroup, count: 1, freeAmount: 0, reactivate: false }).then((accepted) => {
+					showBuyDialog({
+						featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.SharedMailGroup,
+						bookingText: "sharedMailbox_label",
+						count: 1,
+						freeAmount: 0,
+						reactivate: false,
+					}).then((accepted) => {
 						if (accepted) {
 							dialog.close()
 							return viewModel.createMailGroup()
@@ -146,7 +156,13 @@ export function show(): void {
 			} else if (viewModel.groupType === GroupType.LocalAdmin) {
 				showProgressDialog(
 					"pleaseWait_msg",
-					showBuyDialog({ featureType: BookingItemFeatureType.LocalAdminGroup, count: 1, freeAmount: 0, reactivate: false }).then((accepted) => {
+					showBuyDialog({
+						featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.LocalAdminGroup,
+						bookingText: "localAdminGroup_label",
+						count: 1,
+						freeAmount: 0,
+						reactivate: false,
+					}).then((accepted) => {
 						if (accepted) {
 							dialog.close()
 							return viewModel.createLocalAdminGroup()

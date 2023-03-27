@@ -16,11 +16,9 @@ export async function show(): Promise<void> {
 	return new Promise((resolve) => {
 		const changeEmailAliasPackageAction = (amount: number) => {
 			dialog.close()
-			showBuyDialogToBookItem(BookingItemFeatureType.Alias, amount, freeEmailAliases)
-				.then((cancelled) => {
-					if (cancelled) show()
-				})
-				.then(() => resolve())
+
+			// FIXME: tell the user to buy a better subscription
+			throw new Error("sorry! no aliases for you :(")
 		}
 
 		const emailAliasesBuyOptionsAttrs = [
@@ -70,11 +68,13 @@ function createEmailAliasPackageBox(
 		},
 		price: lang.get("emptyString_msg"),
 		helpLabel: "emptyString_msg",
-		features: [],
+		categories: [],
 		width: 265,
 		height: 250,
 		paymentInterval: null,
 		showReferenceDiscount: false,
+		renderCategoryTitle: false,
+		mobile: false
 	}
 	updateBuyOptionBoxPriceInformation(locator.bookingFacade, BookingItemFeatureType.Alias, amount, attrs)
 	return {

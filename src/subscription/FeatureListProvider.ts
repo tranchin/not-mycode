@@ -2,21 +2,43 @@ import Stream from "mithril/stream"
 import { PlanPrices } from "../api/entities/sys/TypeRefs"
 import { TranslationKey } from "../misc/LanguageViewModel"
 import { PaymentInterval } from "./PriceUtils.js"
+import { downcast } from "@tutao/tutanota-utils"
+import { BookingItemFeatureType } from "../api/common/TutanotaConstants.js"
 
 const FEATURE_LIST_RESOURCE_URL = "https://tutanota.com/resources/data/features.json"
+// const FEATURE_LIST_RESOURCE_URL = "http://localhost:9000/resources/data/features.json"
 let dataProvider: FeatureListProvider | null = null
 
 export class FeatureListProvider {
 	private featureList: FeatureLists | null = null
 
-	private constructor() {}
+	private constructor() {
+	}
 
 	private async init(): Promise<void> {
 		if ("undefined" === typeof fetch) return
 		this.featureList = await resolveOrNull(
 			() => fetch(FEATURE_LIST_RESOURCE_URL).then((r) => r.json()),
 			(e) => console.log("failed to fetch feature list:", e),
-		)
+		).then((featureList) => {
+			this.countFeatures([...featureList.Free.categories, ...featureList.Revolutionary.categories, ...featureList.Legend.categories])
+			this.countFeatures([...featureList.Essential.categories, ...featureList.Advanced.categories, ...featureList.Unlimited.categories])
+			return featureList
+		})
+	}
+
+	private countFeatures(categories: FeatureCategory[]): void {
+		const featureCounts = new Map<string, { max: number }>()
+		categories.forEach(category => {
+			var count = featureCounts.get(category.title)
+			const numberOfFeatures = category.features.length
+			if (count == null || numberOfFeatures > count.max) {
+				category.featureCount = { max: numberOfFeatures }
+			} else {
+				category.featureCount = count
+			}
+			featureCounts.set(category.title, category.featureCount)
+		})
 	}
 
 	static async getInitializedInstance(): Promise<FeatureListProvider> {
@@ -28,7 +50,7 @@ export class FeatureListProvider {
 	}
 
 	getFeatureList(targetSubscription: SubscriptionType): FeatureLists[SubscriptionType] {
-		return this.featureList == null ? { features: [], subtitle: "emptyString_msg" } : this.featureList[targetSubscription]
+		return this.featureList == null ? { subtitle: "emptyString_msg", categories: [] } : this.featureList[targetSubscription]
 	}
 
 	featureLoadingDone(): boolean {
@@ -59,13 +81,47 @@ export type SelectedSubscriptionOptions = {
 	paymentInterval: Stream<PaymentInterval>
 }
 
-export const enum SubscriptionType {
+export enum LegacySubscriptionType {
 	Free = "Free",
 	Premium = "Premium",
 	PremiumBusiness = "PremiumBusiness",
 	Teams = "Teams",
 	TeamsBusiness = "TeamsBusiness",
 	Pro = "Pro",
+}
+
+export enum SubscriptionType {
+	Free = "Free",
+	Revolutionary = "Revolutionary",
+	Legend = "Legend",
+	Essential = "Essential",
+	Advanced = "Advanced",
+	Unlimited = "Unlimited",
+}
+
+export function isLegacyPlan(type: SubscriptionType | LegacySubscriptionType | null): type is LegacySubscriptionType {
+	return type != null && Object.values(LegacySubscriptionType).includes(downcast(type))
+}
+
+export function isNewPlan(type: SubscriptionType | LegacySubscriptionType): type is SubscriptionType {
+	return !isLegacyPlan(type)
+}
+
+export function toFeatureType(type: SubscriptionType): BookingItemFeatureType {
+	switch (type) {
+		case SubscriptionType.Free:
+			throw new Error("can't convert free to BookingItemFeatureType")
+		case SubscriptionType.Revolutionary:
+			return BookingItemFeatureType.Revolutionary
+		case SubscriptionType.Legend:
+			return BookingItemFeatureType.Legend
+		case SubscriptionType.Essential:
+			return BookingItemFeatureType.Essential
+		case SubscriptionType.Advanced:
+			return BookingItemFeatureType.Advanced
+		case SubscriptionType.Unlimited:
+			return BookingItemFeatureType.Unlimited
+	}
 }
 
 export type SubscriptionConfig = {
@@ -87,6 +143,18 @@ export type SubscriptionConfig = {
 export type ReplacementKey = "pricePerExtraUser" | "mailAddressAliases" | "storage" | "contactForm"
 
 /**
+ * A category of features to be shown
+ * title: translation key for the title
+ * features: List of features in this category
+ * omit: whether this can be omitted from the compact feature list,
+ */
+export type FeatureCategory = {
+	title: TranslationKey
+	features: Array<FeatureListItem>
+	featureCount: { max: number }
+}
+
+/**
  * one item in the list that's shown below a subscription box,
  * text: translation key for the label,
  * toolTip: translation key for the tooltip that will be shown on hover,
@@ -101,24 +169,25 @@ export type FeatureListItem = {
 	omit: boolean
 	antiFeature?: boolean
 	replacements?: ReplacementKey
+	heart?: boolean
 }
 
 /**
  * subtitle: the short text shown below the subscription name in the buy box
  * features: flat, ordered list of features for this subscription type
  */
-type FeatureLists = { [K in SubscriptionType]: { subtitle: string; features: Array<FeatureListItem> } }
+type FeatureLists = { [K in SubscriptionType]: { subtitle: string; categories: Array<FeatureCategory>; } }
 
 /**
  * @returns the name to show to the user for the current subscription (PremiumBusiness -> Premium etc.)
  */
-export function getDisplayNameOfSubscriptionType(subscription: SubscriptionType): string {
+export function getDisplayNameOfSubscriptionType(subscription: SubscriptionType | LegacySubscriptionType): string {
 	switch (subscription) {
-		case SubscriptionType.PremiumBusiness:
-			return SubscriptionType.Premium
+		case LegacySubscriptionType.PremiumBusiness:
+			return LegacySubscriptionType.Premium
 
-		case SubscriptionType.TeamsBusiness:
-			return SubscriptionType.Teams
+		case LegacySubscriptionType.TeamsBusiness:
+			return LegacySubscriptionType.Teams
 
 		default:
 			return subscription
@@ -131,6 +200,11 @@ export type SubscriptionPlanPrices = {
 	Teams: PlanPrices
 	TeamsBusiness: PlanPrices
 	Pro: PlanPrices
+	Revolutionary: PlanPrices
+	Legend: PlanPrices
+	Essential: PlanPrices
+	Advanced: PlanPrices
+	Unlimited: PlanPrices
 }
 
 export const enum UpgradePriceType {

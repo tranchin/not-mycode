@@ -47,7 +47,7 @@ export class SignupPageAttrs implements WizardPageAttrs<UpgradeSubscriptionData>
 	headerTitle(): string {
 		var title = getDisplayNameOfSubscriptionType(this.data.type)
 
-		if (this.data.type === SubscriptionType.PremiumBusiness || this.data.type === SubscriptionType.TeamsBusiness) {
+		if (this.data.type === SubscriptionType.Essential || this.data.type === SubscriptionType.Advanced) {
 			return title + " Business"
 		} else {
 			return title

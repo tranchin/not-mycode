@@ -1,7 +1,5 @@
 import type { LoginController } from "../api/main/LoginController"
-import { CustomerTypeRef } from "../api/entities/sys/TypeRefs.js"
 import type { lazy } from "@tutao/tutanota-utils"
-import { neverNull } from "@tutao/tutanota-utils"
 import { Dialog } from "../gui/base/Dialog"
 import type { TranslationKey } from "./LanguageViewModel"
 import { InfoLink, lang } from "./LanguageViewModel"
@@ -9,6 +7,7 @@ import { isIOSApp } from "../api/common/Env"
 import { ProgrammingError } from "../api/common/error/ProgrammingError"
 import type { clickHandler } from "../gui/base/GuiUtils"
 import { locator } from "../api/main/MainLocator"
+import { showBusinessBuyDialog } from "../subscription/BuyDialog.js"
 
 /**
  * Opens a dialog which states that the function is not available in the Free subscription and provides an option to upgrade.
@@ -69,19 +68,13 @@ export function showMoreStorageNeededOrderDialog(loginController: LoginControlle
 		throw new ProgrammingError("changing storage or other subscription options is only allowed for global admins")
 	}
 
-	if (userController.isFreeAccount()) {
-		const confirmMsg = () => lang.get(messageIdOrMessageFunction) + "\n\n" + lang.get("onlyAvailableForPremiumNotIncluded_msg")
+	const confirmMsg = () => lang.get(messageIdOrMessageFunction) + "\n\n" + lang.get("onlyAvailableForPremiumNotIncluded_msg")
 
-		return Dialog.confirm(confirmMsg, "upgrade_action").then((confirm) => {
-			if (confirm) {
-				import("../subscription/UpgradeSubscriptionWizard").then((wizard) => wizard.showUpgradeWizard())
-			}
-		})
-	} else {
-		return import("../subscription/StorageCapacityOptionsDialog").then(({ showStorageCapacityOptionsDialog }) =>
-			showStorageCapacityOptionsDialog(messageIdOrMessageFunction),
-		)
-	}
+	return Dialog.confirm(confirmMsg, "upgrade_action").then((confirm) => {
+		if (confirm) {
+			import("../subscription/UpgradeSubscriptionWizard").then((wizard) => wizard.showUpgradeWizard())
+		}
+	})
 }
 
 /**
@@ -92,20 +85,6 @@ export function showBusinessFeatureRequiredDialog(reason: TranslationKey | lazy<
 		showNotAvailableForFreeDialog(false)
 		return Promise.resolve(false)
 	} else {
-		if (locator.logins.getUserController().isGlobalAdmin()) {
-			return Dialog.confirm(() => lang.getMaybeLazy(reason) + " " + lang.get("ordertItNow_msg")).then((confirmed) => {
-				if (confirmed) {
-					return import("../subscription/BuyDialog").then((BuyDialog) => {
-						return BuyDialog.showBusinessBuyDialog(true).then((failed) => {
-							return !failed
-						})
-					})
-				} else {
-					return false
-				}
-			})
-		} else {
-			return Dialog.message(() => lang.getMaybeLazy(reason) + " " + lang.get("contactAdmin_msg")).then(() => false)
-		}
+		return showBusinessBuyDialog(true)
 	}
 }

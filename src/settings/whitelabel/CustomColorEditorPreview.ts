@@ -17,8 +17,8 @@ export class CustomColorEditorPreview implements Component {
 	private toggleSelected: boolean = false
 
 	constructor() {
-		this._mailRow = new MailRow(false)
-		this._mailRow2 = new MailRow(false)
+		this._mailRow = new MailRow(false, noOp)
+		this._mailRow2 = new MailRow(false, noOp)
 	}
 
 	view(): Children {

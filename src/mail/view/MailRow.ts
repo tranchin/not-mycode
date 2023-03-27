@@ -29,14 +29,14 @@ export class MailRow implements VirtualRow<Mail> {
 	private dateDom!: HTMLElement
 	private iconsDom!: HTMLElement
 	private unreadDom!: HTMLElement
-	private showFolderIcon: boolean
 	private folderIconsDom: Record<MailFolderType, HTMLElement>
 	private teamLabelDom!: HTMLElement
+	private innerContainerDom!: HTMLElement
+	private checkboxDom!: HTMLInputElement
 
-	constructor(showFolderIcon: boolean) {
+	constructor(private readonly showFolderIcon: boolean, private readonly onSelected: (mail: Mail, selected: boolean) => unknown) {
 		this.top = 0
 		this.entity = null
-		this.showFolderIcon = showFolderIcon
 		this.folderIconsDom = {} as Record<MailFolderType, HTMLElement>
 	}
 
@@ -46,14 +46,14 @@ export class MailRow implements VirtualRow<Mail> {
 		}
 
 		if (selected) {
-			this.domElement.classList.add("row-selected")
-
-			this.iconsDom.classList.add("secondary")
+			// this.innerContainerDom.classList.add("")
+			// FIXME
+			this.innerContainerDom.style.backgroundColor = "#F2F2F2" // theme.list_alternate_bg
 		} else {
-			this.domElement.classList.remove("row-selected")
-
-			this.iconsDom.classList.remove("secondary")
+			this.innerContainerDom.style.backgroundColor = ""
 		}
+
+		this.checkboxDom.checked = selected
 
 		this.iconsDom.textContent = this.iconsText(mail)
 		this.dateDom.textContent = formatDateTimeFromYesterdayOn(mail.receivedDate)
@@ -64,10 +64,12 @@ export class MailRow implements VirtualRow<Mail> {
 			this.unreadDom.classList.remove("hidden")
 
 			this.subjectDom.classList.add("b")
+			this.senderDom.classList.add("b")
 		} else {
 			this.unreadDom.classList.add("hidden")
 
 			this.subjectDom.classList.remove("b")
+			this.senderDom.classList.remove("b")
 		}
 
 		if (isTutanotaTeamMail(mail)) {
@@ -81,49 +83,70 @@ export class MailRow implements VirtualRow<Mail> {
 	 * Only the structure is managed by mithril. We set all contents on our own (see update) in order to avoid the vdom overhead (not negligible on mobiles)
 	 */
 	render(): Children {
-		return m(".flex", [
-			m(
-				".flex.items-start.flex-no-grow.no-shrink.pr-s.pb-xs",
-				m(".dot.bg-accent-fg.hidden", {
-					oncreate: (vnode) => (this.unreadDom = vnode.dom as HTMLElement),
-				}),
-			),
-			m(".flex-grow.min-width-0", [
-				m(".top.flex.badge-line-height", [
-					m(
-						Badge,
-						{
-							classes: ".small.mr-s",
-							oncreate: (vnode) => (this.teamLabelDom = vnode.dom as HTMLElement),
-						},
-						"Tutanota Team",
-					),
-					m("small.text-ellipsis", {
-						oncreate: (vnode) => (this.senderDom = vnode.dom as HTMLElement),
-					}),
-					m(".flex-grow"),
-					m("small.text-ellipsis.flex-fixed", {
-						oncreate: (vnode) => (this.dateDom = vnode.dom as HTMLElement),
-					}),
-				]),
+		return m(
+			".flex.mt-s.mb-s.border-radius.pt-s.pb-s.pl-s.pr.mlr",
+			{
+				oncreate: (vnode) => {
+					this.innerContainerDom = vnode.dom as HTMLElement
+				},
+			},
+			[
 				m(
-					".bottom.flex-space-between",
-					{
-						style: {
-							marginTop: px(2),
+					".flex.col.items-center.flex-no-grow.no-shrink.pr-s.pb-xs",
+					m("input[type=checkbox]", {
+						onclick: (e: MouseEvent) => {
+							e.stopPropagation()
+							// e.redraw = false
 						},
-					},
-					[
-						m(".text-ellipsis.flex-grow", {
+						onchange: () => {
+							this.entity && this.onSelected(this.entity, this.checkboxDom.checked)
+						},
+						oncreate: (vnode) => {
+							this.checkboxDom = vnode.dom as HTMLInputElement
+						},
+					}),
+					m(".dot.bg-accent-fg.hidden", {
+						oncreate: (vnode) => (this.unreadDom = vnode.dom as HTMLElement),
+					}),
+				),
+				m(".flex-grow.min-width-0", [
+					m(".top.flex.badge-line-height", [
+						m(".text-ellipsis.smaller", {
 							oncreate: (vnode) => (this.subjectDom = vnode.dom as HTMLElement),
 						}),
-						m("span.ion.ml-s.list-font-icons.secondary", {
-							oncreate: (vnode) => (this.iconsDom = vnode.dom as HTMLElement),
+						m(".flex-grow"),
+						m("small.text-ellipsis.flex-fixed", {
+							oncreate: (vnode) => (this.dateDom = vnode.dom as HTMLElement),
 						}),
-					],
-				),
-			]),
-		])
+					]),
+					m(
+						".flex",
+						{
+							style: {
+								marginTop: px(2),
+							},
+						},
+						[
+							m(
+								Badge,
+								{
+									classes: ".small.mr-s",
+									oncreate: (vnode) => (this.teamLabelDom = vnode.dom as HTMLElement),
+								},
+								"Tutanota Team",
+							),
+							m(".smaller.text-ellipsis", {
+								oncreate: (vnode) => (this.senderDom = vnode.dom as HTMLElement),
+							}),
+							m(".flex-grow"),
+							m("span.ion.ml-s.list-font-icons", {
+								oncreate: (vnode) => (this.iconsDom = vnode.dom as HTMLElement),
+							}),
+						],
+					),
+				]),
+			],
+		)
 	}
 
 	private iconsText(mail: Mail): string {

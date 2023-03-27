@@ -96,7 +96,7 @@ export class MailListView implements Component<MailListViewAttrs> {
 			sortCompare: sortCompareByReverseId,
 			elementSelected: (entities, elementClicked, selectionChanged, multiSelectionActive) =>
 				this.mailView?.elementSelected(entities, elementClicked, selectionChanged, multiSelectionActive),
-			createVirtualRow: () => new MailRow(false),
+			createVirtualRow: (onSelected) => new MailRow(false, onSelected),
 			className: className,
 			swipe: {
 				renderLeftSpacer: () =>

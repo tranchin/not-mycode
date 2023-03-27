@@ -56,6 +56,7 @@ export type SwipeConfiguration<ElementType> = {
 export interface VirtualRow<ElementType> {
 	render(): Children
 
+	// FIXME make list rows know if it's multiselection
 	update(listEntry: ElementType, selected: boolean): void
 
 	entity: ElementType | null
@@ -113,7 +114,7 @@ export interface ListConfig<ElementType, RowType extends VirtualRow<ElementType>
 	 */
 	dragStart?: (ev: DragEvent, vR: VirtualRow<ElementType>, selectedElements: ReadonlyArray<ElementType>) => void
 
-	createVirtualRow(): RowType
+	createVirtualRow(onSelected: (entity: ElementType, selected: boolean) => unknown): RowType
 
 	className: string
 	swipe: SwipeConfiguration<ElementType>
@@ -279,7 +280,7 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 				this.config.swipe.renderRightSpacer(),
 			),
 			m(
-				"ul.list.list-alternate-background.fill-absolute.click",
+				"ul.list.fill-absolute.click",
 				{
 					oncreate: (vnode) => this._setDomList(vnode.dom as HTMLElement),
 					style: {
@@ -303,15 +304,16 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 
 	private renderVirtualRow(virtualRow: RowType): Children {
 		return m(
-			"li.list-row.pl.pr-l",
+			"li.list-row",
 			{
 				draggable: this.config.dragStart ? "true" : undefined,
 				tabindex: TabIndex.Default,
 				oncreate: (vnode) => this.initRow(virtualRow, vnode.dom as HTMLElement),
 				style: {
 					transform: `translateY(-${this.config.rowHeight}px)`,
-					paddingTop: px(15),
-					paddingBottom: px(15),
+					// FIXME
+					// paddingTop: px(15),
+					// paddingBottom: px(15),
 				},
 				ondragstart: (event: DragEvent) => {
 					if (this.config.dragStart) {
@@ -326,7 +328,7 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 	private renderStatusRow(): Children {
 		// odd-row is toggled manually on the dom element when the number of elements changes
 		return m(
-			"li.list-row.odd-row",
+			"li.list-row",
 			{
 				oncreate: (vnode) => {
 					this.loadingIndicatorDom.resolve(vnode.dom as HTMLElement)
@@ -868,9 +870,14 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 		this.visibleElementsHeight = visibleElements * this.config.rowHeight
 
 		for (let i = 0; i < this.virtualList.length; i++) {
-			this.virtualList[i] = this.config.createVirtualRow()
+			this.virtualList[i] = this.config.createVirtualRow(this.onSelectedListenerForVirtualRow)
 			this.virtualList[i].top = i * this.config.rowHeight
 		}
+	}
+
+	// FIXME maybe List doesn't even need to know about these things and we could just do it from the outside and also trigger multiselect mode from there
+	private readonly onSelectedListenerForVirtualRow = (entity: ElementType, selected: boolean) => {
+		this.entitySelected(entity, selected)
 	}
 
 	private scroll() {
@@ -936,7 +943,7 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 					let pos = topElement.top / rowHeight
 					let entity = this.loadedEntities[pos]
 
-					this.updateVirtualRow(topElement, entity, (pos % 2) as any)
+					this.updateVirtualRow(topElement, entity)
 
 					this.virtualList.push(assertNotNull(this.virtualList.shift()))
 
@@ -960,7 +967,7 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 					let pos = bottomElement.top / rowHeight
 					let entity = this.loadedEntities[pos]
 
-					this.updateVirtualRow(bottomElement, entity, (pos % 2) as any)
+					this.updateVirtualRow(bottomElement, entity)
 
 					this.virtualList.unshift(assertNotNull(this.virtualList.pop()))
 
@@ -1048,16 +1055,8 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 			let pos = row.top / rowHeight
 			let entity = this.loadedEntities[pos]
 
-			this.updateVirtualRow(row, entity, (pos % 2) as any)
+			this.updateVirtualRow(row, entity)
 		}
-
-		this.loadingIndicatorDom.promise.then((dom) => {
-			if (this.loadedEntities.length % 2 === 0) {
-				dom.classList.add("odd-row")
-			} else {
-				dom.classList.add("odd-row")
-			}
-		})
 
 		log(Cat.debug, "repositioned list")
 		this.scrollUpdateLater = false
@@ -1075,16 +1074,10 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 		this.updateDomElements()
 	}
 
-	private updateVirtualRow(row: VirtualRow<ElementType>, entity: ElementType | null, odd: boolean) {
+	private updateVirtualRow(row: VirtualRow<ElementType>, entity: ElementType | null) {
 		row.entity = entity
 
 		if (row.domElement) {
-			if (odd) {
-				row.domElement.classList.remove("odd-row")
-			} else {
-				row.domElement.classList.add("odd-row")
-			}
-
 			if (entity) {
 				row.domElement.style.display = "list-item"
 				row.update(entity, this.isEntitySelected(getLetId(entity)[1]))

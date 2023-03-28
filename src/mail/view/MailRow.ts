@@ -40,7 +40,7 @@ export class MailRow implements VirtualRow<Mail> {
 		this.folderIconsDom = {} as Record<MailFolderType, HTMLElement>
 	}
 
-	update(mail: Mail, selected: boolean): void {
+	update(mail: Mail, selected: boolean, isInMultiSelect: boolean): void {
 		if (!this.domElement) {
 			return
 		}
@@ -53,7 +53,7 @@ export class MailRow implements VirtualRow<Mail> {
 			this.innerContainerDom.style.backgroundColor = ""
 		}
 
-		this.checkboxDom.checked = selected
+		this.checkboxDom.checked = isInMultiSelect && selected
 
 		this.iconsDom.textContent = this.iconsText(mail)
 		this.dateDom.textContent = formatDateTimeFromYesterdayOn(mail.receivedDate)
@@ -93,7 +93,8 @@ export class MailRow implements VirtualRow<Mail> {
 			[
 				m(
 					".flex.col.items-center.flex-no-grow.no-shrink.pr-s.pb-xs",
-					m("input[type=checkbox]", {
+					m("input", {
+						type: "checkbox",
 						onclick: (e: MouseEvent) => {
 							e.stopPropagation()
 							// e.redraw = false

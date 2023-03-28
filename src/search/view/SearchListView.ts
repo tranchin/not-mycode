@@ -1,5 +1,5 @@
 import m, { Children, Component } from "mithril"
-import { List, ListFetchResult } from "../../gui/base/List"
+import { List, ListFetchResult, VirtualRow } from "../../gui/base/List"
 import { assertMainOrNode } from "../../api/common/Env"
 import { lang } from "../../misc/LanguageViewModel"
 import { size } from "../../gui/size"
@@ -459,7 +459,7 @@ export class SearchListView implements Component {
 	}
 }
 
-export class SearchResultListRow {
+export class SearchResultListRow implements VirtualRow<SearchResultListEntry> {
 	top: number
 	domElement: HTMLElement | null = null // set from List
 
@@ -472,10 +472,10 @@ export class SearchResultListRow {
 		this.entity = null
 	}
 
-	update(entry: SearchResultListEntry, selected: boolean): void {
+	update(entry: SearchResultListEntry, selected: boolean, isInMultiSelect: boolean): void {
 		this._delegate.domElement = this.domElement
 
-		this._delegate.update(downcast(entry.entry), selected)
+		this._delegate.update(downcast(entry.entry), selected, isInMultiSelect)
 	}
 
 	render(): Children {

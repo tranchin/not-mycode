@@ -56,8 +56,7 @@ export type SwipeConfiguration<ElementType> = {
 export interface VirtualRow<ElementType> {
 	render(): Children
 
-	// FIXME make list rows know if it's multiselection
-	update(listEntry: ElementType, selected: boolean): void
+	update(listEntry: ElementType, selected: boolean, isInMultiSelect: boolean): void
 
 	entity: ElementType | null
 	top: number
@@ -114,7 +113,7 @@ export interface ListConfig<ElementType, RowType extends VirtualRow<ElementType>
 	 */
 	dragStart?: (ev: DragEvent, vR: VirtualRow<ElementType>, selectedElements: ReadonlyArray<ElementType>) => void
 
-	createVirtualRow(onSelected: (entity: ElementType, selected: boolean) => unknown): RowType
+	createVirtualRow(): RowType
 
 	className: string
 	swipe: SwipeConfiguration<ElementType>
@@ -176,7 +175,7 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 	/** The selected entities must be sorted the same way the loaded entities are sorted */
 	private selectedEntities: ElementType[] = []
 	/** We remember the last selected entities and only invoke callback from config if there was an actual difference. */
-	private lastSelectedEntitiesForCallback: ElementType[] = []
+	private lastSelectionState: { entities: ElementType[]; multiselect: boolean } = { entities: [], multiselect: false }
 	/** true if the last key multi selection action was selecting the previous entity, false if it was selecting the next entity */
 	private lastMultiSelectWasKeyUp = false
 	/**
@@ -184,6 +183,7 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 	 * This field remembers what we are waiting for.
 	 */
 	private idOfEntityToSelectWhenReceived: Id | null = null
+	private isInMultiSelect = false
 	/** Can be activated by holding on element in a list. When active, elements can be selected just by tapping them */
 	private mobileMultiSelectionActive: boolean = false
 
@@ -464,18 +464,19 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 	}
 
 	private initRow(virtualRow: RowType, domElement: HTMLElement) {
+		const LONG_PRESS_DURATION_MS = 400
 		let touchStartTime: number | null = null
 		virtualRow.domElement = domElement
 
 		domElement.onclick = (e) => {
-			if (!touchStartTime || Date.now() - touchStartTime < 400) {
-				virtualRow.entity && this.elementClicked(virtualRow.entity, e)
+			if (!touchStartTime || Date.now() - touchStartTime < LONG_PRESS_DURATION_MS) {
+				virtualRow.entity && this.handleEvent(virtualRow.entity, e)
 			}
 		}
 
 		domElement.onkeyup = (e) => {
 			if (isKeyPressed(e.keyCode, Keys.SPACE, Keys.RETURN)) {
-				virtualRow.entity && this.elementClicked(virtualRow.entity, e)
+				virtualRow.entity && this.handleEvent(virtualRow.entity, e)
 			}
 		}
 
@@ -493,11 +494,11 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 					if (virtualRow.entity && !this.isEntitySelected(virtualRow.entity._id[1])) {
 						clearArr(this.selectedEntities)
 
-						this.elementClicked(virtualRow.entity, e)
+						this.handleEvent(virtualRow.entity, e)
 					} else {
 						m.redraw() // only header changes we don't need updateDomElements here
 					}
-				}, 400)
+				}, LONG_PRESS_DURATION_MS)
 				touchStartCoords = {
 					x: e.touches[0].pageX,
 					y: e.touches[0].pageY,
@@ -537,20 +538,45 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 	 * If shift is pressed, all items beginning from the nearest selected item to the clicked item are additionally selected.
 	 * If neither ctrl nor shift are pressed only the clicked item is selected.
 	 */
-	private elementClicked(clickedEntity: ElementType, event: TouchEvent | MouseEvent | KeyboardEvent) {
-		let selectionChanged = false
-		let multiSelect = false
+	private handleEvent(clickedEntity: ElementType, event: TouchEvent | MouseEvent | KeyboardEvent) {
+		// normal click changes the selection to a single
+		// ctrl click toggles the selection for an item and enables multiselect
+		// shift click selects a lot of things and enabled multiselect
+		// (there are also key press handlers but they are invoked from another place)
+		let changeType: Parameters<typeof this.changeSelection>[1]
+		if (event.ctrlKey || (client.isMacOS && event.metaKey)) {
+			changeType = "togglingSingle"
+		} else if (event.shiftKey) {
+			changeType = "range"
+		} else {
+			changeType = "single"
+		}
+		this.changeSelection(clickedEntity, changeType)
+	}
 
-		if (this.config.multiSelectionAllowed && (this.mobileMultiSelectionActive || (client.isMacOS ? event.metaKey : event.ctrlKey))) {
+	toggleMultiSelectForEntity(entity: ElementType) {
+		this.changeSelection(entity, "togglingSingle")
+	}
+
+	private changeSelection(clickedEntity: ElementType, changeType: "single" | "togglingSingle" | "range") {
+		let selectionChanged = false
+		let multiSelect: boolean
+
+		if (this.config.multiSelectionAllowed && (this.mobileMultiSelectionActive || changeType === "togglingSingle")) {
 			selectionChanged = true
 			multiSelect = true
+			selectionChanged = true
 
-			if (this.selectedEntities.indexOf(clickedEntity) !== -1) {
-				remove(this.selectedEntities, clickedEntity)
+			if (this.isInMultiSelect) {
+				if (this.selectedEntities.indexOf(clickedEntity) !== -1) {
+					remove(this.selectedEntities, clickedEntity)
+				} else {
+					this.selectedEntities.push(clickedEntity)
+				}
 			} else {
-				this.selectedEntities.push(clickedEntity)
+				this.selectedEntities = [clickedEntity]
 			}
-		} else if (this.config.multiSelectionAllowed && event.shiftKey) {
+		} else if (this.config.multiSelectionAllowed && changeType === "range") {
 			multiSelect = true
 
 			if (this.selectedEntities.length === 0) {
@@ -593,11 +619,20 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 				selectionChanged = itemsToAddToSelection.length > 0
 			}
 		} else {
-			if (!arrayEquals(this.selectedEntities, [clickedEntity])) {
+			multiSelect = false
+			if (!arrayEquals(this.selectedEntities, [clickedEntity]) || this.isInMultiSelect) {
 				this.selectedEntities.splice(0, this.selectedEntities.length, clickedEntity)
 
 				selectionChanged = true
 			}
+		}
+
+		// must be done before updateDomElements()
+		if (this.selectedEntities.length === 0) {
+			this.mobileMultiSelectionActive = false
+			this.isInMultiSelect = false
+		} else {
+			this.isInMultiSelect = multiSelect
 		}
 
 		if (selectionChanged) {
@@ -605,10 +640,6 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 			this.selectedEntities.sort(this.config.sortCompare)
 
 			this.updateDomElements()
-		}
-
-		if (this.selectedEntities.length === 0) {
-			this.mobileMultiSelectionActive = false
 		}
 
 		this.elementSelected(this.getSelectedEntities(), true, multiSelect)
@@ -625,10 +656,11 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 		}
 	}
 
-	private entitySelected(entity: ElementType, addToSelection: boolean) {
-		if (addToSelection) {
+	private entitySelected(entity: ElementType, multiselect: boolean) {
+		if (multiselect) {
 			if (this.selectedEntities.indexOf(entity) === -1) {
 				this.selectedEntities.push(entity)
+				this.isInMultiSelect = true
 
 				// the selected entities must be sorted the same way the loaded entities are sorted
 				this.selectedEntities.sort(this.config.sortCompare)
@@ -639,6 +671,8 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 			}
 		} else {
 			let selectionChanged = this.selectedEntities.length !== 1 || this.selectedEntities[0] !== entity
+			// must be done before updateDomElements()
+			this.isInMultiSelect = false
 
 			if (selectionChanged) {
 				this.selectedEntities = [entity]
@@ -646,21 +680,24 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 				this.updateDomElements()
 			}
 
+
 			if (this.selectedEntities.length === 0) {
 				this.mobileMultiSelectionActive = false
 			}
 
-			this.elementSelected(this.getSelectedEntities(), false, false)
+			this.elementSelected(this.getSelectedEntities(), false, this.isInMultiSelect)
 		}
 	}
 
 	private elementSelected = debounceStart(200, (entities: ElementType[], elementClicked: boolean, multiSelectOperation: boolean) => {
 		const selectionChanged =
-			this.lastSelectedEntitiesForCallback.length !== entities.length || this.lastSelectedEntitiesForCallback.some((el, i) => entities[i] !== el)
+			this.lastSelectionState.multiselect != multiSelectOperation ||
+			this.lastSelectionState.entities.length !== entities.length ||
+			this.lastSelectionState.entities.some((el, i) => entities[i] !== el)
 
 		this.config.elementSelected(entities, elementClicked, selectionChanged, multiSelectOperation)
 
-		this.lastSelectedEntitiesForCallback = entities
+		this.lastSelectionState = { entities, multiselect: multiSelectOperation }
 	})
 
 	selectNext(shiftPressed: boolean) {
@@ -734,6 +771,7 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 
 	selectNone() {
 		this.mobileMultiSelectionActive = false
+		this.isInMultiSelect = false
 
 		if (this.selectedEntities.length > 0) {
 			this.selectedEntities = []
@@ -870,14 +908,9 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 		this.visibleElementsHeight = visibleElements * this.config.rowHeight
 
 		for (let i = 0; i < this.virtualList.length; i++) {
-			this.virtualList[i] = this.config.createVirtualRow(this.onSelectedListenerForVirtualRow)
+			this.virtualList[i] = this.config.createVirtualRow()
 			this.virtualList[i].top = i * this.config.rowHeight
 		}
-	}
-
-	// FIXME maybe List doesn't even need to know about these things and we could just do it from the outside and also trigger multiselect mode from there
-	private readonly onSelectedListenerForVirtualRow = (entity: ElementType, selected: boolean) => {
-		this.entitySelected(entity, selected)
 	}
 
 	private scroll() {
@@ -1080,7 +1113,7 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 		if (row.domElement) {
 			if (entity) {
 				row.domElement.style.display = "list-item"
-				row.update(entity, this.isEntitySelected(getLetId(entity)[1]))
+				row.update(entity, this.isEntitySelected(getLetId(entity)[1]), this.isInMultiSelect)
 			} else {
 				row.domElement.style.display = "none"
 			}

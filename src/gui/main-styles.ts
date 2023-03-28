@@ -1758,6 +1758,8 @@ styles.registerStyle("main", () => {
 		},
 		".checkbox": {
 			appearance: "none",
+			// reset browser style
+			margin: "0",
 			display: "block",
 			width: "14px",
 			height: "14px",

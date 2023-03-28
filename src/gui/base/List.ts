@@ -558,6 +558,15 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 		this.changeSelection(entity, "togglingSingle")
 	}
 
+	selectAll() {
+		this.selectedEntities = this.loadedEntities.slice()
+		this.isInMultiSelect = true
+
+		this.updateDomElements()
+
+		this.elementSelected(this.selectedEntities, true, true)
+	}
+
 	private changeSelection(clickedEntity: ElementType, changeType: "single" | "togglingSingle" | "range") {
 		let selectionChanged = false
 		let multiSelect: boolean
@@ -679,7 +688,6 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 
 				this.updateDomElements()
 			}
-
 
 			if (this.selectedEntities.length === 0) {
 				this.mobileMultiSelectionActive = false

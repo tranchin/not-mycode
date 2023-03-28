@@ -92,7 +92,7 @@ export class MailRow implements VirtualRow<Mail> {
 			},
 			[
 				m(
-					".flex.col.items-center.flex-no-grow.no-shrink.pr-s.pb-xs",
+					".flex.col.items-center.flex-no-grow.no-shrink.pr-s.pt-xs",
 					m("input.checkbox", {
 						type: "checkbox",
 						onclick: (e: MouseEvent) => {

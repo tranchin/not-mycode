@@ -8,7 +8,7 @@ import type { Mail, MailFolder } from "../../api/entities/tutanota/TypeRefs.js"
 import { MailTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
 import { canDoDragAndDropExport, getFolderName } from "../model/MailUtils"
 import { NotFoundError } from "../../api/common/error/RestError"
-import { size } from "../../gui/size"
+import { px, size } from "../../gui/size"
 import { styles } from "../../gui/styles"
 import { Icon } from "../../gui/base/Icon"
 import { Icons } from "../../gui/base/icons/Icons"
@@ -443,28 +443,40 @@ export class MailListView implements Component<MailListViewAttrs> {
 									m(".mr-negative-s.align-self-end", m(Button, purgeButtonAttrs)),
 								]),
 						  ]
-						// FIXME: render this independent on trash/spam but not on mobile
-						: m(".flex.justify-end.pt-xs.pb-xs", [
-							m(IconButton, {
-								icon: Icons.Trash,
-								title: "delete_action",
-								click: noOp,
-							}),
-							m(IconButton, {
-								icon: Icons.Folder,
-								title: "move_action",
-								click: noOp,
-							}),
-							m(IconButton, {
-								icon: Icons.Eye,
-								title: "markRead_action",
-								click: noOp,
-							}),
-						]),
+						: // FIXME: render this independent on trash/spam but not on mobile
+						  m(".flex.pt-xs.pb-xs.items-center", [
+								// matching MailRow spacing here
+								m(
+									".flex.items-center.pl-s.mlr",
+									{
+										style: {
+											height: px(size.button_height),
+										},
+									},
+									this.renderSelectAll(),
+								),
+						  ]),
 				},
 				m(this.list),
 			),
 		)
+	}
+
+	private renderSelectAll() {
+		const selectedEntities = this.list.getSelectedEntities()
+		return m("input.checkbox", {
+			type: "checkbox",
+			// I'm not sure this is the best condition but it will do for now
+			checked: selectedEntities.length > 0 && selectedEntities.length === this.list.getLoadedEntities().length,
+			onchange: (e: Event) => {
+				const checkbox = e.target as HTMLInputElement
+				if (checkbox.checked) {
+					this.list.selectAll()
+				} else {
+					this.list.selectNone()
+				}
+			},
+		})
 	}
 
 	oncreate(vnode: VnodeDOM<MailListViewAttrs>) {

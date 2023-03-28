@@ -1784,7 +1784,7 @@ styles.registerStyle("main", () => {
 			right: 0,
 			bottom: 0,
 			"line-height": "12px",
-			color: "white",
+			color: theme.content_bg,
 			"align-items": "center",
 			width: "12px",
 			height: "12px",

@@ -8,6 +8,7 @@ import m, { Children } from "mithril"
 import Badge from "../../gui/base/Badge"
 import { px } from "../../gui/size"
 import type { VirtualRow } from "../../gui/base/List"
+import { theme } from "../../gui/theme.js"
 
 const iconMap: Record<MailFolderType, string> = {
 	[MailFolderType.CUSTOM]: FontIcons.Folder,
@@ -46,9 +47,7 @@ export class MailRow implements VirtualRow<Mail> {
 		}
 
 		if (selected) {
-			// this.innerContainerDom.classList.add("")
-			// FIXME
-			this.innerContainerDom.style.backgroundColor = "#F2F2F2" // theme.list_alternate_bg
+			this.innerContainerDom.style.backgroundColor = theme.list_alternate_bg // "#F2F2F2" would be swell
 		} else {
 			this.innerContainerDom.style.backgroundColor = ""
 		}

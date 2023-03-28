@@ -53,7 +53,8 @@ export class MailRow implements VirtualRow<Mail> {
 			this.innerContainerDom.style.backgroundColor = ""
 		}
 
-		this.checkboxDom.checked = isInMultiSelect && selected
+		const checked = isInMultiSelect && selected
+		this.checkboxDom.checked = checked
 
 		this.iconsDom.textContent = this.iconsText(mail)
 		this.dateDom.textContent = formatDateTimeFromYesterdayOn(mail.receivedDate)
@@ -93,7 +94,7 @@ export class MailRow implements VirtualRow<Mail> {
 			[
 				m(
 					".flex.col.items-center.flex-no-grow.no-shrink.pr-s.pb-xs",
-					m("input", {
+					m("input.checkbox", {
 						type: "checkbox",
 						onclick: (e: MouseEvent) => {
 							e.stopPropagation()

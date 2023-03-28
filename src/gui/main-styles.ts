@@ -7,6 +7,8 @@ import { assertMainOrNodeBoot, isAdminClient, isApp, isElectronClient } from "..
 import { getElevatedBackground, getNavigationMenuBg, theme } from "./theme"
 import { BrowserType } from "../misc/ClientConstants"
 import { stateBgActive, stateBgFocus, stateBgHover } from "./builtinThemes.js"
+import { FontIcons } from "./base/icons/FontIcons.js"
+import { DefaultAnimationTime } from "./animation/Animations.js"
 
 assertMainOrNodeBoot()
 
@@ -1753,6 +1755,39 @@ styles.registerStyle("main", () => {
 			"border-width": "1.5px",
 			"border-style": "solid",
 			"border-radius": "2px",
+		},
+		".checkbox": {
+			appearance: "none",
+			display: "block",
+			width: "14px",
+			height: "14px",
+			border: `2px solid ${theme.content_button}`,
+			"border-radius": "3px",
+			"position": "relative",
+			transition: `all ${DefaultAnimationTime}ms cubic-bezier(.4,.0,.23,1)`
+		},
+		".checkbox:checked": {
+			border: `7px solid ${theme.content_accent}`,
+		},
+		".checkbox:checked:after": {
+			display: "inline-flex",
+		},
+		".checkbox:after": {
+			"font-family": "'Ionicons'",
+			content: `'${FontIcons.Checkbox}'`,
+			position: "absolute",
+			display: "none",
+			"font-size": "12px",
+			// related to border width
+			top: "-6px",
+			left: "-6px",
+			right: 0,
+			bottom: 0,
+			"line-height": "12px",
+			color: "white",
+			"align-items": "center",
+			width: "12px",
+			height: "12px",
 		},
 		".calendar-alternate-background": {
 			background: `${theme.list_alternate_bg} !important`,

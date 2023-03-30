@@ -16,12 +16,17 @@ import { attachDropdown, DropdownButtonAttrs } from "../../gui/base/Dropdown.js"
 import { exportMails } from "../export/Exporter"
 import { showProgressDialog } from "../../gui/dialogs/ProgressDialog"
 import { IconButtonAttrs } from "../../gui/base/IconButton.js"
+import { Button, ButtonType } from "../../gui/base/Button.js"
+import { progressIcon } from "../../gui/base/Icon.js"
 
 assertMainOrNode()
 
 export type MultiMailViewerAttrs = {
 	selectedEntities: Array<Mail>
 	selectNone: () => unknown
+	loadingAll: boolean
+	loadAll: () => unknown
+	stopLoadAll: () => unknown
 }
 
 /**
@@ -29,7 +34,7 @@ export type MultiMailViewerAttrs = {
  */
 export class MultiMailViewer implements Component<MultiMailViewerAttrs> {
 	view({ attrs }: Vnode<MultiMailViewerAttrs>) {
-		const { selectedEntities, selectNone } = attrs
+		const { selectedEntities, selectNone, loadAll, loadingAll, stopLoadAll } = attrs
 		return [
 			m(
 				".fill-absolute.mt-xs",
@@ -48,6 +53,25 @@ export class MultiMailViewer implements Component<MultiMailViewerAttrs> {
 										buttons: getMultiMailViewerActionButtonAttrs(selectedEntities, selectNone, true),
 									}),
 								],
+								loadingAll
+									? [
+											progressIcon(),
+											m(Button, {
+												label: "cancel_action",
+												type: ButtonType.Secondary,
+												click: () => {
+													stopLoadAll()
+												},
+											}),
+									  ]
+									: m(Button, {
+											// FIXME
+											label: () => "Load all",
+											type: ButtonType.Secondary,
+											click: () => {
+												loadAll()
+											},
+									  }),
 							),
 					  ]
 					: m(ColumnEmptyMessageBox, {

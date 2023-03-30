@@ -100,6 +100,7 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 
 	private expandedState: Set<Id>
 	private mailboxSubscription: Stream<void> | null = null
+	private loadingAllForMailList: Id | null = null
 
 	get conversationViewModel(): ConversationViewModel | null {
 		return this.cache.conversationViewModel
@@ -150,12 +151,6 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 		this.mailColumn = new ViewColumn(
 			{
 				view: () => {
-					const multiMailViewerAttrs = {
-						selectedEntities: this.cache.mailList?.list.getSelectedEntities() ?? [],
-						selectNone: () => {
-							this.cache.mailList?.list.selectNone()
-						},
-					}
 					return m(
 						".mail",
 						this.conversationViewModel != null
@@ -164,7 +159,15 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 									key: getElementId(this.conversationViewModel.primaryMail),
 									viewModel: this.conversationViewModel,
 							  })
-							: m(MultiMailViewer, multiMailViewerAttrs),
+							: m(MultiMailViewer, {
+									selectedEntities: this.cache.mailList?.list.getSelectedEntities() ?? [],
+									selectNone: () => {
+										this.cache.mailList?.list.selectNone()
+									},
+									loadAll: () => this.loadAll(),
+									stopLoadAll: () => (this.loadingAllForMailList = null),
+									loadingAll: this.loadingAllForMailList != null && this.loadingAllForMailList === this.cache.mailList?.listId,
+							  }),
 					)
 				},
 			},
@@ -256,6 +259,29 @@ export class MailView extends BaseTopLevelView implements TopLevelView<MailViewA
 						: m(BottomNav),
 			}),
 		)
+	}
+
+	async loadAll() {
+		if (this.loadingAllForMailList != null) return
+		this.loadingAllForMailList = this.cache.mailList?.listId ?? null
+		this.cache.mailList?.list.selectAll()
+		try {
+			// use cache reference always to not capture the list when the cache is already changed
+			while (
+				this.cache.mailList &&
+				this.loadingAllForMailList &&
+				this.cache.mailList?.listId === this.loadingAllForMailList &&
+				!this.cache.mailList.list.isLoadedCompletely()
+			) {
+				const mailList = this.cache.mailList
+				// even if the list will change it will be another list so it's safe to call selectAll() still
+				await mailList.list.loadMoreItems()
+				mailList.list.selectAll()
+			}
+		} finally {
+			this.loadingAllForMailList = null
+			m.redraw()
+		}
 	}
 
 	private onUpdateMailboxDetails(mailboxDetails: MailboxDetail[]) {

@@ -837,6 +837,12 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 		this.updateListHeight()
 	}
 
+	// FIXME is it okay to make it public? should fix concurrency somehow?
+	async loadMoreItems() {
+		await this.loadMore()
+		this.updateListHeight()
+	}
+
 	private async loadMore(): Promise<void> {
 		try {
 			await this.loadingState.trackPromise(this.loadAndAppendAnotherChunk())
@@ -882,6 +888,10 @@ export class List<ElementType extends ListElement, RowType extends VirtualRow<El
 	setLoadedCompletely() {
 		this.loadedCompletely = true
 		this.loadingState.setIdle()
+	}
+
+	isLoadedCompletely(): boolean {
+		return this.loadedCompletely
 	}
 
 	displaySpinner() {

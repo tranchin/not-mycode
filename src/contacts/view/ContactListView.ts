@@ -19,6 +19,7 @@ import { theme } from "../../gui/theme.js"
 import { IconButton } from "../../gui/base/IconButton.js"
 import { Icons } from "../../gui/base/icons/Icons.js"
 import { createDropdown } from "../../gui/base/Dropdown.js"
+import { SelectableRowContainer } from "../../SelectableRowContainer.js"
 
 assertMainOrNode()
 const className = "contact-list"
@@ -93,18 +94,18 @@ export class ContactListView {
 							click: (e: MouseEvent, dom: HTMLElement) => {
 								createDropdown({
 									lazyButtons: () => [
-											{
-												label: "firstName_placeholder",
-												click: () => sortByFirstName(true)
-											},
-											{
-												label: "lastName_placeholder",
-												click: () => sortByFirstName(false),
-											},
-										],
+										{
+											label: "firstName_placeholder",
+											click: () => sortByFirstName(true),
+										},
+										{
+											label: "lastName_placeholder",
+											click: () => sortByFirstName(false),
+										},
+									],
 								})(e, dom)
-							}
-						})
+							},
+						}),
 					]),
 				},
 				m(this.list),
@@ -171,40 +172,38 @@ export class ContactRow implements VirtualRow<Contact> {
 	 * Only the structure is managed by mithril. We set all contents on our own (see update) in order to avoid the vdom overhead (not negligible on mobiles)
 	 */
 	render(): Children {
-		return [
-			m(
-				".flex.mt-s.mb-s.border-radius.pt-s.pb-s.pl-s.pr.mlr",
-				{
-					oncreate: (vnode) => {
-						this.innerContainerDom = vnode.dom as HTMLElement
-					},
+		return m(
+			SelectableRowContainer,
+			{
+				oncreate: (vnode) => {
+					this.innerContainerDom = vnode.dom as HTMLElement
 				},
-				m(".mt-xs.mr-s", [
-					m("input.checkbox", {
-						type: "checkbox",
-						onclick: (e: MouseEvent) => {
-							e.stopPropagation()
-							// e.redraw = false
-						},
-						onchange: () => {
-							this.entity && this.onSelected(this.entity, this.checkboxDom.checked)
-						},
-						oncreate: (vnode) => {
-							this.checkboxDom = vnode.dom as HTMLInputElement
-						},
+			},
+			m(".mt-xs.mr-s", [
+				m("input.checkbox", {
+					type: "checkbox",
+					onclick: (e: MouseEvent) => {
+						e.stopPropagation()
+						// e.redraw = false
+					},
+					onchange: () => {
+						this.entity && this.onSelected(this.entity, this.checkboxDom.checked)
+					},
+					oncreate: (vnode) => {
+						this.checkboxDom = vnode.dom as HTMLInputElement
+					},
+				}),
+			]),
+			m(".flex.col", [
+				m("", [
+					m(".text-ellipsis.smaller", {
+						oncreate: (vnode) => (this.domName = vnode.dom as HTMLElement),
 					}),
 				]),
-				m(".flex.col", [
-					m("", [
-						m(".text-ellipsis.smaller", {
-							oncreate: (vnode) => (this.domName = vnode.dom as HTMLElement),
-						}),
-					]),
-					m(".mail-address.smaller", {
-						oncreate: (vnode) => (this.domAddress = vnode.dom as HTMLElement),
-					}),
-				]),
-			),
-		]
+				m(".mail-address.smaller", {
+					oncreate: (vnode) => (this.domAddress = vnode.dom as HTMLElement),
+				}),
+			]),
+		)
 	}
 }

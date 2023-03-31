@@ -9,6 +9,7 @@ import Badge from "../../gui/base/Badge"
 import { px } from "../../gui/size"
 import type { VirtualRow } from "../../gui/base/List"
 import { theme } from "../../gui/theme.js"
+import { SelectableRowContainer } from "../../SelectableRowContainer.js"
 
 const iconMap: Record<MailFolderType, string> = {
 	[MailFolderType.CUSTOM]: FontIcons.Folder,
@@ -47,7 +48,7 @@ export class MailRow implements VirtualRow<Mail> {
 		}
 
 		// "#F2F2F2" would be swell
-		this.innerContainerDom.style.backgroundColor =  selected ? theme.list_alternate_bg : ""
+		this.innerContainerDom.style.backgroundColor = selected ? theme.list_alternate_bg : ""
 		this.checkboxDom.checked = isInMultiSelect && selected
 
 		this.iconsDom.textContent = this.iconsText(mail)
@@ -79,7 +80,7 @@ export class MailRow implements VirtualRow<Mail> {
 	 */
 	render(): Children {
 		return m(
-			".flex.mt-s.mb-s.border-radius.pt-s.pb-s.pl-s.pr.mlr",
+			SelectableRowContainer,
 			{
 				oncreate: (vnode) => {
 					this.innerContainerDom = vnode.dom as HTMLElement
@@ -108,7 +109,7 @@ export class MailRow implements VirtualRow<Mail> {
 				m(".flex-grow.min-width-0", [
 					m(".flex.badge-line-height", [
 						m(".text-ellipsis.smaller", {
-							oncreate: (vnode) => (this.subjectDom = vnode.dom as HTMLElement),
+							oncreate: (vnode) => (this.senderDom = vnode.dom as HTMLElement),
 						}),
 						m(".flex-grow"),
 						m("small.text-ellipsis.flex-fixed", {
@@ -132,7 +133,7 @@ export class MailRow implements VirtualRow<Mail> {
 								"Tutanota Team",
 							),
 							m(".smaller.text-ellipsis", {
-								oncreate: (vnode) => (this.senderDom = vnode.dom as HTMLElement),
+								oncreate: (vnode) => (this.subjectDom = vnode.dom as HTMLElement),
 							}),
 							m(".flex-grow"),
 							m("span.ion.ml-s.list-font-icons", {

@@ -197,7 +197,7 @@ export class SearchListView implements Component {
 				this._searchView.elementSelected(entities, elementClicked, selectionChanged, multiSelectionActive)
 			},
 			// FIXME
-			createVirtualRow: () => new SearchResultListRow(m.route.param("category") === "mail" ? new MailRow(true, noOp) : new ContactRow()),
+			createVirtualRow: () => new SearchResultListRow(m.route.param("category") === "mail" ? new MailRow(true, noOp) : new ContactRow(noOp)),
 			className: m.route.param("category") === "mail" ? "mail-list" : "contact-list",
 			swipe: {
 				renderLeftSpacer: () => [],

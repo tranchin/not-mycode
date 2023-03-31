@@ -16,7 +16,7 @@ import { logins } from "../../api/main/LoginController"
 import type { ButtonAttrs } from "../../gui/base/Button.js"
 import { Button, ButtonColor, ButtonType } from "../../gui/base/Button.js"
 import { Dialog } from "../../gui/base/Dialog"
-import { assertNotNull, AsyncResult, count, debounce, downcast, neverNull, noOp, ofClass, promiseFilter, promiseMap } from "@tutao/tutanota-utils"
+import { assertNotNull, AsyncResult, count, debounce, downcast, neverNull, ofClass, promiseFilter, promiseMap } from "@tutao/tutanota-utils"
 import { locator } from "../../api/main/MainLocator"
 import { getLetId, haveSameId, sortCompareByReverseId } from "../../api/common/utils/EntityUtils"
 import { moveMails, promptAndDeleteMails } from "./MailGuiUtils"
@@ -33,7 +33,6 @@ import { isOfflineError } from "../../api/common/utils/ErrorCheckUtils.js"
 import { FolderSystem } from "../../api/common/mail/FolderSystem.js"
 import { EntityUpdateData, isUpdateForTypeRef } from "../../api/main/EventController.js"
 import { assertSystemFolderOfType, isOfTypeOrSubfolderOf, isSpamOrTrashFolder } from "../../api/common/mail/CommonMailUtils.js"
-import { IconButton } from "../../gui/base/IconButton.js"
 
 assertMainOrNode()
 const className = "mail-list"
@@ -436,26 +435,28 @@ export class MailListView implements Component<MailListViewAttrs> {
 			m(
 				ListColumnWrapper,
 				{
-					headerContent: this.showingSpamOrTrash
-						? [
-								m(".flex.flex-column.plr-l", [
-									m(".small.flex-grow.pt", lang.get("storageDeletion_msg")),
-									m(".mr-negative-s.align-self-end", m(Button, purgeButtonAttrs)),
-								]),
-						  ]
-						: // FIXME: render this independent on trash/spam but not on mobile
-						  m(".flex.pt-xs.pb-xs.items-center", [
-								// matching MailRow spacing here
-								m(
-									".flex.items-center.pl-s.mlr",
-									{
-										style: {
-											height: px(size.button_height),
-										},
+					headerContent: m(".flex.col", [
+						m(".flex.pt-xs.pb-xs.items-center", [
+							// matching MailRow spacing here
+							m(
+								".flex.items-center.pl-s.mlr",
+								{
+									style: {
+										height: px(size.button_height),
 									},
-									this.renderSelectAll(),
-								),
-						  ]),
+								},
+								this.renderSelectAll(),
+							),
+						]),
+						this.showingSpamOrTrash
+							? [
+									m(".flex.flex-column.plr-l", [
+										m(".small.flex-grow.pt", lang.get("storageDeletion_msg")),
+										m(".mr-negative-s.align-self-end", m(Button, purgeButtonAttrs)),
+									]),
+							  ]
+							: null,
+					]),
 				},
 				m(this.list),
 			),

@@ -46,14 +46,9 @@ export class MailRow implements VirtualRow<Mail> {
 			return
 		}
 
-		if (selected) {
-			this.innerContainerDom.style.backgroundColor = theme.list_alternate_bg // "#F2F2F2" would be swell
-		} else {
-			this.innerContainerDom.style.backgroundColor = ""
-		}
-
-		const checked = isInMultiSelect && selected
-		this.checkboxDom.checked = checked
+		// "#F2F2F2" would be swell
+		this.innerContainerDom.style.backgroundColor =  selected ? theme.list_alternate_bg : ""
+		this.checkboxDom.checked = isInMultiSelect && selected
 
 		this.iconsDom.textContent = this.iconsText(mail)
 		this.dateDom.textContent = formatDateTimeFromYesterdayOn(mail.receivedDate)
@@ -111,7 +106,7 @@ export class MailRow implements VirtualRow<Mail> {
 					}),
 				),
 				m(".flex-grow.min-width-0", [
-					m(".top.flex.badge-line-height", [
+					m(".flex.badge-line-height", [
 						m(".text-ellipsis.smaller", {
 							oncreate: (vnode) => (this.subjectDom = vnode.dom as HTMLElement),
 						}),

@@ -12,8 +12,7 @@ let dataProvider: FeatureListProvider | null = null
 export class FeatureListProvider {
 	private featureList: FeatureLists | null = null
 
-	private constructor() {
-	}
+	private constructor() {}
 
 	private async init(): Promise<void> {
 		if ("undefined" === typeof fetch) return
@@ -29,7 +28,7 @@ export class FeatureListProvider {
 
 	private countFeatures(categories: FeatureCategory[]): void {
 		const featureCounts = new Map<string, { max: number }>()
-		categories.forEach(category => {
+		categories.forEach((category) => {
 			var count = featureCounts.get(category.title)
 			const numberOfFeatures = category.features.length
 			if (count == null || numberOfFeatures > count.max) {
@@ -176,7 +175,7 @@ export type FeatureListItem = {
  * subtitle: the short text shown below the subscription name in the buy box
  * features: flat, ordered list of features for this subscription type
  */
-type FeatureLists = { [K in SubscriptionType]: { subtitle: string; categories: Array<FeatureCategory>; } }
+type FeatureLists = { [K in SubscriptionType]: { subtitle: string; categories: Array<FeatureCategory> } }
 
 /**
  * @returns the name to show to the user for the current subscription (PremiumBusiness -> Premium etc.)

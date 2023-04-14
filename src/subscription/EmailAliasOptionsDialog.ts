@@ -5,7 +5,6 @@ import type { BuyOptionBoxAttr } from "./BuyOptionBox"
 import { BuyOptionBox, updateBuyOptionBoxPriceInformation } from "./BuyOptionBox"
 import { Dialog, DialogType } from "../gui/base/Dialog"
 import { Button, ButtonType } from "../gui/base/Button.js"
-import { showBuyDialogToBookItem } from "./BuyDialog"
 import { locator } from "../api/main/MainLocator"
 
 export async function show(): Promise<void> {
@@ -42,7 +41,7 @@ export async function show(): Promise<void> {
 				),
 			],
 		})
-	})
+	}) as Promise<void>
 }
 
 function createEmailAliasPackageBox(
@@ -74,7 +73,7 @@ function createEmailAliasPackageBox(
 		paymentInterval: null,
 		showReferenceDiscount: false,
 		renderCategoryTitle: false,
-		mobile: false
+		mobile: false,
 	}
 	updateBuyOptionBoxPriceInformation(locator.bookingFacade, BookingItemFeatureType.Alias, amount, attrs)
 	return {

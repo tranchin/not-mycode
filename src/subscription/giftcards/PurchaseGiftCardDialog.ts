@@ -150,7 +150,7 @@ class GiftCardPurchaseView implements Component<GiftCardPurchaseViewAttrs> {
 						highlighted: model.selectedPackage === index,
 						showReferenceDiscount: false,
 						renderCategoryTitle: false,
-						mobile: false
+						mobile: false,
 					})
 				}),
 			),

@@ -7,7 +7,6 @@ import { isIOSApp } from "../api/common/Env"
 import { ProgrammingError } from "../api/common/error/ProgrammingError"
 import type { clickHandler } from "../gui/base/GuiUtils"
 import { locator } from "../api/main/MainLocator"
-import { showBusinessBuyDialog } from "../subscription/BuyDialog.js"
 
 /**
  * Opens a dialog which states that the function is not available in the Free subscription and provides an option to upgrade.
@@ -80,11 +79,11 @@ export function showMoreStorageNeededOrderDialog(loginController: LoginControlle
 /**
  * @returns true if the business feature has been ordered
  */
-export function showBusinessFeatureRequiredDialog(reason: TranslationKey | lazy<string>): Promise<boolean> {
+export async function showBusinessFeatureRequiredDialog(reason: TranslationKey | lazy<string>): Promise<boolean> {
 	if (locator.logins.getUserController().isFreeAccount()) {
 		showNotAvailableForFreeDialog(false)
-		return Promise.resolve(false)
+		return false
 	} else {
-		return showBusinessBuyDialog(true)
+		return (await import("../subscription/BuyDialog.js")).showBusinessBuyDialog(true)
 	}
 }

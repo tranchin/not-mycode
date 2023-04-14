@@ -39,7 +39,7 @@ import {
 import { typeModels as sysTypeModels } from "../entities/sys/TypeModels"
 import { SessionType } from "../common/SessionType"
 import { LegacySubscriptionType, SubscriptionType } from "../../subscription/FeatureListProvider.js"
-import { PriceAndConfigProvider } from "../../subscription/PriceUtils.js"
+import type { PriceAndConfigProvider } from "../../subscription/PriceUtils.js"
 
 assertMainOrNode()
 
@@ -326,6 +326,8 @@ export async function initUserController({ user, userGroupInfo, sessionId, acces
 			),
 	])
 
-	const priceAndConfigProvider = new LazyLoaded(async () => await PriceAndConfigProvider.getInitializedInstance(null))
+	const priceAndConfigProvider = new LazyLoaded(
+		async () => await (await import("../../subscription/PriceUtils.js")).PriceAndConfigProvider.getInitializedInstance(null),
+	)
 	return new UserController(user, userGroupInfo, sessionId, props, accessToken, userSettingsGroupRoot, sessionType, entityClient, priceAndConfigProvider)
 }

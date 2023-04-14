@@ -124,9 +124,14 @@ function checkAndGetErrorMessage(userData: UserImportDetails[], availableDomains
 async function showBookingDialog(userDetailsArray: UserImportDetails[]) {
 	// We send index to worker and then worker calculates the progress based on the index of the user
 	const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
-	const newPlan = isNewPlan(subscriptionType)
 
-	const accepted = await showBuyDialog({ featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.Users, bookingText: "bookingItemUsersIncluding_label", count: userDetailsArray.length, freeAmount: 0, reactivate: false })
+	const accepted = await showBuyDialog({
+		featureType: isNewPlan(subscriptionType) ? toFeatureType(subscriptionType) : BookingItemFeatureType.Users,
+		bookingText: "bookingItemUsersIncluding_label",
+		count: userDetailsArray.length,
+		freeAmount: 0,
+		reactivate: false,
+	})
 	if (!accepted) {
 		return
 	}

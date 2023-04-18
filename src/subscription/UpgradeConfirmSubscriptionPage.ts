@@ -37,7 +37,7 @@ export class UpgradeConfirmSubscriptionPage implements WizardPageN<UpgradeSubscr
 	private upgrade(data: UpgradeSubscriptionData) {
 		const serviceData = createSwitchAccountTypePostIn({
 			accountType: AccountType.PREMIUM,
-			subscriptionType: this.subscriptionTypeToPaidSubscriptionType(data.type),
+			subscriptionType: data.type,
 			date: Const.CURRENT_DATE,
 			referralCode: data.referralCode,
 		})
@@ -144,23 +144,6 @@ export class UpgradeConfirmSubscriptionPage implements WizardPageN<UpgradeSubscr
 					disabled: true,
 			  })
 			: null
-	}
-
-	private subscriptionTypeToPaidSubscriptionType(subscriptionType: SubscriptionType): PaidSubscriptionType {
-		switch (subscriptionType) {
-			case SubscriptionType.Revolutionary:
-				return PaidSubscriptionType.Revolutionary
-			case SubscriptionType.Legend:
-				return PaidSubscriptionType.Legend
-			case SubscriptionType.Essential:
-				return PaidSubscriptionType.Essential
-			case SubscriptionType.Advanced:
-				return PaidSubscriptionType.Advanced
-			case SubscriptionType.Unlimited:
-				return PaidSubscriptionType.Unlimited
-			default:
-				throw new Error("not a valid Premium subscription type: " + subscriptionType)
-		}
 	}
 
 	private close(data: UpgradeSubscriptionData, dom: HTMLElement) {

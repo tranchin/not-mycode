@@ -113,6 +113,11 @@
 					"name": "AddValue",
 					"sourceType": "CustomerInfo",
 					"info": "AddValue CustomerInfo/perUserAliasCount/2091."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "CustomerInfo",
+					"info": "AddValue CustomerInfo/paidSubscriptionType/2095."
 				}
 			]
 		}

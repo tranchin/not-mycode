@@ -11,7 +11,6 @@ import {
 	FeatureListItem,
 	FeatureListProvider,
 	getDisplayNameOfSubscriptionType,
-	LegacySubscriptionType,
 	ReplacementKey,
 	SelectedSubscriptionOptions,
 	SubscriptionType,
@@ -20,6 +19,7 @@ import {
 import { ProgrammingError } from "../api/common/error/ProgrammingError"
 import { ButtonAttrs } from "../gui/base/Button.js"
 import { downcast, lazy } from "@tutao/tutanota-utils"
+import { PaidSubscriptionType, SubscriptionName } from "../api/common/TutanotaConstants.js"
 
 const BusinessUseItems: SegmentControlItem<boolean>[] = [
 	{
@@ -48,7 +48,7 @@ export type SubscriptionSelectorAttr = {
 	boxWidth: number
 	boxHeight: number
 	highlightPremium?: boolean
-	currentSubscriptionType: SubscriptionType | LegacySubscriptionType | null
+	currentSubscriptionType: PaidSubscriptionType | null
 	currentlySharingOrdered: boolean
 	currentlyBusinessOrdered: boolean
 	currentlyWhitelabelOrdered: boolean
@@ -59,8 +59,8 @@ export type SubscriptionSelectorAttr = {
 	referralCodeMsg: TranslationKey | null
 }
 
-export function getActionButtonBySubscription(actionButtons: SubscriptionActionButtons, subscription: SubscriptionType): lazy<ButtonAttrs> {
-	const ret = actionButtons[subscription]
+export function getActionButtonBySubscription(actionButtons: SubscriptionActionButtons, subscription: SubscriptionName): lazy<ButtonAttrs> {
+	const ret = actionButtons[downcast(subscription)]
 	if (ret == null) {
 		throw new ProgrammingError("Plan is not valid")
 	}
@@ -91,13 +91,16 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 
 		if (vnode.attrs.options.businessUse()) {
 			buyBoxesViewPlacement = [
-				m("", [m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, SubscriptionType.Essential, true, inMobileView)), featureExpander.Essential]),
 				m("", [
-					m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, SubscriptionType.Advanced, inMobileView, inMobileView)),
+					m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, PaidSubscriptionType.Essential, true, inMobileView)),
+					featureExpander.Essential,
+				]),
+				m("", [
+					m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, PaidSubscriptionType.Advanced, inMobileView, inMobileView)),
 					featureExpander.Advanced,
 				]),
 				m("", [
-					m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, SubscriptionType.Unlimited, inMobileView, inMobileView)),
+					m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, PaidSubscriptionType.Unlimited, inMobileView, inMobileView)),
 					featureExpander.Unlimited,
 				]),
 			]
@@ -109,18 +112,15 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 		} else {
 			const currentSubscription = vnode.attrs.currentSubscriptionType
 			const revolutionaryBuyBox = m("", [
-				m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, SubscriptionType.Revolutionary, inMobileView, inMobileView)),
+				m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, PaidSubscriptionType.Revolutionary, inMobileView, inMobileView)),
 				featureExpander.Revolutionary,
 			])
 			const legendBuyOptionBox = m("", [
-				m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, SubscriptionType.Legend, inMobileView, inMobileView)),
+				m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, PaidSubscriptionType.Legend, inMobileView, inMobileView)),
 				featureExpander.Legend,
 			])
 
-			const freeBuyOptionBox = m("", [
-				m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, SubscriptionType.Free, true, inMobileView)),
-				featureExpander.Free,
-			])
+			const freeBuyOptionBox = m("", [m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, null, true, inMobileView)), featureExpander.Free])
 
 			// Changes order of BuyBoxes to Premium Pro Free, needed for mobile view (one column layout)
 			if (inMobileView) {
@@ -180,12 +180,12 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 
 	private createBuyOptionBoxAttr(
 		selectorAttrs: SubscriptionSelectorAttr,
-		targetSubscription: SubscriptionType,
+		targetSubscription: PaidSubscriptionType | null,
 		renderCategoryTitle: boolean,
 		mobile: boolean,
 	): BuyOptionBoxAttr {
 		const { featureListProvider, priceAndConfigProvider } = selectorAttrs
-		const subscriptionFeatures = featureListProvider.getFeatureList(targetSubscription)
+		const subscriptionFeatures = featureListProvider.getFeatureList(targetSubscription | null)
 		const categoriesToShow = subscriptionFeatures.categories
 			.map((fc) => {
 				return localizeFeatureCategory(fc, targetSubscription, selectorAttrs)
@@ -194,9 +194,7 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 
 		// we only highlight the private Premium box if this is a signup or the current subscription type is Free
 		selectorAttrs.highlightPremium =
-			targetSubscription === SubscriptionType.Revolutionary &&
-			!selectorAttrs.options.businessUse() &&
-			(!selectorAttrs.currentSubscriptionType || selectorAttrs.currentSubscriptionType === SubscriptionType.Free)
+			targetSubscription === PaidSubscriptionType.Revolutionary && !selectorAttrs.options.businessUse() && !selectorAttrs.currentSubscriptionType
 		const subscriptionPrice = priceAndConfigProvider.getSubscriptionPrice(
 			selectorAttrs.options.paymentInterval(),
 			targetSubscription,
@@ -288,7 +286,7 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 
 function localizeFeatureListItem(
 	item: FeatureListItem,
-	targetSubscription: SubscriptionType,
+	targetSubscription: PaidSubscriptionType | null,
 	attrs: SubscriptionSelectorAttr,
 ): BuyOptionBoxAttr["categories"][0]["features"][0] | null {
 	let text = tryGetTranslation(item.text, getReplacement(item.replacements, targetSubscription, attrs))
@@ -309,7 +307,7 @@ function localizeFeatureListItem(
 
 function localizeFeatureCategory(
 	category: FeatureCategory,
-	targetSubscription: SubscriptionType,
+	targetSubscription: PaidSubscriptionType | null,
 	attrs: SubscriptionSelectorAttr,
 ): BuyOptionBoxAttr["categories"][0] | null {
 	const title = tryGetTranslation(category.title)
@@ -334,18 +332,11 @@ function tryGetTranslation(key: TranslationKey, replacements?: Record<string, st
  */
 export function getReplacement(
 	key: ReplacementKey | undefined,
-	subscription: SubscriptionType,
+	subscription: SubscriptionName,
 	attrs: SubscriptionSelectorAttr,
 ): Record<string, string | number> | undefined {
 	const { priceAndConfigProvider, options } = attrs
 	switch (key) {
-		case "pricePerExtraUser":
-			const subscriptionPriceUser = priceAndConfigProvider.getSubscriptionPrice(
-				options.paymentInterval(),
-				subscription,
-				UpgradePriceType.AdditionalUserPrice,
-			)
-			return { "{1}": formatMonthlyPrice(subscriptionPriceUser, attrs.options.paymentInterval()) }
 		case "mailAddressAliases":
 			return { "{amount}": priceAndConfigProvider.getSubscriptionConfig(subscription).nbrOfAliases }
 		case "storage":

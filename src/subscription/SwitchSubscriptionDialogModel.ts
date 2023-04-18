@@ -9,13 +9,12 @@ import {
 	isSharingActive,
 	isWhitelabelActive,
 } from "./SubscriptionUtils"
-import { BookingItemFeatureType } from "../api/common/TutanotaConstants"
-import { assertNotNull, neverNull, promiseMap } from "@tutao/tutanota-utils"
-import type { AccountingInfo, Booking, Customer, CustomerInfo, PlanPrices, PriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
-import { createPlanPrices } from "../api/entities/sys/TypeRefs.js"
-import { asPaymentInterval, getPriceFromPriceData, getPriceItem, isSubscriptionDowngrade, PaymentInterval, PriceAndConfigProvider } from "./PriceUtils"
+import { BookingItemFeatureType, PaidSubscriptionType } from "../api/common/TutanotaConstants"
+import { neverNull } from "@tutao/tutanota-utils"
+import type { AccountingInfo, Booking, Customer, CustomerInfo, PriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
+import { asPaymentInterval, getPriceFromPriceData, getPriceItem, PaymentInterval } from "./PriceUtils"
 import type { BookingFacade } from "../api/worker/facades/lazy/BookingFacade.js"
-import { LegacySubscriptionType, SubscriptionConfig, SubscriptionPlanPrices, SubscriptionType } from "./FeatureListProvider"
+import { LegacySubscriptionType, SubscriptionConfig, SubscriptionType } from "./FeatureListProvider"
 
 type PlanPriceCalc = {
 	monthlyPrice: number
@@ -30,7 +29,7 @@ type PlanPriceCalc = {
 export type CurrentSubscriptionInfo = {
 	businessUse: boolean
 	nbrOfUsers: number
-	subscriptionType: SubscriptionType | LegacySubscriptionType
+	subscriptionType: PaidSubscriptionType | null
 	paymentInterval: PaymentInterval
 	currentTotalStorage: number
 	currentTotalAliases: number
@@ -65,7 +64,7 @@ export class SwitchSubscriptionDialogModel {
 		private readonly customerInfo: CustomerInfo,
 		private readonly accountingInfo: AccountingInfo,
 		private readonly lastBooking: Booking,
-		private readonly priceAndConfigProvider: PriceAndConfigProvider,
+		private readonly subscriptionType: PaidSubscriptionType | null,
 	) {
 		this.currentSubscriptionInfo = this._initCurrentSubscriptionInfo()
 	}
@@ -74,7 +73,7 @@ export class SwitchSubscriptionDialogModel {
 		const paymentInterval: PaymentInterval = asPaymentInterval(this.accountingInfo.paymentInterval)
 		return {
 			businessUse: !!this.customer.businessUse,
-			subscriptionType: this.priceAndConfigProvider.getSubscriptionType(this.lastBooking, this.customer, this.customerInfo),
+			subscriptionType: this.subscriptionType,
 			nbrOfUsers: getNbrOfUsers(this.lastBooking),
 			paymentInterval,
 			currentTotalStorage: getTotalStorageCapacity(this.customer, this.customerInfo, this.lastBooking),

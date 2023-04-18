@@ -2,8 +2,14 @@ import Stream from "mithril/stream"
 import { PlanPrices } from "../api/entities/sys/TypeRefs"
 import { TranslationKey } from "../misc/LanguageViewModel"
 import { PaymentInterval } from "./PriceUtils.js"
+import {
+	BookingItemFeatureType,
+	PaidSubscriptionName,
+	PaidSubscriptionToName,
+	PaidSubscriptionType,
+	SubscriptionName,
+} from "../api/common/TutanotaConstants.js"
 import { downcast } from "@tutao/tutanota-utils"
-import { BookingItemFeatureType } from "../api/common/TutanotaConstants.js"
 
 const FEATURE_LIST_RESOURCE_URL = "https://tutanota.com/resources/data/features.json"
 // const FEATURE_LIST_RESOURCE_URL = "http://localhost:9000/resources/data/features.json"
@@ -48,8 +54,14 @@ export class FeatureListProvider {
 		return dataProvider
 	}
 
-	getFeatureList(targetSubscription: SubscriptionType): FeatureLists[SubscriptionType] {
-		return this.featureList == null ? { subtitle: "emptyString_msg", categories: [] } : this.featureList[targetSubscription]
+	getFeatureList(targetSubscription: PaidSubscriptionType | null): FeatureLists[PaidSubscriptionName] {
+		if (this.featureList == null) {
+			return { subtitle: "emptyString_msg", categories: [] }
+		} else if (targetSubscription == null) {
+			return this.featureList.Free
+		} else {
+			return this.featureList[PaidSubscriptionToName[targetSubscription]]
+		}
 	}
 
 	featureLoadingDone(): boolean {
@@ -98,28 +110,39 @@ export enum SubscriptionType {
 	Unlimited = "Unlimited",
 }
 
-export function isLegacyPlan(type: SubscriptionType | LegacySubscriptionType | null): type is LegacySubscriptionType {
-	return type != null && Object.values(LegacySubscriptionType).includes(downcast(type))
+const legacyPlans = [
+	PaidSubscriptionType.Premium,
+	PaidSubscriptionType.PremiumBusiness,
+	PaidSubscriptionType.Teams,
+	PaidSubscriptionType.TeamsBusiness,
+	PaidSubscriptionType.Pro,
+]
+
+export function isLegacyPlan(type: PaidSubscriptionType | null): boolean {
+	return type != null && legacyPlans.includes(type)
 }
 
-export function isNewPlan(type: SubscriptionType | LegacySubscriptionType): type is SubscriptionType {
+export function isNewPlan(type: PaidSubscriptionType | null): boolean {
 	return !isLegacyPlan(type)
 }
 
-export function toFeatureType(type: SubscriptionType): BookingItemFeatureType {
+/**
+ * only to be invoked for PaidSubscriptionTypes where isNewPlan returns true
+ */
+export function toFeatureType(type: PaidSubscriptionType | null): BookingItemFeatureType {
 	switch (type) {
-		case SubscriptionType.Free:
-			throw new Error("can't convert free to BookingItemFeatureType")
-		case SubscriptionType.Revolutionary:
+		case PaidSubscriptionType.Revolutionary:
 			return BookingItemFeatureType.Revolutionary
-		case SubscriptionType.Legend:
+		case PaidSubscriptionType.Legend:
 			return BookingItemFeatureType.Legend
-		case SubscriptionType.Essential:
+		case PaidSubscriptionType.Essential:
 			return BookingItemFeatureType.Essential
-		case SubscriptionType.Advanced:
+		case PaidSubscriptionType.Advanced:
 			return BookingItemFeatureType.Advanced
-		case SubscriptionType.Unlimited:
+		case PaidSubscriptionType.Unlimited:
 			return BookingItemFeatureType.Unlimited
+		default:
+			throw new Error(`can't convert ${type} to BookingItemFeatureType`)
 	}
 }
 
@@ -139,7 +162,7 @@ export type SubscriptionConfig = {
  * we have to provide functions to produce it. these
  * are used to select the correct one.
  **/
-export type ReplacementKey = "pricePerExtraUser" | "mailAddressAliases" | "storage" | "contactForm"
+export type ReplacementKey = "customDomains" | "mailAddressAliases" | "storage" | "contactForm"
 
 /**
  * A category of features to be shown
@@ -175,36 +198,25 @@ export type FeatureListItem = {
  * subtitle: the short text shown below the subscription name in the buy box
  * features: flat, ordered list of features for this subscription type
  */
-type FeatureLists = { [K in SubscriptionType]: { subtitle: string; categories: Array<FeatureCategory> } }
+type FeatureLists = { [K in SubscriptionName]: { subtitle: string; categories: Array<FeatureCategory> } }
 
 /**
  * @returns the name to show to the user for the current subscription (PremiumBusiness -> Premium etc.)
  */
-export function getDisplayNameOfSubscriptionType(subscription: SubscriptionType | LegacySubscriptionType): string {
+export function getDisplayNameOfSubscriptionType(subscription: PaidSubscriptionType | null): string {
 	switch (subscription) {
-		case LegacySubscriptionType.PremiumBusiness:
-			return LegacySubscriptionType.Premium
-
-		case LegacySubscriptionType.TeamsBusiness:
-			return LegacySubscriptionType.Teams
-
+		case null:
+			return "Free"
+		case PaidSubscriptionType.PremiumBusiness:
+			return "Premium"
+		case PaidSubscriptionType.TeamsBusiness:
+			return "Teams"
 		default:
-			return subscription
+			return downcast(PaidSubscriptionToName[subscription])
 	}
 }
 
-export type SubscriptionPlanPrices = {
-	Premium: PlanPrices
-	PremiumBusiness: PlanPrices
-	Teams: PlanPrices
-	TeamsBusiness: PlanPrices
-	Pro: PlanPrices
-	Revolutionary: PlanPrices
-	Legend: PlanPrices
-	Essential: PlanPrices
-	Advanced: PlanPrices
-	Unlimited: PlanPrices
-}
+export type SubscriptionPlanPrices = Record<PaidSubscriptionType, PlanPrices>
 
 export const enum UpgradePriceType {
 	PlanReferencePrice = "0",

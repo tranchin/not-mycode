@@ -10,7 +10,7 @@ import {
 	UpgradePriceServiceReturn,
 } from "../api/entities/sys/TypeRefs.js"
 import type { InvoiceData, PaymentData } from "../api/common/TutanotaConstants"
-import { Const, getPaymentMethodType, PaymentMethodType as PaymentMethod } from "../api/common/TutanotaConstants"
+import { Const, getPaymentMethodType, PaidSubscriptionType, PaymentMethodType as PaymentMethod } from "../api/common/TutanotaConstants"
 import { getByAbbreviation } from "../api/common/CountryList"
 import { UpgradeSubscriptionPage, UpgradeSubscriptionPageAttrs } from "./UpgradeSubscriptionPage"
 import { formatNameAndAddress } from "../misc/Formatter"
@@ -49,7 +49,7 @@ export type UpgradeSubscriptionData = {
 	options: SelectedSubscriptionOptions
 	invoiceData: InvoiceData
 	paymentData: PaymentData
-	type: SubscriptionType
+	type: PaidSubscriptionType | null
 	price: string
 	priceNextYear: string | null
 	accountingInfo: AccountingInfo | null
@@ -112,7 +112,7 @@ export async function showUpgradeWizard(): Promise<void> {
 			creditCardData: null,
 		},
 		price: "",
-		type: SubscriptionType.Revolutionary,
+		type: PaidSubscriptionType.Revolutionary,
 		priceNextYear: null,
 		accountingInfo: accountingInfo,
 		customer: customer,
@@ -187,7 +187,7 @@ export async function loadSignupWizard(
 		},
 		price: "",
 		priceNextYear: null,
-		type: SubscriptionType.Free,
+		type: null,
 		accountingInfo: null,
 		customer: null,
 		newAccountData: null,
@@ -228,7 +228,7 @@ export async function loadSignupWizard(
 	})
 
 	// for signup specifically, we only want the invoice and payment page as well as the confirmation page to show up if signing up for a paid account (and the user did not go back to the first page!)
-	invoiceAttrs.setEnabledFunction(() => signupData.type !== SubscriptionType.Free && wizardBuilder.attrs.currentPage !== wizardPages[0])
+	invoiceAttrs.setEnabledFunction(() => signupData.type != null && wizardBuilder.attrs.currentPage !== wizardPages[0])
 
 	wizardBuilder.dialog.show()
 }

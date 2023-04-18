@@ -1,6 +1,6 @@
 import m, { Children } from "mithril"
 import { assertMainOrNode } from "../api/common/Env"
-import { AccountType, AccountTypeNames, BookingItemFeatureType, Const, OperationType } from "../api/common/TutanotaConstants"
+import { AccountType, AccountTypeNames, BookingItemFeatureType, Const, OperationType, PaidSubscriptionType } from "../api/common/TutanotaConstants"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, GiftCard, OrderProcessingAgreement } from "../api/entities/sys/TypeRefs.js"
 import {
 	AccountingInfoTypeRef,
@@ -18,8 +18,6 @@ import { Icons } from "../gui/base/icons/Icons"
 import { asPaymentInterval, formatPrice, formatPriceDataWithInfo, PaymentInterval, PriceAndConfigProvider } from "./PriceUtils"
 import { formatDate, formatNameAndAddress, formatStorageSize } from "../misc/Formatter"
 import { getByAbbreviation } from "../api/common/CountryList"
-import * as AddUserDialog from "../settings/AddUserDialog"
-import * as AddGroupDialog from "../settings/groups/AddGroupDialog.js"
 import { showUpgradeWizard } from "./UpgradeSubscriptionWizard"
 import { showSwitchDialog } from "./SwitchSubscriptionDialog"
 import stream from "mithril/stream"
@@ -55,7 +53,7 @@ import { MailAddressAliasService } from "../api/entities/sys/Services"
 import { DropDownSelector, SelectorItemList } from "../gui/base/DropDownSelector.js"
 import { IconButton, IconButtonAttrs } from "../gui/base/IconButton.js"
 import { ButtonSize } from "../gui/base/ButtonSize.js"
-import { getDisplayNameOfSubscriptionType, isLegacyPlan, LegacySubscriptionType, SubscriptionType } from "./FeatureListProvider"
+import { getDisplayNameOfSubscriptionType, isLegacyPlan } from "./FeatureListProvider"
 
 assertMainOrNode()
 const DAY = 1000 * 60 * 60 * 24
@@ -83,7 +81,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	private _accountingInfo: AccountingInfo | null = null
 	private _lastBooking: Booking | null = null
 	private _orderAgreement: OrderProcessingAgreement | null = null
-	private _currentSubscription: SubscriptionType | LegacySubscriptionType | null = null
+	private _currentSubscription: PaidSubscriptionType | null = null
 	private _isCancelled: boolean | null = null
 	private _giftCards: Map<Id, GiftCard>
 	private _giftCardsExpanded: Stream<boolean>
@@ -170,29 +168,8 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					renderGiftCardTable(Array.from(this._giftCards.values()), isPremiumPredicate),
 				),
 				isLegacyPlan(this._currentSubscription)
-					? []
-					: [
+					? [
 							m(".h4.mt-l", lang.get("adminPremiumFeatures_action")),
-							m(TextField, {
-								label: "bookingItemUsers_label",
-								value: this._usersFieldValue(),
-								oninput: this._usersFieldValue,
-								disabled: true,
-								injectionsRight: () => [
-									m(IconButton, {
-										title: "addUsers_action",
-										click: createNotAvailableForFreeClickHandler(false, AddUserDialog.show, isPremiumPredicate),
-										icon: Icons.Add,
-										size: ButtonSize.Compact,
-									}),
-									m(IconButton, {
-										title: "bookingItemUsers_label",
-										click: createNotAvailableForFreeClickHandler(false, () => m.route.set("/settings/users"), isPremiumPredicate),
-										icon: Icons.Edit,
-										size: ButtonSize.Compact,
-									}),
-								],
-							}),
 							m(TextField, {
 								label: "storageCapacity_label",
 								value: this._storageFieldValue(),
@@ -206,50 +183,37 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 								disabled: true,
 							}),
 							m(TextField, {
-								label: "groups_label",
-								value: this._groupsFieldValue(),
-								oninput: this._groupsFieldValue,
-								disabled: true,
-								injectionsRight: () => [
-									m(IconButton, {
-										title: "addGroup_label",
-										click: createNotAvailableForFreeClickHandler(false, AddGroupDialog.show, isPremiumPredicate),
-										icon: Icons.Add,
-										size: ButtonSize.Compact,
-									}),
-									m(IconButton, {
-										title: "groups_label",
-										click: createNotAvailableForFreeClickHandler(false, () => m.route.set("/settings/groups"), isPremiumPredicate),
-										icon: Icons.Edit,
-										size: ButtonSize.Compact,
-									}),
-								],
-							}),
-							m(TextField, {
-								label: "whitelabelFeature_label",
-								value: this._whitelabelFieldValue(),
-								oninput: this._whitelabelFieldValue,
-								disabled: true,
-							}),
-							m(TextField, {
-								label: "sharingFeature_label",
+								label: "pricing.comparisonSharingCalendar_msg",
 								value: this._sharingFieldValue(),
 								oninput: this._sharingFieldValue,
 								disabled: true,
 							}),
 							m(TextField, {
-								label: "businessFeature_label",
+								label: "pricing.comparisonEventInvites_msg",
 								value: this._businessFeatureFieldValue(),
 								oninput: this._businessFeatureFieldValue,
 								disabled: true,
 							}),
 							m(TextField, {
-								label: "contactForms_label",
-								value: this._contactFormsFieldValue(),
-								oninput: this._contactFormsFieldValue,
+								label: "pricing.comparisonOutOfOffice_msg",
+								value: this._businessFeatureFieldValue(),
+								oninput: this._businessFeatureFieldValue,
 								disabled: true,
 							}),
-					  ],
+							m(TextField, {
+								label: "whitelabel.login_title",
+								value: this._whitelabelFieldValue(),
+								oninput: this._whitelabelFieldValue,
+								disabled: true,
+							}),
+							m(TextField, {
+								label: "whitelabel.custom_title",
+								value: this._whitelabelFieldValue(),
+								oninput: this._whitelabelFieldValue,
+								disabled: true,
+							}),
+					  ]
+					: [],
 				m(
 					".mb-l",
 					m(
@@ -448,7 +412,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 							this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
 							this._customer = customer
 							this._isCancelled = customer.canceledPremiumAccount
-							this._currentSubscription = priceAndConfigProvider.getSubscriptionType(this._lastBooking, customer, customerInfo)
+							this._currentSubscription = await userController.getSubscriptionType()
 
 							this._updateSubscriptionField(this._isCancelled)
 
@@ -696,8 +660,8 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	}
 }
 
-function _getAccountTypeName(type: AccountType, subscription: SubscriptionType | LegacySubscriptionType): string {
-	if (type === AccountType.PREMIUM) {
+function _getAccountTypeName(type: AccountType, subscription: PaidSubscriptionType | null): string {
+	if (type === AccountType.PREMIUM && subscription != null) {
 		return getDisplayNameOfSubscriptionType(subscription)
 	} else {
 		return AccountTypeNames[type]

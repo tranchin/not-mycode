@@ -1,4 +1,4 @@
-import { AccountType, GroupType, OperationType } from "../common/TutanotaConstants"
+import { AccountType, GroupType, OperationType, PaidSubscriptionType } from "../common/TutanotaConstants"
 import type { Base64Url } from "@tutao/tutanota-utils"
 import { downcast, first, LazyLoaded, mapAndFilterNull, neverNull, ofClass } from "@tutao/tutanota-utils"
 import { MediaType } from "../common/EntityFunctions"
@@ -7,14 +7,13 @@ import type { EntityUpdateData } from "./EventController"
 import { isUpdateForTypeRef } from "./EventController"
 import { NotFoundError } from "../common/error/RestError"
 import { locator } from "./MainLocator"
-import { GENERATED_MAX_ID, isSameId } from "../common/utils/EntityUtils"
+import { isSameId } from "../common/utils/EntityUtils"
 import { getWhitelabelCustomizations } from "../../misc/WhitelabelCustomizations"
 import { EntityClient } from "../common/EntityClient"
 import { CloseSessionService } from "../entities/sys/Services"
 import {
 	AccountingInfo,
 	AccountingInfoTypeRef,
-	BookingTypeRef,
 	createCloseSessionServicePost,
 	Customer,
 	CustomerInfo,
@@ -38,7 +37,6 @@ import {
 } from "../entities/tutanota/TypeRefs"
 import { typeModels as sysTypeModels } from "../entities/sys/TypeModels"
 import { SessionType } from "../common/SessionType"
-import { LegacySubscriptionType, SubscriptionType } from "../../subscription/FeatureListProvider.js"
 import type { PriceAndConfigProvider } from "../../subscription/PriceUtils.js"
 
 assertMainOrNode()
@@ -121,13 +119,9 @@ export class UserController {
 		return this.loadCustomer().then((customer) => this.entityClient.load(CustomerInfoTypeRef, customer.customerInfo))
 	}
 
-	async getSubscriptionType(): Promise<LegacySubscriptionType | SubscriptionType> {
-		const customer = await this.loadCustomer()
+	async getSubscriptionType(): Promise<PaidSubscriptionType | null> {
 		const customerInfo = await this.loadCustomerInfo()
-		const bookings = await locator.entityClient.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
-
-		const configProvider = await this.priceAndConfigProvider.getAsync()
-		return configProvider.getSubscriptionType(bookings.length > 0 ? bookings[0] : null, customer, customerInfo)
+		return downcast(customerInfo.paidSubscriptionType)
 	}
 
 	loadAccountingInfo(): Promise<AccountingInfo> {

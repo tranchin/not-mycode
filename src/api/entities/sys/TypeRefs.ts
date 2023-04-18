@@ -871,6 +871,7 @@ export type CustomerInfo = {
 	erased: boolean;
 	includedEmailAliases: NumberString;
 	includedStorageCapacity: NumberString;
+	paidSubscriptionType: null | NumberString;
 	perUserAliasCount: NumberString;
 	perUserStorageCapacity: NumberString;
 	promotionEmailAliases: NumberString;

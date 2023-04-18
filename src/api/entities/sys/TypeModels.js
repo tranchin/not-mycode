@@ -3500,6 +3500,15 @@ export const typeModels = {
                 "cardinality": "One",
                 "encrypted": false
             },
+            "paidSubscriptionType": {
+                "final": false,
+                "name": "paidSubscriptionType",
+                "id": 2095,
+                "since": 86,
+                "type": "Number",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "perUserAliasCount": {
                 "final": false,
                 "name": "perUserAliasCount",

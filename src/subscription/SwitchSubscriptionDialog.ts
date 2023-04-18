@@ -4,7 +4,16 @@ import { lang } from "../misc/LanguageViewModel"
 import { ButtonAttrs, ButtonType } from "../gui/base/Button.js"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
-import { AccountType, BookingItemFeatureByCode, BookingItemFeatureType, Const, Keys, UnsubscribeFailureReason } from "../api/common/TutanotaConstants"
+import {
+	AccountType,
+	BookingItemFeatureByCode,
+	BookingItemFeatureType,
+	Const,
+	Keys,
+	PaidSubscriptionToName,
+	PaidSubscriptionType,
+	UnsubscribeFailureReason,
+} from "../api/common/TutanotaConstants"
 import { SubscriptionActionButtons, SubscriptionSelector } from "./SubscriptionSelector"
 import stream from "mithril/stream"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
@@ -39,7 +48,14 @@ export async function showSwitchDialog(customer: Customer, customerInfo: Custome
 		"pleaseWait_msg",
 		Promise.all([FeatureListProvider.getInitializedInstance(), PriceAndConfigProvider.getInitializedInstance(null)]),
 	)
-	const model = new SwitchSubscriptionDialogModel(locator.bookingFacade, customer, customerInfo, accountingInfo, lastBooking, priceAndConfigProvider)
+	const model = new SwitchSubscriptionDialogModel(
+		locator.bookingFacade,
+		customer,
+		customerInfo,
+		accountingInfo,
+		lastBooking,
+		await locator.logins.getUserController().getSubscriptionType(),
+	)
 	const cancelAction = () => dialog.close()
 
 	const headerBarAttrs: DialogHeaderBarAttrs = {
@@ -92,18 +108,19 @@ export async function showSwitchDialog(customer: Customer, customerInfo: Custome
 			click: () => cancelSubscription(dialog, currentSubscriptionInfo),
 			type: ButtonType.Login,
 		}),
-		Revolutionary: createSubscriptionPlanButton(dialog, SubscriptionType.Revolutionary, currentSubscriptionInfo),
-		Legend: createSubscriptionPlanButton(dialog, SubscriptionType.Legend, currentSubscriptionInfo),
-		Essential: createSubscriptionPlanButton(dialog, SubscriptionType.Essential, currentSubscriptionInfo),
-		Advanced: createSubscriptionPlanButton(dialog, SubscriptionType.Advanced, currentSubscriptionInfo),
-		Unlimited: createSubscriptionPlanButton(dialog, SubscriptionType.Unlimited, currentSubscriptionInfo),
+
+		Revolutionary: createSubscriptionPlanButton(dialog, PaidSubscriptionType.Revolutionary, currentSubscriptionInfo),
+		Legend: createSubscriptionPlanButton(dialog, PaidSubscriptionType.Legend, currentSubscriptionInfo),
+		Essential: createSubscriptionPlanButton(dialog, PaidSubscriptionType.Essential, currentSubscriptionInfo),
+		Advanced: createSubscriptionPlanButton(dialog, PaidSubscriptionType.Advanced, currentSubscriptionInfo),
+		Unlimited: createSubscriptionPlanButton(dialog, PaidSubscriptionType.Unlimited, currentSubscriptionInfo),
 	}
 	dialog.show()
 }
 
 function createSubscriptionPlanButton(
 	dialog: Dialog,
-	targetSubscription: SubscriptionType,
+	targetSubscription: PaidSubscriptionType,
 	currentSubscriptionInfo: CurrentSubscriptionInfo,
 ): lazy<ButtonAttrs> {
 	return () => ({
@@ -200,7 +217,7 @@ async function cancelSubscription(dialog: Dialog, currentSubscriptionInfo: Curre
 	}
 }
 
-async function getUpOrDowngradeMessage(targetSubscription: SubscriptionType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<string> {
+async function getUpOrDowngradeMessage(targetSubscription: PaidSubscriptionType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<string> {
 	const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
 	// we can only switch from a non-business plan to a business plan and not vice verse
 	// a business customer may not have booked the business feature and be forced to book it even if downgrading: e.g. Teams -> PremiumBusiness
@@ -209,12 +226,12 @@ async function getUpOrDowngradeMessage(targetSubscription: SubscriptionType, cur
 
 	if (isSubscriptionDowngrade(targetSubscription, currentSubscriptionInfo.subscriptionType)) {
 		msg = lang.get(
-			targetSubscription === SubscriptionType.Revolutionary || targetSubscription === SubscriptionType.Essential
+			targetSubscription === PaidSubscriptionType.Revolutionary || targetSubscription === SubscriptionType.Essential
 				? "downgradeToPremium_msg"
 				: "downgradeToTeams_msg",
 		)
 
-		if (targetSubscription === SubscriptionType.Essential || targetSubscription === SubscriptionType.Advanced) {
+		if (targetSubscription === PaidSubscriptionType.Essential || targetSubscription === SubscriptionType.Advanced) {
 			msg = msg + " " + lang.get("businessIncluded_msg")
 		}
 	} else {
@@ -224,9 +241,9 @@ async function getUpOrDowngradeMessage(targetSubscription: SubscriptionType, cur
 		})
 
 		if (
-			targetSubscription === SubscriptionType.Essential ||
-			targetSubscription === SubscriptionType.Advanced ||
-			targetSubscription === SubscriptionType.Unlimited
+			targetSubscription === PaidSubscriptionType.Essential ||
+			targetSubscription === PaidSubscriptionType.Advanced ||
+			targetSubscription === PaidSubscriptionType.Unlimited
 		) {
 			msg += " " + lang.get("businessIncluded_msg")
 		}
@@ -242,7 +259,7 @@ async function getUpOrDowngradeMessage(targetSubscription: SubscriptionType, cur
 	return msg
 }
 
-async function checkNeededUpgrades(targetSubscription: SubscriptionType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<void> {
+async function checkNeededUpgrades(targetSubscription: PaidSubscriptionType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<void> {
 	const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
 	const targetSubscriptionConfig = priceAndConfigProvider.getSubscriptionConfig(targetSubscription)
 	if (isNewPlan(targetSubscription)) {
@@ -272,7 +289,7 @@ async function checkNeededUpgrades(targetSubscription: SubscriptionType, current
 	}
 }
 
-async function switchSubscription(targetSubscription: SubscriptionType, dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo) {
+async function switchSubscription(targetSubscription: PaidSubscriptionType, dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo) {
 	if (targetSubscription === currentSubscriptionInfo.subscriptionType) {
 		return
 	}

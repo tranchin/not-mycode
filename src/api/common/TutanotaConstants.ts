@@ -146,18 +146,28 @@ export const AccountTypeNames: Record<AccountType, string> = {
 	[AccountType.EXTERNAL]: "External",
 }
 
-export const enum PaidSubscriptionType {
+export enum PaidSubscriptionType {
 	Premium = "0",
-	Legacy_Pro = "1",
 	Pro = "2",
 	Teams = "3",
-	Premium_Business = "4",
-	Teams_Business = "5",
+	PremiumBusiness = "4",
+	TeamsBusiness = "5",
 	Revolutionary = "6",
 	Legend = "7",
 	Essential = "8",
 	Advanced = "9",
 	Unlimited = "10",
+}
+export type PaidSubscriptionName = keyof typeof PaidSubscriptionType
+
+export type SubscriptionName = PaidSubscriptionName | "Free"
+
+export const PaidSubscriptionToName = reverse(PaidSubscriptionType)
+
+export function paidSubscriptionToName(paidSubscription: PaidSubscriptionType | null): SubscriptionName {
+	if (paidSubscription == null) {
+		return
+	}
 }
 
 export enum BookingItemFeatureType {

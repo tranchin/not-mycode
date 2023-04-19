@@ -3500,15 +3500,6 @@ export const typeModels = {
                 "cardinality": "One",
                 "encrypted": false
             },
-            "paidSubscriptionType": {
-                "final": false,
-                "name": "paidSubscriptionType",
-                "id": 2095,
-                "since": 86,
-                "type": "Number",
-                "cardinality": "ZeroOrOne",
-                "encrypted": false
-            },
             "perUserAliasCount": {
                 "final": false,
                 "name": "perUserAliasCount",
@@ -3522,6 +3513,15 @@ export const typeModels = {
                 "final": false,
                 "name": "perUserStorageCapacity",
                 "id": 2090,
+                "since": 86,
+                "type": "Number",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "plan": {
+                "final": false,
+                "name": "plan",
+                "id": 2095,
                 "since": 86,
                 "type": "Number",
                 "cardinality": "One",
@@ -10588,9 +10588,9 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
-            "subscriptionType": {
+            "plan": {
                 "final": false,
-                "name": "subscriptionType",
+                "name": "plan",
                 "id": 1310,
                 "since": 30,
                 "type": "Number",

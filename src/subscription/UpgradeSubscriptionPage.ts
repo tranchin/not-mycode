@@ -11,11 +11,11 @@ import { Dialog, DialogType } from "../gui/base/Dialog"
 import type { WizardPageAttrs, WizardPageN } from "../gui/base/WizardDialog.js"
 import { emitWizardEvent, WizardEventType } from "../gui/base/WizardDialog.js"
 import { DefaultAnimationTime } from "../gui/animation/Animations"
-import { Keys, PaidSubscriptionType } from "../api/common/TutanotaConstants"
+import { Keys, SubscriptionType } from "../api/common/TutanotaConstants"
 import { Checkbox } from "../gui/base/Checkbox.js"
 import { locator } from "../api/main/MainLocator"
 import { UsageTest } from "@tutao/tutanota-usagetests"
-import { SubscriptionType, UpgradePriceType } from "./FeatureListProvider"
+import { UpgradePriceType } from "./FeatureListProvider"
 import { asPaymentInterval, PaymentInterval } from "./PriceUtils.js"
 import { lazy } from "@tutao/tutanota-utils"
 
@@ -56,18 +56,18 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 	view(vnode: Vnode<WizardPageAttrs<UpgradeSubscriptionData>>): Children {
 		const data = vnode.attrs.data
 		const subscriptionActionButtons: SubscriptionActionButtons = {
-			Free: () => {
+			[SubscriptionType.Free]: () => {
 				return {
 					label: "pricing.select_action",
 					click: () => this.selectFree(data),
 					type: ButtonType.Login,
 				}
 			},
-			Revolutionary: this.createUpgradeButton(data, PaidSubscriptionType.Revolutionary),
-			Legend: this.createUpgradeButton(data, PaidSubscriptionType.Legend),
-			Essential: this.createUpgradeButton(data, PaidSubscriptionType.Essential),
-			Advanced: this.createUpgradeButton(data, PaidSubscriptionType.Advanced),
-			Unlimited: this.createUpgradeButton(data, PaidSubscriptionType.Unlimited),
+			[SubscriptionType.Revolutionary]: this.createUpgradeButton(data, SubscriptionType.Revolutionary),
+			[SubscriptionType.Legend]: this.createUpgradeButton(data, SubscriptionType.Legend),
+			[SubscriptionType.Essential]: this.createUpgradeButton(data, SubscriptionType.Essential),
+			[SubscriptionType.Advanced]: this.createUpgradeButton(data, SubscriptionType.Advanced),
+			[SubscriptionType.Unlimited]: this.createUpgradeButton(data, SubscriptionType.Unlimited),
 		}
 		return m("#upgrade-account-dialog.pt", [
 			m(SubscriptionSelector, {
@@ -103,7 +103,7 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 			if (confirmed) {
 				// Confirmation of free/business dialog (click on ok)
 				this.__signupFreeTest?.getStage(1).complete()
-				data.type = null
+				data.type = SubscriptionType.Free
 				data.price = "0"
 				data.priceNextYear = "0"
 				this.showNextPage()
@@ -128,11 +128,11 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 					break
 
 				case SubscriptionTypeParameter.PREMIUM:
-					this.setNonFreeDataAndGoToNextPage(data, PaidSubscriptionType.Revolutionary)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Revolutionary)
 					break
 
 				case SubscriptionTypeParameter.TEAMS:
-					this.setNonFreeDataAndGoToNextPage(data, PaidSubscriptionType.Legend)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Legend)
 					break
 
 				default:
@@ -144,15 +144,15 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 
 			switch (subscriptionParameters.subscription) {
 				case SubscriptionTypeParameter.PREMIUM:
-					this.setNonFreeDataAndGoToNextPage(data, PaidSubscriptionType.Essential)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Essential)
 					break
 
 				case SubscriptionTypeParameter.TEAMS:
-					this.setNonFreeDataAndGoToNextPage(data, PaidSubscriptionType.Advanced)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Advanced)
 					break
 
 				case SubscriptionTypeParameter.PRO:
-					this.setNonFreeDataAndGoToNextPage(data, PaidSubscriptionType.Unlimited)
+					this.setNonFreeDataAndGoToNextPage(data, SubscriptionType.Unlimited)
 					break
 
 				default:
@@ -164,7 +164,7 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 		}
 	}
 
-	setNonFreeDataAndGoToNextPage(data: UpgradeSubscriptionData, subscriptionType: PaidSubscriptionType): void {
+	setNonFreeDataAndGoToNextPage(data: UpgradeSubscriptionData, subscriptionType: SubscriptionType): void {
 		// Confirmation of paid subscription selection (click on subscription selector)
 		if (this.__signupFreeTest) {
 			this.__signupFreeTest.active = false
@@ -182,7 +182,7 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 		this.showNextPage()
 	}
 
-	createUpgradeButton(data: UpgradeSubscriptionData, subscriptionType: PaidSubscriptionType): lazy<ButtonAttrs> {
+	createUpgradeButton(data: UpgradeSubscriptionData, subscriptionType: SubscriptionType): lazy<ButtonAttrs> {
 		return () => ({
 			label: "pricing.select_action",
 			click: () => this.setNonFreeDataAndGoToNextPage(data, subscriptionType),

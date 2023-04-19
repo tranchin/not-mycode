@@ -3,7 +3,7 @@ import { Dialog } from "../gui/base/Dialog"
 import { lang } from "../misc/LanguageViewModel"
 import { formatPriceWithInfo, getPaymentMethodName, PaymentInterval } from "./PriceUtils"
 import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
-import { AccountType, Const, PaidSubscriptionType, PaymentMethodTypeToName } from "../api/common/TutanotaConstants"
+import { AccountType, Const, PaymentMethodTypeToName } from "../api/common/TutanotaConstants"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
 import type { UpgradeSubscriptionData } from "./UpgradeSubscriptionWizard"
 import { BadGatewayError, PreconditionFailedError } from "../api/common/error/RestError"
@@ -16,7 +16,7 @@ import { ofClass } from "@tutao/tutanota-utils"
 import { locator } from "../api/main/MainLocator"
 import { SwitchAccountTypeService } from "../api/entities/sys/Services"
 import { UsageTest } from "@tutao/tutanota-usagetests"
-import { getDisplayNameOfSubscriptionType, SelectedSubscriptionOptions, SubscriptionType } from "./FeatureListProvider"
+import { getDisplayNameOfSubscriptionType, SelectedSubscriptionOptions } from "./FeatureListProvider"
 
 export class UpgradeConfirmSubscriptionPage implements WizardPageN<UpgradeSubscriptionData> {
 	private dom!: HTMLElement
@@ -37,7 +37,7 @@ export class UpgradeConfirmSubscriptionPage implements WizardPageN<UpgradeSubscr
 	private upgrade(data: UpgradeSubscriptionData) {
 		const serviceData = createSwitchAccountTypePostIn({
 			accountType: AccountType.PREMIUM,
-			subscriptionType: data.type,
+			plan: data.type,
 			date: Const.CURRENT_DATE,
 			referralCode: data.referralCode,
 		})

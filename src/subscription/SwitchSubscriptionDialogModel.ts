@@ -9,12 +9,12 @@ import {
 	isSharingActive,
 	isWhitelabelActive,
 } from "./SubscriptionUtils"
-import { BookingItemFeatureType, PaidSubscriptionType } from "../api/common/TutanotaConstants"
+import { BookingItemFeatureType, SubscriptionType } from "../api/common/TutanotaConstants"
 import { neverNull } from "@tutao/tutanota-utils"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, PriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
 import { asPaymentInterval, getPriceFromPriceData, getPriceItem, PaymentInterval } from "./PriceUtils"
 import type { BookingFacade } from "../api/worker/facades/lazy/BookingFacade.js"
-import { LegacySubscriptionType, SubscriptionConfig, SubscriptionType } from "./FeatureListProvider"
+import { SubscriptionConfig } from "./FeatureListProvider"
 
 type PlanPriceCalc = {
 	monthlyPrice: number
@@ -22,14 +22,14 @@ type PlanPriceCalc = {
 	includedAliases: number
 	includedStorage: number
 	readonly targetIsDowngrade: boolean
-	readonly targetSubscription: SubscriptionType | LegacySubscriptionType
+	readonly targetSubscription: SubscriptionType
 	readonly targetSubscriptionConfig: SubscriptionConfig
 	readonly paymentIntervalFactor: number
 }
 export type CurrentSubscriptionInfo = {
 	businessUse: boolean
 	nbrOfUsers: number
-	subscriptionType: PaidSubscriptionType | null
+	subscriptionType: SubscriptionType
 	paymentInterval: PaymentInterval
 	currentTotalStorage: number
 	currentTotalAliases: number
@@ -64,7 +64,7 @@ export class SwitchSubscriptionDialogModel {
 		private readonly customerInfo: CustomerInfo,
 		private readonly accountingInfo: AccountingInfo,
 		private readonly lastBooking: Booking,
-		private readonly subscriptionType: PaidSubscriptionType | null,
+		private readonly subscriptionType: SubscriptionType,
 	) {
 		this.currentSubscriptionInfo = this._initCurrentSubscriptionInfo()
 	}

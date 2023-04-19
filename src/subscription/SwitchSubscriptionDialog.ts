@@ -2,7 +2,7 @@ import m from "mithril"
 import { Dialog } from "../gui/base/Dialog"
 import { lang } from "../misc/LanguageViewModel"
 import { ButtonAttrs, ButtonType } from "../gui/base/Button.js"
-import type { AccountingInfo, Booking, Customer, CustomerInfo, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
+import type { AccountingInfo, Booking, Customer, CustomerInfo, PlanPrices, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { AccountType, BookingItemFeatureByCode, BookingItemFeatureType, Const, Keys, PlanType, UnsubscribeFailureReason } from "../api/common/TutanotaConstants"
 import { SubscriptionActionButtons, SubscriptionSelector } from "./SubscriptionSelector"
@@ -229,10 +229,10 @@ async function getUpOrDowngradeMessage(targetSubscription: PlanType, currentSubs
 		if (targetSubscription === PlanType.Essential || targetSubscription === PlanType.Advanced || targetSubscription === PlanType.Unlimited) {
 			msg += " " + lang.get("businessIncluded_msg")
 		}
-		const subscriptionConfig = priceAndConfigProvider.getSubscriptionConfig(targetSubscription)
+		const planPrices = priceAndConfigProvider.getPlanPrices(targetSubscription)
 		if (
-			isDowngradeAliasesNeeded(subscriptionConfig, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedAliases) ||
-			isDowngradeStorageNeeded(subscriptionConfig, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedStorage)
+			isDowngradeAliasesNeeded(planPrices, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedAliases) ||
+			isDowngradeStorageNeeded(planPrices, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedStorage)
 		) {
 			msg = msg + "\n\n" + lang.get("upgradeProNoReduction_msg")
 		}
@@ -243,7 +243,7 @@ async function getUpOrDowngradeMessage(targetSubscription: PlanType, currentSubs
 
 async function checkNeededUpgrades(targetSubscription: PlanType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<void> {
 	const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
-	const targetSubscriptionConfig = priceAndConfigProvider.getSubscriptionConfig(targetSubscription)
+	const targetPlanPrices = priceAndConfigProvider.getPlanPrices(targetSubscription)
 	if (isNewPlan(targetSubscription)) {
 		let targetFeatureType = toFeatureType(targetSubscription)
 		if (targetFeatureType != null) {
@@ -251,19 +251,19 @@ async function checkNeededUpgrades(targetSubscription: PlanType, currentSubscrip
 		}
 	}
 
-	if (isUpgradeAliasesNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentTotalAliases)) {
-		await buyAliases(targetSubscriptionConfig.orderNbrOfAliases)
+	if (isUpgradeAliasesNeeded(targetPlanPrices, currentSubscriptionInfo.currentTotalAliases)) {
+		await buyAliases(Number(targetPlanPrices.includedAliases))
 	}
-	if (isUpgradeStorageNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentTotalStorage)) {
-		await buyStorage(targetSubscriptionConfig.orderStorageGb)
+	if (isUpgradeStorageNeeded(targetPlanPrices, currentSubscriptionInfo.currentTotalStorage)) {
+		await buyStorage(Number(targetPlanPrices.includedStorage))
 	}
-	if (isUpgradeSharingNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentlySharingOrdered)) {
+	if (isUpgradeSharingNeeded(targetPlanPrices, currentSubscriptionInfo.currentlySharingOrdered)) {
 		await buySharing(true)
 	}
-	if (isUpgradeBusinessNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentlyBusinessOrdered)) {
+	if (isUpgradeBusinessNeeded(targetPlanPrices, currentSubscriptionInfo.currentlyBusinessOrdered)) {
 		await buyBusiness(true)
 	}
-	if (isUpgradeWhitelabelNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentlyWhitelabelOrdered)) {
+	if (isUpgradeWhitelabelNeeded(targetPlanPrices, currentSubscriptionInfo.currentlyWhitelabelOrdered)) {
 		await buyWhitelabel(true)
 	}
 	if (isSubscriptionDowngrade(targetSubscription, currentSubscriptionInfo.planType)) {
@@ -293,26 +293,26 @@ async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, 
  */
 async function cancelAllAdditionalFeatures(targetSubscription: PlanType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<boolean> {
 	let failed = false
-	let targetSubscriptionConfig
+	let targetPlanPrices: PlanPrices
 	try {
-		targetSubscriptionConfig = (await PriceAndConfigProvider.getInitializedInstance(null)).getSubscriptionConfig(targetSubscription)
+		targetPlanPrices = (await PriceAndConfigProvider.getInitializedInstance(null)).getPlanPrices(targetSubscription)
 	} catch (e) {
 		console.log("failed to get subscription configs:", e)
 		return true
 	}
-	if (isDowngradeAliasesNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedAliases)) {
-		failed = await buyAliases(targetSubscriptionConfig.orderNbrOfAliases)
+	if (isDowngradeAliasesNeeded(targetPlanPrices, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedAliases)) {
+		failed = await buyAliases(Number(targetPlanPrices.includedAliases))
 	}
-	if (isDowngradeStorageNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentTotalStorage, currentSubscriptionInfo.includedStorage)) {
-		failed = failed || (await buyStorage(targetSubscriptionConfig.orderStorageGb))
+	if (isDowngradeStorageNeeded(targetPlanPrices, currentSubscriptionInfo.currentTotalStorage, currentSubscriptionInfo.includedStorage)) {
+		failed = failed || (await buyStorage(Number(targetPlanPrices.includedStorage)))
 	}
-	if (isDowngradeSharingNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentlySharingOrdered)) {
+	if (isDowngradeSharingNeeded(targetPlanPrices, currentSubscriptionInfo.currentlySharingOrdered)) {
 		failed = failed || (await buySharing(false))
 	}
-	if (isDowngradeBusinessNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentlyBusinessOrdered)) {
+	if (isDowngradeBusinessNeeded(targetPlanPrices, currentSubscriptionInfo.currentlyBusinessOrdered)) {
 		failed = failed || (await buyBusiness(false))
 	}
-	if (isDowngradeWhitelabelNeeded(targetSubscriptionConfig, currentSubscriptionInfo.currentlyWhitelabelOrdered)) {
+	if (isDowngradeWhitelabelNeeded(targetPlanPrices, currentSubscriptionInfo.currentlyWhitelabelOrdered)) {
 		failed = failed || (await buyWhitelabel(false))
 	}
 	return failed

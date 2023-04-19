@@ -337,7 +337,7 @@ export class GroupDetailsModel {
 	private async updateUsedStorage(): Promise<void> {
 		if (this.isMailGroup()) {
 			try {
-				this.usedStorageInBytes = await locator.groupManagementFacade.readUsedGroupStorage(this.groupInfo.group)
+				this.usedStorageInBytes = await locator.groupManagementFacade.readUsedSharedMailGroupStorage(this.groupInfo.group)
 			} catch (e) {
 				if (!(e instanceof BadRequestError)) throw e
 				// may happen if the user gets the admin flag removed

@@ -18,7 +18,7 @@ import { Dialog } from "../gui/base/Dialog"
 import { CloseEventBusOption, Const } from "../api/common/TutanotaConstants"
 import { showMoreStorageNeededOrderDialog } from "../misc/SubscriptionDialogs"
 import { notifications } from "../gui/Notifications"
-import { CustomerInfoTypeRef, CustomerPropertiesTypeRef } from "../api/entities/sys/TypeRefs.js"
+import { CustomerPropertiesTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { LockedError } from "../api/common/error/RestError"
 import type { CredentialsProvider } from "../misc/credentials/CredentialsProvider.js"
 import { usingKeychainAuthentication } from "../misc/credentials/CredentialsProviderFactory"
@@ -29,6 +29,7 @@ import { SecondFactorHandler } from "../misc/2fa/SecondFactorHandler"
 import { SessionType } from "../api/common/SessionType"
 import { StorageBehavior } from "../misc/UsageTestModel.js"
 import type { WebsocketConnectivityModel } from "../misc/WebsocketConnectivityModel.js"
+import { isNewPlan } from "../subscription/FeatureListProvider.js"
 
 /**
  * This is a collection of all things that need to be initialized/global state to be set after a user has logged in successfully.
@@ -200,17 +201,27 @@ export class PostLoginActions implements IPostLoginAction {
 	}
 
 	private async checkStorageWarningLimit(): Promise<void> {
-		if (!locator.logins.getUserController().isGlobalAdmin()) {
-			return
-		}
-
-		const customerId = assertNotNull(locator.logins.getUserController().user.customer)
-		const usedStorage = await locator.customerFacade.readUsedCustomerStorage(customerId)
-		if (Number(usedStorage) > Const.MEMORY_GB_FACTOR * Const.MEMORY_WARNING_FACTOR) {
-			const availableStorage = await locator.customerFacade.readAvailableCustomerStorage(customerId)
-			if (Number(usedStorage) > Number(availableStorage) * Const.MEMORY_WARNING_FACTOR) {
-				showMoreStorageNeededOrderDialog(locator.logins, "insufficientStorageWarning_msg")
+		const userController = locator.logins.getUserController()
+		const customerInfo = await userController.loadCustomerInfo()
+		if (isNewPlan(await userController.getPlanType())) {
+			const usedStorage = await locator.userManagementFacade.readUsedUserStorage(userController.user)
+			this.checkStorageWarningDialog(usedStorage, Number(customerInfo.perUserStorageCapacity) * Const.MEMORY_GB_FACTOR)
+		} else {
+			if (!userController.isGlobalAdmin()) {
+				return
 			}
+			const customerId = assertNotNull(userController.user.customer)
+			const usedStorage = await locator.customerFacade.readUsedCustomerStorage(customerId)
+			if (Number(usedStorage) > Const.MEMORY_GB_FACTOR * Const.MEMORY_WARNING_FACTOR) {
+				const availableStorage = await locator.customerFacade.readAvailableCustomerStorage(customerId)
+				this.checkStorageWarningDialog(usedStorage, availableStorage)
+			}
+		}
+	}
+
+	private checkStorageWarningDialog(usedStorageInBytes: number, availableStorageInBytes: number) {
+		if (Number(usedStorageInBytes) > Number(availableStorageInBytes) * Const.MEMORY_WARNING_FACTOR) {
+			showMoreStorageNeededOrderDialog(locator.logins, "insufficientStorageWarning_msg")
 		}
 	}
 

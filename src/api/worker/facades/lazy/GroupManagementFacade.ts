@@ -34,10 +34,9 @@ export class GroupManagementFacade {
 		private readonly serviceExecutor: IServiceExecutor,
 	) {}
 
-	readUsedGroupStorage(groupId: Id): Promise<number> {
-		return this.counters.readCounterValue(Const.COUNTER_USED_MEMORY, groupId).then((usedStorage) => {
-			return Number(usedStorage)
-		})
+	async readUsedSharedMailGroupStorage(groupId: Id): Promise<number> {
+		const counterValue = await this.counters.readCounterValue(Const.COUNTER_USED_USER_MEMORY, groupId)
+		return Number(counterValue)
 	}
 
 	async createMailGroup(name: string, mailAddress: string): Promise<void> {

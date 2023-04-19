@@ -7988,6 +7988,15 @@ export const typeModels = {
                 "cardinality": "One",
                 "encrypted": false
             },
+            "business": {
+                "final": false,
+                "name": "business",
+                "id": 2097,
+                "since": 86,
+                "type": "Boolean",
+                "cardinality": "One",
+                "encrypted": false
+            },
             "contactFormPriceMonthly": {
                 "final": false,
                 "name": "contactFormPriceMonthly",
@@ -8039,6 +8048,24 @@ export const typeModels = {
                 "id": 1462,
                 "since": 39,
                 "type": "Number",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "sharing": {
+                "final": false,
+                "name": "sharing",
+                "id": 2096,
+                "since": 86,
+                "type": "Boolean",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "whitelabel": {
+                "final": false,
+                "name": "whitelabel",
+                "id": 2098,
+                "since": 86,
+                "type": "Boolean",
                 "cardinality": "One",
                 "encrypted": false
             }

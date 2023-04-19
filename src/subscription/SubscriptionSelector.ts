@@ -17,7 +17,7 @@ import {
 } from "./FeatureListProvider"
 import { ProgrammingError } from "../api/common/error/ProgrammingError"
 import { ButtonAttrs } from "../gui/base/Button.js"
-import { assertNotNull, downcast, lazy } from "@tutao/tutanota-utils"
+import { downcast, lazy } from "@tutao/tutanota-utils"
 import { AvailablePlanType, PlanType } from "../api/common/TutanotaConstants.js"
 
 const BusinessUseItems: SegmentControlItem<boolean>[] = [
@@ -126,8 +126,6 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 			])
 		}
 
-		const currentPlanInfo = this.getCurrentPlanInfo(vnode.attrs)
-
 		return [
 			vnode.attrs.isInitialUpgrade
 				? m(SegmentControl, {
@@ -138,7 +136,6 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 				: null,
 			vnode.attrs.campaignInfoTextId && lang.exists(vnode.attrs.campaignInfoTextId) ? m(".b.center.mt", lang.get(vnode.attrs.campaignInfoTextId)) : null,
 			vnode.attrs.referralCodeMsg ? m(".b.center.mt", lang.get(vnode.attrs.referralCodeMsg)) : null,
-			currentPlanInfo ? m(".smaller.center.mt", currentPlanInfo) : null,
 			m(
 				".flex.center-horizontally.wrap",
 				{
@@ -151,27 +148,6 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 				additionalInfo,
 			),
 		]
-	}
-
-	private getCurrentPlanInfo(selectorAttrs: SubscriptionSelectorAttr): string | null {
-		if (selectorAttrs.options.businessUse() && selectorAttrs.currentPlanType && !selectorAttrs.currentlyBusinessOrdered) {
-			const { priceAndConfigProvider, options, currentPlanType } = selectorAttrs
-			const price = priceAndConfigProvider.getSubscriptionPrice(
-				options.paymentInterval(),
-				assertNotNull(currentPlanType),
-				UpgradePriceType.PlanActualPrice,
-			)
-			return (
-				lang.get("businessCustomerNeedsBusinessFeaturePlan_msg", {
-					"{price}": formatMonthlyPrice(price, selectorAttrs.options.paymentInterval()),
-					"{plan}": selectorAttrs.currentPlanType,
-				}) +
-				" " +
-				lang.get("businessCustomerAutoBusinessFeature_msg")
-			)
-		}
-
-		return null
 	}
 
 	private createBuyOptionBoxAttr(
@@ -333,9 +309,9 @@ export function getReplacement(
 	const { priceAndConfigProvider, options } = attrs
 	switch (key) {
 		case "mailAddressAliases":
-			return { "{amount}": priceAndConfigProvider.getSubscriptionConfig(subscription).nbrOfAliases }
+			return { "{amount}": priceAndConfigProvider.getPlanPrices(subscription).includedAliases }
 		case "storage":
-			return { "{amount}": priceAndConfigProvider.getSubscriptionConfig(subscription).storageGb }
+			return { "{amount}": priceAndConfigProvider.getPlanPrices(subscription).includedStorage }
 		case "contactForm":
 			const subscriptionPriceContact = priceAndConfigProvider.getSubscriptionPrice(
 				options.paymentInterval(),

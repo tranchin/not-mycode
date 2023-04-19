@@ -4,7 +4,6 @@ import { Dialog } from "../gui/base/Dialog"
 import type { TranslationKey } from "./LanguageViewModel"
 import { InfoLink, lang } from "./LanguageViewModel"
 import { isIOSApp } from "../api/common/Env"
-import { ProgrammingError } from "../api/common/error/ProgrammingError"
 import type { clickHandler } from "../gui/base/GuiUtils"
 import { locator } from "../api/main/MainLocator"
 
@@ -64,7 +63,7 @@ export function showMoreStorageNeededOrderDialog(loginController: LoginControlle
 	const userController = locator.logins.getUserController()
 
 	if (!userController.isGlobalAdmin()) {
-		throw new ProgrammingError("changing storage or other subscription options is only allowed for global admins")
+		return Dialog.message("insufficientStorageWarning_msg")
 	}
 
 	const confirmMsg = () => lang.get(messageIdOrMessageFunction) + "\n\n" + lang.get("onlyAvailableForPremiumNotIncluded_msg")

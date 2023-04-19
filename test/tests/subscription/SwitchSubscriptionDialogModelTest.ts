@@ -10,10 +10,10 @@ import {
 	createPriceItemData,
 	createPriceServiceReturn,
 } from "../../../src/api/entities/sys/TypeRefs.js"
-import { AccountType, BookingItemFeatureType } from "../../../src/api/common/TutanotaConstants.js"
+import { AccountType, BookingItemFeatureType, SubscriptionName, SubscriptionType } from "../../../src/api/common/TutanotaConstants.js"
 import { downcast } from "@tutao/tutanota-utils"
 import { BookingFacade } from "../../../src/api/worker/facades/lazy/BookingFacade.js"
-import { LegacySubscriptionType, SubscriptionConfig, SubscriptionType } from "../../../src/subscription/FeatureListProvider"
+import { SubscriptionConfig } from "../../../src/subscription/FeatureListProvider"
 import { getCurrentCount } from "../../../src/subscription/SubscriptionUtils.js"
 import { createPriceMock } from "./priceTestUtils.js"
 
@@ -117,7 +117,7 @@ const SUBSCRIPTION_CONFIG = {
 		business: true,
 		whitelabel: true,
 	},
-} as { [K in SubscriptionType]: SubscriptionConfig }
+} as { [K in SubscriptionName]: SubscriptionConfig }
 
 function createPremiumCustomerInstances() {
 	const customer = createCustomer({

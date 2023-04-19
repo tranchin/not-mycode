@@ -10,7 +10,7 @@ import {
 	UpgradePriceServiceReturn,
 } from "../api/entities/sys/TypeRefs.js"
 import type { InvoiceData, PaymentData } from "../api/common/TutanotaConstants"
-import { Const, getPaymentMethodType, PaymentMethodType as PaymentMethod, SubscriptionType } from "../api/common/TutanotaConstants"
+import { Const, getPaymentMethodType, PaymentMethodType as PaymentMethod, PlanType } from "../api/common/TutanotaConstants"
 import { getByAbbreviation } from "../api/common/CountryList"
 import { UpgradeSubscriptionPage, UpgradeSubscriptionPageAttrs } from "./UpgradeSubscriptionPage"
 import { formatNameAndAddress } from "../misc/Formatter"
@@ -49,7 +49,7 @@ export type UpgradeSubscriptionData = {
 	options: SelectedSubscriptionOptions
 	invoiceData: InvoiceData
 	paymentData: PaymentData
-	type: SubscriptionType
+	type: PlanType
 	price: string
 	priceNextYear: string | null
 	accountingInfo: AccountingInfo | null
@@ -61,7 +61,7 @@ export type UpgradeSubscriptionData = {
 	campaignInfoTextId: TranslationKey | null
 	upgradeType: UpgradeType
 	planPrices: PriceAndConfigProvider
-	currentSubscription: SubscriptionType
+	currentSubscription: PlanType
 	subscriptionParameters: SubscriptionParameters | null
 	featureListProvider: FeatureListProvider
 	referralCode: string | null
@@ -112,7 +112,7 @@ export async function showUpgradeWizard(): Promise<void> {
 			creditCardData: null,
 		},
 		price: "",
-		type: SubscriptionType.Revolutionary,
+		type: PlanType.Revolutionary,
 		priceNextYear: null,
 		accountingInfo: accountingInfo,
 		customer: customer,
@@ -120,7 +120,7 @@ export async function showUpgradeWizard(): Promise<void> {
 		registrationDataId: null,
 		campaignInfoTextId: prices.messageTextId ? assertTranslation(prices.messageTextId) : null,
 		upgradeType: UpgradeType.Initial,
-		currentSubscription: SubscriptionType.Free,
+		currentSubscription: PlanType.Free,
 		subscriptionParameters: null,
 		planPrices: priceDataProvider,
 		featureListProvider: featureListProvider,
@@ -187,7 +187,7 @@ export async function loadSignupWizard(
 		},
 		price: "",
 		priceNextYear: null,
-		type: SubscriptionType.Free,
+		type: PlanType.Free,
 		accountingInfo: null,
 		customer: null,
 		newAccountData: null,
@@ -195,7 +195,7 @@ export async function loadSignupWizard(
 		campaignInfoTextId,
 		upgradeType: UpgradeType.Signup,
 		planPrices: priceDataProvider,
-		currentSubscription: SubscriptionType.Free,
+		currentSubscription: PlanType.Free,
 		subscriptionParameters: subscriptionParameters,
 		featureListProvider: featureListProvider,
 		referralCode,

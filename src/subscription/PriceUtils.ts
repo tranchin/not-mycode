@@ -1,4 +1,4 @@
-import { BookingItemFeatureType, Const, PaymentMethodType, SubscriptionName, SubscriptionType, SubscriptionTypeToName } from "../api/common/TutanotaConstants"
+import { BookingItemFeatureType, Const, PaymentMethodType, PlanName, PlanType, PlanTypeToName } from "../api/common/TutanotaConstants"
 import { lang } from "../misc/LanguageViewModel"
 import { assertNotNull, downcast, neverNull } from "@tutao/tutanota-utils"
 import type { AccountingInfo, PriceData, PriceItemData } from "../api/entities/sys/TypeRefs.js"
@@ -119,7 +119,7 @@ export class PriceAndConfigProvider {
 	private upgradePriceData: UpgradePriceServiceReturn | null = null
 	private planPrices: SubscriptionPlanPrices | null = null
 
-	private possibleSubscriptionList: { [K in SubscriptionName]: SubscriptionConfig } | null = null
+	private possibleSubscriptionList: { [K in PlanName]: SubscriptionConfig } | null = null
 
 	private constructor() {}
 
@@ -130,7 +130,7 @@ export class PriceAndConfigProvider {
 		})
 		this.upgradePriceData = await serviceExecutor.get(UpgradePriceService, data)
 		this.planPrices = {
-			[SubscriptionType.Free]: {
+			[PlanType.Free]: {
 				_type: PlanPricesTypeRef,
 				_id: "dummy",
 				additionalUserPriceMonthly: "0",
@@ -141,16 +141,16 @@ export class PriceAndConfigProvider {
 				monthlyPrice: "0",
 				monthlyReferencePrice: "0",
 			},
-			[SubscriptionType.Premium]: this.upgradePriceData.premiumPrices,
-			[SubscriptionType.PremiumBusiness]: this.upgradePriceData.premiumBusinessPrices,
-			[SubscriptionType.Teams]: this.upgradePriceData.teamsPrices,
-			[SubscriptionType.TeamsBusiness]: this.upgradePriceData.teamsBusinessPrices,
-			[SubscriptionType.Pro]: this.upgradePriceData.proPrices,
-			[SubscriptionType.Revolutionary]: this.upgradePriceData.revolutionaryPrices,
-			[SubscriptionType.Legend]: this.upgradePriceData.legendaryPrices,
-			[SubscriptionType.Essential]: this.upgradePriceData.essentialPrices,
-			[SubscriptionType.Advanced]: this.upgradePriceData.advancedPrices,
-			[SubscriptionType.Unlimited]: this.upgradePriceData.unlimitedPrices,
+			[PlanType.Premium]: this.upgradePriceData.premiumPrices,
+			[PlanType.PremiumBusiness]: this.upgradePriceData.premiumBusinessPrices,
+			[PlanType.Teams]: this.upgradePriceData.teamsPrices,
+			[PlanType.TeamsBusiness]: this.upgradePriceData.teamsBusinessPrices,
+			[PlanType.Pro]: this.upgradePriceData.proPrices,
+			[PlanType.Revolutionary]: this.upgradePriceData.revolutionaryPrices,
+			[PlanType.Legend]: this.upgradePriceData.legendaryPrices,
+			[PlanType.Essential]: this.upgradePriceData.essentialPrices,
+			[PlanType.Advanced]: this.upgradePriceData.advancedPrices,
+			[PlanType.Unlimited]: this.upgradePriceData.unlimitedPrices,
 		}
 
 		if ("undefined" === typeof fetch) return
@@ -172,7 +172,7 @@ export class PriceAndConfigProvider {
 		return priceDataProvider
 	}
 
-	getSubscriptionPrice(paymentInterval: PaymentInterval, subscription: SubscriptionType, type: UpgradePriceType): number {
+	getSubscriptionPrice(paymentInterval: PaymentInterval, subscription: PlanType, type: UpgradePriceType): number {
 		if (subscription == null) return 0
 		return paymentInterval === PaymentInterval.Yearly
 			? this.getYearlySubscriptionPrice(subscription, type)
@@ -183,11 +183,11 @@ export class PriceAndConfigProvider {
 		return assertNotNull(this.upgradePriceData)
 	}
 
-	getSubscriptionConfig(targetSubscription: SubscriptionType): SubscriptionConfig {
-		return assertNotNull(this.possibleSubscriptionList)[SubscriptionTypeToName[targetSubscription]]
+	getSubscriptionConfig(targetSubscription: PlanType): SubscriptionConfig {
+		return assertNotNull(this.possibleSubscriptionList)[PlanTypeToName[targetSubscription]]
 	}
 
-	private getYearlySubscriptionPrice(subscription: SubscriptionType, upgrade: UpgradePriceType): number {
+	private getYearlySubscriptionPrice(subscription: PlanType, upgrade: UpgradePriceType): number {
 		const prices = this.getPlanPrices(subscription)
 		const monthlyPrice = getPriceForUpgradeType(upgrade, prices)
 		const monthsFactor = upgrade === UpgradePriceType.PlanReferencePrice ? Number(PaymentInterval.Yearly) : 10
@@ -195,12 +195,12 @@ export class PriceAndConfigProvider {
 		return monthlyPrice * monthsFactor - discount
 	}
 
-	private getMonthlySubscriptionPrice(subscription: SubscriptionType, upgrade: UpgradePriceType): number {
+	private getMonthlySubscriptionPrice(subscription: PlanType, upgrade: UpgradePriceType): number {
 		const prices = this.getPlanPrices(subscription)
 		return getPriceForUpgradeType(upgrade, prices)
 	}
 
-	private getPlanPrices(subscription: SubscriptionType): WebsitePlanPrices {
+	private getPlanPrices(subscription: PlanType): WebsitePlanPrices {
 		return assertNotNull(this.planPrices)[subscription]
 	}
 }
@@ -219,17 +219,17 @@ function getPriceForUpgradeType(upgrade: UpgradePriceType, prices: WebsitePlanPr
 	}
 }
 
-function descendingSubscriptionOrder(): Array<SubscriptionType> {
-	return [SubscriptionType.Unlimited, SubscriptionType.Advanced, SubscriptionType.Legend, SubscriptionType.Essential, SubscriptionType.Revolutionary]
+function descendingSubscriptionOrder(): Array<PlanType> {
+	return [PlanType.Unlimited, PlanType.Advanced, PlanType.Legend, PlanType.Essential, PlanType.Revolutionary]
 }
 
 /**
  * Returns true if the targetSubscription plan is considered to be a lower (~ cheaper) subscription plan
  * Is based on the order of business and non-business subscriptions as defined in descendingSubscriptionOrder
  */
-export function isSubscriptionDowngrade(targetSubscription: SubscriptionType, currentSubscription: SubscriptionType): boolean {
+export function isSubscriptionDowngrade(targetSubscription: PlanType, currentSubscription: PlanType): boolean {
 	const order = descendingSubscriptionOrder()
-	if (Object.values(SubscriptionType).includes(downcast(currentSubscription))) {
+	if (Object.values(PlanType).includes(downcast(currentSubscription))) {
 		return order.indexOf(targetSubscription) > order.indexOf(downcast(currentSubscription))
 	} else {
 		return false

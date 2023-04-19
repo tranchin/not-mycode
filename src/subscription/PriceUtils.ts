@@ -1,4 +1,4 @@
-import { BookingItemFeatureType, Const, SubscriptionType, PaymentMethodType, SubscriptionName } from "../api/common/TutanotaConstants"
+import { BookingItemFeatureType, Const, PaymentMethodType, SubscriptionName, SubscriptionType, SubscriptionTypeToName } from "../api/common/TutanotaConstants"
 import { lang } from "../misc/LanguageViewModel"
 import { assertNotNull, downcast, neverNull } from "@tutao/tutanota-utils"
 import type { AccountingInfo, PriceData, PriceItemData } from "../api/entities/sys/TypeRefs.js"
@@ -119,7 +119,7 @@ export class PriceAndConfigProvider {
 	private upgradePriceData: UpgradePriceServiceReturn | null = null
 	private planPrices: SubscriptionPlanPrices | null = null
 
-	private possibleSubscriptionList: { [K in SubscriptionType]: SubscriptionConfig } | null = null
+	private possibleSubscriptionList: { [K in SubscriptionName]: SubscriptionConfig } | null = null
 
 	private constructor() {}
 
@@ -130,7 +130,7 @@ export class PriceAndConfigProvider {
 		})
 		this.upgradePriceData = await serviceExecutor.get(UpgradePriceService, data)
 		this.planPrices = {
-			[SubscriptionType.Free] : {
+			[SubscriptionType.Free]: {
 				_type: PlanPricesTypeRef,
 				_id: "dummy",
 				additionalUserPriceMonthly: "0",
@@ -184,7 +184,7 @@ export class PriceAndConfigProvider {
 	}
 
 	getSubscriptionConfig(targetSubscription: SubscriptionType): SubscriptionConfig {
-		return assertNotNull(this.possibleSubscriptionList)[targetSubscription]
+		return assertNotNull(this.possibleSubscriptionList)[SubscriptionTypeToName[targetSubscription]]
 	}
 
 	private getYearlySubscriptionPrice(subscription: SubscriptionType, upgrade: UpgradePriceType): number {
@@ -220,13 +220,7 @@ function getPriceForUpgradeType(upgrade: UpgradePriceType, prices: WebsitePlanPr
 }
 
 function descendingSubscriptionOrder(): Array<SubscriptionType> {
-	return [
-		SubscriptionType.Unlimited,
-		SubscriptionType.Advanced,
-		SubscriptionType.Legend,
-		SubscriptionType.Essential,
-		SubscriptionType.Revolutionary,
-	]
+	return [SubscriptionType.Unlimited, SubscriptionType.Advanced, SubscriptionType.Legend, SubscriptionType.Essential, SubscriptionType.Revolutionary]
 }
 
 /**

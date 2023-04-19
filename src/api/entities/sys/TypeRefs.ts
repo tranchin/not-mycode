@@ -1999,12 +1999,15 @@ export type PlanPrices = {
 
 	_id: Id;
 	additionalUserPriceMonthly: NumberString;
+	business: boolean;
 	contactFormPriceMonthly: NumberString;
 	firstYearDiscount: NumberString;
 	includedAliases: NumberString;
 	includedStorage: NumberString;
 	monthlyPrice: NumberString;
 	monthlyReferencePrice: NumberString;
+	sharing: boolean;
+	whitelabel: boolean;
 }
 export const PremiumFeatureDataTypeRef: TypeRef<PremiumFeatureData> = new TypeRef("sys", "PremiumFeatureData")
 

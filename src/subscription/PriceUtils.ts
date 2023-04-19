@@ -1,7 +1,7 @@
 import { BookingItemFeatureType, Const, PaymentMethodType, PlanName, PlanType, PlanTypeToName } from "../api/common/TutanotaConstants"
 import { lang } from "../misc/LanguageViewModel"
 import { assertNotNull, downcast, neverNull } from "@tutao/tutanota-utils"
-import type { AccountingInfo, PriceData, PriceItemData } from "../api/entities/sys/TypeRefs.js"
+import type { AccountingInfo, PlanPrices, PriceData, PriceItemData } from "../api/entities/sys/TypeRefs.js"
 import { createUpgradePriceServiceData, PlanPricesTypeRef, UpgradePriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
 import { SubscriptionConfig, SubscriptionPlanPrices, UpgradePriceType, WebsitePlanPrices } from "./FeatureListProvider"
 import { locator } from "../api/main/MainLocator"
@@ -113,13 +113,9 @@ export function getPriceFromPriceData(priceData: PriceData | null, featureType: 
 	}
 }
 
-const SUBSCRIPTION_CONFIG_RESOURCE_URL = "https://tutanota.com/resources/data/subscriptions.json"
-
 export class PriceAndConfigProvider {
 	private upgradePriceData: UpgradePriceServiceReturn | null = null
 	private planPrices: SubscriptionPlanPrices | null = null
-
-	private possibleSubscriptionList: { [K in PlanName]: SubscriptionConfig } | null = null
 
 	private constructor() {}
 
@@ -140,6 +136,9 @@ export class PriceAndConfigProvider {
 				includedStorage: "0",
 				monthlyPrice: "0",
 				monthlyReferencePrice: "0",
+				sharing: false,
+				business: false,
+				whitelabel: false,
 			},
 			[PlanType.Premium]: this.upgradePriceData.premiumPrices,
 			[PlanType.PremiumBusiness]: this.upgradePriceData.premiumBusinessPrices,
@@ -151,14 +150,6 @@ export class PriceAndConfigProvider {
 			[PlanType.Essential]: this.upgradePriceData.essentialPrices,
 			[PlanType.Advanced]: this.upgradePriceData.advancedPrices,
 			[PlanType.Unlimited]: this.upgradePriceData.unlimitedPrices,
-		}
-
-		if ("undefined" === typeof fetch) return
-		try {
-			this.possibleSubscriptionList = await (await fetch(SUBSCRIPTION_CONFIG_RESOURCE_URL)).json()
-		} catch (e) {
-			console.log("failed to fetch subscription list:", e)
-			throw new ConnectionError("failed to fetch subscription list")
 		}
 	}
 
@@ -181,10 +172,6 @@ export class PriceAndConfigProvider {
 		return assertNotNull(this.upgradePriceData)
 	}
 
-	getSubscriptionConfig(targetSubscription: PlanType): SubscriptionConfig {
-		return assertNotNull(this.possibleSubscriptionList)[PlanTypeToName[targetSubscription]]
-	}
-
 	private getYearlySubscriptionPrice(subscription: PlanType, upgrade: UpgradePriceType): number {
 		const prices = this.getPlanPrices(subscription)
 		const monthlyPrice = getPriceForUpgradeType(upgrade, prices)
@@ -198,7 +185,7 @@ export class PriceAndConfigProvider {
 		return getPriceForUpgradeType(upgrade, prices)
 	}
 
-	private getPlanPrices(subscription: PlanType): WebsitePlanPrices {
+	getPlanPrices(subscription: PlanType): PlanPrices {
 		return assertNotNull(this.planPrices)[subscription]
 	}
 }

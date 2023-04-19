@@ -42,8 +42,6 @@ import type { PriceAndConfigProvider } from "../../subscription/PriceUtils.js"
 assertMainOrNode()
 
 export class UserController {
-	customerInfo: CustomerInfo | null
-
 	constructor(
 		// should be readonly but is needed for a workaround in CalendarModel
 		public user: User,
@@ -55,10 +53,7 @@ export class UserController {
 		public readonly sessionType: SessionType,
 		private readonly entityClient: EntityClient,
 		private readonly priceAndConfigProvider: LazyLoaded<PriceAndConfigProvider>,
-	) {
-		this.customerInfo = null
-		this.loadCustomerInfo() // prevent flickering in MailSettingsViewer (storage field)
-	}
+	) {}
 
 	get userId(): Id {
 		return this.user._id
@@ -121,11 +116,8 @@ export class UserController {
 	}
 
 	async loadCustomerInfo(): Promise<CustomerInfo> {
-		if (!this.customerInfo) {
-			const customer = await this.loadCustomer()
-			this.customerInfo = await this.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
-		}
-		return this.customerInfo
+		const customer = await this.loadCustomer()
+		return await this.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
 	}
 
 	async getPlanType(): Promise<PlanType> {

@@ -155,7 +155,6 @@ export class PriceAndConfigProvider {
 
 		if ("undefined" === typeof fetch) return
 		try {
-			// FIXME get rid of this and adapt website
 			this.possibleSubscriptionList = await (await fetch(SUBSCRIPTION_CONFIG_RESOURCE_URL)).json()
 		} catch (e) {
 			console.log("failed to fetch subscription list:", e)
@@ -173,7 +172,6 @@ export class PriceAndConfigProvider {
 	}
 
 	getSubscriptionPrice(paymentInterval: PaymentInterval, subscription: PlanType, type: UpgradePriceType): number {
-		if (subscription == null) return 0
 		return paymentInterval === PaymentInterval.Yearly
 			? this.getYearlySubscriptionPrice(subscription, type)
 			: this.getMonthlySubscriptionPrice(subscription, type)

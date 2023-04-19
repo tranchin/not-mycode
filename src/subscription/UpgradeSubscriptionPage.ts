@@ -22,9 +22,11 @@ import { lazy } from "@tutao/tutanota-utils"
 /** Subscription type passed from the website */
 export const PlanTypeParameter = Object.freeze({
 	FREE: "free",
-	PREMIUM: "premium",
-	TEAMS: "teams",
-	PRO: "pro",
+	REVOLUTIONARY: "revolutionary",
+	LEGEND: "legend",
+	ESSENTIAL: "essential",
+	ADVANCED: "advanced",
+	UNLIMITED: "unlimited",
 })
 
 export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionData> {
@@ -127,11 +129,11 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 					this.selectFree(data)
 					break
 
-				case PlanTypeParameter.PREMIUM:
+				case PlanTypeParameter.REVOLUTIONARY:
 					this.setNonFreeDataAndGoToNextPage(data, PlanType.Revolutionary)
 					break
 
-				case PlanTypeParameter.TEAMS:
+				case PlanTypeParameter.LEGEND:
 					this.setNonFreeDataAndGoToNextPage(data, PlanType.Legend)
 					break
 
@@ -143,15 +145,15 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 			data.options.businessUse(true)
 
 			switch (subscriptionParameters.subscription) {
-				case PlanTypeParameter.PREMIUM:
+				case PlanTypeParameter.ESSENTIAL:
 					this.setNonFreeDataAndGoToNextPage(data, PlanType.Essential)
 					break
 
-				case PlanTypeParameter.TEAMS:
+				case PlanTypeParameter.ADVANCED:
 					this.setNonFreeDataAndGoToNextPage(data, PlanType.Advanced)
 					break
 
-				case PlanTypeParameter.PRO:
+				case PlanTypeParameter.UNLIMITED:
 					this.setNonFreeDataAndGoToNextPage(data, PlanType.Unlimited)
 					break
 

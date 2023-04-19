@@ -61,7 +61,6 @@ const DAY = 1000 * 60 * 60 * 24
 export class SubscriptionViewer implements UpdatableSettingsViewer {
 	readonly view: UpdatableSettingsViewer["view"]
 	private _subscriptionFieldValue: Stream<string>
-	private _usageTypeFieldValue: Stream<string>
 	private _orderAgreementFieldValue: Stream<string>
 	private _selectedSubscriptionInterval: Stream<PaymentInterval | null>
 	private _currentPriceFieldValue: Stream<string>
@@ -126,23 +125,6 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 							  })
 							: null,
 				}),
-				this._showPriceData()
-					? m(TextField, {
-							label: "businessOrPrivateUsage_label",
-							value: this._usageTypeFieldValue(),
-							oninput: this._usageTypeFieldValue,
-							disabled: true,
-							injectionsRight: () =>
-								this._customer && this._customer.businessUse === false && !this._customer.canceledPremiumAccount
-									? m(IconButton, {
-											title: "pricing.businessUse_label",
-											click: () => this._switchToBusinessUse(),
-											icon: Icons.Edit,
-											size: ButtonSize.Compact,
-									  })
-									: null,
-					  })
-					: null,
 				this._showOrderAgreement() ? this.renderAgreement() : null,
 				this._showPriceData() ? this.renderIntervals() : null,
 				this._showPriceData() && this._nextPeriodPriceVisible && this._periodEndDate
@@ -261,7 +243,6 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		const loadingString = lang.get("loading_msg")
 		this._currentPriceFieldValue = stream(loadingString)
 		this._subscriptionFieldValue = stream(loadingString)
-		this._usageTypeFieldValue = stream(loadingString)
 		this._orderAgreementFieldValue = stream(loadingString)
 		this._nextPriceFieldValue = stream(loadingString)
 		this._usersFieldValue = stream(loadingString)
@@ -291,8 +272,6 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		let p = Promise.resolve()
 		this._customer = customer
 
-		this._usageTypeFieldValue(customer.businessUse ? lang.get("pricing.businessUse_label") : lang.get("pricing.privateUse_label"))
-
 		if (customer.orderProcessingAgreement) {
 			p = locator.entityClient.load(OrderProcessingAgreementTypeRef, customer.orderProcessingAgreement).then((a) => {
 				this._orderAgreement = a
@@ -316,27 +295,6 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 
 			m.redraw()
 		})
-	}
-
-	_switchToBusinessUse(): void {
-		const customer = this._customer
-
-		if (customer && customer.businessUse === false) {
-			let accountingInfo = neverNull(this._accountingInfo)
-			const invoiceCountry = neverNull(getByAbbreviation(neverNull(accountingInfo.invoiceCountry)))
-			SwitchToBusinessInvoiceDataDialog.show(
-				customer,
-				{
-					invoiceAddress: formatNameAndAddress(accountingInfo.invoiceName, accountingInfo.invoiceAddress),
-					country: invoiceCountry,
-					vatNumber: "",
-				},
-				accountingInfo,
-				isBusinessFeatureActive(this._lastBooking),
-				"pricing.businessUse_label",
-				"businessChangeInfo_msg",
-			)
-		}
 	}
 
 	_showPriceData(): boolean {

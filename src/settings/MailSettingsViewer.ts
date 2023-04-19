@@ -102,14 +102,16 @@ export class MailSettingsViewer implements UpdatableSettingsViewer {
 		this._outOfOfficeNotification.getAsync().then(() => this._updateOutOfOfficeNotification())
 
 		this.customerInfo = null
-		const loadingString = lang.get("loading_msg")
-		this._storageFieldValue = stream(loadingString)
+		this._storageFieldValue = stream("")
 
 		this.offlineStorageSettings.init().then(() => m.redraw())
 	}
 
 	async oninit(): Promise<void> {
-		this.customerInfo = await locator.logins.getUserController().loadCustomerInfo()
+		this.customerInfo = locator.logins.getUserController().customerInfo // prevent flickering in case customerInfo is already fetched
+		if (!this.customerInfo) {
+			this.customerInfo = await locator.logins.getUserController().loadCustomerInfo()
+		}
 		this.updateStorageField(this.customerInfo).then(() => m.redraw())
 	}
 

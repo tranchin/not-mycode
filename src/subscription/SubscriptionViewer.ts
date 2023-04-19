@@ -80,13 +80,13 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	private _accountingInfo: AccountingInfo | null = null
 	private _lastBooking: Booking | null = null
 	private _orderAgreement: OrderProcessingAgreement | null = null
-	private _currentSubscription: PlanType
+	private currentPlan: PlanType
 	private _isCancelled: boolean | null = null
 	private _giftCards: Map<Id, GiftCard>
 	private _giftCardsExpanded: Stream<boolean>
 
 	constructor(currentSubscription: PlanType) {
-		this._currentSubscription = currentSubscription
+		this.currentPlan = currentSubscription
 		const isPremiumPredicate = () => locator.logins.getUserController().isPremiumAccount()
 
 		const deleteAccountExpanded = stream(false)
@@ -150,7 +150,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					},
 					renderGiftCardTable(Array.from(this._giftCards.values()), isPremiumPredicate),
 				),
-				isLegacyPlan(this._currentSubscription)
+				isLegacyPlan(this.currentPlan)
 					? [
 							m(".h4.mt-l", lang.get("adminPremiumFeatures_action")),
 							m(TextField, {
@@ -344,7 +344,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 				: ""
 		const accountType: AccountType = downcast(locator.logins.getUserController().user.accountType)
 
-		this._subscriptionFieldValue(_getAccountTypeName(accountType, assertNotNull(this._currentSubscription)) + cancelledText)
+		this._subscriptionFieldValue(_getAccountTypeName(accountType, assertNotNull(this.currentPlan)) + cancelledText)
 	}
 
 	_updateBookings(): Promise<void> {
@@ -371,7 +371,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 							this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
 							this._customer = customer
 							this._isCancelled = customer.canceledPremiumAccount
-							this._currentSubscription = await userController.getPlanType()
+							this.currentPlan = await userController.getPlanType()
 
 							this._updateSubscriptionField(this._isCancelled)
 
@@ -620,7 +620,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 }
 
 function _getAccountTypeName(type: AccountType, subscription: PlanType): string {
-	if (type === AccountType.PREMIUM && subscription != null) {
+	if (type === AccountType.PREMIUM) {
 		return getDisplayNameOfPlanType(subscription)
 	} else {
 		return AccountTypeNames[type]

@@ -173,12 +173,10 @@ type FeatureLists = { [K in PlanName]: { subtitle: string; categories: Array<Fea
  */
 export function getDisplayNameOfPlanType(planType: PlanType): string {
 	switch (planType) {
-		case null:
-			return "Free"
 		case PlanType.PremiumBusiness:
-			return "Premium"
+			return downcast(PlanTypeToName[PlanType.Premium])
 		case PlanType.TeamsBusiness:
-			return "Teams"
+			return downcast(PlanTypeToName[PlanType.Teams])
 		default:
 			return downcast(PlanTypeToName[planType])
 	}

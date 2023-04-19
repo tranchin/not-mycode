@@ -61,7 +61,7 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 					label: "pricing.select_action",
 					click: () => this.selectFree(data),
 					type: ButtonType.Login,
-				}
+				} as ButtonAttrs
 			},
 			[PlanType.Revolutionary]: this.createUpgradeButton(data, PlanType.Revolutionary),
 			[PlanType.Legend]: this.createUpgradeButton(data, PlanType.Legend),
@@ -77,7 +77,7 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 				boxWidth: 230,
 				boxHeight: 270,
 				isInitialUpgrade: data.upgradeType !== UpgradeType.Switch,
-				currentPlanType: data.currentSubscription,
+				currentPlanType: data.currentPlan,
 				currentlySharingOrdered: false,
 				currentlyBusinessOrdered: false,
 				currentlyWhitelabelOrdered: false,

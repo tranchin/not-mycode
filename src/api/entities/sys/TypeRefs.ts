@@ -871,9 +871,9 @@ export type CustomerInfo = {
 	erased: boolean;
 	includedEmailAliases: NumberString;
 	includedStorageCapacity: NumberString;
-	paidSubscriptionType: null | NumberString;
 	perUserAliasCount: NumberString;
 	perUserStorageCapacity: NumberString;
+	plan: NumberString;
 	promotionEmailAliases: NumberString;
 	promotionStorageCapacity: NumberString;
 	registrationMailAddress: string;
@@ -2691,7 +2691,7 @@ export type SwitchAccountTypePostIn = {
 	_format: NumberString;
 	accountType: NumberString;
 	date: null | Date;
-	subscriptionType: NumberString;
+	plan: NumberString;
 
 	referralCode:  null | Id;
 }

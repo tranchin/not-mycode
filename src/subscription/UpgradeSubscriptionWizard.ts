@@ -10,7 +10,7 @@ import {
 	UpgradePriceServiceReturn,
 } from "../api/entities/sys/TypeRefs.js"
 import type { InvoiceData, PaymentData } from "../api/common/TutanotaConstants"
-import { Const, getPaymentMethodType, PaidSubscriptionType, PaymentMethodType as PaymentMethod } from "../api/common/TutanotaConstants"
+import { Const, getPaymentMethodType, PaymentMethodType as PaymentMethod, SubscriptionType } from "../api/common/TutanotaConstants"
 import { getByAbbreviation } from "../api/common/CountryList"
 import { UpgradeSubscriptionPage, UpgradeSubscriptionPageAttrs } from "./UpgradeSubscriptionPage"
 import { formatNameAndAddress } from "../misc/Formatter"
@@ -26,7 +26,7 @@ import { assertMainOrNode } from "../api/common/Env"
 import { locator } from "../api/main/MainLocator"
 import { StorageBehavior } from "../misc/UsageTestModel"
 import { ReferralCodeService, UpgradePriceService } from "../api/entities/sys/Services.js"
-import { FeatureListProvider, SelectedSubscriptionOptions, SubscriptionType } from "./FeatureListProvider"
+import { FeatureListProvider, SelectedSubscriptionOptions } from "./FeatureListProvider"
 import { UpgradeType } from "./SubscriptionUtils"
 import { UpgradeConfirmSubscriptionPage } from "./UpgradeConfirmSubscriptionPage.js"
 import { asPaymentInterval, PaymentInterval, PriceAndConfigProvider } from "./PriceUtils"
@@ -49,7 +49,7 @@ export type UpgradeSubscriptionData = {
 	options: SelectedSubscriptionOptions
 	invoiceData: InvoiceData
 	paymentData: PaymentData
-	type: PaidSubscriptionType | null
+	type: SubscriptionType
 	price: string
 	priceNextYear: string | null
 	accountingInfo: AccountingInfo | null
@@ -61,7 +61,7 @@ export type UpgradeSubscriptionData = {
 	campaignInfoTextId: TranslationKey | null
 	upgradeType: UpgradeType
 	planPrices: PriceAndConfigProvider
-	currentSubscription: SubscriptionType | null
+	currentSubscription: SubscriptionType
 	subscriptionParameters: SubscriptionParameters | null
 	featureListProvider: FeatureListProvider
 	referralCode: string | null
@@ -112,7 +112,7 @@ export async function showUpgradeWizard(): Promise<void> {
 			creditCardData: null,
 		},
 		price: "",
-		type: PaidSubscriptionType.Revolutionary,
+		type: SubscriptionType.Revolutionary,
 		priceNextYear: null,
 		accountingInfo: accountingInfo,
 		customer: customer,
@@ -187,7 +187,7 @@ export async function loadSignupWizard(
 		},
 		price: "",
 		priceNextYear: null,
-		type: null,
+		type: SubscriptionType.Free,
 		accountingInfo: null,
 		customer: null,
 		newAccountData: null,
@@ -195,7 +195,7 @@ export async function loadSignupWizard(
 		campaignInfoTextId,
 		upgradeType: UpgradeType.Signup,
 		planPrices: priceDataProvider,
-		currentSubscription: null,
+		currentSubscription: SubscriptionType.Free,
 		subscriptionParameters: subscriptionParameters,
 		featureListProvider: featureListProvider,
 		referralCode,

@@ -1,7 +1,6 @@
 import type { GroupInfo, MailAddressAliasServiceReturn, MailAddressAvailability } from "../../../entities/sys/TypeRefs.js"
 import {
-	createDomainMailAddressAvailabilityData,
-	createMailAddressAliasGetIn,
+	createDomainMailAddressAvailabilityData, createMailAddressAliasGetIn,
 	createMailAddressAliasServiceData,
 	createMailAddressAliasServiceDataDelete,
 	createMultipleMailAddressAvailabilityData,

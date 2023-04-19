@@ -1,11 +1,10 @@
 import m, { Children } from "mithril"
 import { assertMainOrNode } from "../api/common/Env"
-import { AccountType, AccountTypeNames, BookingItemFeatureType, Const, OperationType, PaidSubscriptionType } from "../api/common/TutanotaConstants"
+import { AccountType, AccountTypeNames, BookingItemFeatureType, Const, OperationType, SubscriptionType } from "../api/common/TutanotaConstants"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, GiftCard, OrderProcessingAgreement } from "../api/entities/sys/TypeRefs.js"
 import {
 	AccountingInfoTypeRef,
-	BookingTypeRef,
-	createMailAddressAliasGetIn,
+	BookingTypeRef, createMailAddressAliasGetIn,
 	CustomerTypeRef,
 	GiftCardTypeRef,
 	GroupInfoTypeRef,
@@ -81,12 +80,13 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	private _accountingInfo: AccountingInfo | null = null
 	private _lastBooking: Booking | null = null
 	private _orderAgreement: OrderProcessingAgreement | null = null
-	private _currentSubscription: PaidSubscriptionType | null = null
+	private _currentSubscription: SubscriptionType
 	private _isCancelled: boolean | null = null
 	private _giftCards: Map<Id, GiftCard>
 	private _giftCardsExpanded: Stream<boolean>
 
-	constructor() {
+	constructor(currentSubscription: SubscriptionType) {
+		this._currentSubscription = currentSubscription
 		const isPremiumPredicate = () => locator.logins.getUserController().isPremiumAccount()
 
 		const deleteAccountExpanded = stream(false)
@@ -660,7 +660,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	}
 }
 
-function _getAccountTypeName(type: AccountType, subscription: PaidSubscriptionType | null): string {
+function _getAccountTypeName(type: AccountType, subscription: SubscriptionType): string {
 	if (type === AccountType.PREMIUM && subscription != null) {
 		return getDisplayNameOfSubscriptionType(subscription)
 	} else {

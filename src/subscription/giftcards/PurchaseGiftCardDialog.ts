@@ -11,7 +11,7 @@ import { renderAcceptGiftCardTermsCheckbox, showGiftCardToShare } from "./GiftCa
 import type { DialogHeaderBarAttrs } from "../../gui/base/DialogHeaderBar"
 import { showUserError } from "../../misc/ErrorHandlerImpl"
 import { UserError } from "../../api/main/UserError"
-import { Keys, PaidSubscriptionType, PaymentMethodType } from "../../api/common/TutanotaConstants"
+import { Keys, SubscriptionType, PaymentMethodType } from "../../api/common/TutanotaConstants"
 import { lang } from "../../misc/LanguageViewModel"
 import { BadGatewayError, PreconditionFailedError } from "../../api/common/error/RestError"
 import { loadUpgradePrices } from "../UpgradeSubscriptionWizard"
@@ -23,7 +23,7 @@ import { count, filterInt, noOp, ofClass } from "@tutao/tutanota-utils"
 import { isIOSApp } from "../../api/common/Env"
 import { formatPrice, PaymentInterval, PriceAndConfigProvider } from "../PriceUtils"
 import { GiftCardService } from "../../api/entities/sys/Services"
-import { SubscriptionType, UpgradePriceType } from "../FeatureListProvider"
+import { UpgradePriceType } from "../FeatureListProvider"
 
 class PurchaseGiftCardModel {
 	message = lang.get("defaultGiftCardMessage_msg")
@@ -282,6 +282,6 @@ async function loadGiftCardModel(): Promise<PurchaseGiftCardModel> {
 		purchasePeriodMonths: filterInt(giftCardInfo.period),
 		availablePackages: giftCardInfo.options,
 		selectedPackage: Math.floor(giftCardInfo.options.length / 2),
-		premiumPrice: priceDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, PaidSubscriptionType.Revolutionary, UpgradePriceType.PlanActualPrice),
+		premiumPrice: priceDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Revolutionary, UpgradePriceType.PlanActualPrice),
 	})
 }

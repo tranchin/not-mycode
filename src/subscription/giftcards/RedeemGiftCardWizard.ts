@@ -22,7 +22,7 @@ import { lang } from "../../misc/LanguageViewModel"
 import { getLoginErrorMessage, handleExpectedLoginError } from "../../misc/LoginUtils"
 import { RecoverCodeField } from "../../settings/login/RecoverCodeDialog.js"
 import { HabReminderImage } from "../../gui/base/icons/Icons"
-import { PaidSubscriptionType, PaymentMethodType } from "../../api/common/TutanotaConstants"
+import { SubscriptionType, PaymentMethodType } from "../../api/common/TutanotaConstants"
 import { formatPrice, getPaymentMethodName, PriceAndConfigProvider, PaymentInterval } from "../PriceUtils"
 import { TextField } from "../../gui/base/TextField.js"
 import { elementIdPart, isSameId } from "../../api/common/utils/EntityUtils"
@@ -34,7 +34,7 @@ import { GiftCardFacade } from "../../api/worker/facades/lazy/GiftCardFacade.js"
 import { EntityClient } from "../../api/common/EntityClient.js"
 import { Country, getByAbbreviation } from "../../api/common/CountryList.js"
 import { renderCountryDropdown } from "../../gui/base/GuiUtils.js"
-import { SubscriptionType, UpgradePriceType } from "../FeatureListProvider"
+import { UpgradePriceType } from "../FeatureListProvider"
 
 const enum GetCredentialsMethod {
 	Login,
@@ -548,7 +548,7 @@ async function loadModel(hashFromUrl: string): Promise<RedeemGiftCardModel> {
 		{
 			giftCardInfo,
 			key,
-			premiumPrice: pricesDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, PaidSubscriptionType.Revolutionary, UpgradePriceType.PlanActualPrice),
+			premiumPrice: pricesDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Revolutionary, UpgradePriceType.PlanActualPrice),
 			storedCredentials,
 		},
 		locator.giftCardFacade,

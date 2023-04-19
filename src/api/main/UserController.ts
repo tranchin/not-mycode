@@ -1,4 +1,4 @@
-import { AccountType, GroupType, OperationType, SubscriptionType } from "../common/TutanotaConstants"
+import { AccountType, GroupType, OperationType, PlanType } from "../common/TutanotaConstants"
 import type { Base64Url } from "@tutao/tutanota-utils"
 import { downcast, first, LazyLoaded, mapAndFilterNull, neverNull, ofClass } from "@tutao/tutanota-utils"
 import { MediaType } from "../common/EntityFunctions"
@@ -128,7 +128,7 @@ export class UserController {
 		return this.customerInfo
 	}
 
-	async getSubscriptionType(): Promise<SubscriptionType> {
+	async getPlanType(): Promise<PlanType> {
 		const customerInfo = await this.loadCustomerInfo()
 		return downcast(customerInfo.plan)
 	}

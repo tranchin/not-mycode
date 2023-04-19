@@ -16,7 +16,7 @@ import { ofClass } from "@tutao/tutanota-utils"
 import { locator } from "../api/main/MainLocator"
 import { SwitchAccountTypeService } from "../api/entities/sys/Services"
 import { UsageTest } from "@tutao/tutanota-usagetests"
-import { getDisplayNameOfSubscriptionType, SelectedSubscriptionOptions } from "./FeatureListProvider"
+import { getDisplayNameOfPlanType, SelectedSubscriptionOptions } from "./FeatureListProvider"
 
 export class UpgradeConfirmSubscriptionPage implements WizardPageN<UpgradeSubscriptionData> {
 	private dom!: HTMLElement
@@ -91,7 +91,7 @@ export class UpgradeConfirmSubscriptionPage implements WizardPageN<UpgradeSubscr
 			m(".pt.pb.plr-l", [
 				m(TextField, {
 					label: "subscription_label",
-					value: getDisplayNameOfSubscriptionType(attrs.data.type),
+					value: getDisplayNameOfPlanType(attrs.data.type),
 					disabled: true,
 				}),
 				m(TextField, {

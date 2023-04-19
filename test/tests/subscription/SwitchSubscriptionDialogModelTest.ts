@@ -1,5 +1,4 @@
-import o from "ospec"
-import type { Booking, Customer, CustomerInfo, PriceData, PriceServiceReturn } from "../../../src/api/entities/sys/TypeRefs.js"
+import type { Booking, PriceData, PriceServiceReturn } from "../../../src/api/entities/sys/TypeRefs.js"
 import {
 	createAccountingInfo,
 	createBooking,
@@ -10,12 +9,11 @@ import {
 	createPriceItemData,
 	createPriceServiceReturn,
 } from "../../../src/api/entities/sys/TypeRefs.js"
-import { AccountType, BookingItemFeatureType, SubscriptionName, SubscriptionType } from "../../../src/api/common/TutanotaConstants.js"
+import { AccountType, BookingItemFeatureType, PlanName } from "../../../src/api/common/TutanotaConstants.js"
 import { downcast } from "@tutao/tutanota-utils"
 import { BookingFacade } from "../../../src/api/worker/facades/lazy/BookingFacade.js"
 import { SubscriptionConfig } from "../../../src/subscription/FeatureListProvider"
 import { getCurrentCount } from "../../../src/subscription/SubscriptionUtils.js"
-import { createPriceMock } from "./priceTestUtils.js"
 
 const SUBSCRIPTION_CONFIG = {
 	Free: {
@@ -117,7 +115,7 @@ const SUBSCRIPTION_CONFIG = {
 		business: true,
 		whitelabel: true,
 	},
-} as { [K in SubscriptionName]: SubscriptionConfig }
+} as { [K in PlanName]: SubscriptionConfig }
 
 function createPremiumCustomerInstances() {
 	const customer = createCustomer({

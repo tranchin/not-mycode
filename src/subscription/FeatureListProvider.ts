@@ -2,7 +2,7 @@ import Stream from "mithril/stream"
 import { PlanPrices } from "../api/entities/sys/TypeRefs"
 import { TranslationKey } from "../misc/LanguageViewModel"
 import { PaymentInterval } from "./PriceUtils.js"
-import { BookingItemFeatureType, SubscriptionName, SubscriptionType, SubscriptionTypeToName } from "../api/common/TutanotaConstants.js"
+import { BookingItemFeatureType, PlanName, PlanType, PlanTypeToName } from "../api/common/TutanotaConstants.js"
 import { downcast } from "@tutao/tutanota-utils"
 
 const FEATURE_LIST_RESOURCE_URL = "https://tutanota.com/resources/data/features.json"
@@ -48,11 +48,11 @@ export class FeatureListProvider {
 		return dataProvider
 	}
 
-	getFeatureList(targetSubscription: SubscriptionType): FeatureLists[SubscriptionName] {
+	getFeatureList(targetSubscription: PlanType): FeatureLists[PlanName] {
 		if (this.featureList == null) {
 			return { subtitle: "emptyString_msg", categories: [] }
 		} else {
-			return this.featureList[SubscriptionTypeToName[targetSubscription]]
+			return this.featureList[PlanTypeToName[targetSubscription]]
 		}
 	}
 
@@ -84,30 +84,30 @@ export type SelectedSubscriptionOptions = {
 	paymentInterval: Stream<PaymentInterval>
 }
 
-const legacyPlans = [SubscriptionType.Premium, SubscriptionType.PremiumBusiness, SubscriptionType.Teams, SubscriptionType.TeamsBusiness, SubscriptionType.Pro]
+const legacyPlans = [PlanType.Premium, PlanType.PremiumBusiness, PlanType.Teams, PlanType.TeamsBusiness, PlanType.Pro]
 
-export function isLegacyPlan(type: SubscriptionType): boolean {
+export function isLegacyPlan(type: PlanType): boolean {
 	return type != null && legacyPlans.includes(type)
 }
 
-export function isNewPlan(type: SubscriptionType): boolean {
+export function isNewPlan(type: PlanType): boolean {
 	return !isLegacyPlan(type)
 }
 
 /**
- * only to be invoked for PaidSubscriptionTypes where isNewPlan returns true
+ * only to be invoked for PlanTypes where isNewPlan returns true
  */
-export function toFeatureType(type: SubscriptionType): BookingItemFeatureType {
+export function toFeatureType(type: PlanType): BookingItemFeatureType {
 	switch (type) {
-		case SubscriptionType.Revolutionary:
+		case PlanType.Revolutionary:
 			return BookingItemFeatureType.Revolutionary
-		case SubscriptionType.Legend:
+		case PlanType.Legend:
 			return BookingItemFeatureType.Legend
-		case SubscriptionType.Essential:
+		case PlanType.Essential:
 			return BookingItemFeatureType.Essential
-		case SubscriptionType.Advanced:
+		case PlanType.Advanced:
 			return BookingItemFeatureType.Advanced
-		case SubscriptionType.Unlimited:
+		case PlanType.Unlimited:
 			return BookingItemFeatureType.Unlimited
 		default:
 			throw new Error(`can't convert ${type} to BookingItemFeatureType`)
@@ -166,25 +166,25 @@ export type FeatureListItem = {
  * subtitle: the short text shown below the subscription name in the buy box
  * features: flat, ordered list of features for this subscription type
  */
-type FeatureLists = { [K in SubscriptionName]: { subtitle: string; categories: Array<FeatureCategory> } }
+type FeatureLists = { [K in PlanName]: { subtitle: string; categories: Array<FeatureCategory> } }
 
 /**
  * @returns the name to show to the user for the current subscription (PremiumBusiness -> Premium etc.)
  */
-export function getDisplayNameOfSubscriptionType(subscription: SubscriptionType): string {
-	switch (subscription) {
+export function getDisplayNameOfPlanType(planType: PlanType): string {
+	switch (planType) {
 		case null:
 			return "Free"
-		case SubscriptionType.PremiumBusiness:
+		case PlanType.PremiumBusiness:
 			return "Premium"
-		case SubscriptionType.TeamsBusiness:
+		case PlanType.TeamsBusiness:
 			return "Teams"
 		default:
-			return downcast(SubscriptionTypeToName[subscription])
+			return downcast(PlanTypeToName[planType])
 	}
 }
 
-export type SubscriptionPlanPrices = Record<SubscriptionType, PlanPrices>
+export type SubscriptionPlanPrices = Record<PlanType, PlanPrices>
 
 export const enum UpgradePriceType {
 	PlanReferencePrice = "0",

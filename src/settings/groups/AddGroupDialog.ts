@@ -134,14 +134,14 @@ export function show(): void {
 				return
 			}
 
-			const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
-			const newPlan = isNewPlan(subscriptionType)
+			const planType = await locator.logins.getUserController().getPlanType()
+			const newPlan = isNewPlan(planType)
 
 			if (viewModel.groupType === GroupType.Mail) {
 				showProgressDialog(
 					"pleaseWait_msg",
 					showBuyDialog({
-						featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.SharedMailGroup,
+						featureType: newPlan ? toFeatureType(planType) : BookingItemFeatureType.SharedMailGroup,
 						bookingText: "sharedMailbox_label",
 						count: 1,
 						freeAmount: 0,
@@ -157,7 +157,7 @@ export function show(): void {
 				showProgressDialog(
 					"pleaseWait_msg",
 					showBuyDialog({
-						featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.LocalAdminGroup,
+						featureType: newPlan ? toFeatureType(planType) : BookingItemFeatureType.LocalAdminGroup,
 						bookingText: "localAdminGroup_label",
 						count: 1,
 						freeAmount: 0,

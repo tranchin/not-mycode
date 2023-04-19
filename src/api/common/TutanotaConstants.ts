@@ -146,7 +146,7 @@ export const AccountTypeNames: Record<AccountType, string> = {
 	[AccountType.EXTERNAL]: "External",
 }
 
-export enum SubscriptionType {
+export enum PlanType {
 	Premium = "0",
 	Pro = "2",
 	Teams = "3",
@@ -160,11 +160,10 @@ export enum SubscriptionType {
 	Free = "11",
 }
 
-export type SubscriptionName = keyof typeof SubscriptionType
-export type PaidSubscriptionType = Exclude<SubscriptionType, SubscriptionType.Free>
-export type AvailableSubscriptionType = Exclude<SubscriptionType, SubscriptionType.Premium | SubscriptionType.Pro | SubscriptionType.Teams | SubscriptionType.PremiumBusiness | SubscriptionType.TeamsBusiness>
+export type PlanName = keyof typeof PlanType
+export type AvailablePlanType = Exclude<PlanType, PlanType.Premium | PlanType.Pro | PlanType.Teams | PlanType.PremiumBusiness | PlanType.TeamsBusiness>
 
-export const SubscriptionTypeToName = reverse(SubscriptionType)
+export const PlanTypeToName = reverse(PlanType)
 
 export enum BookingItemFeatureType {
 	Users = "0",

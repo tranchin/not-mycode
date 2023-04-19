@@ -6,7 +6,7 @@ import { lang } from "../../../src/misc/LanguageViewModel"
 import en from "../../../src/translations/en"
 import { ProgrammingError } from "../../../src/api/common/error/ProgrammingError.js"
 import { createPriceMock, PLAN_PRICES } from "./priceTestUtils.js"
-import { SubscriptionType } from "../../../src/api/common/TutanotaConstants.js"
+import { PlanType } from "../../../src/api/common/TutanotaConstants.js"
 
 o.spec("price utils getSubscriptionPrice", function () {
 	let provider: PriceAndConfigProvider
@@ -18,54 +18,48 @@ o.spec("price utils getSubscriptionPrice", function () {
 
 	o("getSubscriptionPrice premium yearly price", function () {
 		// the return value is not rounded, but formatPrice handles that
-		o(
-			formatPrice(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.PlanReferencePrice), false),
-		).equals("14.40")
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.PlanActualPrice)).equals(12)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.AdditionalUserPrice)).equals(12)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.ContactFormPrice)).equals(240)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.PlanNextYearsPrice)).equals(12)
+		o(formatPrice(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.PlanReferencePrice), false)).equals("14.40")
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.PlanActualPrice)).equals(12)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.AdditionalUserPrice)).equals(12)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.ContactFormPrice)).equals(240)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.PlanNextYearsPrice)).equals(12)
 	})
 	o("getSubscriptionPrice premium monthly price", function () {
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.PlanReferencePrice)).equals(1.2)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.PlanActualPrice)).equals(1.2)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.AdditionalUserPrice)).equals(1.2)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.ContactFormPrice)).equals(24)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.PlanNextYearsPrice)).equals(1.2)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.PlanReferencePrice)).equals(1.2)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.PlanActualPrice)).equals(1.2)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.AdditionalUserPrice)).equals(1.2)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.ContactFormPrice)).equals(24)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.PlanNextYearsPrice)).equals(1.2)
 	})
 	o("getSubscriptionPrice Premium discount yearly", async function () {
 		const discountPlanPrices = clone(PLAN_PRICES)
 		discountPlanPrices.Premium.firstYearDiscount = "12"
 		const provider = await createPriceMock(discountPlanPrices)
-		o(
-			formatPrice(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.PlanReferencePrice), false),
-		).equals("14.40")
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.PlanActualPrice)).equals(0)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.AdditionalUserPrice)).equals(12)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.ContactFormPrice)).equals(240)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Premium, UpgradePriceType.PlanNextYearsPrice)).equals(12)
+		o(formatPrice(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.PlanReferencePrice), false)).equals("14.40")
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.PlanActualPrice)).equals(0)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.AdditionalUserPrice)).equals(12)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.ContactFormPrice)).equals(240)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Premium, UpgradePriceType.PlanNextYearsPrice)).equals(12)
 	})
 	o("getSubscriptionPrice Pro discount yearly", async function () {
 		const discountPlanPrices = clone(PLAN_PRICES)
 		discountPlanPrices.Pro.firstYearDiscount = "84"
 		const provider = await createPriceMock(discountPlanPrices)
-		o(formatPrice(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Pro, UpgradePriceType.PlanReferencePrice), false)).equals(
-			"100.80",
-		)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Pro, UpgradePriceType.PlanActualPrice)).equals(0)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Pro, UpgradePriceType.AdditionalUserPrice)).equals(48)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Pro, UpgradePriceType.ContactFormPrice)).equals(240)
-		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, SubscriptionType.Pro, UpgradePriceType.PlanNextYearsPrice)).equals(84)
+		o(formatPrice(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Pro, UpgradePriceType.PlanReferencePrice), false)).equals("100.80")
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Pro, UpgradePriceType.PlanActualPrice)).equals(0)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Pro, UpgradePriceType.AdditionalUserPrice)).equals(48)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Pro, UpgradePriceType.ContactFormPrice)).equals(240)
+		o(provider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Pro, UpgradePriceType.PlanNextYearsPrice)).equals(84)
 	})
 	o("getSubscriptionPrice Premium discount monthly", async function () {
 		const discountPlanPrices = clone(PLAN_PRICES)
 		discountPlanPrices.Premium.firstYearDiscount = "12"
 		const provider = await createPriceMock(discountPlanPrices)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.PlanReferencePrice)).equals(1.2)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.PlanActualPrice)).equals(1.2)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.AdditionalUserPrice)).equals(1.2)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.ContactFormPrice)).equals(24)
-		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, SubscriptionType.Premium, UpgradePriceType.PlanNextYearsPrice)).equals(1.2)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.PlanReferencePrice)).equals(1.2)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.PlanActualPrice)).equals(1.2)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.AdditionalUserPrice)).equals(1.2)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.ContactFormPrice)).equals(24)
+		o(provider.getSubscriptionPrice(PaymentInterval.Monthly, PlanType.Premium, UpgradePriceType.PlanNextYearsPrice)).equals(1.2)
 	})
 	o("formatMonthlyPrices", function () {
 		o(formatMonthlyPrice(0, 12)).equals("€0")

@@ -1,10 +1,11 @@
 import m, { Children } from "mithril"
 import { assertMainOrNode } from "../api/common/Env"
-import { AccountType, AccountTypeNames, BookingItemFeatureType, Const, OperationType, SubscriptionType } from "../api/common/TutanotaConstants"
+import { AccountType, AccountTypeNames, BookingItemFeatureType, Const, OperationType, PlanType } from "../api/common/TutanotaConstants"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, GiftCard, OrderProcessingAgreement } from "../api/entities/sys/TypeRefs.js"
 import {
 	AccountingInfoTypeRef,
-	BookingTypeRef, createMailAddressAliasGetIn,
+	BookingTypeRef,
+	createMailAddressAliasGetIn,
 	CustomerTypeRef,
 	GiftCardTypeRef,
 	GroupInfoTypeRef,
@@ -52,7 +53,7 @@ import { MailAddressAliasService } from "../api/entities/sys/Services"
 import { DropDownSelector, SelectorItemList } from "../gui/base/DropDownSelector.js"
 import { IconButton, IconButtonAttrs } from "../gui/base/IconButton.js"
 import { ButtonSize } from "../gui/base/ButtonSize.js"
-import { getDisplayNameOfSubscriptionType, isLegacyPlan } from "./FeatureListProvider"
+import { getDisplayNameOfPlanType, isLegacyPlan } from "./FeatureListProvider"
 
 assertMainOrNode()
 const DAY = 1000 * 60 * 60 * 24
@@ -80,12 +81,12 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	private _accountingInfo: AccountingInfo | null = null
 	private _lastBooking: Booking | null = null
 	private _orderAgreement: OrderProcessingAgreement | null = null
-	private _currentSubscription: SubscriptionType
+	private _currentSubscription: PlanType
 	private _isCancelled: boolean | null = null
 	private _giftCards: Map<Id, GiftCard>
 	private _giftCardsExpanded: Stream<boolean>
 
-	constructor(currentSubscription: SubscriptionType) {
+	constructor(currentSubscription: PlanType) {
 		this._currentSubscription = currentSubscription
 		const isPremiumPredicate = () => locator.logins.getUserController().isPremiumAccount()
 
@@ -412,7 +413,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 							this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
 							this._customer = customer
 							this._isCancelled = customer.canceledPremiumAccount
-							this._currentSubscription = await userController.getSubscriptionType()
+							this._currentSubscription = await userController.getPlanType()
 
 							this._updateSubscriptionField(this._isCancelled)
 
@@ -660,9 +661,9 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	}
 }
 
-function _getAccountTypeName(type: AccountType, subscription: SubscriptionType): string {
+function _getAccountTypeName(type: AccountType, subscription: PlanType): string {
 	if (type === AccountType.PREMIUM && subscription != null) {
-		return getDisplayNameOfSubscriptionType(subscription)
+		return getDisplayNameOfPlanType(subscription)
 	} else {
 		return AccountTypeNames[type]
 	}

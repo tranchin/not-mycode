@@ -9,7 +9,7 @@ import {
 	isSharingActive,
 	isWhitelabelActive,
 } from "./SubscriptionUtils"
-import { BookingItemFeatureType, SubscriptionType } from "../api/common/TutanotaConstants"
+import { BookingItemFeatureType, PlanType } from "../api/common/TutanotaConstants"
 import { neverNull } from "@tutao/tutanota-utils"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, PriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
 import { asPaymentInterval, getPriceFromPriceData, getPriceItem, PaymentInterval } from "./PriceUtils"
@@ -22,14 +22,14 @@ type PlanPriceCalc = {
 	includedAliases: number
 	includedStorage: number
 	readonly targetIsDowngrade: boolean
-	readonly targetSubscription: SubscriptionType
+	readonly targetSubscription: PlanType
 	readonly targetSubscriptionConfig: SubscriptionConfig
 	readonly paymentIntervalFactor: number
 }
 export type CurrentSubscriptionInfo = {
 	businessUse: boolean
 	nbrOfUsers: number
-	subscriptionType: SubscriptionType
+	planType: PlanType
 	paymentInterval: PaymentInterval
 	currentTotalStorage: number
 	currentTotalAliases: number
@@ -64,7 +64,7 @@ export class SwitchSubscriptionDialogModel {
 		private readonly customerInfo: CustomerInfo,
 		private readonly accountingInfo: AccountingInfo,
 		private readonly lastBooking: Booking,
-		private readonly subscriptionType: SubscriptionType,
+		private readonly planType: PlanType,
 	) {
 		this.currentSubscriptionInfo = this._initCurrentSubscriptionInfo()
 	}
@@ -73,7 +73,7 @@ export class SwitchSubscriptionDialogModel {
 		const paymentInterval: PaymentInterval = asPaymentInterval(this.accountingInfo.paymentInterval)
 		return {
 			businessUse: !!this.customer.businessUse,
-			subscriptionType: this.subscriptionType,
+			planType: this.planType,
 			nbrOfUsers: getNbrOfUsers(this.lastBooking),
 			paymentInterval,
 			currentTotalStorage: getTotalStorageCapacity(this.customer, this.customerInfo, this.lastBooking),

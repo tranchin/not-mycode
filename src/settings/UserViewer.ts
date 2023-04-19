@@ -459,11 +459,11 @@ export class UserViewer implements UpdatableSettingsDetailsViewer {
 	}
 
 	private async deleteUser() {
-		const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
-		const newPlan = isNewPlan(subscriptionType)
+		const planType = await locator.logins.getUserController().getPlanType()
+		const newPlan = isNewPlan(planType)
 
 		const confirmed = await showBuyDialog({
-			featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.Users,
+			featureType: newPlan ? toFeatureType(planType) : BookingItemFeatureType.Users,
 			bookingText: "cancelUserAccounts_label",
 			count: -1,
 			freeAmount: 0,
@@ -477,10 +477,10 @@ export class UserViewer implements UpdatableSettingsDetailsViewer {
 	}
 
 	private async restoreUser() {
-		const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
-		const newPlan = isNewPlan(subscriptionType)
+		const planType = await locator.logins.getUserController().getPlanType()
+		const newPlan = isNewPlan(planType)
 		const confirmed = await showBuyDialog({
-			featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.Users,
+			featureType: newPlan ? toFeatureType(planType) : BookingItemFeatureType.Users,
 			bookingText: "bookingItemUsersIncluding_label",
 			count: 1,
 			freeAmount: 0,

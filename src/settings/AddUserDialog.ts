@@ -63,13 +63,13 @@ export function show(): Promise<void> {
 				return
 			}
 
-			const subscriptionType = await locator.logins.getUserController().getSubscriptionType()
-			const newPlan = isNewPlan(subscriptionType)
+			const planType = await locator.logins.getUserController().getPlanType()
+			const newPlan = isNewPlan(planType)
 
 			showProgressDialog(
 				"pleaseWait_msg",
 				showBuyDialog({
-					featureType: newPlan ? toFeatureType(subscriptionType) : BookingItemFeatureType.Users,
+					featureType: newPlan ? toFeatureType(planType) : BookingItemFeatureType.Users,
 					bookingText: "bookingItemUsers_label",
 					count: 1,
 					freeAmount: 0,

@@ -61,7 +61,7 @@ export type UpgradeSubscriptionData = {
 	campaignInfoTextId: TranslationKey | null
 	upgradeType: UpgradeType
 	planPrices: PriceAndConfigProvider
-	currentSubscription: PlanType
+	currentPlan: PlanType
 	subscriptionParameters: SubscriptionParameters | null
 	featureListProvider: FeatureListProvider
 	referralCode: string | null
@@ -120,7 +120,7 @@ export async function showUpgradeWizard(): Promise<void> {
 		registrationDataId: null,
 		campaignInfoTextId: prices.messageTextId ? assertTranslation(prices.messageTextId) : null,
 		upgradeType: UpgradeType.Initial,
-		currentSubscription: PlanType.Free,
+		currentPlan: PlanType.Free,
 		subscriptionParameters: null,
 		planPrices: priceDataProvider,
 		featureListProvider: featureListProvider,
@@ -195,7 +195,7 @@ export async function loadSignupWizard(
 		campaignInfoTextId,
 		upgradeType: UpgradeType.Signup,
 		planPrices: priceDataProvider,
-		currentSubscription: PlanType.Free,
+		currentPlan: PlanType.Free,
 		subscriptionParameters: subscriptionParameters,
 		featureListProvider: featureListProvider,
 		referralCode,
@@ -228,7 +228,7 @@ export async function loadSignupWizard(
 	})
 
 	// for signup specifically, we only want the invoice and payment page as well as the confirmation page to show up if signing up for a paid account (and the user did not go back to the first page!)
-	invoiceAttrs.setEnabledFunction(() => signupData.type != null && wizardBuilder.attrs.currentPage !== wizardPages[0])
+	invoiceAttrs.setEnabledFunction(() => signupData.type !== PlanType.Free && wizardBuilder.attrs.currentPage !== wizardPages[0])
 
 	wizardBuilder.dialog.show()
 }

@@ -94,11 +94,12 @@ export async function showSwitchDialog(customer: Customer, customerInfo: Custome
 		})
 		.setCloseHandler(cancelAction)
 	const subscriptionActionButtons: SubscriptionActionButtons = {
-		[PlanType.Free]: () => ({
-			label: "pricing.select_action",
-			click: () => cancelSubscription(dialog, currentSubscriptionInfo),
-			type: ButtonType.Login,
-		}),
+		[PlanType.Free]: () =>
+			({
+				label: "pricing.select_action",
+				click: () => cancelSubscription(dialog, currentSubscriptionInfo),
+				type: ButtonType.Login,
+			} as ButtonAttrs),
 
 		[PlanType.Revolutionary]: createSubscriptionPlanButton(dialog, PlanType.Revolutionary, currentSubscriptionInfo),
 		[PlanType.Legend]: createSubscriptionPlanButton(dialog, PlanType.Legend, currentSubscriptionInfo),

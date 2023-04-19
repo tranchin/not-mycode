@@ -108,10 +108,7 @@ export class MailSettingsViewer implements UpdatableSettingsViewer {
 	}
 
 	async oninit(): Promise<void> {
-		this.customerInfo = locator.logins.getUserController().customerInfo // prevent flickering in case customerInfo is already fetched
-		if (!this.customerInfo) {
-			this.customerInfo = await locator.logins.getUserController().loadCustomerInfo()
-		}
+		this.customerInfo = await locator.logins.getUserController().loadCustomerInfo()
 		this.updateStorageField(this.customerInfo).then(() => m.redraw())
 	}
 
@@ -333,7 +330,7 @@ export class MailSettingsViewer implements UpdatableSettingsViewer {
 									disabled: true,
 								}),
 						  ]
-						: [],
+						: null,
 					m(".h4.mt-l", lang.get("emailSending_label")),
 					m(DropDownSelector, defaultSenderAttrs),
 					m(TextField, signatureAttrs),

@@ -117,7 +117,7 @@
 				{
 					"name": "AddValue",
 					"sourceType": "CustomerInfo",
-					"info": "AddValue CustomerInfo/paidSubscriptionType/2095."
+					"info": "AddValue CustomerInfo/plan/2095."
 				}
 			]
 		}

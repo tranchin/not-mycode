@@ -2,13 +2,7 @@ import Stream from "mithril/stream"
 import { PlanPrices } from "../api/entities/sys/TypeRefs"
 import { TranslationKey } from "../misc/LanguageViewModel"
 import { PaymentInterval } from "./PriceUtils.js"
-import {
-	BookingItemFeatureType,
-	PaidSubscriptionName,
-	PaidSubscriptionToName,
-	PaidSubscriptionType,
-	SubscriptionName,
-} from "../api/common/TutanotaConstants.js"
+import { BookingItemFeatureType, SubscriptionName, SubscriptionType, SubscriptionTypeToName } from "../api/common/TutanotaConstants.js"
 import { downcast } from "@tutao/tutanota-utils"
 
 const FEATURE_LIST_RESOURCE_URL = "https://tutanota.com/resources/data/features.json"
@@ -54,13 +48,11 @@ export class FeatureListProvider {
 		return dataProvider
 	}
 
-	getFeatureList(targetSubscription: PaidSubscriptionType | null): FeatureLists[PaidSubscriptionName] {
+	getFeatureList(targetSubscription: SubscriptionType): FeatureLists[SubscriptionName] {
 		if (this.featureList == null) {
 			return { subtitle: "emptyString_msg", categories: [] }
-		} else if (targetSubscription == null) {
-			return this.featureList.Free
 		} else {
-			return this.featureList[PaidSubscriptionToName[targetSubscription]]
+			return this.featureList[SubscriptionTypeToName[targetSubscription]]
 		}
 	}
 
@@ -92,54 +84,30 @@ export type SelectedSubscriptionOptions = {
 	paymentInterval: Stream<PaymentInterval>
 }
 
-export enum LegacySubscriptionType {
-	Free = "Free",
-	Premium = "Premium",
-	PremiumBusiness = "PremiumBusiness",
-	Teams = "Teams",
-	TeamsBusiness = "TeamsBusiness",
-	Pro = "Pro",
-}
+const legacyPlans = [SubscriptionType.Premium, SubscriptionType.PremiumBusiness, SubscriptionType.Teams, SubscriptionType.TeamsBusiness, SubscriptionType.Pro]
 
-export enum SubscriptionType {
-	Free = "Free",
-	Revolutionary = "Revolutionary",
-	Legend = "Legend",
-	Essential = "Essential",
-	Advanced = "Advanced",
-	Unlimited = "Unlimited",
-}
-
-const legacyPlans = [
-	PaidSubscriptionType.Premium,
-	PaidSubscriptionType.PremiumBusiness,
-	PaidSubscriptionType.Teams,
-	PaidSubscriptionType.TeamsBusiness,
-	PaidSubscriptionType.Pro,
-]
-
-export function isLegacyPlan(type: PaidSubscriptionType | null): boolean {
+export function isLegacyPlan(type: SubscriptionType): boolean {
 	return type != null && legacyPlans.includes(type)
 }
 
-export function isNewPlan(type: PaidSubscriptionType | null): boolean {
+export function isNewPlan(type: SubscriptionType): boolean {
 	return !isLegacyPlan(type)
 }
 
 /**
  * only to be invoked for PaidSubscriptionTypes where isNewPlan returns true
  */
-export function toFeatureType(type: PaidSubscriptionType | null): BookingItemFeatureType {
+export function toFeatureType(type: SubscriptionType): BookingItemFeatureType {
 	switch (type) {
-		case PaidSubscriptionType.Revolutionary:
+		case SubscriptionType.Revolutionary:
 			return BookingItemFeatureType.Revolutionary
-		case PaidSubscriptionType.Legend:
+		case SubscriptionType.Legend:
 			return BookingItemFeatureType.Legend
-		case PaidSubscriptionType.Essential:
+		case SubscriptionType.Essential:
 			return BookingItemFeatureType.Essential
-		case PaidSubscriptionType.Advanced:
+		case SubscriptionType.Advanced:
 			return BookingItemFeatureType.Advanced
-		case PaidSubscriptionType.Unlimited:
+		case SubscriptionType.Unlimited:
 			return BookingItemFeatureType.Unlimited
 		default:
 			throw new Error(`can't convert ${type} to BookingItemFeatureType`)
@@ -203,20 +171,20 @@ type FeatureLists = { [K in SubscriptionName]: { subtitle: string; categories: A
 /**
  * @returns the name to show to the user for the current subscription (PremiumBusiness -> Premium etc.)
  */
-export function getDisplayNameOfSubscriptionType(subscription: PaidSubscriptionType | null): string {
+export function getDisplayNameOfSubscriptionType(subscription: SubscriptionType): string {
 	switch (subscription) {
 		case null:
 			return "Free"
-		case PaidSubscriptionType.PremiumBusiness:
+		case SubscriptionType.PremiumBusiness:
 			return "Premium"
-		case PaidSubscriptionType.TeamsBusiness:
+		case SubscriptionType.TeamsBusiness:
 			return "Teams"
 		default:
-			return downcast(PaidSubscriptionToName[subscription])
+			return downcast(SubscriptionTypeToName[subscription])
 	}
 }
 
-export type SubscriptionPlanPrices = Record<PaidSubscriptionType, PlanPrices>
+export type SubscriptionPlanPrices = Record<SubscriptionType, PlanPrices>
 
 export const enum UpgradePriceType {
 	PlanReferencePrice = "0",

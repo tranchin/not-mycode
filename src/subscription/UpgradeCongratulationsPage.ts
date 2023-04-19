@@ -8,7 +8,7 @@ import { locator } from "../api/main/MainLocator"
 import { UsageTest } from "@tutao/tutanota-usagetests"
 import { RecoverCodeField } from "../settings/login/RecoverCodeDialog.js"
 import { VisSignupImage } from "../gui/base/icons/Icons.js"
-import { SubscriptionType } from "./FeatureListProvider.js"
+import { SubscriptionType } from "../api/common/TutanotaConstants.js"
 
 export class UpgradeCongratulationsPage implements WizardPageN<UpgradeSubscriptionData> {
 	private dom!: HTMLElement

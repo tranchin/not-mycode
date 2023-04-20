@@ -157,7 +157,6 @@ export class CalendarEventViewModel {
 	readonly sendingOutUpdate: Stream<boolean>
 	_processing: boolean
 	hasBusinessFeature: Stream<boolean>
-	hasPremiumLegacy: Stream<boolean>
 	isForceUpdates: Stream<boolean>
 	readonly initialized: Promise<CalendarEventViewModel>
 
@@ -193,7 +192,6 @@ export class CalendarEventViewModel {
 		this.sendingOutUpdate = stream<boolean>(false)
 		this._processing = false
 		this.hasBusinessFeature = stream<boolean>(false)
-		this.hasPremiumLegacy = stream<boolean>(false)
 		this.isForceUpdates = stream<boolean>(false)
 		this.location = stream("")
 		this.note = ""
@@ -437,10 +435,8 @@ export class CalendarEventViewModel {
 		if (this._userController.isInternalUser()) {
 			const customer = await this._userController.loadCustomer()
 			this.hasBusinessFeature(isCustomizationEnabledForCustomer(customer, FeatureType.BusinessFeatureEnabled))
-			this.hasPremiumLegacy(isCustomizationEnabledForCustomer(customer, FeatureType.PremiumLegacy))
 		} else {
 			this.hasBusinessFeature(false)
-			this.hasPremiumLegacy(false)
 		}
 	}
 

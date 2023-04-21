@@ -162,33 +162,37 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		const mailTopSteam: stream<number> = stream(0)
 		this.topScrollValues.push(mailTopSteam)
 		return [
-			m("#mail-viewer.fill-absolute" + (scrollingHeader ? ".scroll-no-overlay.overflow-x-hidden" : ".flex.flex-column"), {
-				onscroll: function(e: Event) {
-					_self!.topScrollValue = this.scrollTop
-					mailTopSteam(this.scrollTop)
-					console.log("scroll", this.scrollTop)
-					// Prevent auto-redraw
-					// @ts-ignore
-					e.redraw = false
-				}
-			}, [
-				this.renderMailHeader(vnode.attrs),
-				this.renderMailSubject(vnode.attrs),
-				m(
-					".flex-grow.mlr-safe-inset.scroll-x.plr-l.pb-floating.pt" +
-					(scrollingHeader ? "" : ".scroll-no-overlay") +
-					(this.viewModel.isContrastFixNeeded() ? ".bg-white.content-black" : " "),
-					{
-						class: mailViewerPadding(),
-						oncreate: (vnode) => {
-							this.scrollDom = vnode.dom as HTMLElement
-						},
+			m(
+				".mail-viewer.overflow-x-hidden" + (scrollingHeader ? ".scroll-no-overlay.overflow-x-hidden" : ".flex.flex-column"),
+				{
+					onscroll: function (e: Event) {
+						_self!.topScrollValue = this.scrollTop
+						mailTopSteam(this.scrollTop)
+						console.log("scroll", this.scrollTop)
+						// Prevent auto-redraw
+						// @ts-ignore
+						e.redraw = false
 					},
-					this.renderMailBodySection(vnode.attrs)
-				),
-				this.renderQuoteExpanderButton(),
-			]),
-			]
+				},
+				[
+					this.renderMailHeader(vnode.attrs),
+					this.renderMailSubject(vnode.attrs),
+					m(
+						".flex-grow.mlr-safe-inset.scroll-x.pt.pb.border-radius-big" +
+							(scrollingHeader ? "" : ".scroll-no-overlay") +
+							(this.viewModel.isContrastFixNeeded() ? ".bg-white.content-black" : " "),
+						{
+							class: mailViewerPadding(),
+							oncreate: (vnode) => {
+								this.scrollDom = vnode.dom as HTMLElement
+							},
+						},
+						this.renderMailBodySection(vnode.attrs),
+					),
+					this.renderQuoteExpanderButton(),
+				],
+			),
+		]
 	}
 
 	private renderMailSubject(attrs: MailViewerAttrs) {
@@ -402,7 +406,6 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			})
 		}
 		this.shadowDomRoot.appendChild(styles.getStyleSheetElement("main"))
-
 		this.shadowDomRoot.appendChild(wrapNode)
 		this.currentlyRenderedMailBody = sanitizedMailBody
 	}

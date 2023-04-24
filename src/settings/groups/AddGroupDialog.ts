@@ -1,5 +1,5 @@
 import m, { Children, Component, Vnode } from "mithril"
-import { BookingItemFeatureType, FeatureType, GroupType } from "../../api/common/TutanotaConstants.js"
+import { BookingItemFeatureType, FeatureType, GroupType, PlanType } from "../../api/common/TutanotaConstants.js"
 import { Dialog } from "../../gui/base/Dialog.js"
 import type { ValidationResult } from "../SelectMailAddressForm.js"
 import { SelectMailAddressForm } from "../SelectMailAddressForm.js"
@@ -9,7 +9,7 @@ import type { TranslationKey } from "../../misc/LanguageViewModel.js"
 import { lang } from "../../misc/LanguageViewModel.js"
 import { showBuyDialog } from "../../subscription/BuyDialog.js"
 import { PreconditionFailedError } from "../../api/common/error/RestError.js"
-import { showBusinessFeatureRequiredDialog } from "../../misc/SubscriptionDialogs.js"
+import { showPlanUpgradeRequiredDialog } from "../../misc/SubscriptionDialogs.js"
 import { TemplateGroupPreconditionFailedReason } from "../../sharing/GroupUtils.js"
 import { DropDownSelector } from "../../gui/base/DropDownSelector.js"
 import { TextField } from "../../gui/base/TextField.js"
@@ -208,8 +208,11 @@ function addTemplateGroup(name: string): Promise<boolean> {
 			.then(() => true)
 			.catch(
 				ofClass(PreconditionFailedError, (e) => {
-					if (e.data === TemplateGroupPreconditionFailedReason.BUSINESS_FEATURE_REQUIRED) {
-						showBusinessFeatureRequiredDialog("businessFeatureRequiredGeneral_msg")
+					if (
+						e.data === TemplateGroupPreconditionFailedReason.BUSINESS_FEATURE_REQUIRED ||
+						e.data === TemplateGroupPreconditionFailedReason.UNLIMITED_REQUIRED
+					) {
+						showPlanUpgradeRequiredDialog([PlanType.Unlimited], "unlimitedRequired_msg")
 					} else {
 						Dialog.message(() => e.message)
 					}

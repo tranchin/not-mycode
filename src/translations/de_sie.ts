@@ -1651,6 +1651,7 @@ export default {
 		"yourCalendars_label": "Deine Kalender",
 		"yourFolders_action": "Ihre ORDNER",
 		"yourMessage_label": "Ihre Nachricht",
-		"you_label": "Sie"
+		"you_label": "Sie",
+		"addCustomDomainAddAdresses_msg": "Die Domain wurde zu Ihrem Account hinzugefügt, Sie können nun eine neue E-Mail-Adresse erstellen.",
 	}
 }

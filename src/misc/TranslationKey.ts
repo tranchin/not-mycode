@@ -1633,4 +1633,5 @@ export type TranslationKeyType =
 	| "yourMessage_label"
 	| "you_label"
 	| "emptyString_msg"
+	| "unlimitedRequired_msg"
 	| "addCustomDomainAddAdresses_msg"

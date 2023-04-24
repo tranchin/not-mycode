@@ -9,7 +9,7 @@ import { Checkbox } from "../gui/base/Checkbox.js"
 import { px } from "../gui/size"
 import { ButtonType } from "../gui/base/Button.js"
 import { getDefaultNotificationLabel } from "../misc/OutOfOfficeNotificationUtils"
-import { showBusinessFeatureRequiredDialog } from "../misc/SubscriptionDialogs"
+import { showPlanUpgradeRequiredDialog } from "../misc/SubscriptionDialogs"
 import { DropDownSelector } from "../gui/base/DropDownSelector.js"
 import { showUserError } from "../misc/ErrorHandlerImpl"
 import { BusinessFeatureRequiredError } from "../api/main/BusinessFeatureRequiredError"
@@ -38,7 +38,7 @@ export function showEditOutOfOfficeNotificationDialog(outOfOfficeNotification: O
 			.saveOutOfOfficeNotification()
 			.then(() => cancel())
 			.catch(ofClass(UserError, (e) => showUserError(e)))
-			.catch(ofClass(BusinessFeatureRequiredError, (e) => showBusinessFeatureRequiredDialog(() => e.message)))
+			.catch(ofClass(BusinessFeatureRequiredError, (e) => showPlanUpgradeRequiredDialog(() => e.message)))
 	}
 
 	function cancel() {

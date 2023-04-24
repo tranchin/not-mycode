@@ -24,12 +24,18 @@ import { SwitchAccountTypeService } from "../api/entities/sys/Services.js"
 import { BadRequestError, InvalidDataError, PreconditionFailedError } from "../api/common/error/RestError.js"
 import { FeatureListProvider, getDisplayNameOfPlanType } from "./FeatureListProvider"
 import { isSubscriptionDowngrade, PriceAndConfigProvider } from "./PriceUtils"
-import { lazy } from "@tutao/tutanota-utils"
+import { defer, DeferredObject, lazy } from "@tutao/tutanota-utils"
 
 /**
  * Only shown if the user is already a Premium user. Allows cancelling the subscription (only private use) and switching the subscription to a different paid subscription.
  */
-export async function showSwitchDialog(customer: Customer, customerInfo: CustomerInfo, accountingInfo: AccountingInfo, lastBooking: Booking): Promise<void> {
+export async function showSwitchDialog(
+	customer: Customer,
+	customerInfo: CustomerInfo,
+	accountingInfo: AccountingInfo,
+	lastBooking: Booking,
+): Promise<PlanType> {
+	const deferred = defer<PlanType>()
 	const [featureListProvider, priceAndConfigProvider] = await showProgressDialog(
 		"pleaseWait_msg",
 		Promise.all([FeatureListProvider.getInitializedInstance(), PriceAndConfigProvider.getInitializedInstance(null)]),
@@ -42,7 +48,10 @@ export async function showSwitchDialog(customer: Customer, customerInfo: Custome
 		lastBooking,
 		await locator.logins.getUserController().getPlanType(),
 	)
-	const cancelAction = () => dialog.close()
+	const cancelAction = () => {
+		dialog.close()
+		deferred.resolve(customerInfo.plan as PlanType)
+	}
 
 	const headerBarAttrs: DialogHeaderBarAttrs = {
 		left: [
@@ -92,24 +101,33 @@ export async function showSwitchDialog(customer: Customer, customerInfo: Custome
 		[PlanType.Free]: () =>
 			({
 				label: "pricing.select_action",
-				click: () => cancelSubscription(dialog, currentSubscriptionInfo),
+				click: () => cancelSubscription(dialog, currentSubscriptionInfo, deferred),
 				type: ButtonType.Login,
 			} as ButtonAttrs),
 
-		[PlanType.Revolutionary]: createSubscriptionPlanButton(dialog, PlanType.Revolutionary, currentSubscriptionInfo),
-		[PlanType.Legend]: createSubscriptionPlanButton(dialog, PlanType.Legend, currentSubscriptionInfo),
-		[PlanType.Essential]: createSubscriptionPlanButton(dialog, PlanType.Essential, currentSubscriptionInfo),
-		[PlanType.Advanced]: createSubscriptionPlanButton(dialog, PlanType.Advanced, currentSubscriptionInfo),
-		[PlanType.Unlimited]: createSubscriptionPlanButton(dialog, PlanType.Unlimited, currentSubscriptionInfo),
+		[PlanType.Revolutionary]: createSubscriptionPlanButton(dialog, PlanType.Revolutionary, currentSubscriptionInfo, deferred),
+		[PlanType.Legend]: createSubscriptionPlanButton(dialog, PlanType.Legend, currentSubscriptionInfo, deferred),
+		[PlanType.Essential]: createSubscriptionPlanButton(dialog, PlanType.Essential, currentSubscriptionInfo, deferred),
+		[PlanType.Advanced]: createSubscriptionPlanButton(dialog, PlanType.Advanced, currentSubscriptionInfo, deferred),
+		[PlanType.Unlimited]: createSubscriptionPlanButton(dialog, PlanType.Unlimited, currentSubscriptionInfo, deferred),
 	}
 	dialog.show()
+	return deferred.promise
 }
 
-function createSubscriptionPlanButton(dialog: Dialog, targetSubscription: PlanType, currentSubscriptionInfo: CurrentSubscriptionInfo): lazy<ButtonAttrs> {
+function createSubscriptionPlanButton(
+	dialog: Dialog,
+	targetSubscription: PlanType,
+	currentSubscriptionInfo: CurrentSubscriptionInfo,
+	deferredPlan: DeferredObject<PlanType>,
+): lazy<ButtonAttrs> {
 	return () => ({
 		label: "pricing.select_action",
 		click: () => {
-			showProgressDialog("pleaseWait_msg", switchSubscription(targetSubscription, dialog, currentSubscriptionInfo))
+			showProgressDialog(
+				"pleaseWait_msg",
+				switchSubscription(targetSubscription, dialog, currentSubscriptionInfo).then((newPlan) => deferredPlan.resolve(newPlan)),
+			)
 		},
 		type: ButtonType.Login,
 	})
@@ -166,27 +184,31 @@ function handleSwitchAccountPreconditionFailed(e: PreconditionFailedError): Prom
 	}
 }
 
-async function tryDowngradePremiumToFree(switchAccountTypeData: SwitchAccountTypePostIn, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<void> {
+async function tryDowngradePremiumToFree(switchAccountTypeData: SwitchAccountTypePostIn, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<PlanType> {
 	const failed = await cancelAllAdditionalFeatures(PlanType.Free, currentSubscriptionInfo)
 	if (failed) {
-		return
+		return currentSubscriptionInfo.planType
 	}
 
 	try {
 		await locator.serviceExecutor.post(SwitchAccountTypeService, switchAccountTypeData)
 		await locator.customerFacade.switchPremiumToFreeGroup()
+		return PlanType.Free
 	} catch (e) {
 		if (e instanceof PreconditionFailedError) {
-			return handleSwitchAccountPreconditionFailed(e)
+			await handleSwitchAccountPreconditionFailed(e)
 		} else if (e instanceof InvalidDataError) {
-			return Dialog.message("accountSwitchTooManyActiveUsers_msg")
+			await Dialog.message("accountSwitchTooManyActiveUsers_msg")
 		} else if (e instanceof BadRequestError) {
-			return Dialog.message("deactivatePremiumWithCustomDomainError_msg")
+			await Dialog.message("deactivatePremiumWithCustomDomainError_msg")
+		} else {
+			throw e
 		}
+		return currentSubscriptionInfo.planType
 	}
 }
 
-async function cancelSubscription(dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<void> {
+async function cancelSubscription(dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo, planPromise: DeferredObject<PlanType>): Promise<void> {
 	if (!(await Dialog.confirm("unsubscribeConfirm_msg"))) {
 		return
 	}
@@ -194,7 +216,10 @@ async function cancelSubscription(dialog: Dialog, currentSubscriptionInfo: Curre
 	switchAccountTypeData.accountType = AccountType.FREE
 	switchAccountTypeData.date = Const.CURRENT_DATE
 	try {
-		await showProgressDialog("pleaseWait_msg", tryDowngradePremiumToFree(switchAccountTypeData, currentSubscriptionInfo))
+		await showProgressDialog(
+			"pleaseWait_msg",
+			tryDowngradePremiumToFree(switchAccountTypeData, currentSubscriptionInfo).then((newPlan) => planPromise.resolve(newPlan)),
+		)
 	} finally {
 		dialog.close()
 	}
@@ -236,15 +261,15 @@ async function getUpOrDowngradeMessage(targetSubscription: PlanType, currentSubs
 	return msg
 }
 
-async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<void> {
+async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<PlanType> {
 	if (targetSubscription === currentSubscriptionInfo.planType) {
-		return
+		return currentSubscriptionInfo.planType
 	}
 
 	const message = await getUpOrDowngradeMessage(targetSubscription, currentSubscriptionInfo)
 	const ok = await Dialog.confirm(() => message)
 	if (!ok) {
-		return
+		return currentSubscriptionInfo.planType
 	}
 	try {
 		const postIn = createSwitchAccountTypePostIn()
@@ -255,10 +280,13 @@ async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, 
 
 		try {
 			await showProgressDialog("pleaseWait_msg", locator.serviceExecutor.post(SwitchAccountTypeService, postIn))
+			return targetSubscription
 		} catch (e) {
 			if (e instanceof PreconditionFailedError) {
-				return handleSwitchAccountPreconditionFailed(e)
+				await handleSwitchAccountPreconditionFailed(e)
+				return currentSubscriptionInfo.planType
 			}
+			throw e
 		}
 	} finally {
 		dialog.close()

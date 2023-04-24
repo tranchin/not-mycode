@@ -1648,6 +1648,8 @@ export default {
 		"yourFolders_action": "YOUR FOLDERS",
 		"yourMessage_label": "Your message",
 		"you_label": "You",
+		// TODO add to phrase
+		"unlimitedRequired_msg": "To use this feature you have to switch to an unlimited plan.",
 		"addCustomDomainAddAdresses_msg": "The domain was assigned to your account, you can now create a new email address.",
 	}
 }

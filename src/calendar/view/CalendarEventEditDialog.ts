@@ -21,7 +21,7 @@ import type { Guest } from "../date/CalendarEventViewModel"
 import { CalendarEventViewModel } from "../date/CalendarEventViewModel"
 import { UserError } from "../../api/main/UserError"
 import { theme } from "../../gui/theme"
-import { showBusinessFeatureRequiredDialog } from "../../misc/SubscriptionDialogs"
+import { showPlanUpgradeRequiredDialog } from "../../misc/SubscriptionDialogs"
 import { BusinessFeatureRequiredError } from "../../api/main/BusinessFeatureRequiredError"
 import type { MailboxDetail } from "../../mail/model/MailModel"
 import { showProgressDialog } from "../../gui/dialogs/ProgressDialog"
@@ -164,7 +164,7 @@ export async function showCalendarEventDialog(
 				)
 				.catch(
 					ofClass(BusinessFeatureRequiredError, async (e) => {
-						const businessFeatureOrdered = await showBusinessFeatureRequiredDialog(() => e.message)
+						const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(() => e.message)
 						// entity event updates are too slow to call updateBusinessFeature()
 						viewModel.hasBusinessFeature(businessFeatureOrdered)
 						return false
@@ -640,7 +640,7 @@ function renderAddAttendeesField(text: Stream<string>, viewModel: CalendarEventV
 			onRecipientAdded: async (address, name, contact) => {
 				const notAvailable = await viewModel.shouldShowSendInviteNotAvailable()
 				if (notAvailable) {
-					const businessFeatureOrdered = await showBusinessFeatureRequiredDialog("businessFeatureRequiredInvite_msg")
+					const businessFeatureOrdered = await showPlanUpgradeRequiredDialog("businessFeatureRequiredInvite_msg")
 					if (businessFeatureOrdered) {
 						viewModel.addGuest(address, contact)
 					}

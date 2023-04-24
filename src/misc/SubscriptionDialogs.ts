@@ -9,6 +9,7 @@ import type { clickHandler } from "../gui/base/GuiUtils"
 import { locator } from "../api/main/MainLocator"
 import { BookingTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { GENERATED_MAX_ID } from "../api/common/utils/EntityUtils.js"
+import { PlanType } from "../api/common/TutanotaConstants.js"
 
 /**
  * Opens a dialog which states that the function is not available in the Free subscription and provides an option to upgrade.
@@ -79,9 +80,9 @@ export function showMoreStorageNeededOrderDialog(loginController: LoginControlle
 }
 
 /**
- * @returns true if the business feature has been ordered
+ * @returns true if the needed plan has been ordered
  */
-export async function showBusinessFeatureRequiredDialog(reason: TranslationKey | lazy<string>): Promise<boolean> {
+export async function showPlanUpgradeRequiredDialog(acceptedPlans: PlanType[], reason: TranslationKey | lazy<string>): Promise<boolean> {
 	const userController = locator.logins.getUserController()
 	if (userController.isFreeAccount()) {
 		showNotAvailableForFreeDialog(false)
@@ -91,6 +92,6 @@ export async function showBusinessFeatureRequiredDialog(reason: TranslationKey |
 		const bookings = await locator.entityClient.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
 		const { showSwitchDialog } = await import("../subscription/SwitchSubscriptionDialog")
 		await showSwitchDialog(await userController.loadCustomer(), customerInfo, await userController.loadAccountingInfo(), assertNotNull(bookings[0]))
-		return userController.isNewPaidPlan()
+		return acceptedPlans.includes(await userController.getPlanType())
 	}
 }

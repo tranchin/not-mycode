@@ -9,7 +9,7 @@ import type { WizardPageAttrs, WizardPageN } from "../../gui/base/WizardDialog.j
 import { emitWizardEvent, WizardEventType } from "../../gui/base/WizardDialog.js"
 import { Button, ButtonType } from "../../gui/base/Button.js"
 import { PreconditionFailedError } from "../../api/common/error/RestError.js"
-import { showBusinessFeatureRequiredDialog } from "../../misc/SubscriptionDialogs.js"
+import { showPlanUpgradeRequiredDialog } from "../../misc/SubscriptionDialogs.js"
 import { ofClass } from "@tutao/tutanota-utils"
 import { locator } from "../../api/main/MainLocator"
 import { assertMainOrNode } from "../../api/common/Env"
@@ -122,7 +122,7 @@ export class VerifyOwnershipPageAttrs implements WizardPageAttrs<AddDomainData> 
 				ofClass(PreconditionFailedError, (e) => {
 					if (e.data === CustomDomainFailureReasons.LIMIT_REACHED) {
 						// ignore promise. always return false to not switch to next page.
-						showBusinessFeatureRequiredDialog("businessFeatureRequiredMultipleDomains_msg")
+						showPlanUpgradeRequiredDialog("businessFeatureRequiredMultipleDomains_msg")
 					} else {
 						Dialog.message(() => e.toString())
 					}

@@ -91,8 +91,6 @@ export async function showBusinessFeatureRequiredDialog(reason: TranslationKey |
 		const bookings = await locator.entityClient.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
 		const { showSwitchDialog } = await import("../subscription/SwitchSubscriptionDialog")
 		await showSwitchDialog(await userController.loadCustomer(), customerInfo, await userController.loadAccountingInfo(), assertNotNull(bookings[0]))
-		customerInfo = await userController.loadCustomerInfo()
-		// FIXME wait until SwitchAccountTypeService was invoked and customerInfo was updated.
 		return userController.isNewPaidPlan()
 	}
 }

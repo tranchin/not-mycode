@@ -12,7 +12,6 @@ import { TextField } from "../gui/base/TextField.js"
 import { locator } from "../api/main/MainLocator"
 import { assertMainOrNode } from "../api/common/Env"
 import { getAvailableDomains } from "./mailaddress/MailAddressesUtils.js"
-
 import { toFeatureType } from "../subscription/SubscriptionUtils.js"
 
 assertMainOrNode()
@@ -64,7 +63,7 @@ export function show(): Promise<void> {
 				return
 			}
 
-			const userController = await locator.logins.getUserController()
+			const userController = locator.logins.getUserController()
 			const planType = await userController.getPlanType()
 			const newPlan = await userController.isNewPaidPlan()
 

@@ -9,7 +9,6 @@ import { showBuyDialog } from "../subscription/BuyDialog"
 import { locator } from "../api/main/MainLocator"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog.js"
 import { OperationId } from "../api/main/OperationProgressTracker.js"
-
 import { toFeatureType } from "../subscription/SubscriptionUtils.js"
 
 const delayTime = 900

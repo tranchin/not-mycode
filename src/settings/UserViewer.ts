@@ -34,7 +34,6 @@ import { IconButton, IconButtonAttrs } from "../gui/base/IconButton.js"
 import { ButtonSize } from "../gui/base/ButtonSize.js"
 import { MailAddressTableModel } from "./mailaddress/MailAddressTableModel.js"
 import { progressIcon } from "../gui/base/Icon.js"
-
 import { toFeatureType } from "../subscription/SubscriptionUtils.js"
 
 assertMainOrNode()

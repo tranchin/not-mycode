@@ -1646,5 +1646,6 @@ export default {
 		"you_label": "Du",
 		"loadAll_action": "Alle laden",
 		"selectAllLoaded_action": "Alle geladenen Einträge auswählen",
+		"addCustomDomainAddAdresses_msg": "Die Domain wurde zu deinem Account hinzugefügt, du kannst nun eine neue E-Mail-Adresse erstellen.",
 	}
 }

@@ -1627,3 +1627,4 @@ export type TranslationKeyType =
 	| "emptyString_msg"
 	| "loadAll_action"
 	| "selectAllLoaded_action"
+	| "addCustomDomainAddAdresses_msg"

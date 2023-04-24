@@ -1642,5 +1642,6 @@ export default {
 		"you_label": "You",
 		"loadAll_action": "Load all",
 		"selectAllLoaded_action": "Select all loaded items",
+		"addCustomDomainAddAdresses_msg": "The domain was assigned to your account, you can now create a new email address.",
 	}
 }

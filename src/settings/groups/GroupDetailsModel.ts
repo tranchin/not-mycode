@@ -24,7 +24,7 @@ import { EntityUpdateData, isUpdateForTypeRef } from "../../api/main/EventContro
 import { MailboxPropertiesTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
 import { UserError } from "../../api/main/UserError.js"
 import { BookingParams } from "../../subscription/BuyDialog.js"
-import { isNewPlan, toFeatureType } from "../../subscription/FeatureListProvider.js"
+import { isNewPaidPlan, toFeatureType } from "../../subscription/FeatureListProvider.js"
 
 export class GroupDetailsModel {
 	groupInfo: GroupInfo
@@ -203,7 +203,7 @@ export class GroupDetailsModel {
 			let bookingText: TranslationKey
 
 			const planType = await locator.logins.getUserController().getPlanType()
-			const newPlan = isNewPlan(planType)
+			const newPlan = isNewPaidPlan(planType)
 
 			if (this.groupInfo.groupType === GroupType.LocalAdmin) {
 				bookingItemType = newPlan ? toFeatureType(planType) : BookingItemFeatureType.LocalAdminGroup

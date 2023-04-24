@@ -71,6 +71,7 @@ import { Recipient, RecipientType } from "../../api/common/recipients/Recipient"
 import { ResolveMode } from "../../api/main/RecipientsModel.js"
 import { TIMESTAMP_ZERO_YEAR } from "@tutao/tutanota-utils/dist/DateUtils"
 import { getSenderName } from "../../misc/MailboxPropertiesUtils.js"
+import { isNewPaidPlan } from "../../subscription/FeatureListProvider.js"
 
 // whether to close dialog
 export type EventCreateResult = boolean
@@ -741,7 +742,7 @@ export class CalendarEventViewModel {
 		return selectedCalendar != null && !selectedCalendar.shared && this._eventType !== EventType.INVITE
 	}
 
-	shouldShowSendInviteNotAvailable(): boolean {
+	async shouldShowSendInviteNotAvailable(): Promise<boolean> {
 		if (this._userController.user.accountType === AccountType.FREE) {
 			return true
 		}
@@ -750,7 +751,7 @@ export class CalendarEventViewModel {
 			return false
 		}
 
-		return !this.hasBusinessFeature() && !this.hasPremiumLegacy()
+		return !this.hasBusinessFeature() && !isNewPaidPlan(await this._userController.getPlanType())
 	}
 
 	removeAttendee(guest: Guest) {
@@ -873,7 +874,7 @@ export class CalendarEventViewModel {
 	}
 
 	isForceUpdateAvailable(): boolean {
-		return this._eventType === EventType.OWN && !this.shouldShowSendInviteNotAvailable() && this._hasUpdatableAttendees()
+		return this._eventType === EventType.OWN && this._hasUpdatableAttendees()
 	}
 
 	/**
@@ -1000,11 +1001,11 @@ export class CalendarEventViewModel {
 		// no updates possible
 		const passwordCheck = () => (this.hasInsecurePasswords() && this.containsExternalRecipients() ? askInsecurePassword() : Promise.resolve(true))
 
-		return askForUpdatesAwait.then((updateResponse) => {
+		return askForUpdatesAwait.then(async (updateResponse) => {
 			if (updateResponse === "cancel") {
 				return false
 			} else if (
-				this.shouldShowSendInviteNotAvailable() && // we check again to prevent updates after cancelling business or updates for an imported event
+				(await this.shouldShowSendInviteNotAvailable()) && // we check again to prevent updates after cancelling business or updates for an imported event
 				(updateResponse === "yes" || this._inviteModel.bccRecipients().length || this._cancelModel.bccRecipients().length)
 			) {
 				throw new BusinessFeatureRequiredError("businessFeatureRequiredInvite_msg")

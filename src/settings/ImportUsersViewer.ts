@@ -9,7 +9,7 @@ import { showBuyDialog } from "../subscription/BuyDialog"
 import { locator } from "../api/main/MainLocator"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog.js"
 import { OperationId } from "../api/main/OperationProgressTracker.js"
-import { isNewPlan, toFeatureType } from "../subscription/FeatureListProvider.js"
+import { isNewPaidPlan, toFeatureType } from "../subscription/FeatureListProvider.js"
 
 const delayTime = 900
 type UserImportDetails = {
@@ -126,7 +126,7 @@ async function showBookingDialog(userDetailsArray: UserImportDetails[]) {
 	const planType = await locator.logins.getUserController().getPlanType()
 
 	const accepted = await showBuyDialog({
-		featureType: isNewPlan(planType) ? toFeatureType(planType) : BookingItemFeatureType.Users,
+		featureType: isNewPaidPlan(planType) ? toFeatureType(planType) : BookingItemFeatureType.Users,
 		bookingText: "bookingItemUsersIncluding_label",
 		count: userDetailsArray.length,
 		freeAmount: 0,

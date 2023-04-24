@@ -12,7 +12,7 @@ import { TextField } from "../gui/base/TextField.js"
 import { locator } from "../api/main/MainLocator"
 import { assertMainOrNode } from "../api/common/Env"
 import { getAvailableDomains } from "./mailaddress/MailAddressesUtils.js"
-import { isNewPlan, toFeatureType } from "../subscription/FeatureListProvider.js"
+import { isNewPaidPlan, toFeatureType } from "../subscription/FeatureListProvider.js"
 
 assertMainOrNode()
 
@@ -64,7 +64,7 @@ export function show(): Promise<void> {
 			}
 
 			const planType = await locator.logins.getUserController().getPlanType()
-			const newPlan = isNewPlan(planType)
+			const newPlan = isNewPaidPlan(planType)
 
 			showProgressDialog(
 				"pleaseWait_msg",

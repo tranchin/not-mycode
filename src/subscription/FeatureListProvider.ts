@@ -90,8 +90,8 @@ export function isLegacyPlan(type: PlanType): boolean {
 	return type != null && legacyPlans.includes(type)
 }
 
-export function isNewPlan(type: PlanType): boolean {
-	return !isLegacyPlan(type)
+export function isNewPaidPlan(type: PlanType): boolean {
+	return !isLegacyPlan(type) && type !== PlanType.Free
 }
 
 /**

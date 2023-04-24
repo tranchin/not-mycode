@@ -34,7 +34,7 @@ import { IconButton, IconButtonAttrs } from "../gui/base/IconButton.js"
 import { ButtonSize } from "../gui/base/ButtonSize.js"
 import { MailAddressTableModel } from "./mailaddress/MailAddressTableModel.js"
 import { progressIcon } from "../gui/base/Icon.js"
-import { isNewPlan, toFeatureType } from "../subscription/FeatureListProvider.js"
+import { isNewPaidPlan, toFeatureType } from "../subscription/FeatureListProvider.js"
 
 assertMainOrNode()
 
@@ -460,7 +460,7 @@ export class UserViewer implements UpdatableSettingsDetailsViewer {
 
 	private async deleteUser() {
 		const planType = await locator.logins.getUserController().getPlanType()
-		const newPlan = isNewPlan(planType)
+		const newPlan = isNewPaidPlan(planType)
 
 		const confirmed = await showBuyDialog({
 			featureType: newPlan ? toFeatureType(planType) : BookingItemFeatureType.Users,
@@ -478,7 +478,7 @@ export class UserViewer implements UpdatableSettingsDetailsViewer {
 
 	private async restoreUser() {
 		const planType = await locator.logins.getUserController().getPlanType()
-		const newPlan = isNewPlan(planType)
+		const newPlan = isNewPaidPlan(planType)
 		const confirmed = await showBuyDialog({
 			featureType: newPlan ? toFeatureType(planType) : BookingItemFeatureType.Users,
 			bookingText: "bookingItemUsersIncluding_label",

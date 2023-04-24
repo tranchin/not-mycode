@@ -27,7 +27,7 @@ import {
 import { locator } from "../api/main/MainLocator"
 import { SwitchAccountTypeService } from "../api/entities/sys/Services.js"
 import { BadRequestError, InvalidDataError, PreconditionFailedError } from "../api/common/error/RestError.js"
-import { FeatureListProvider, getDisplayNameOfPlanType, isNewPlan, toFeatureType } from "./FeatureListProvider"
+import { FeatureListProvider, getDisplayNameOfPlanType, isNewPaidPlan, toFeatureType } from "./FeatureListProvider"
 import { isSubscriptionDowngrade, PriceAndConfigProvider } from "./PriceUtils"
 import { lazy } from "@tutao/tutanota-utils"
 
@@ -244,7 +244,7 @@ async function getUpOrDowngradeMessage(targetSubscription: PlanType, currentSubs
 async function checkNeededUpgrades(targetSubscription: PlanType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<void> {
 	const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
 	const targetPlanPrices = priceAndConfigProvider.getPlanPrices(targetSubscription)
-	if (isNewPlan(targetSubscription)) {
+	if (isNewPaidPlan(targetSubscription)) {
 		let targetFeatureType = toFeatureType(targetSubscription)
 		if (targetFeatureType != null) {
 			// bookItem(targetFeatureType, amount)

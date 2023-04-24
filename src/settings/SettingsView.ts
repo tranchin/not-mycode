@@ -68,6 +68,7 @@ import { BackgroundColumnLayout } from "../gui/BackgroundColumnLayout.js"
 import { styles } from "../gui/styles.js"
 import { MobileHeader } from "../gui/MobileHeader.js"
 import { LazySearchBar } from "../misc/LazySearchBar.js"
+import { CollaborativeEditorViewer } from "../webrtc-prototype/CollaborativeEditorViewer.js"
 
 assertMainOrNode()
 
@@ -96,6 +97,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 	private readonly _settingsDetailsColumn: ViewColumn
 	private readonly _userFolders: SettingsFolder<unknown>[]
 	private readonly _adminFolders: SettingsFolder<unknown>[]
+	private readonly _editorFolders: SettingsFolder<unknown>[]
 	private readonly logins: LoginController
 	private _templateFolders: SettingsFolder<TemplateGroupInstance>[]
 	private readonly _dummyTemplateFolder: SettingsFolder<unknown>
@@ -152,6 +154,14 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 				),
 			)
 		}
+
+		this._editorFolders = [new SettingsFolder(
+			() => "Editor",
+			() => Icons.Edit,
+			"collaborativeEditor",
+			() => new CollaborativeEditorViewer(),
+			undefined
+		)]
 
 		this._adminFolders = []
 		this._templateFolders = []
@@ -218,38 +228,44 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 									ownTemplates.length > 0
 										? ownTemplates.map((folder) => this._renderTemplateFolderRow(folder))
 										: m(SettingsFolderRow, {
-												mainButtonAttrs: this._createSettingsFolderNavButton(this._dummyTemplateFolder),
-										  }),
+											mainButtonAttrs: this._createSettingsFolderNavButton(this._dummyTemplateFolder),
+										}),
 									sharedTemplates.map((folder) => this._renderTemplateFolderRow(folder)),
 								],
 							),
 							this.logins.isUserLoggedIn() && this.logins.getUserController().isGlobalOrLocalAdmin()
 								? m(
-										SidebarSection,
-										{
-											name: "adminSettings_label",
-										},
-										this._renderSidebarSectionChildren(this._adminFolders),
-								  )
+									SidebarSection,
+									{
+										name: "adminSettings_label",
+									},
+									this._renderSidebarSectionChildren(this._adminFolders),
+								)
 								: null,
 							templateInvitations.length > 0
 								? m(
-										SidebarSection,
-										{
-											name: "templateGroupInvitations_label",
-										},
-										templateInvitations.map((invitation) => this._renderTemplateInvitationFolderRow(invitation)),
-								  )
+									SidebarSection,
+									{
+										name: "templateGroupInvitations_label",
+									},
+									templateInvitations.map((invitation) => this._renderTemplateInvitationFolderRow(invitation)),
+								)
 								: null,
 							this._knowledgeBaseFolders.length > 0
 								? m(
-										SidebarSection,
-										{
-											name: "knowledgebase_label",
-										},
-										this._renderSidebarSectionChildren(this._knowledgeBaseFolders),
-								  )
+									SidebarSection,
+									{
+										name: "knowledgebase_label",
+									},
+									this._renderSidebarSectionChildren(this._knowledgeBaseFolders),
+								)
 								: null,
+							m(
+								SidebarSection, {
+									name: () => "Editor"
+								},
+								this._renderSidebarSectionChildren(this._editorFolders)
+							),
 							isTutanotaDomain(location.hostname) ? this._aboutThisSoftwareLink() : null,
 						]),
 						ariaLabel: "settings_label",
@@ -500,15 +516,15 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 				createMoreActionButtonAttrs(() => [
 					isGroupOwner
 						? {
-								label: "delete_action",
-								click: () => this._deleteTemplateGroup(folder.data),
-								icon: Icons.Trash,
-						  }
+							label: "delete_action",
+							click: () => this._deleteTemplateGroup(folder.data),
+							icon: Icons.Trash,
+						}
 						: {
-								label: "leaveGroup_action",
-								click: () => this._leaveTemplateGroup(folder.data),
-								icon: Icons.Trash,
-						  },
+							label: "leaveGroup_action",
+							click: () => this._leaveTemplateGroup(folder.data),
+							icon: Icons.Trash,
+						},
 					{
 						label: "sharing_label",
 						click: () => showGroupSharingDialog(folder.data.groupInfo, true),
@@ -566,25 +582,25 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 						extraButton:
 							canImportUsers && folder.path === "users"
 								? m(
-										IconButton,
-										attachDropdown({
-											mainButtonAttrs: {
-												title: "more_label",
-												icon: Icons.More,
+									IconButton,
+									attachDropdown({
+										mainButtonAttrs: {
+											title: "more_label",
+											icon: Icons.More,
+										},
+										childAttrs: () => [
+											{
+												label: "importUsers_action",
+												click: () => showUserImportDialog(this._customDomains.getLoaded()),
 											},
-											childAttrs: () => [
-												{
-													label: "importUsers_action",
-													click: () => showUserImportDialog(this._customDomains.getLoaded()),
-												},
-												{
-													label: "exportUsers_action",
-													click: () =>
-														exportUserCsv(locator.entityClient, this.logins, locator.fileController, locator.counterFacade),
-												},
-											],
-										}),
-								  )
+											{
+												label: "exportUsers_action",
+												click: () =>
+													exportUserCsv(locator.entityClient, this.logins, locator.fileController, locator.counterFacade),
+											},
+										],
+									}),
+								)
 								: null,
 					})
 				}),
@@ -644,6 +660,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 			...(!hasOwnTemplates ? [this._dummyTemplateFolder] : []),
 			...this._templateFolders,
 			...this._knowledgeBaseFolders,
+			...this._editorFolders
 		]
 	}
 

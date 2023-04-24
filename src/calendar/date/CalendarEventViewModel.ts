@@ -71,7 +71,6 @@ import { Recipient, RecipientType } from "../../api/common/recipients/Recipient"
 import { ResolveMode } from "../../api/main/RecipientsModel.js"
 import { TIMESTAMP_ZERO_YEAR } from "@tutao/tutanota-utils/dist/DateUtils"
 import { getSenderName } from "../../misc/MailboxPropertiesUtils.js"
-import { isNewPaidPlan } from "../../subscription/FeatureListProvider.js"
 
 // whether to close dialog
 export type EventCreateResult = boolean
@@ -747,7 +746,7 @@ export class CalendarEventViewModel {
 			return false
 		}
 
-		return !this.hasBusinessFeature() && !isNewPaidPlan(await this._userController.getPlanType())
+		return !this.hasBusinessFeature() && !(await this._userController.isNewPaidPlan())
 	}
 
 	removeAttendee(guest: Guest) {

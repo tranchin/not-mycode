@@ -2,7 +2,7 @@ import Stream from "mithril/stream"
 import { PlanPrices } from "../api/entities/sys/TypeRefs"
 import { TranslationKey } from "../misc/LanguageViewModel"
 import { PaymentInterval } from "./PriceUtils.js"
-import { BookingItemFeatureType, PlanName, PlanType, PlanTypeToName } from "../api/common/TutanotaConstants.js"
+import { PlanName, PlanType, PlanTypeToName } from "../api/common/TutanotaConstants.js"
 import { downcast } from "@tutao/tutanota-utils"
 
 const FEATURE_LIST_RESOURCE_URL = "https://tutanota.com/resources/data/features.json"
@@ -82,36 +82,6 @@ async function resolveOrNull<T>(fn: () => Promise<T>, handler: (a: Error) => voi
 export type SelectedSubscriptionOptions = {
 	businessUse: Stream<boolean>
 	paymentInterval: Stream<PaymentInterval>
-}
-
-const legacyPlans = [PlanType.Premium, PlanType.PremiumBusiness, PlanType.Teams, PlanType.TeamsBusiness, PlanType.Pro]
-
-export function isLegacyPlan(type: PlanType): boolean {
-	return type != null && legacyPlans.includes(type)
-}
-
-export function isNewPaidPlan(type: PlanType): boolean {
-	return !isLegacyPlan(type) && type !== PlanType.Free
-}
-
-/**
- * only to be invoked for PlanTypes where isNewPlan returns true
- */
-export function toFeatureType(type: PlanType): BookingItemFeatureType {
-	switch (type) {
-		case PlanType.Revolutionary:
-			return BookingItemFeatureType.Revolutionary
-		case PlanType.Legend:
-			return BookingItemFeatureType.Legend
-		case PlanType.Essential:
-			return BookingItemFeatureType.Essential
-		case PlanType.Advanced:
-			return BookingItemFeatureType.Advanced
-		case PlanType.Unlimited:
-			return BookingItemFeatureType.Unlimited
-		default:
-			throw new Error(`can't convert ${type} to BookingItemFeatureType`)
-	}
 }
 
 export type SubscriptionConfig = {

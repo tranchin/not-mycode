@@ -24,7 +24,6 @@ import stream from "mithril/stream"
 import Stream from "mithril/stream"
 import { showDeleteAccountDialog } from "./DeleteAccountDialog"
 import * as SignOrderAgreementDialog from "./SignOrderProcessingAgreementDialog"
-import * as SwitchToBusinessInvoiceDataDialog from "./SwitchToBusinessInvoiceDataDialog"
 import { NotFoundError } from "../api/common/error/RestError"
 import type { EntityUpdateData } from "../api/main/EventController"
 import { isUpdateForTypeRef } from "../api/main/EventController"
@@ -53,7 +52,7 @@ import { MailAddressAliasService } from "../api/entities/sys/Services"
 import { DropDownSelector, SelectorItemList } from "../gui/base/DropDownSelector.js"
 import { IconButton, IconButtonAttrs } from "../gui/base/IconButton.js"
 import { ButtonSize } from "../gui/base/ButtonSize.js"
-import { getDisplayNameOfPlanType, isLegacyPlan } from "./FeatureListProvider"
+import { getDisplayNameOfPlanType } from "./FeatureListProvider"
 
 assertMainOrNode()
 const DAY = 1000 * 60 * 60 * 24
@@ -80,13 +79,13 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	private _accountingInfo: AccountingInfo | null = null
 	private _lastBooking: Booking | null = null
 	private _orderAgreement: OrderProcessingAgreement | null = null
-	private currentPlan: PlanType
+	private isNewPaidPlan: boolean
 	private _isCancelled: boolean | null = null
 	private _giftCards: Map<Id, GiftCard>
 	private _giftCardsExpanded: Stream<boolean>
 
-	constructor(currentSubscription: PlanType) {
-		this.currentPlan = currentSubscription
+	constructor(isNewPaidPlan: boolean) {
+		this.isNewPaidPlan = isNewPaidPlan
 		const isPremiumPredicate = () => locator.logins.getUserController().isPremiumAccount()
 
 		const deleteAccountExpanded = stream(false)
@@ -150,7 +149,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					},
 					renderGiftCardTable(Array.from(this._giftCards.values()), isPremiumPredicate),
 				),
-				isLegacyPlan(this.currentPlan)
+				!isNewPaidPlan
 					? [
 							m(".h4.mt-l", lang.get("adminPremiumFeatures_action")),
 							m(TextField, {
@@ -334,7 +333,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 		m.redraw()
 	}
 
-	_updateSubscriptionField(cancelled: boolean) {
+	async _updateSubscriptionField(cancelled: boolean) {
 		const cancelledText =
 			cancelled && this._periodEndDate
 				? " " +
@@ -342,9 +341,11 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 						"{endOfSubscriptionPeriod}": formatDate(this._periodEndDate),
 				  })
 				: ""
-		const accountType: AccountType = downcast(locator.logins.getUserController().user.accountType)
+		const userController = locator.logins.getUserController()
+		const accountType: AccountType = downcast(userController.user.accountType)
+		const planType = await userController.getPlanType()
 
-		this._subscriptionFieldValue(_getAccountTypeName(accountType, assertNotNull(this.currentPlan)) + cancelledText)
+		this._subscriptionFieldValue(_getAccountTypeName(accountType, planType) + cancelledText)
 	}
 
 	_updateBookings(): Promise<void> {
@@ -371,7 +372,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 							this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
 							this._customer = customer
 							this._isCancelled = customer.canceledPremiumAccount
-							this.currentPlan = await userController.getPlanType()
+							this.isNewPaidPlan = await userController.isNewPaidPlan()
 
 							this._updateSubscriptionField(this._isCancelled)
 

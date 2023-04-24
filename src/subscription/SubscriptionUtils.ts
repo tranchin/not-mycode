@@ -1,5 +1,5 @@
 import type { TranslationKey } from "../misc/LanguageViewModel"
-import { AccountType, BookingItemFeatureType, Const, getClientType } from "../api/common/TutanotaConstants"
+import { AccountType, BookingItemFeatureType, Const, getClientType, PlanType } from "../api/common/TutanotaConstants"
 import { PreconditionFailedError } from "../api/common/error/RestError"
 import type { Customer, CustomerInfo } from "../api/entities/sys/TypeRefs.js"
 import { Booking, createBookingServiceData, createPaymentDataServiceGetData } from "../api/entities/sys/TypeRefs.js"
@@ -257,4 +257,24 @@ export function getLazyLoadedPayPalUrl(): LazyLoaded<string> {
 				return result.loginUrl
 			})
 	})
+}
+
+/**
+ * only to be invoked for PlanTypes where isNewPlan returns true
+ */
+export function toFeatureType(type: PlanType): BookingItemFeatureType {
+	switch (type) {
+		case PlanType.Revolutionary:
+			return BookingItemFeatureType.Revolutionary
+		case PlanType.Legend:
+			return BookingItemFeatureType.Legend
+		case PlanType.Essential:
+			return BookingItemFeatureType.Essential
+		case PlanType.Advanced:
+			return BookingItemFeatureType.Advanced
+		case PlanType.Unlimited:
+			return BookingItemFeatureType.Unlimited
+		default:
+			throw new Error(`can't convert ${type} to BookingItemFeatureType`)
+	}
 }

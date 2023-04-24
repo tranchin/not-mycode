@@ -1,16 +1,14 @@
 import type { LoginController } from "../api/main/LoginController"
 import type { lazy } from "@tutao/tutanota-utils"
-import { assertNotNull, downcast, neverNull } from "@tutao/tutanota-utils"
+import { assertNotNull, neverNull } from "@tutao/tutanota-utils"
 import { Dialog } from "../gui/base/Dialog"
 import type { TranslationKey } from "./LanguageViewModel"
 import { InfoLink, lang } from "./LanguageViewModel"
 import { isIOSApp } from "../api/common/Env"
 import type { clickHandler } from "../gui/base/GuiUtils"
 import { locator } from "../api/main/MainLocator"
-import { showSwitchDialog } from "../subscription/SwitchSubscriptionDialog.js"
 import { BookingTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { GENERATED_MAX_ID } from "../api/common/utils/EntityUtils.js"
-import { isNewPaidPlan } from "../subscription/FeatureListProvider.js"
 
 /**
  * Opens a dialog which states that the function is not available in the Free subscription and provides an option to upgrade.
@@ -91,9 +89,10 @@ export async function showBusinessFeatureRequiredDialog(reason: TranslationKey |
 	} else {
 		let customerInfo = await userController.loadCustomerInfo()
 		const bookings = await locator.entityClient.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
+		const { showSwitchDialog } = await import("../subscription/SwitchSubscriptionDialog")
 		await showSwitchDialog(await userController.loadCustomer(), customerInfo, await userController.loadAccountingInfo(), assertNotNull(bookings[0]))
 		customerInfo = await userController.loadCustomerInfo()
 		// FIXME wait until SwitchAccountTypeService was invoked and customerInfo was updated.
-		return isNewPaidPlan(downcast(customerInfo.plan))
+		return userController.isNewPaidPlan()
 	}
 }

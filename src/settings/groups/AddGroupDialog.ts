@@ -18,7 +18,8 @@ import type { GroupManagementFacade } from "../../api/worker/facades/lazy/GroupM
 import { locator } from "../../api/main/MainLocator.js"
 import { assertMainOrNode } from "../../api/common/Env.js"
 import { getAvailableDomains } from "../mailaddress/MailAddressesUtils.js"
-import { isNewPaidPlan, toFeatureType } from "../../subscription/FeatureListProvider.js"
+
+import { toFeatureType } from "../../subscription/SubscriptionUtils.js"
 
 assertMainOrNode()
 
@@ -134,8 +135,9 @@ export function show(): void {
 				return
 			}
 
-			const planType = await locator.logins.getUserController().getPlanType()
-			const newPlan = isNewPaidPlan(planType)
+			const userController = locator.logins.getUserController()
+			const planType = await userController.getPlanType()
+			const newPlan = await userController.isNewPaidPlan()
 
 			if (viewModel.groupType === GroupType.Mail) {
 				showProgressDialog(

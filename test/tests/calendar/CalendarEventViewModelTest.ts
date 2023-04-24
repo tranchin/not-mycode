@@ -233,6 +233,7 @@ o.spec("CalendarEventViewModel", function () {
 	let askForUpdates: any
 	let askInsecurePassword: any
 	o.before(async function () {
+		// We need this because SendMailModel queries for default language. We should refactor to avoid this.
 		await lang.init(en)
 	})
 	o.beforeEach(function () {

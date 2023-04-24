@@ -24,7 +24,6 @@ import { EntityUpdateData, isUpdateForTypeRef } from "../../api/main/EventContro
 import { MailboxPropertiesTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
 import { UserError } from "../../api/main/UserError.js"
 import { BookingParams } from "../../subscription/BuyDialog.js"
-
 import { toFeatureType } from "../../subscription/SubscriptionUtils.js"
 
 export class GroupDetailsModel {
@@ -203,7 +202,7 @@ export class GroupDetailsModel {
 			let bookingItemType
 			let bookingText: TranslationKey
 
-			const userController = await locator.logins.getUserController()
+			const userController = locator.logins.getUserController()
 			const planType = await userController.getPlanType()
 			const newPlan = await userController.isNewPaidPlan()
 

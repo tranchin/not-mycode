@@ -18,7 +18,6 @@ import type { GroupManagementFacade } from "../../api/worker/facades/lazy/GroupM
 import { locator } from "../../api/main/MainLocator.js"
 import { assertMainOrNode } from "../../api/common/Env.js"
 import { getAvailableDomains } from "../mailaddress/MailAddressesUtils.js"
-
 import { toFeatureType } from "../../subscription/SubscriptionUtils.js"
 
 assertMainOrNode()

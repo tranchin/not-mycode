@@ -127,13 +127,17 @@ export class UserController {
 		return downcast(customerInfo.plan)
 	}
 
-	private isLegacyPlan(type: PlanType): boolean {
+	public isLegacyPlan(type: PlanType): boolean {
 		return legacyPlans.includes(type)
 	}
 
 	async isNewPaidPlan(): Promise<boolean> {
 		const type = await this.getPlanType()
 		return !this.isLegacyPlan(type) && type !== PlanType.Free
+	}
+	async isNewPaidBusinessPlan(): Promise<boolean> {
+		const type = await this.getPlanType()
+		return type === PlanType.Essential || type === PlanType.Advanced || type === PlanType.Unlimited
 	}
 
 	loadAccountingInfo(): Promise<AccountingInfo> {

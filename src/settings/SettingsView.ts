@@ -328,26 +328,27 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 		await this.updateShowBusinessSettings()
 		const isNewPaidPlan = await this.logins.getUserController().isNewPaidPlan()
 
-		this._adminFolders.push(
-			new SettingsFolder(
-				"adminUserList_action",
-				() => BootIcons.Contacts,
-				"users",
-				() => new UserListView(this),
-				undefined,
-			),
-		)
-
-		if (!this.logins.isEnabled(FeatureType.WhitelabelChild)) {
+		if (await this.canHaveUsers()) {
 			this._adminFolders.push(
 				new SettingsFolder(
-					"groups_label",
-					() => Icons.People,
-					"groups",
-					() => new GroupListView(this),
+					"adminUserList_action",
+					() => BootIcons.Contacts,
+					"users",
+					() => new UserListView(this),
 					undefined,
 				),
 			)
+			if (!this.logins.isEnabled(FeatureType.WhitelabelChild)) {
+				this._adminFolders.push(
+					new SettingsFolder(
+						"groups_label",
+						() => Icons.People,
+						"groups",
+						() => new GroupListView(this),
+						undefined,
+					),
+				)
+			}
 		}
 
 		if (this.logins.getUserController().isGlobalAdmin()) {
@@ -791,6 +792,18 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 		} else {
 			return []
 		}
+	}
+
+	private async canHaveUsers(): Promise<boolean> {
+		const userController = this.logins.getUserController()
+		const customer = await userController.loadCustomer()
+		const planType = await userController.getPlanType()
+
+		return (
+			(await userController.isLegacyPlan(planType)) ||
+			(await userController.isNewPaidBusinessPlan()) ||
+			isCustomizationEnabledForCustomer(customer, FeatureType.MultipleUsers)
+		)
 	}
 }
 

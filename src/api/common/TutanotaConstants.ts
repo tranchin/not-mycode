@@ -366,6 +366,7 @@ export enum FeatureType {
 	Newsletter = "14",
 	Blobs = "15", // enables blob attachments for mails
 	MailDetails = "16", // enable new mail model support
+	MultipleUsers = "17", // Multi-user support for new personal plans.
 }
 
 export const enum BootstrapFeatureType {

@@ -15,7 +15,7 @@ import * as notificationOverlay from "../gui/base/NotificationOverlay"
 import { ButtonType } from "../gui/base/Button.js"
 import { themeController } from "../gui/theme"
 import { Dialog } from "../gui/base/Dialog"
-import { CloseEventBusOption, Const, PlanType } from "../api/common/TutanotaConstants"
+import { CloseEventBusOption, Const } from "../api/common/TutanotaConstants"
 import { showMoreStorageNeededOrderDialog } from "../misc/SubscriptionDialogs"
 import { notifications } from "../gui/Notifications"
 import { CustomerPropertiesTypeRef } from "../api/entities/sys/TypeRefs.js"
@@ -29,7 +29,6 @@ import { SecondFactorHandler } from "../misc/2fa/SecondFactorHandler"
 import { SessionType } from "../api/common/SessionType"
 import { StorageBehavior } from "../misc/UsageTestModel.js"
 import type { WebsocketConnectivityModel } from "../misc/WebsocketConnectivityModel.js"
-import { isNewPaidPlan } from "../subscription/FeatureListProvider.js"
 
 /**
  * This is a collection of all things that need to be initialized/global state to be set after a user has logged in successfully.
@@ -203,8 +202,7 @@ export class PostLoginActions implements IPostLoginAction {
 	private async checkStorageWarningLimit(): Promise<void> {
 		const userController = locator.logins.getUserController()
 		const customerInfo = await userController.loadCustomerInfo()
-		const planType = await userController.getPlanType()
-		if (isNewPaidPlan(planType) || planType === PlanType.Free) {
+		if ((await userController.isNewPaidPlan()) || userController.isFreeAccount()) {
 			const usedStorage = await locator.userManagementFacade.readUsedUserStorage(userController.user)
 			this.checkStorageWarningDialog(usedStorage, Number(customerInfo.perUserStorageCapacity) * Const.MEMORY_GB_FACTOR)
 		} else {

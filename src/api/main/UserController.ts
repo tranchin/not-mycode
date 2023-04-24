@@ -41,6 +41,8 @@ import type { PriceAndConfigProvider } from "../../subscription/PriceUtils.js"
 
 assertMainOrNode()
 
+const legacyPlans = [PlanType.Premium, PlanType.PremiumBusiness, PlanType.Teams, PlanType.TeamsBusiness, PlanType.Pro]
+
 export class UserController {
 	constructor(
 		// should be readonly but is needed for a workaround in CalendarModel
@@ -123,6 +125,15 @@ export class UserController {
 	async getPlanType(): Promise<PlanType> {
 		const customerInfo = await this.loadCustomerInfo()
 		return downcast(customerInfo.plan)
+	}
+
+	private isLegacyPlan(type: PlanType): boolean {
+		return legacyPlans.includes(type)
+	}
+
+	async isNewPaidPlan(): Promise<boolean> {
+		const type = await this.getPlanType()
+		return !this.isLegacyPlan(type) && type !== PlanType.Free
 	}
 
 	loadAccountingInfo(): Promise<AccountingInfo> {

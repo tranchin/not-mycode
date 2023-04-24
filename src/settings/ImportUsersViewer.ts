@@ -9,7 +9,8 @@ import { showBuyDialog } from "../subscription/BuyDialog"
 import { locator } from "../api/main/MainLocator"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog.js"
 import { OperationId } from "../api/main/OperationProgressTracker.js"
-import { isNewPaidPlan, toFeatureType } from "../subscription/FeatureListProvider.js"
+
+import { toFeatureType } from "../subscription/SubscriptionUtils.js"
 
 const delayTime = 900
 type UserImportDetails = {
@@ -123,10 +124,11 @@ function checkAndGetErrorMessage(userData: UserImportDetails[], availableDomains
 
 async function showBookingDialog(userDetailsArray: UserImportDetails[]) {
 	// We send index to worker and then worker calculates the progress based on the index of the user
-	const planType = await locator.logins.getUserController().getPlanType()
+	const userController = locator.logins.getUserController()
+	const planType = await userController.getPlanType()
 
 	const accepted = await showBuyDialog({
-		featureType: isNewPaidPlan(planType) ? toFeatureType(planType) : BookingItemFeatureType.Users,
+		featureType: (await userController.isNewPaidPlan()) ? toFeatureType(planType) : BookingItemFeatureType.Users,
 		bookingText: "bookingItemUsersIncluding_label",
 		count: userDetailsArray.length,
 		freeAmount: 0,

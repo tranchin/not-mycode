@@ -288,7 +288,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 
 	private async populateAdminFolders() {
 		await this.updateShowBusinessSettings()
-		const currentPlan = await this.logins.getUserController().getPlanType()
+		const isNewPaidPlan = await this.logins.getUserController().isNewPaidPlan()
 
 		this._adminFolders.push(
 			new SettingsFolder(
@@ -365,7 +365,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 						"adminSubscription_action",
 						() => BootIcons.Premium,
 						"subscription",
-						() => new SubscriptionViewer(currentPlan),
+						() => new SubscriptionViewer(isNewPaidPlan),
 						undefined,
 					).setIsVisibleHandler(() => !isIOSApp() || !this.logins.getUserController().isFreeAccount()),
 				)

@@ -1,4 +1,4 @@
-import { assertEnumValue, CustomDomainValidationResult } from "../../api/common/TutanotaConstants"
+import { assertEnumValue, CustomDomainValidationResult, PlanType } from "../../api/common/TutanotaConstants"
 import m, { Children, Vnode, VnodeDOM } from "mithril"
 import type { AddDomainData } from "./AddDomainWizard"
 import { showProgressDialog } from "../../gui/dialogs/ProgressDialog"
@@ -122,7 +122,7 @@ export class VerifyOwnershipPageAttrs implements WizardPageAttrs<AddDomainData> 
 				ofClass(PreconditionFailedError, (e) => {
 					if (e.data === CustomDomainFailureReasons.LIMIT_REACHED) {
 						// ignore promise. always return false to not switch to next page.
-						showPlanUpgradeRequiredDialog("businessFeatureRequiredMultipleDomains_msg")
+						showPlanUpgradeRequiredDialog([PlanType.Legend, PlanType.Advanced, PlanType.Unlimited], "businessFeatureRequiredMultipleDomains_msg")
 					} else {
 						Dialog.message(() => e.toString())
 					}

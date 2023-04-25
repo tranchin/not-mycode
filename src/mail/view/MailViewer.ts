@@ -34,6 +34,7 @@ import { editDraft, mailViewerMargin, mailViewerPadding, showHeaderDialog } from
 import { ToggleButton } from "../../gui/base/ToggleButton.js"
 import { locator } from "../../api/main/MainLocator.js"
 import { PinchZoom } from "../../gui/PinchZoom.js"
+import { PinchZoomV2 } from "../../gui/PinchZoomV2.js"
 
 assertMainOrNode()
 // map of inline image cid to InlineImageReference
@@ -80,6 +81,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	private viewModel!: MailViewerViewModel
 	private topScrollValue = 0
 	private pinchZoomable: PinchZoom | null = null
+	private pinchZoomableV2: PinchZoomV2 | null = null
 	private topScrollValues: Array<stream<number>> = []
 
 	private readonly shortcuts: Array<Shortcut>
@@ -327,7 +329,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				}
 
 				console.log("onupdate")
-				// this.rescale(false) //FIXME
+				this.rescale(false) //FIXME
 				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs, vnode.dom as HTMLElement)
 				this.rescale(false)
 
@@ -383,7 +385,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			this.shadowDomRoot.firstChild.remove()
 		}
 		const wrapNode = document.createElement("div")
-		wrapNode.className = "selectable touch-callout break-word-links" + (client.isMobileDevice() ? " break-pre" : "")
+		wrapNode.className = "drag selectable touch-callout break-word-links" + (client.isMobileDevice() ? " break-pre" : "")
 		wrapNode.style.lineHeight = String(this.bodyLineHeight ? this.bodyLineHeight.toString() : size.line_height)
 		wrapNode.style.transformOrigin = "top left"
 		wrapNode.appendChild(sanitizedMailBody.cloneNode(true))
@@ -398,7 +400,8 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		}
 
 		if (client.isMobileDevice()) {
-			this.pinchZoomable = new PinchZoom(wrapNode, parent, this.topScrollValues, [])
+			// this.pinchZoomable = new PinchZoom(wrapNode, parent, this.topScrollValues, [])
+			this.pinchZoomableV2 = new PinchZoomV2(wrapNode, parent)
 		} else {
 			wrapNode.addEventListener("click", (event) => {
 				const href = (event.target as Element | null)?.closest("a")?.getAttribute("href") ?? null

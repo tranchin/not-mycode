@@ -16,7 +16,7 @@ import { getCapabilityText, getDefaultGroupName, getInvitationGroupType, groupRe
 import { showPlanUpgradeRequiredDialog } from "../../misc/SubscriptionDialogs"
 import type { GroupSharingTexts } from "../GroupGuiUtils"
 import { getTextsForGroupType } from "../GroupGuiUtils"
-import { FeatureType, GroupType } from "../../api/common/TutanotaConstants"
+import { FeatureType, GroupType, PaidPlans } from "../../api/common/TutanotaConstants"
 import { ColorPicker } from "../../gui/base/ColorPicker"
 import { locator } from "../../api/main/MainLocator"
 
@@ -117,7 +117,7 @@ async function checkCanAcceptInvitation(invitation: ReceivedGroupInvitation): Pr
 	}
 	const customer = await locator.logins.getUserController().loadCustomer()
 	if (groupRequiresBusinessFeature(getInvitationGroupType(invitation)) && !isCustomizationEnabledForCustomer(customer, FeatureType.BusinessFeatureEnabled)) {
-		return showPlanUpgradeRequiredDialog("businessFeatureRequiredGeneral_msg")
+		return showPlanUpgradeRequiredDialog(PaidPlans, "businessFeatureRequiredGeneral_msg")
 	} else {
 		return true
 	}

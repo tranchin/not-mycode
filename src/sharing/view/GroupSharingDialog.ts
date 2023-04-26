@@ -27,7 +27,6 @@ import { getTextsForGroupType } from "../GroupGuiUtils"
 import { ResolvableRecipient, ResolveMode } from "../../api/main/RecipientsModel"
 import { MailRecipientsTextField } from "../../gui/MailRecipientsTextField.js"
 import { cleanMailAddress, findRecipientWithAddress } from "../../api/common/utils/CommonCalendarUtils.js"
-import { showSwitchDialog } from "../../subscription/SwitchSubscriptionDialog.js"
 import { GENERATED_MAX_ID } from "../../api/common/utils/EntityUtils.js"
 
 export async function showGroupSharingDialog(groupInfo: GroupInfo, allowGroupNameOverride: boolean) {
@@ -253,6 +252,7 @@ async function showAddParticipantDialog(model: GroupSharingModel, texts: GroupSh
 								1,
 								true,
 							)
+							const { showSwitchDialog } = await import("../../subscription/SwitchSubscriptionDialog.js")
 							showSwitchDialog(customer, customerInfo, accountingInfo, bookings[0])
 						} else {
 							Dialog.message(() => `${texts.sharingNotOrderedUser} ${lang.get("contactAdmin_msg")}`)

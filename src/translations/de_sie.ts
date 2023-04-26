@@ -1652,6 +1652,8 @@ export default {
 		"yourFolders_action": "Ihre ORDNER",
 		"yourMessage_label": "Ihre Nachricht",
 		"you_label": "Sie",
+		//TODO
+		"unlimitedRequired_msg": "Um diese Funktion zu verwenden, müssen Sie zum Plan Unlimited wechseln.",
 		"addCustomDomainAddAdresses_msg": "Die Domain wurde zu Ihrem Account hinzugefügt, Sie können nun eine neue E-Mail-Adresse erstellen.",
 	}
 }

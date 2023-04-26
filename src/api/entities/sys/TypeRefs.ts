@@ -19,7 +19,6 @@ export type AccountingInfo = {
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
 	_permissions: Id;
-	business: boolean;
 	invoiceAddress: string;
 	invoiceCountry: null | string;
 	invoiceName: string;
@@ -301,7 +300,6 @@ export type Booking = {
 	_owner: Id;
 	_ownerGroup: null | Id;
 	_permissions: Id;
-	business: boolean;
 	createDate: Date;
 	endDate: null | Date;
 	paymentInterval: NumberString;
@@ -753,7 +751,7 @@ export type Customer = {
 	_ownerGroup: null | Id;
 	_permissions: Id;
 	approvalStatus: NumberString;
-	businessUse: null | boolean;
+	businessUse: boolean;
 	canceledPremiumAccount: boolean;
 	orderProcessingAgreementNeeded: boolean;
 	type: NumberString;
@@ -1882,7 +1880,6 @@ export type PaymentDataServicePutData = {
 	_errors: Object;
 
 	_format: NumberString;
-	business: boolean;
 	confirmedCountry: null | string;
 	invoiceAddress: string;
 	invoiceCountry: string;

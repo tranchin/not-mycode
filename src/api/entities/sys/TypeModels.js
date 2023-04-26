@@ -69,15 +69,6 @@ export const typeModels = {
                 "cardinality": "One",
                 "encrypted": false
             },
-            "business": {
-                "final": false,
-                "name": "business",
-                "id": 761,
-                "since": 9,
-                "type": "Boolean",
-                "cardinality": "One",
-                "encrypted": false
-            },
             "invoiceAddress": {
                 "final": false,
                 "name": "invoiceAddress",
@@ -1148,15 +1139,6 @@ export const typeModels = {
                 "id": 712,
                 "since": 9,
                 "type": "GeneratedId",
-                "cardinality": "One",
-                "encrypted": false
-            },
-            "business": {
-                "final": false,
-                "name": "business",
-                "id": 720,
-                "since": 9,
-                "type": "Boolean",
                 "cardinality": "One",
                 "encrypted": false
             },
@@ -2831,7 +2813,7 @@ export const typeModels = {
                 "id": 1754,
                 "since": 61,
                 "type": "Boolean",
-                "cardinality": "ZeroOrOne",
+                "cardinality": "One",
                 "encrypted": false
             },
             "canceledPremiumAccount": {
@@ -7500,15 +7482,6 @@ export const typeModels = {
                 "id": 794,
                 "since": 9,
                 "type": "Number",
-                "cardinality": "One",
-                "encrypted": false
-            },
-            "business": {
-                "final": false,
-                "name": "business",
-                "id": 795,
-                "since": 9,
-                "type": "Boolean",
                 "cardinality": "One",
                 "encrypted": false
             },

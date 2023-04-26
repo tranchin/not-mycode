@@ -410,8 +410,6 @@ export class CustomerFacade {
 				return this.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo).then(async (accountingInfo) => {
 					return this.cryptoFacade.resolveSessionKeyForInstance(accountingInfo).then((accountingInfoSessionKey) => {
 						const service = createPaymentDataServicePutData()
-						service.business = false // not used, must be set to false currently, will be removed later
-
 						service.paymentInterval = paymentInterval.toString()
 						service.invoiceName = ""
 						service.invoiceAddress = invoiceData.invoiceAddress

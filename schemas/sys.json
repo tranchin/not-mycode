@@ -133,6 +133,21 @@
 					"name": "AddValue",
 					"sourceType": "PlanPrices",
 					"info": "AddValue PlanPrices/whitelabel/2098."
+				},
+				{
+					"name": "RemoveValue",
+					"sourceType": "AccountingInfo",
+					"info": "RemoveValue AccountingInfo/business/761."
+				},
+				{
+					"name": "RemoveValue",
+					"sourceType": "Booking",
+					"info": "RemoveValue Booking/business/720."
+				},
+				{
+					"name": "ChangeValueCardinality",
+					"sourceType": "Customer",
+					"info": "ChangeValueCardinality Customer/businessUse/One."
 				}
 			]
 		}

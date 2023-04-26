@@ -17,12 +17,12 @@ import { PayloadTooLargeError } from "../api/common/error/RestError"
 import { SegmentControl } from "../gui/base/SegmentControl"
 import { insertInlineImageB64ClickHandler } from "../mail/view/MailViewerUtils"
 import { UserError } from "../api/main/UserError"
-import { showNotAvailableForFreeDialog } from "../misc/SubscriptionDialogs"
+import { showNotAvailableForFreeDialog, showPlanUpgradeRequiredDialog } from "../misc/SubscriptionDialogs"
 import { isWhitelabelActive } from "../subscription/SubscriptionUtils"
-import { showWhitelabelBuyDialog } from "../subscription/BuyDialog"
 import type { UserController } from "../api/main/UserController"
 import { GENERATED_MAX_ID } from "../api/common/utils/EntityUtils"
 import { locator } from "../api/main/MainLocator"
+import { PlanType } from "../api/common/TutanotaConstants.js"
 
 export function showAddOrEditNotificationEmailDialog(userController: UserController, selectedNotificationLanguage?: string) {
 	let existingTemplate: NotificationMailTemplate | undefined = undefined
@@ -67,7 +67,7 @@ export async function showBuyOrSetNotificationEmailDialog(
 		const customerInfo = await locator.logins.getUserController().loadCustomerInfo()
 		let whitelabel = isWhitelabelActive(lastBooking, customerInfo)
 		if (!whitelabel) {
-			whitelabel = await showWhitelabelBuyDialog()
+			whitelabel = await showPlanUpgradeRequiredDialog([PlanType.Unlimited], "unlimitedRequired_msg")
 		}
 		if (whitelabel) {
 			show(existingTemplate ?? null, customerProperties)

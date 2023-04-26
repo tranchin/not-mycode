@@ -95,7 +95,6 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 			]
 			additionalInfo = m(".flex.flex-column.items-center", [
 				featureExpander.All, // global feature expander
-				m(".smaller.mb.center", lang.get("pricing.downgradeToPrivateNotAllowed_msg")), //only displayed when business options are shown)
 				m(".smaller.mb.center", lang.get("pricing.subscriptionPeriodInfoBusiness_msg")),
 			])
 		} else {
@@ -127,13 +126,11 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 		}
 
 		return [
-			vnode.attrs.isInitialUpgrade
-				? m(SegmentControl, {
-						selectedValue: vnode.attrs.options.businessUse(),
-						onValueSelected: vnode.attrs.options.businessUse,
-						items: BusinessUseItems,
-				  })
-				: null,
+			m(SegmentControl, {
+				selectedValue: vnode.attrs.options.businessUse(),
+				onValueSelected: vnode.attrs.options.businessUse,
+				items: BusinessUseItems,
+			}),
 			vnode.attrs.campaignInfoTextId && lang.exists(vnode.attrs.campaignInfoTextId) ? m(".b.center.mt", lang.get(vnode.attrs.campaignInfoTextId)) : null,
 			vnode.attrs.referralCodeMsg ? m(".b.center.mt", lang.get(vnode.attrs.referralCodeMsg)) : null,
 			m(

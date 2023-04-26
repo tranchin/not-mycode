@@ -22,8 +22,8 @@ import { lang } from "../../misc/LanguageViewModel"
 import { getLoginErrorMessage, handleExpectedLoginError } from "../../misc/LoginUtils"
 import { RecoverCodeField } from "../../settings/login/RecoverCodeDialog.js"
 import { HabReminderImage } from "../../gui/base/icons/Icons"
-import { PlanType, PaymentMethodType } from "../../api/common/TutanotaConstants"
-import { formatPrice, getPaymentMethodName, PriceAndConfigProvider, PaymentInterval } from "../PriceUtils"
+import { PaymentMethodType, PlanType } from "../../api/common/TutanotaConstants"
+import { formatPrice, getPaymentMethodName, PaymentInterval, PriceAndConfigProvider } from "../PriceUtils"
 import { TextField } from "../../gui/base/TextField.js"
 import { elementIdPart, isSameId } from "../../api/common/utils/EntityUtils"
 import type { CredentialsInfo } from "../../misc/credentials/CredentialsProvider.js"
@@ -159,7 +159,7 @@ class RedeemGiftCardModel {
 		const customerInfo = await this.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
 		this.accountingInfo = await this.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo)
 
-		if (customer.businessUse || this.accountingInfo.business) {
+		if (customer.businessUse) {
 			throw new UserError("onlyPrivateAccountFeature_msg")
 		}
 	}

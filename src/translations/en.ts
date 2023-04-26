@@ -697,7 +697,7 @@ export default {
 		"invited_label": "Invited",
 		"invite_alt": "Invite",
 		"invoiceAddressInfoBusiness_msg": "Please enter your name/company and invoice address (max. 5 rows).",
-		"invoiceAddressInfoPrivate_msg": "This information is optional for private customers (max. 5 rows).",
+
 		"invoiceAddress_label": "Invoice name and address",
 		"invoiceCountryInfoBusiness_msg": "Please choose your country of residence.",
 		"invoiceCountryInfoConsumer_msg": "This is needed to calculate value-added tax (VAT).",
@@ -952,7 +952,7 @@ export default {
 		"onlyAccountAdminFeature_msg": "Only the account administrator may do that",
 		"onlyAvailableForPremiumNotIncluded_msg": "This feature can only be ordered after upgrading to a paid subscription. Please upgrade your account now.",
 		"onlyAvailableForPremium_msg": "This feature is only available with a paid subscription. Please upgrade your account now.",
-		"onlyPrivateAccountFeature_msg": "Gift cards may only be redeemed by private accounts",
+
 		"onlyPrivateComputer_msg": "Only choose this option if you are using a private device.",
 		"openCamera_action": "Camera",
 		"openKnowledgebase_action": "Open the knowledgebase window",
@@ -1131,7 +1131,7 @@ export default {
 		"pricing.comparisonThemePro_tooltip": "Whitelabel Tutanota with your own branding by defining the logos and colors of the Tutanota web, mobile and desktop clients",
 		"pricing.comparisonUsersFree_msg": "One user",
 		"pricing.currentPlan_label": "Current subscription",
-		"pricing.downgradeToPrivateNotAllowed_msg": "It is not possible to change the account usage from Business to Private.",
+
 		"pricing.encryptedCalendar_label": "Fully encrypted calendar",
 		"pricing.encryptedCalendar_tooltip": "All data in your Tutanota calendars is encrypted, even notifications are sent encrypted to your device.",
 		"pricing.encryptedContacts_label": "Encrypted address book",
@@ -1158,7 +1158,6 @@ export default {
 		"pricing.perMonth_label": "per month",
 		"pricing.perYear_label": "per year",
 		"pricing.platforms_label": "Web, mobile & desktop apps",
-		"pricing.privateUse_label": "Private",
 		"pricing.roles_label": "Multiple admin roles",
 		"pricing.roles_tooltip": "Define global administrators who have access to everything and local administrators who can manage only specific team members.",
 		"pricing.search_msg": "Unlimited search",
@@ -1174,7 +1173,7 @@ export default {
 		"pricing.subscriptionPeriodInfoBusiness_msg": "The subscription period is one month when paying monthly and one year when paying yearly. The subscription will be renewed automatically at the end of the subscription period.",
 		"pricing.subscriptionPeriodInfoPrivate_msg": "The subscription period is one month when paying monthly and one year when paying yearly. After the initial period, the subscription will turn into a non-fixed term contract and may be cancelled at any time.",
 		"pricing.team_label": "Team management",
-		"pricing.upgradeLater_msg": "Use Tutanota free of charge and upgrade later. Only for private use.",
+
 		"pricing.usability_label": "Usability",
 		"pricing.yearly_label": "Yearly",
 		"primaryMailAddress_label": "Primary",
@@ -1184,7 +1183,7 @@ export default {
 		"privateCalendar_label": "Private",
 		"privateKeyInfo_msg": "Please select the file with the certificate's private key in PEM format (base64 encoded).",
 		"privateKey_label": "Private key",
-		"private_label": "Private",
+
 		"progressDeleting_msg": "Deleting ...",
 		"promotion.ctAdventCalendarDiscount_msg": "c't advent calendar: Use Tutanota 12 months for free",
 		"promotion.npoDiscount_msg": "Offer for NPOs: 50% user discount for Premium and 20 aliases free of charge!",
@@ -1641,10 +1640,16 @@ export default {
 		"you_label": "You",
 		"loadAll_action": "Load all",
 		"selectAllLoaded_action": "Select all loaded items",
+		"private_label": "Private",
 		// TODO add to phrase
-		"unlimitedRequired_msg": "To use this feature you have to switch to an unlimited plan.",
-		// TODO update in phrase
 		"whitelabelDomainLinkInfo_msg": "The whitelabel feature, is only available with the Unlimited subscription. It allows you to activate the Tutanota login on your own domain (a subdomain), change the look of Tutanota according to your needs (e.g. corporate identity) and create contact forms for your clients. Please see",
+		"unlimitedRequired_msg": "To use this feature you have to switch to an unlimited plan.",
+		"pricing.privateUse_label": "Personal",
+		"onlyPrivateAccountFeature_msg": "Gift cards may only be redeemed by personal accounts",
+		"invoiceAddressInfoPrivate_msg": "This information is optional (max. 5 rows).",
+		"pricing.upgradeLater_msg": "Use Tutanota free of charge and upgrade later. Only for personal use.",
 		"addCustomDomainAddAdresses_msg": "The domain was assigned to your account, you can now create a new email address.",
+		// TODO delete from phrase
+		"pricing.downgradeToPrivateNotAllowed_msg": "It is not possible to change the account usage from Business to Personal.",
 	}
 }

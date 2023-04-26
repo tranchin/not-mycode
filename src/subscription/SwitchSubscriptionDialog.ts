@@ -4,7 +4,17 @@ import { lang } from "../misc/LanguageViewModel"
 import { ButtonAttrs, ButtonType } from "../gui/base/Button.js"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, PlanPrices, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
-import { AccountType, BookingItemFeatureByCode, BookingItemFeatureType, Const, Keys, PlanType, UnsubscribeFailureReason } from "../api/common/TutanotaConstants"
+import {
+	AccountType,
+	BookingItemFeatureByCode,
+	BookingItemFeatureType,
+	BusinessPlans,
+	Const,
+	InvoiceData,
+	Keys,
+	PlanType,
+	UnsubscribeFailureReason,
+} from "../api/common/TutanotaConstants"
 import { SubscriptionActionButtons, SubscriptionSelector } from "./SubscriptionSelector"
 import stream from "mithril/stream"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
@@ -22,9 +32,12 @@ import {
 import { locator } from "../api/main/MainLocator"
 import { SwitchAccountTypeService } from "../api/entities/sys/Services.js"
 import { BadRequestError, InvalidDataError, PreconditionFailedError } from "../api/common/error/RestError.js"
-import { FeatureListProvider, getDisplayNameOfPlanType } from "./FeatureListProvider"
-import { isSubscriptionDowngrade, PriceAndConfigProvider } from "./PriceUtils"
+import { FeatureListProvider } from "./FeatureListProvider"
+import { PriceAndConfigProvider } from "./PriceUtils"
 import { defer, DeferredObject, lazy } from "@tutao/tutanota-utils"
+import { showSwitchToBusinessInvoiceDataDialog } from "./SwitchToBusinessInvoiceDataDialog.js"
+import { formatNameAndAddress } from "../misc/Formatter.js"
+import { getByAbbreviation } from "../api/common/CountryList.js"
 
 /**
  * Only shown if the user is already a Premium user. Allows cancelling the subscription (only private use) and switching the subscription to a different paid subscription.
@@ -65,6 +78,7 @@ export async function showSwitchDialog(
 		middle: () => lang.get("subscription_label"),
 	}
 	const currentSubscriptionInfo = model.currentSubscriptionInfo
+	const businessUse = stream(currentSubscriptionInfo.businessUse)
 	const dialog: Dialog = Dialog.largeDialog(headerBarAttrs, {
 		view: () =>
 			m(
@@ -72,7 +86,7 @@ export async function showSwitchDialog(
 				m(SubscriptionSelector, {
 					// paymentInterval will not be updated as isInitialUpgrade is false
 					options: {
-						businessUse: stream(currentSubscriptionInfo.businessUse),
+						businessUse,
 						paymentInterval: stream(currentSubscriptionInfo.paymentInterval),
 					},
 					campaignInfoTextId: null,
@@ -225,52 +239,26 @@ async function cancelSubscription(dialog: Dialog, currentSubscriptionInfo: Curre
 	}
 }
 
-async function getUpOrDowngradeMessage(targetSubscription: PlanType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<string> {
-	const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
-	// we can only switch from a non-business plan to a business plan and not vice verse
-	// a business customer may not have booked the business feature and be forced to book it even if downgrading: e.g. Teams -> PremiumBusiness
-	// switch to free is not allowed here.
-	let msg = ""
-
-	if (isSubscriptionDowngrade(targetSubscription, currentSubscriptionInfo.planType)) {
-		msg = lang.get(
-			targetSubscription === PlanType.Revolutionary || targetSubscription === PlanType.Essential ? "downgradeToPremium_msg" : "downgradeToTeams_msg",
-		)
-
-		if (targetSubscription === PlanType.Essential || targetSubscription === PlanType.Advanced) {
-			msg = msg + " " + lang.get("businessIncluded_msg")
-		}
-	} else {
-		const planDisplayName = getDisplayNameOfPlanType(targetSubscription)
-		msg = lang.get("upgradePlan_msg", {
-			"{plan}": planDisplayName,
-		})
-
-		if (targetSubscription === PlanType.Essential || targetSubscription === PlanType.Advanced || targetSubscription === PlanType.Unlimited) {
-			msg += " " + lang.get("businessIncluded_msg")
-		}
-		const planPrices = priceAndConfigProvider.getPlanPrices(targetSubscription)
-		if (
-			isDowngradeAliasesNeeded(planPrices, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedAliases) ||
-			isDowngradeStorageNeeded(planPrices, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedStorage)
-		) {
-			msg = msg + "\n\n" + lang.get("upgradeProNoReduction_msg")
-		}
-	}
-
-	return msg
-}
-
 async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<PlanType> {
 	if (targetSubscription === currentSubscriptionInfo.planType) {
 		return currentSubscriptionInfo.planType
 	}
 
-	const message = await getUpOrDowngradeMessage(targetSubscription, currentSubscriptionInfo)
-	const ok = await Dialog.confirm(() => message)
-	if (!ok) {
-		return currentSubscriptionInfo.planType
+	const userController = locator.logins.getUserController()
+	const customer = await userController.loadCustomer()
+	if (!customer.businessUse && BusinessPlans.includes(targetSubscription)) {
+		const accountingInfo = await userController.loadAccountingInfo()
+		const invoiceData: InvoiceData = {
+			invoiceAddress: formatNameAndAddress(accountingInfo.invoiceName, accountingInfo.invoiceAddress),
+			country: accountingInfo.invoiceCountry ? getByAbbreviation(accountingInfo.invoiceCountry) : null,
+			vatNumber: accountingInfo.invoiceVatIdNo, // only for EU countries otherwise empty
+		}
+		const updatedInvoiceData = await showSwitchToBusinessInvoiceDataDialog(customer, invoiceData, accountingInfo)
+		if (!updatedInvoiceData) {
+			return currentSubscriptionInfo.planType
+		}
 	}
+
 	try {
 		const postIn = createSwitchAccountTypePostIn()
 		postIn.accountType = AccountType.PREMIUM

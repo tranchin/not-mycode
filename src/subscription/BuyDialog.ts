@@ -3,7 +3,7 @@ import { assertNotNull, filterInt, incrementDate, ofClass } from "@tutao/tutanot
 import { TextField, TextFieldType } from "../gui/base/TextField.js"
 import { Dialog, DialogType } from "../gui/base/Dialog.js"
 import { lang, TranslationKey } from "../misc/LanguageViewModel.js"
-import { AccountType, BookingItemFeatureType, FeatureType, PlanType } from "../api/common/TutanotaConstants.js"
+import { AccountType, BookingItemFeatureType, FeatureType } from "../api/common/TutanotaConstants.js"
 import { formatDate } from "../misc/Formatter.js"
 import type { PriceData, PriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
 import { AccountingInfoTypeRef, PriceItemData } from "../api/entities/sys/TypeRefs.js"
@@ -12,7 +12,6 @@ import { asPaymentInterval, formatPrice, getPriceItem, PaymentInterval } from ".
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog.js"
 import { locator } from "../api/main/MainLocator.js"
 import { assertMainOrNode } from "../api/common/Env.js"
-import { showPlanUpgradeRequiredDialog } from "../misc/SubscriptionDialogs.js"
 
 assertMainOrNode()
 
@@ -64,14 +63,6 @@ async function prepareDialog({ featureType, count, reactivate }: BookingParams):
 			return priceChangeModel
 		}
 	}
-}
-
-/**
- * Shows the buy dialog to enable or disable the whitelabel package.
- * @returns false if the execution was successful. True if the action has been cancelled by user or the precondition has failed.
- */
-export async function showWhitelabelBuyDialog(): Promise<boolean> {
-	return await showPlanUpgradeRequiredDialog([PlanType.Unlimited], "unlimitedRequired_msg")
 }
 
 /**

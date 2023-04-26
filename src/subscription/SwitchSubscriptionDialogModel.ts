@@ -15,16 +15,6 @@ import { asPaymentInterval, PaymentInterval } from "./PriceUtils"
 import type { BookingFacade } from "../api/worker/facades/lazy/BookingFacade.js"
 import { SubscriptionConfig } from "./FeatureListProvider"
 
-type PlanPriceCalc = {
-	monthlyPrice: number
-	additionalUserPriceMonthly: number
-	includedAliases: number
-	includedStorage: number
-	readonly targetIsDowngrade: boolean
-	readonly targetSubscription: PlanType
-	readonly targetSubscriptionConfig: SubscriptionConfig
-	readonly paymentIntervalFactor: number
-}
 export type CurrentSubscriptionInfo = {
 	businessUse: boolean
 	nbrOfUsers: number
@@ -38,20 +28,6 @@ export type CurrentSubscriptionInfo = {
 	currentlyWhitelabelOrdered: boolean
 	currentlySharingOrdered: boolean
 	currentlyBusinessOrdered: boolean
-}
-export type UpgradeDowngradePrices = {
-	addUserPrice: PriceServiceReturn
-	upgrade20AliasesPrice: PriceServiceReturn
-	downgrade5AliasesPrice: PriceServiceReturn
-	upgrade10GbStoragePrice: PriceServiceReturn
-	downgrade1GbStoragePrice: PriceServiceReturn
-	upgradeSharingPrice: PriceServiceReturn
-	downgradeSharingPrice: PriceServiceReturn
-	upgradeBusinessPrice: PriceServiceReturn
-	downgradeBusinessPrice: PriceServiceReturn
-	upgradeWhitelabelPrice: PriceServiceReturn
-	downgradeWhitelabelPrice: PriceServiceReturn
-	contactFormPrice: PriceServiceReturn
 }
 
 export class SwitchSubscriptionDialogModel {
@@ -79,7 +55,7 @@ export class SwitchSubscriptionDialogModel {
 			currentTotalAliases: getTotalAliases(this.customer, this.customerInfo, this.lastBooking),
 			includedStorage: getIncludedStorageCapacity(this.customerInfo),
 			includedAliases: getIncludedAliases(this.customerInfo),
-			currentlyWhitelabelOrdered: isWhitelabelActive(this.lastBooking),
+			currentlyWhitelabelOrdered: isWhitelabelActive(this.lastBooking, this.customerInfo),
 			currentlySharingOrdered: isSharingActive(this.lastBooking),
 			currentlyBusinessOrdered: isBusinessFeatureActive(this.lastBooking),
 			orderedContactForms: getNbrOfContactForms(this.lastBooking),

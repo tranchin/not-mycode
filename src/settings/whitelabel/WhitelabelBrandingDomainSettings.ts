@@ -81,7 +81,7 @@ export class WhitelabelBrandingDomainSettings implements Component<WhitelabelBra
 		if (locator.logins.getUserController().isFreeAccount()) {
 			showNotAvailableForFreeDialog(false)
 		} else {
-			const whitelabelFailedPromise: Promise<boolean> = isWhitelabelFeatureEnabled ? Promise.resolve(false) : showWhitelabelBuyDialog(true)
+			const whitelabelFailedPromise: Promise<boolean> = isWhitelabelFeatureEnabled ? Promise.resolve(false) : showWhitelabelBuyDialog()
 			whitelabelFailedPromise.then((failed) => {
 				if (!failed) {
 					SetCustomDomainCertificateDialog.show(customerInfo)

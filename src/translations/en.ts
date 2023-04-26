@@ -1619,7 +1619,6 @@ export default {
 		"whitelabelAccount_label": "Whitelabel account",
 		"whitelabelBooking_label": "Whitelabel feature for {1} users",
 		"whitelabelDomainExisting_msg": "A whitelabel domain is still existing. Please remove the whitelabel domain.",
-		"whitelabelDomainLinkInfo_msg": "When you order the whitelabel feature, you can activate the Tutanota login on your own domain (a subdomain), change the look of Tutanota according to your needs (e.g. corporate identity) and create contact forms for your clients. Please see",
 		"whitelabelDomainNeeded_msg": "Please first configure your whitelabel domain.",
 		"whitelabelDomain_label": "Whitelabel domain",
 		"whitelabelFeature_label": "Whitelabel feature",
@@ -1644,6 +1643,8 @@ export default {
 		"selectAllLoaded_action": "Select all loaded items",
 		// TODO add to phrase
 		"unlimitedRequired_msg": "To use this feature you have to switch to an unlimited plan.",
+		// TODO update in phrase
+		"whitelabelDomainLinkInfo_msg": "The whitelabel feature, is only available with the Unlimited subscription. It allows you to activate the Tutanota login on your own domain (a subdomain), change the look of Tutanota according to your needs (e.g. corporate identity) and create contact forms for your clients. Please see",
 		"addCustomDomainAddAdresses_msg": "The domain was assigned to your account, you can now create a new email address.",
 	}
 }

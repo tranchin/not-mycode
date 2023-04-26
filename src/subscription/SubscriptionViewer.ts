@@ -368,13 +368,12 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					return locator.entityClient
 						.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
 						.then(async (bookings) => {
-							const priceAndConfigProvider = await PriceAndConfigProvider.getInitializedInstance(null)
 							this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
 							this._customer = customer
 							this._isCancelled = customer.canceledPremiumAccount
 							this.isNewPaidPlan = await userController.isNewPaidPlan()
 
-							this._updateSubscriptionField(this._isCancelled)
+							await this._updateSubscriptionField(this._isCancelled)
 
 							return Promise.all([
 								this._updateUserField(),
@@ -454,7 +453,8 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	}
 
 	_updateWhitelabelField(): Promise<void> {
-		if (isWhitelabelActive(this._lastBooking)) {
+		let customerInfo = this._customerInfo
+		if (customerInfo && isWhitelabelActive(this._lastBooking, customerInfo)) {
 			this._whitelabelFieldValue(lang.get("active_label"))
 		} else {
 			this._whitelabelFieldValue(lang.get("deactivated_label"))

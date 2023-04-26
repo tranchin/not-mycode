@@ -8,10 +8,10 @@ import {
 	AccountType,
 	BookingItemFeatureByCode,
 	BookingItemFeatureType,
-	BusinessPlans,
 	Const,
 	InvoiceData,
 	Keys,
+	NewBusinessPlans,
 	PlanType,
 	UnsubscribeFailureReason,
 } from "../api/common/TutanotaConstants"
@@ -246,7 +246,7 @@ async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, 
 
 	const userController = locator.logins.getUserController()
 	const customer = await userController.loadCustomer()
-	if (!customer.businessUse && BusinessPlans.includes(targetSubscription)) {
+	if (!customer.businessUse && NewBusinessPlans.includes(targetSubscription)) {
 		const accountingInfo = await userController.loadAccountingInfo()
 		const invoiceData: InvoiceData = {
 			invoiceAddress: formatNameAndAddress(accountingInfo.invoiceName, accountingInfo.invoiceAddress),

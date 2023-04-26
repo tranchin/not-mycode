@@ -1,4 +1,4 @@
-import { AccountType, GroupType, OperationType, PlanType } from "../common/TutanotaConstants"
+import { AccountType, GroupType, LegacyPlans, OperationType, PlanType } from "../common/TutanotaConstants"
 import type { Base64Url } from "@tutao/tutanota-utils"
 import { downcast, first, LazyLoaded, mapAndFilterNull, neverNull, ofClass } from "@tutao/tutanota-utils"
 import { MediaType } from "../common/EntityFunctions"
@@ -40,8 +40,6 @@ import { SessionType } from "../common/SessionType"
 import type { PriceAndConfigProvider } from "../../subscription/PriceUtils.js"
 
 assertMainOrNode()
-
-const legacyPlans = [PlanType.Premium, PlanType.PremiumBusiness, PlanType.Teams, PlanType.TeamsBusiness, PlanType.Pro]
 
 export class UserController {
 	constructor(
@@ -128,7 +126,7 @@ export class UserController {
 	}
 
 	public isLegacyPlan(type: PlanType): boolean {
-		return legacyPlans.includes(type)
+		return LegacyPlans.includes(type)
 	}
 
 	async isNewPaidPlan(): Promise<boolean> {

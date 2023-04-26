@@ -1635,3 +1635,4 @@ export type TranslationKeyType =
 	| "emptyString_msg"
 	| "unlimitedRequired_msg"
 	| "addCustomDomainAddAdresses_msg"
+	| "currentPlanDiscontinued_msg"

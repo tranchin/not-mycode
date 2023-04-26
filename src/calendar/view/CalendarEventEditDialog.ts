@@ -10,7 +10,7 @@ import type { DropDownSelectorAttrs, SelectorItemList } from "../../gui/base/Dro
 import { DropDownSelector } from "../../gui/base/DropDownSelector.js"
 import { Icons } from "../../gui/base/icons/Icons"
 import { ButtonType } from "../../gui/base/Button.js"
-import { PaidPlans, AlarmInterval, CalendarAttendeeStatus, defaultCalendarColor, EndType, Keys, RepeatPeriod } from "../../api/common/TutanotaConstants"
+import { AlarmInterval, CalendarAttendeeStatus, defaultCalendarColor, EndType, Keys, NewPaidPlans, RepeatPeriod } from "../../api/common/TutanotaConstants"
 import { createRepeatRuleEndTypeValues, createRepeatRuleFrequencyValues, getStartOfTheWeekOffsetForUser } from "../date/CalendarUtils"
 import { AllIcons, Icon } from "../../gui/base/Icon"
 import { BootIcons } from "../../gui/base/icons/BootIcons"
@@ -164,7 +164,7 @@ export async function showCalendarEventDialog(
 				)
 				.catch(
 					ofClass(BusinessFeatureRequiredError, async (e) => {
-						const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(PaidPlans, () => e.message)
+						const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(NewPaidPlans, () => e.message)
 						// entity event updates are too slow to call updateBusinessFeature()
 						viewModel.hasBusinessFeature(businessFeatureOrdered)
 						return false
@@ -640,7 +640,7 @@ function renderAddAttendeesField(text: Stream<string>, viewModel: CalendarEventV
 			onRecipientAdded: async (address, name, contact) => {
 				const notAvailable = await viewModel.shouldShowSendInviteNotAvailable()
 				if (notAvailable) {
-					const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(PaidPlans, "businessFeatureRequiredInvite_msg")
+					const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(NewPaidPlans, "businessFeatureRequiredInvite_msg")
 					if (businessFeatureOrdered) {
 						viewModel.addGuest(address, contact)
 					}

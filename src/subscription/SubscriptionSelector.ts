@@ -18,7 +18,7 @@ import {
 import { ProgrammingError } from "../api/common/error/ProgrammingError"
 import { ButtonAttrs } from "../gui/base/Button.js"
 import { downcast, lazy } from "@tutao/tutanota-utils"
-import { AvailablePlanType, PlanType } from "../api/common/TutanotaConstants.js"
+import { AvailablePlanType, LegacyPlans, PlanType } from "../api/common/TutanotaConstants.js"
 
 const BusinessUseItems: SegmentControlItem<boolean>[] = [
 	{
@@ -98,7 +98,6 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 				m(".smaller.mb.center", lang.get("pricing.subscriptionPeriodInfoBusiness_msg")),
 			])
 		} else {
-			const currentSubscription = vnode.attrs.currentPlanType
 			const revolutionaryBuyBox = m("", [
 				m(BuyOptionBox, this.createBuyOptionBoxAttr(vnode.attrs, PlanType.Revolutionary, inMobileView, inMobileView)),
 				featureExpander[PlanType.Revolutionary],
@@ -125,6 +124,7 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 			])
 		}
 
+		const showCurrentPlanDiscontinuedHint = vnode.attrs.currentPlanType != null && LegacyPlans.includes(vnode.attrs.currentPlanType)
 		return [
 			m(SegmentControl, {
 				selectedValue: vnode.attrs.options.businessUse(),
@@ -133,6 +133,7 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 			}),
 			vnode.attrs.campaignInfoTextId && lang.exists(vnode.attrs.campaignInfoTextId) ? m(".b.center.mt", lang.get(vnode.attrs.campaignInfoTextId)) : null,
 			vnode.attrs.referralCodeMsg ? m(".b.center.mt", lang.get(vnode.attrs.referralCodeMsg)) : null,
+			showCurrentPlanDiscontinuedHint ? m(".b.center.mt", lang.get("currentPlanDiscontinued_msg")) : null,
 			m(
 				".flex.center-horizontally.wrap",
 				{

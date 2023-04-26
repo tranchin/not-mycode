@@ -162,8 +162,10 @@ export enum PlanType {
 
 export type PlanName = keyof typeof PlanType
 export type AvailablePlanType = Exclude<PlanType, PlanType.Premium | PlanType.Pro | PlanType.Teams | PlanType.PremiumBusiness | PlanType.TeamsBusiness>
-export const PaidPlans = [PlanType.Revolutionary, PlanType.Legend, PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
-export const BusinessPlans = [PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
+export const NewPaidPlans = [PlanType.Revolutionary, PlanType.Legend, PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
+export const NewBusinessPlans = [PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
+
+export const LegacyPlans = [PlanType.Premium, PlanType.PremiumBusiness, PlanType.Teams, PlanType.TeamsBusiness, PlanType.Pro]
 
 export const PlanTypeToName = reverse(PlanType)
 

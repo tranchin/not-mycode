@@ -1648,6 +1648,7 @@ export default {
 		"selectAllLoaded_action": "Alle geladenen Einträge auswählen",
 		//TODO
 		"unlimitedRequired_msg": "Um diese Funktion zu verwenden, müssen Sie zum Plan Unlimited wechseln.",
+		"currentPlanDiscontinued_msg": "Ihr aktuelles Abonnement ist nicht mehr verfügbar. Bitte wählen Sie eines der unten angezeigten Abonnements.",
 		"addCustomDomainAddAdresses_msg": "Die Domain wurde zu Ihrem Account hinzugefügt, Sie können nun eine neue E-Mail-Adresse erstellen.",
 	}
 }

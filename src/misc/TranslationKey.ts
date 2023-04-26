@@ -1629,3 +1629,4 @@ export type TranslationKeyType =
 	| "selectAllLoaded_action"
 	| "unlimitedRequired_msg"
 	| "addCustomDomainAddAdresses_msg"
+	| "currentPlanDiscontinued_msg"

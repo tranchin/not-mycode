@@ -1641,7 +1641,7 @@ export default {
 		"loadAll_action": "Load all",
 		"selectAllLoaded_action": "Select all loaded items",
 		"private_label": "Private",
-		// TODO add to phrase
+		// TODO add to/ update phrase
 		"whitelabelDomainLinkInfo_msg": "The whitelabel feature, is only available with the Unlimited subscription. It allows you to activate the Tutanota login on your own domain (a subdomain), change the look of Tutanota according to your needs (e.g. corporate identity) and create contact forms for your clients. Please see",
 		"unlimitedRequired_msg": "To use this feature you have to switch to an unlimited plan.",
 		"pricing.privateUse_label": "Personal",
@@ -1649,6 +1649,7 @@ export default {
 		"invoiceAddressInfoPrivate_msg": "This information is optional (max. 5 rows).",
 		"pricing.upgradeLater_msg": "Use Tutanota free of charge and upgrade later. Only for personal use.",
 		"addCustomDomainAddAdresses_msg": "The domain was assigned to your account, you can now create a new email address.",
+		"currentPlanDiscontinued_msg": "Your current plan is no longer available. Please choose between the plans displayed below.",
 		// TODO delete from phrase
 		"pricing.downgradeToPrivateNotAllowed_msg": "It is not possible to change the account usage from Business to Personal.",
 	}

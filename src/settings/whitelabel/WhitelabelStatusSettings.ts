@@ -20,7 +20,7 @@ export class WhitelabelStatusSettings implements Component<WhitelabelStatusSetti
 			label: "state_label",
 			value: isWhitelabelActive ? lang.get("active_label") : lang.get("deactivated_label"),
 			disabled: true,
-			injectionsRight: () => (isWhitelabelActive ? this.renderDisable(logins) : this.renderEnable(logins)),
+			injectionsRight: () => (isWhitelabelActive ? null : this.renderEnable(logins)),
 		})
 	}
 
@@ -29,23 +29,10 @@ export class WhitelabelStatusSettings implements Component<WhitelabelStatusSetti
 			title: "whitelabelDomain_label",
 			click: createNotAvailableForFreeClickHandler(
 				false,
-				() => showWhitelabelBuyDialog(true),
+				() => showWhitelabelBuyDialog(),
 				() => logins.getUserController().isPremiumAccount(),
 			),
 			icon: Icons.Edit,
-			size: ButtonSize.Compact,
-		})
-	}
-
-	private renderDisable(logins: LoginController): Children {
-		return m(IconButton, {
-			title: "whitelabelDomain_label",
-			click: createNotAvailableForFreeClickHandler(
-				false,
-				() => showWhitelabelBuyDialog(false),
-				() => logins.getUserController().isPremiumAccount(),
-			),
-			icon: Icons.Cancel,
 			size: ButtonSize.Compact,
 		})
 	}

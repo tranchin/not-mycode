@@ -3,16 +3,16 @@ import { assertNotNull, filterInt, incrementDate, ofClass } from "@tutao/tutanot
 import { TextField, TextFieldType } from "../gui/base/TextField.js"
 import { Dialog, DialogType } from "../gui/base/Dialog.js"
 import { lang, TranslationKey } from "../misc/LanguageViewModel.js"
-import { AccountType, BookingItemFeatureType, FeatureType } from "../api/common/TutanotaConstants.js"
+import { AccountType, BookingItemFeatureType, FeatureType, PlanType } from "../api/common/TutanotaConstants.js"
 import { formatDate } from "../misc/Formatter.js"
 import type { PriceData, PriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
 import { AccountingInfoTypeRef, PriceItemData } from "../api/entities/sys/TypeRefs.js"
 import { NotAuthorizedError } from "../api/common/error/RestError.js"
 import { asPaymentInterval, formatPrice, getPriceItem, PaymentInterval } from "./PriceUtils.js"
-import { bookItem } from "./SubscriptionUtils.js"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog.js"
 import { locator } from "../api/main/MainLocator.js"
 import { assertMainOrNode } from "../api/common/Env.js"
+import { showPlanUpgradeRequiredDialog } from "../misc/SubscriptionDialogs.js"
 
 assertMainOrNode()
 
@@ -68,12 +68,10 @@ async function prepareDialog({ featureType, count, reactivate }: BookingParams):
 
 /**
  * Shows the buy dialog to enable or disable the whitelabel package.
- * @param enable true if the whitelabel package should be enabled otherwise false.
  * @returns false if the execution was successful. True if the action has been cancelled by user or the precondition has failed.
  */
-export function showWhitelabelBuyDialog(enable: boolean): Promise<boolean> {
-	// FIXME: make this show a switch subscription dialog for business
-	throw new Error("buy a business account ya cheapskate!")
+export async function showWhitelabelBuyDialog(): Promise<boolean> {
+	return await showPlanUpgradeRequiredDialog([PlanType.Unlimited], "unlimitedRequired_msg")
 }
 
 /**
@@ -84,24 +82,6 @@ export function showWhitelabelBuyDialog(enable: boolean): Promise<boolean> {
 export async function showBusinessBuyDialog(enable: boolean): Promise<boolean> {
 	// FIXME: make this show a switch subscription dialog for business
 	throw new Error("buy a business account ya cheapskate!")
-}
-
-/**
- * @returns True if it failed, false otherwise
- */
-export async function showBuyDialogToBookItem(
-	bookingItemFeatureType: BookingItemFeatureType,
-	bookingText: TranslationKey,
-	count: number,
-	freeAmount: number = 0,
-	reactivate: boolean = false,
-): Promise<boolean> {
-	const accepted = await showBuyDialog({ featureType: bookingItemFeatureType, bookingText, count, freeAmount, reactivate })
-	if (accepted) {
-		return bookItem(bookingItemFeatureType, count)
-	} else {
-		return true
-	}
 }
 
 function showDialog(okLabel: TranslationKey, view: () => Children) {

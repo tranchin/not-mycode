@@ -56,20 +56,22 @@ export function showAddOrEditNotificationEmailDialog(userController: UserControl
 	})
 }
 
-export function showBuyOrSetNotificationEmailDialog(
+export async function showBuyOrSetNotificationEmailDialog(
 	lastBooking: Booking | null,
 	customerProperties: LazyLoaded<CustomerProperties>,
 	existingTemplate?: NotificationMailTemplate,
-) {
+): Promise<void> {
 	if (locator.logins.getUserController().isFreeAccount()) {
 		showNotAvailableForFreeDialog(false)
 	} else {
-		const whitelabelFailedPromise = isWhitelabelActive(lastBooking) ? Promise.resolve(false) : showWhitelabelBuyDialog(true)
-		whitelabelFailedPromise.then((failed) => {
-			if (!failed) {
-				show(existingTemplate ?? null, customerProperties)
-			}
-		})
+		const customerInfo = await locator.logins.getUserController().loadCustomerInfo()
+		let whitelabel = isWhitelabelActive(lastBooking, customerInfo)
+		if (!whitelabel) {
+			whitelabel = await showWhitelabelBuyDialog()
+		}
+		if (whitelabel) {
+			show(existingTemplate ?? null, customerProperties)
+		}
 	}
 }
 

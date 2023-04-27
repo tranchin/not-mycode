@@ -1,4 +1,4 @@
-import { AccountType, GroupType, LegacyPlans, OperationType, PlanType } from "../common/TutanotaConstants"
+import { AccountType, FeatureType, GroupType, LegacyPlans, OperationType, PlanType } from "../common/TutanotaConstants"
 import type { Base64Url } from "@tutao/tutanota-utils"
 import { downcast, first, LazyLoaded, mapAndFilterNull, neverNull, ofClass } from "@tutao/tutanota-utils"
 import { MediaType } from "../common/EntityFunctions"
@@ -38,6 +38,7 @@ import {
 import { typeModels as sysTypeModels } from "../entities/sys/TypeModels"
 import { SessionType } from "../common/SessionType"
 import type { PriceAndConfigProvider } from "../../subscription/PriceUtils.js"
+import { isCustomizationEnabledForCustomer } from "../common/utils/Utils.js"
 
 assertMainOrNode()
 
@@ -136,6 +137,15 @@ export class UserController {
 	async isNewPaidBusinessPlan(): Promise<boolean> {
 		const type = await this.getPlanType()
 		return type === PlanType.Essential || type === PlanType.Advanced || type === PlanType.Unlimited
+	}
+	/**
+	 * Checks if the current plan allows adding users and groups.
+	 */
+	async canHaveUsers(): Promise<boolean> {
+		const customer = await this.loadCustomer()
+		const planType = await this.getPlanType()
+
+		return this.isLegacyPlan(planType) || (await this.isNewPaidBusinessPlan()) || isCustomizationEnabledForCustomer(customer, FeatureType.MultipleUsers)
 	}
 
 	loadAccountingInfo(): Promise<AccountingInfo> {

@@ -64,7 +64,6 @@ import { BaseTopLevelView } from "../gui/BaseTopLevelView.js"
 import { TopLevelAttrs, TopLevelView } from "../TopLevelView.js"
 import { ReferralSettingsViewer } from "./ReferralSettingsViewer.js"
 import { LoginController } from "../api/main/LoginController.js"
-import { UserController } from "../api/main/UserController.js"
 
 assertMainOrNode()
 
@@ -291,7 +290,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 		await this.updateShowBusinessSettings()
 		const isNewPaidPlan = await this.logins.getUserController().isNewPaidPlan()
 
-		if (await canHaveUsers(this.logins.getUserController())) {
+		if (await this.logins.getUserController().canHaveUsers()) {
 			this._adminFolders.push(
 				new SettingsFolder(
 					"adminUserList_action",
@@ -636,10 +635,12 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 						}
 					})
 				}
-
 				m.redraw()
 			} else if (isUpdateForTypeRef(CustomerInfoTypeRef, update)) {
 				this._customDomains.reset()
+				this._adminFolders.length = 0
+				// When switching a plan we hide/show certain admin settings.
+				await this.populateAdminFolders()
 
 				return this._customDomains.getAsync().then(() => m.redraw())
 			}
@@ -739,20 +740,6 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 			return []
 		}
 	}
-}
-
-/**
- * Checs if the current plan allows adding users and groups.
- */
-async function canHaveUsers(userController: UserController): Promise<boolean> {
-	const customer = await userController.loadCustomer()
-	const planType = await userController.getPlanType()
-
-	return (
-		(await userController.isLegacyPlan(planType)) ||
-		(await userController.isNewPaidBusinessPlan()) ||
-		isCustomizationEnabledForCustomer(customer, FeatureType.MultipleUsers)
-	)
 }
 
 function showRenameTemplateListDialog(instance: TemplateGroupInstance) {

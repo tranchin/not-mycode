@@ -399,6 +399,9 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			this.createCollapsedBlockQuote(quote, this.shouldDisplayCollapsedQuotes())
 		}
 
+		this.shadowDomRoot.appendChild(styles.getStyleSheetElement("main"))
+		this.shadowDomRoot.appendChild(wrapNode)
+
 		if (client.isMobileDevice()) {
 			// this.pinchZoomable = new PinchZoom(wrapNode, parent, this.topScrollValues, [])
 			this.pinchZoomableV2 = new PinchZoomV2(wrapNode, parent)
@@ -408,8 +411,6 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				this.handleAnchorClick(event, href, false)
 			})
 		}
-		this.shadowDomRoot.appendChild(styles.getStyleSheetElement("main"))
-		this.shadowDomRoot.appendChild(wrapNode)
 		this.currentlyRenderedMailBody = sanitizedMailBody
 	}
 

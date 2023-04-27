@@ -1,153 +1,128 @@
-import stream from "mithril/stream"
-import Mithril from "mithril"
-import Hammer from "hammerjs"
-
-enum MoveDirection {
-	X,
-	Y,
-}
-
 type CoordinatePair = {
 	x: number
 	y: number
 }
 
 export class PinchZoomV2 {
-	private evCache: PointerEvent[] = []
-	private touchCount = 0
-	// pinching
-	private prevDiff = -1
-	private maxScale = -1
-	private minScale = -1
-	private currentScale = -1
-	private xMiddle = -1
-	private yMiddle = -1
-	private pinchTouchIDs: Set<number> = new Set<number>()
-
-	// dragging
 	private dragTouchIDs: Set<number> = new Set<number>()
-	private offsetX = -1
-	private offsetY = -1
-	private startX = -1
-	private startY = -1
-	private currentX = -1
-	private currentY = -1
-	private lastOffsetX = 0 //what should be the default that can never be reached be?
-	private lastOffsetY = 0
-	private currentTransformOrigin: CoordinatePair = { x: 0, y: 0 }
-	private lastTransformOrigin: CoordinatePair = { x: 0, y: 0 }
-	private transformOriginNotInitialized = true
-
-	private topScrollValue: number = 0
+	private pinchTouchIDs: Set<number> = new Set<number>()
+	private firstMultiple: { pointer1: CoordinatePair; pointer2: CoordinatePair } = { pointer1: { x: 0, y: 0 }, pointer2: { x: 0, y: 0 } }
+	private previousDelta: CoordinatePair = { x: 0, y: 0 }
+	private offsetDelta: CoordinatePair = { x: 0, y: 0 }
+	private previousInput: { delta: CoordinatePair; event: string } = { delta: { x: 0, y: 0 }, event: "end" }
 
 	constructor(private readonly root: HTMLElement, private readonly parent: HTMLElement) {
-		// console.log("new Pinch to zoom----------------")
+		const initialCoords = this.getCoords(this.root) // already needs to be rendered
+		this.originalSize = { width: Math.abs(initialCoords.x2 - initialCoords.x), height: Math.abs(initialCoords.y2 - initialCoords.y) }
+
+		console.log("new Pinch to zoom----------------")
 		// this.setInitialScale(1)
-		// this.root.ontouchend = (e) => {
-		// 	this.removeTouches()
-		// 	// console.log("touch end")
-		// }
-		// this.root.ontouchmove = (e) => {
-		// 	this.touchmove_handler(e)
-		// 	// console.log("touch move")
-		// }
-		// this.root.ontouchcancel = (e) => {
-		// 	this.removeTouches()
-		// 	// console.log("touch cancel")
-		// }
+		this.root.ontouchend = (e) => {
+			this.removeTouches(e)
+			// console.log("touch end")
+		}
+		this.root.ontouchmove = (e) => {
+			this.touchmove_handler(e)
+			// console.log("touch move")
+		}
+		this.root.ontouchcancel = (e) => {
+			this.removeTouches(e)
+			// console.log("touch cancel")
+		}
 
+		this.root.style.touchAction = "pan-y pan-x" // makes zooming smooth
 		////// new
-		const outerThis = this
-		let hammer = new Hammer(this.root, {})
+		// const outerThis = this
+		// let hammer = new Hammer(this.root, {})
 
-		hammer.get("pinch").set({ enable: true })
-		hammer.get("pan").set({ threshold: 0 })
-
-		// @ts-ignore
-		hammer.on("doubletap", function (e) {
-			let scaleFactor = 1
-			if (outerThis.current.zooming === false) {
-				outerThis.current.zooming = true
-			} else {
-				outerThis.current.zooming = false
-				scaleFactor = -scaleFactor
-			}
-
-			root.style.transition = "0.3s"
-			setTimeout(function () {
-				root.style.transition = "none"
-			}, 300)
-
-			let zoomOrigin = outerThis.getRelativePosition(root, { x: e.center.x, y: e.center.y }, outerThis.originalSize, outerThis.current.z)
-			let d = outerThis.scaleFrom(zoomOrigin, outerThis.current.z, outerThis.current.z + scaleFactor)
-			outerThis.setCurrentSafePosition(d.x, d.y, d.z)
-
-			outerThis.last.x = outerThis.current.x
-			outerThis.last.y = outerThis.current.y
-			outerThis.last.z = outerThis.current.z
-
-			outerThis.update()
-		})
+		// hammer.get("pinch").set({ enable: true })
+		// hammer.get("pan").set({ threshold: 0 })
 
 		// @ts-ignore
-		hammer.on("pan", function (e) {
-			if (outerThis.current.z <= 1) {
-				return // use browser behavior //FIXME propagation
-			}
-			if (outerThis.lastEvent !== "pan") {
-				outerThis.fixHammerjsDeltaIssue = {
-					x: e.deltaX,
-					y: e.deltaY,
-				}
-			}
-
-			outerThis.setCurrentSafePosition(
-				outerThis.last.x + e.deltaX - outerThis.fixHammerjsDeltaIssue.x,
-				outerThis.last.y + e.deltaY - outerThis.fixHammerjsDeltaIssue.y,
-				outerThis.current.z,
-			)
-			outerThis.lastEvent = "pan"
-			outerThis.update()
-		})
-
-		// @ts-ignore
-		hammer.on("pinch", function (e) {
-			let d = outerThis.scaleFrom(outerThis.pinchZoomOrigin, outerThis.last.z, outerThis.last.z * e.scale)
-			outerThis.setCurrentSafePosition(d.x + outerThis.last.x + e.deltaX, d.y + outerThis.last.y + e.deltaY, d.z + outerThis.last.z)
-			outerThis.lastEvent = "pinch"
-			outerThis.update()
-		})
+		// hammer.on("doubletap", function (e) { //FIXME
+		// 	let scaleFactor = 1
+		// 	if (outerThis.current.zooming === false) {
+		// 		outerThis.current.zooming = true
+		// 	} else {
+		// 		outerThis.current.zooming = false
+		// 		scaleFactor = -scaleFactor
+		// 	}
+		//
+		// 	root.style.transition = "0.3s"
+		// 	setTimeout(function () {
+		// 		root.style.transition = "none"
+		// 	}, 300)
+		//
+		// 	let zoomOrigin = outerThis.getRelativePosition(root, { x: e.center.x, y: e.center.y }, outerThis.originalSize, outerThis.current.z)
+		// 	let d = outerThis.scaleFrom(zoomOrigin, outerThis.current.z, outerThis.current.z + scaleFactor)
+		// 	outerThis.setCurrentSafePosition(d.x, d.y, d.z)
+		//
+		// 	outerThis.last.x = outerThis.current.x
+		// 	outerThis.last.y = outerThis.current.y
+		// 	outerThis.last.z = outerThis.current.z
+		//
+		// 	outerThis.update()
+		// })
 
 		// @ts-ignore
-		hammer.on("pinchstart", function (e) {
-			outerThis.pinchStart.x = e.center.x
-			outerThis.pinchStart.y = e.center.y
-			outerThis.pinchZoomOrigin = outerThis.getRelativePosition(
-				outerThis.root,
-				{
-					x: outerThis.pinchStart.x,
-					y: outerThis.pinchStart.y,
-				},
-				outerThis.originalSize,
-				outerThis.current.z,
-			)
-			outerThis.lastEvent = "pinchstart"
-		})
+		// hammer.on("pan", function (e) {
+		// 	if (outerThis.current.z <= 1) {
+		// 		return // use browser behavior //FIXME propagation
+		// 	}
+		// 	if (outerThis.lastEvent !== "pan") {
+		// 		outerThis.fixDeltaIssue = {
+		// 			x: e.deltaX,
+		// 			y: e.deltaY,
+		// 		}
+		// 	}
+		//
+		// 	outerThis.setCurrentSafePosition(
+		// 		outerThis.last.x + e.deltaX - outerThis.fixDeltaIssue.x,
+		// 		outerThis.last.y + e.deltaY - outerThis.fixDeltaIssue.y,
+		// 		outerThis.current.z,
+		// 	)
+		// 	outerThis.lastEvent = "pan"
+		// 	outerThis.update()
+		// })
 
 		// @ts-ignore
-		hammer.on("panend", function (e) {
-			outerThis.last.x = outerThis.current.x
-			outerThis.last.y = outerThis.current.y
-			outerThis.lastEvent = "panend"
-		})
+		// hammer.on("pinch", function (e) {
+		// 	let d = outerThis.scaleFrom(outerThis.pinchZoomOrigin, outerThis.last.z, outerThis.last.z * e.scale)
+		// 	outerThis.setCurrentSafePosition(d.x + outerThis.last.x + e.deltaX, d.y + outerThis.last.y + e.deltaY, d.z + outerThis.last.z)
+		// 	outerThis.lastEvent = "pinch"
+		// 	outerThis.update()
+		// })
 
 		// @ts-ignore
-		hammer.on("pinchend", function (e) {
-			outerThis.last.x = outerThis.current.x
-			outerThis.last.y = outerThis.current.y
-			outerThis.last.z = outerThis.current.z
-			outerThis.lastEvent = "pinchend"
-		})
+		// hammer.on("pinchstart", function (e) {
+		// 	outerThis.pinchStart.x = e.center.x
+		// 	outerThis.pinchStart.y = e.center.y
+		// 	outerThis.pinchZoomOrigin = outerThis.getRelativePosition(
+		// 		outerThis.root,
+		// 		{
+		// 			x: outerThis.pinchStart.x,
+		// 			y: outerThis.pinchStart.y,
+		// 		},
+		// 		outerThis.originalSize,
+		// 		outerThis.current.z,
+		// 	)
+		// 	outerThis.lastEvent = "pinchstart"
+		// })
+
+		// // @ts-ignore
+		// hammer.on("panend", function (e) {
+		// 	outerThis.last.x = outerThis.current.x
+		// 	outerThis.last.y = outerThis.current.y
+		// 	outerThis.lastEvent = "panend"
+		// })
+
+		// // @ts-ignore
+		// hammer.on("pinchend", function (e) {
+		// 	outerThis.last.x = outerThis.current.x
+		// 	outerThis.last.y = outerThis.current.y
+		// 	outerThis.last.z = outerThis.current.z
+		// 	outerThis.lastEvent = "pinchend"
+		// })
 	}
 
 	private touchmove_handler(ev: TouchEvent) {
@@ -164,116 +139,152 @@ export class PinchZoomV2 {
 		}
 	}
 
+	private calculateDelta(startOfInput: boolean, ...points: CoordinatePair[]): CoordinatePair {
+		//FIXME
+		// FIXME return value is semantically not quite accurate
+		const center = this.centerOfPoints(...points)
+		let offset = this.offsetDelta || {} //FIXME
+		let prevDelta = this.previousDelta || {}
+		let prevInput = this.previousInput || {}
+
+		if (startOfInput || prevInput.event === "end") {
+			prevDelta = this.previousDelta = {
+				x: prevInput.delta.x || 0,
+				y: prevInput.delta.y || 0,
+			}
+
+			offset = this.offsetDelta = {
+				x: center.x,
+				y: center.y,
+			}
+		}
+
+		const deltaX = prevDelta.x + (center.x - offset.x)
+		const deltaY = prevDelta.y + (center.y - offset.y)
+		return { x: deltaX, y: deltaY }
+	}
+
+	private pointDistance(point1: CoordinatePair, point2: CoordinatePair): number {
+		return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2))
+	}
+
+	private centerOfPoints(...points: CoordinatePair[]): CoordinatePair {
+		let x = 0
+		let y = 0
+		for (let point of points) {
+			x += point.x
+			y += point.y
+		}
+		return { x: Math.round(x / points.length), y: Math.round(y / points.length) }
+	}
+
+	private startPinchSession(ev: TouchEvent) {
+		this.firstMultiple = {
+			pointer1: { x: ev.touches[0].clientX, y: ev.touches[0].clientY },
+			pointer2: { x: ev.touches[1].clientX, y: ev.touches[1].clientY },
+		}
+
+		const pinchCenter = this.centerOfPoints({ x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
+		this.pinchStart.x = pinchCenter.x
+		this.pinchStart.y = pinchCenter.y
+		this.pinchZoomOrigin = this.getRelativePosition(
+			this.root,
+			{
+				x: this.pinchStart.x,
+				y: this.pinchStart.y,
+			},
+			this.originalSize,
+			this.current.z,
+		)
+		this.lastEvent = "pinchstart"
+	}
+
 	private pinchHandling(ev: TouchEvent) {
-		// Calculate the distance between the two pointers
-		const curDiff = Math.sqrt(Math.pow(ev.touches[1].clientX - ev.touches[0].clientX, 2) + Math.pow(ev.touches[1].clientY - ev.touches[0].clientY, 2))
-		// console.log(this.touchIDs)
+		// new pinch gesture?
+		let delta = { x: 0, y: 0 }
 		if (!(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))) {
-			// in case of a new touch
-			this.xMiddle = (ev.touches[1].pageX + ev.touches[0].pageX) / 2 // keep initial zoom center for whole zoom operation even if fingers are moving
-			this.yMiddle = (ev.touches[1].pageY + ev.touches[0].pageY) / 2
-			this.prevDiff = -1
-		}
-		// console.log(curDiff)
-		// console.log("prev" + this.prevDiff)
-
-		if (this.prevDiff > 0) {
-			const additionalFactor = 1.01
-			const changeFactor = 40 * window.devicePixelRatio // should be dependent on the devices dpi?
-			// this.zoom((curDiff - this.prevDiff) / changeFactor, this.xMiddle, this.yMiddle)
+			this.startPinchSession(ev)
+			delta = this.calculateDelta(true, { x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
+			this.previousInput = { delta: { x: delta.x, y: delta.y }, event: "start" }
+		} else {
+			delta = this.calculateDelta(false, { x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
+			this.previousInput = { delta: { x: delta.x, y: delta.y }, event: "move" }
 		}
 
+		//update current touches
 		this.pinchTouchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
 
-		// Cache the distance for the next move event
-		this.prevDiff = curDiff
+		// Calculate the scaling (1 = no scaling, 0 = maximum pinched in, >1 pinching out
+		const scaling =
+			this.pointDistance(
+				{ x: ev.touches[0].clientX, y: ev.touches[0].clientY },
+				{
+					x: ev.touches[1].clientX,
+					y: ev.touches[1].clientY,
+				},
+			) / this.pointDistance(this.firstMultiple.pointer1, this.firstMultiple.pointer2)
+
+		let d = this.scaleFrom(this.pinchZoomOrigin, this.last.z, this.last.z * scaling)
+		this.setCurrentSafePosition(d.x + this.last.x + delta.x, d.y + this.last.y + delta.y, d.z + this.last.z) //FIXME
+		this.lastEvent = "pinch"
+		this.update()
 	}
 
 	private dragHandling(ev: TouchEvent) {
 		//FIXME check for new touch
-		if (this.currentScale > 1) {
-			// otherwise no need to drag
-			ev.preventDefault()
-			const newX = ev.touches[0].pageX
-			const newY = ev.touches[0].pageY
+		if (this.current.z > 1) {
+			ev.stopPropagation() // maybe not if is not movable FIXME
+
+			let delta = { x: 0, y: 0 }
 			if (!this.dragTouchIDs.has(ev.touches[0].identifier)) {
-				console.log("new touch")
+				// new dragging
 				this.dragTouchIDs = new Set<number>([ev.touches[0].identifier])
-				this.startX = newX
-				this.startY = newY
-				this.currentX = newX
-				this.currentY = newY
+				delta = this.calculateDelta(true, { x: ev.touches[0].clientX, y: ev.touches[0].clientY }) //FIXME I think delta also needs to be changed if the surrounding is scrolled/ changed
+			} else {
+				// still same dragging
+				delta = this.calculateDelta(false, { x: ev.touches[0].clientX, y: ev.touches[0].clientY })
 			}
 
-			// if (this.offsetX !== newX && this.offsetX !== -1) {
-			// this.moveBy(newX - this.currentX, newY - this.currentY)
-			// this.directMove(this.currentX - newX, this.currentY - newY)
-			// }
-			// if (this.offsetY !== newY && this.offsetY !== -1) {
-			// 	this.moveBy(MoveDirection.Y, newY - this.currentY)
-			// }
-			// this.offsetX = newX
-			// this.offsetY = newY
-			this.currentX = newX
-			this.currentY = newY
+			if (this.lastEvent !== "pan") {
+				this.fixDeltaIssue = {
+					x: delta.x,
+					y: delta.y,
+				}
+			}
+
+			this.setCurrentSafePosition(this.last.x + delta.x - this.fixDeltaIssue.x, this.last.y + delta.y - this.fixDeltaIssue.y, this.current.z)
+			this.lastEvent = "pan"
+			this.update()
 		}
 	}
 
-	private invalidBorder(): boolean {
-		if (
-			this.root.style.left > this.parent.style.left ||
-			this.root.style.right < this.parent.style.right ||
-			this.root.style.top > this.parent.style.top ||
-			this.root.style.bottom < this.parent.style.bottom
-		) {
-			return true
-		}
-		return false
-	}
-
-	/**
-	 *
-	 * @param scale reset if no values given
-	 * @private
-	 */
-	private saveScale(scale: number = -1) {
-		console.log("change scale")
-		if (scale === -1) {
-			this.currentScale = -1
-			this.maxScale = -1
-			this.minScale = -1
+	private removeTouches(ev: TouchEvent) {
+		this.previousInput.event = "end"
+		if (ev.touches.length > 0) {
+			this.last.x = this.current.x
+			this.last.y = this.current.y
+			this.last.z = this.current.z
+			this.lastEvent = "pinchend"
+			this.pinchTouchIDs.clear()
 		} else {
-			this.currentScale = scale
-			this.minScale = scale //- 0.1 // should further zooming out be possible? //FIXME
-			this.maxScale = scale + 1
+			this.last.x = this.current.x
+			this.last.y = this.current.y
+			this.lastEvent = "panend"
+			this.dragTouchIDs.clear()
 		}
-		console.log("new scale", this.currentScale)
-	}
-
-	setInitialScale(scale: number) {
-		console.log("initialize scaling", scale)
-		if (this.currentScale === -1) {
-			this.saveScale(scale)
-		}
-	}
-
-	private removeTouches() {
-		this.lastTransformOrigin.x = this.currentTransformOrigin.x
-		this.lastTransformOrigin.y = this.currentTransformOrigin.y
-		this.pinchTouchIDs.clear()
-		this.dragTouchIDs.clear()
 	}
 
 	//// new
 
 	private pinchZoomOrigin: { x: number; y: number } = { x: 0, y: 0 }
-	private fixHammerjsDeltaIssue: { x: number; y: number } = { x: 0, y: 0 }
+	private fixDeltaIssue: { x: number; y: number } = { x: 0, y: 0 }
 	private pinchStart: { x: number; y: number } = { x: 0, y: 0 }
 	private lastEvent: string = ""
 
-	private originalSize = {
-		width: 200, //FIXME
-		height: 300,
+	private readonly originalSize = {
+		// default values will be immediately overwritten with real values
+		width: 0,
+		height: 0,
 	}
 
 	private current = {
@@ -359,6 +370,7 @@ export class PinchZoomV2 {
 	}
 
 	private update() {
+		console.log(`x: ${this.current.x}, y: ${this.current.y}`)
 		this.current.height = this.originalSize.height * this.current.z
 		this.current.width = this.originalSize.width * this.current.z
 		this.root.style.transform = "translate3d(" + this.current.x + "px, " + this.current.y + "px, 0) scale(" + this.current.z + ")"
@@ -375,14 +387,25 @@ export class PinchZoomV2 {
 	 * @private
 	 */
 	private setCurrentSafePosition(newX: number, newY: number, newZ: number) {
+		console.log(`newX: ${newX}, newY: ${newY}`)
 		let parentBorders = this.getCoords(this.parent)
 		let rootBorders = this.getCoords(this.root)
-		if (rootBorders.x + newX < parentBorders.x && rootBorders.x2 + newX > parentBorders.x2) {
+
+		const currentWidth = rootBorders.x2 - rootBorders.x
+		const currentHeight = rootBorders.y2 - rootBorders.y
+		const newWidth = Math.round(this.originalSize.width * newZ)
+		const newHeight = Math.round(this.originalSize.height * newZ)
+		const modifierX = (currentWidth - newWidth) / 2
+		const modifierY = (currentHeight - newHeight) / 2
+
+		if (rootBorders.x + newX + modifierX < parentBorders.x && rootBorders.x2 + newX > parentBorders.x2) {
+			// also take the scaling into account
 			this.current.x = newX
 		}
-		if (rootBorders.y + newY < parentBorders.y && rootBorders.y2 + newY > parentBorders.y2) {
+		if (rootBorders.y + newY + modifierY < parentBorders.y && rootBorders.y2 + newY + modifierY > parentBorders.y2) {
 			this.current.y = newY
 		}
+
 		this.current.z = Math.max(1, Math.min(4, newZ)) // don't allow zooming out or zooming in more than 3x
 	}
 }

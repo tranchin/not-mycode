@@ -2,33 +2,16 @@ import m from "mithril"
 import { Dialog } from "../gui/base/Dialog"
 import { lang } from "../misc/LanguageViewModel"
 import { ButtonAttrs, ButtonType } from "../gui/base/Button.js"
-import type { AccountingInfo, Booking, Customer, CustomerInfo, PlanPrices, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
+import type { AccountingInfo, Booking, Customer, CustomerInfo, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
-import {
-	AccountType,
-	BookingItemFeatureByCode,
-	BookingItemFeatureType,
-	Const,
-	InvoiceData,
-	Keys,
-	NewBusinessPlans,
-	PlanType,
-	UnsubscribeFailureReason,
-} from "../api/common/TutanotaConstants"
+import { AccountType, Const, InvoiceData, Keys, NewBusinessPlans, PlanType, UnsubscribeFailureReason } from "../api/common/TutanotaConstants"
 import { SubscriptionActionButtons, SubscriptionSelector } from "./SubscriptionSelector"
 import stream from "mithril/stream"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
-import { buyAliases, buyBusiness, buySharing, buyStorage, buyWhitelabel } from "./SubscriptionUtils"
+import { BookingFailureReason } from "./SubscriptionUtils"
 import type { DialogHeaderBarAttrs } from "../gui/base/DialogHeaderBar"
 import type { CurrentSubscriptionInfo } from "./SwitchSubscriptionDialogModel"
-import {
-	isDowngradeAliasesNeeded,
-	isDowngradeBusinessNeeded,
-	isDowngradeSharingNeeded,
-	isDowngradeStorageNeeded,
-	isDowngradeWhitelabelNeeded,
-	SwitchSubscriptionDialogModel,
-} from "./SwitchSubscriptionDialogModel"
+import { SwitchSubscriptionDialogModel } from "./SwitchSubscriptionDialogModel"
 import { locator } from "../api/main/MainLocator"
 import { SwitchAccountTypeService } from "../api/entities/sys/Services.js"
 import { BadRequestError, InvalidDataError, PreconditionFailedError } from "../api/common/error/RestError.js"
@@ -173,20 +156,32 @@ function handleSwitchAccountPreconditionFailed(e: PreconditionFailedError): Prom
 				break
 
 			case UnsubscribeFailureReason.TOO_MANY_ALIASES:
+			case BookingFailureReason.TOO_MANY_ALIASES:
 				detailMsg = lang.get("accountSwitchAliases_msg")
 				break
 
-			default:
-				if (reason.startsWith(UnsubscribeFailureReason.FEATURE)) {
-					const feature = reason.slice(UnsubscribeFailureReason.FEATURE.length + 1)
-					const featureName = BookingItemFeatureByCode[feature as BookingItemFeatureType]
-					detailMsg = lang.get("accountSwitchFeature_msg", {
-						"{featureName}": featureName,
-					})
-				} else {
-					detailMsg = lang.get("unknownError_msg")
-				}
+			case UnsubscribeFailureReason.TOO_MUCH_STORAGE_USED:
+			case BookingFailureReason.TOO_MUCH_STORAGE_USED:
+				detailMsg = lang.get("storageCapacityTooManyUsedForBooking_msg")
+				break
 
+			case UnsubscribeFailureReason.TOO_MANY_DOMAINS:
+			case BookingFailureReason.TOO_MANY_DOMAINS:
+				detailMsg = lang.get("tooManyCustomDomains_msg")
+				break
+
+			case UnsubscribeFailureReason.HAS_TEMPLATE_GROUP:
+			case BookingFailureReason.HAS_TEMPLATE_GROUP:
+				detailMsg = lang.get("deleteTemplateGroups_msg")
+				break
+
+			case UnsubscribeFailureReason.WHITELABEL_DOMAIN_ACTIVE:
+			case BookingFailureReason.WHITELABEL_DOMAIN_ACTIVE:
+				detailMsg = lang.get("whitelabelDomainExisting_msg")
+				break
+
+			default:
+				detailMsg = lang.get("unknownError_msg")
 				break
 		}
 
@@ -199,11 +194,6 @@ function handleSwitchAccountPreconditionFailed(e: PreconditionFailedError): Prom
 }
 
 async function tryDowngradePremiumToFree(switchAccountTypeData: SwitchAccountTypePostIn, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<PlanType> {
-	const failed = await cancelAllAdditionalFeatures(PlanType.Free, currentSubscriptionInfo)
-	if (failed) {
-		return currentSubscriptionInfo.planType
-	}
-
 	try {
 		await locator.serviceExecutor.post(SwitchAccountTypeService, switchAccountTypeData)
 		await locator.customerFacade.switchPremiumToFreeGroup()
@@ -279,34 +269,4 @@ async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, 
 	} finally {
 		dialog.close()
 	}
-}
-
-/**
- * @returns True if any of the additional features could not be canceled, false otherwise
- */
-async function cancelAllAdditionalFeatures(targetSubscription: PlanType, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<boolean> {
-	let failed = false
-	let targetPlanPrices: PlanPrices
-	try {
-		targetPlanPrices = (await PriceAndConfigProvider.getInitializedInstance(null)).getPlanPrices(targetSubscription)
-	} catch (e) {
-		console.log("failed to get subscription configs:", e)
-		return true
-	}
-	if (isDowngradeAliasesNeeded(targetPlanPrices, currentSubscriptionInfo.currentTotalAliases, currentSubscriptionInfo.includedAliases)) {
-		failed = await buyAliases(Number(targetPlanPrices.includedAliases))
-	}
-	if (isDowngradeStorageNeeded(targetPlanPrices, currentSubscriptionInfo.currentTotalStorage, currentSubscriptionInfo.includedStorage)) {
-		failed = failed || (await buyStorage(Number(targetPlanPrices.includedStorage)))
-	}
-	if (isDowngradeSharingNeeded(targetPlanPrices, currentSubscriptionInfo.currentlySharingOrdered)) {
-		failed = failed || (await buySharing(false))
-	}
-	if (isDowngradeBusinessNeeded(targetPlanPrices, currentSubscriptionInfo.currentlyBusinessOrdered)) {
-		failed = failed || (await buyBusiness(false))
-	}
-	if (isDowngradeWhitelabelNeeded(targetPlanPrices, currentSubscriptionInfo.currentlyWhitelabelOrdered)) {
-		failed = failed || (await buyWhitelabel(false))
-	}
-	return failed
 }

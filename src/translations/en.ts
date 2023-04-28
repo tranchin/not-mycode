@@ -599,7 +599,6 @@ export default {
 		"giftCards_label": "Gift cards",
 		"giftCardTerms_label": "Gift card terms and conditions",
 		"giftCardUpdateError_msg": "Unable to update gift card.",
-		"giftCardUpgradeNotify_msg": "You will be automatically upgraded to a Premium account with a yearly subscription. The cost of the first year ({price}) will be paid for with your gift card and the remaining value ({credit}) will be credited to your account.",
 		"giftCard_label": "Gift card",
 		"globalAdmin_label": "Global admin",
 		"globalSettings_label": "Global settings",
@@ -1650,7 +1649,12 @@ export default {
 		"tooManyCustomDomains_msg": "You have too many custom domains active.",
 		"deleteTemplateGroups_msg": "There are still template lists active which will need to be deleted before you can downgrade. This may include shared template lists or template lists belonging to your users.",
 		"accountSwitchNotPossible_msg": "You need to deactivate features before downgrading. {detailMsg}",
+		"giftCardOptionTextC_msg": "For {fullCredit} credit or prepayment for a Revolutionary plan",
+		"giftCardOptionTextD_msg": "For {fullCredit} credit or a Revolutionary plan.",
+		"giftCardOptionTextE_msg": "For {fullCredit} credit or a Revolutionary plan with {remainingCredit} credit.",
+		"giftCardUpgradeNotifyRevolutionary_msg": "You will be automatically upgraded to a Revolutionary account with a yearly subscription. The cost of the first year ({price}) will be paid for with your gift card and the remaining value ({credit}) will be credited to your account.",
 		// TODO delete from phrase
+		"giftCardUpgradeNotify_msg": "You will be automatically upgraded to a Premium account with a yearly subscription. The cost of the first year ({price}) will be paid for with your gift card and the remaining value ({credit}) will be credited to your account.",
 		"pricing.downgradeToPrivateNotAllowed_msg": "It is not possible to change the account usage from Business to Personal.",
 	}
 }

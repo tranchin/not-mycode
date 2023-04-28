@@ -605,7 +605,6 @@ export default {
 		"giftCards_label": "Gutscheine",
 		"giftCardTerms_label": "Geschäftsbedingungen für Gutscheine",
 		"giftCardUpdateError_msg": "Gutschein konnte nicht aktualisiert werden.",
-		"giftCardUpgradeNotify_msg": "Ihr Account wird automatisch auf einen Premium-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird Ihrem Guthabenkonto gutgeschrieben.",
 		"giftCard_label": "Gutschein",
 		"globalAdmin_label": "Globaler Admin",
 		"globalSettings_label": "Globale Einstellungen",
@@ -1650,5 +1649,10 @@ export default {
 		"unlimitedRequired_msg": "Um diese Funktion zu verwenden, müssen Sie zum Plan Unlimited wechseln.",
 		"currentPlanDiscontinued_msg": "Ihr aktuelles Abonnement ist nicht mehr verfügbar. Bitte wählen Sie eines der unten angezeigten Abonnements.",
 		"addCustomDomainAddAdresses_msg": "Die Domain wurde zu Ihrem Account hinzugefügt, Sie können nun eine neue E-Mail-Adresse erstellen.",
+		"giftCardOptionTextC_msg": "Für {fullCredit} Gutahben oder Anzahlung für einen Revolutionary-Account.",
+		"giftCardOptionTextD_msg": "Für {fullCredit} Guthaben oder einen Revolutionary-Account.",
+		"giftCardOptionTextE_msg": "Für {fullCredit} Guthaben oder einen Revolutionary-Account mit {remainingCredit} Guthaben.",
+		"giftCardUpgradeNotifyRevolutionary_msg": "Ihr Account wird automatisch auf einen Revolutionary-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird Ihrem Guthabenkonto gutgeschrieben.",
+		"giftCardUpgradeNotify_msg": "Ihr Account wird automatisch auf einen Premium-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird Ihrem Guthabenkonto gutgeschrieben.",
 	}
 }

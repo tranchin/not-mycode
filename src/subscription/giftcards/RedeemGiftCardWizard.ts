@@ -444,7 +444,7 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardModel> {
 		return [
 			m(
 				".pt-l.plr-l",
-				`${lang.get("giftCardUpgradeNotify_msg", {
+				`${lang.get("giftCardUpgradeNotifyRevolutionary_msg", {
 					"{price}": formatPrice(model.premiumPrice, true),
 					"{credit}": formatPrice(Number(model.giftCardInfo.value) - model.premiumPrice, true),
 				})} ${lang.get("creditUsageOptions_msg")}`,
@@ -454,7 +454,7 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardModel> {
 				m(".flex-grow-shrink-half.plr-l", [
 					m(TextField, {
 						label: "subscription_label",
-						value: "Premium",
+						value: "Revolutionary",
 						disabled: true,
 					}),
 					m(TextField, {

@@ -11,7 +11,7 @@ import { renderAcceptGiftCardTermsCheckbox, showGiftCardToShare } from "./GiftCa
 import type { DialogHeaderBarAttrs } from "../../gui/base/DialogHeaderBar"
 import { showUserError } from "../../misc/ErrorHandlerImpl"
 import { UserError } from "../../api/main/UserError"
-import { Keys, PlanType, PaymentMethodType } from "../../api/common/TutanotaConstants"
+import { Keys, PaymentMethodType, PlanType } from "../../api/common/TutanotaConstants"
 import { lang } from "../../misc/LanguageViewModel"
 import { BadGatewayError, PreconditionFailedError } from "../../api/common/error/RestError"
 import { loadUpgradePrices } from "../UpgradeSubscriptionWizard"
@@ -24,6 +24,7 @@ import { isIOSApp } from "../../api/common/Env"
 import { formatPrice, PaymentInterval, PriceAndConfigProvider } from "../PriceUtils"
 import { GiftCardService } from "../../api/entities/sys/Services"
 import { UpgradePriceType } from "../FeatureListProvider"
+import { TranslationKeyType } from "../../misc/TranslationKey.js"
 
 class PurchaseGiftCardModel {
 	message = lang.get("defaultGiftCardMessage_msg")
@@ -35,7 +36,7 @@ class PurchaseGiftCardModel {
 			purchasePeriodMonths: number
 			availablePackages: Array<GiftCardOption>
 			selectedPackage: number
-			premiumPrice: number
+			revolutionaryPrice: number
 		},
 	) {}
 
@@ -59,8 +60,8 @@ class PurchaseGiftCardModel {
 		this.config.selectedPackage = selection
 	}
 
-	get premiumPrice(): number {
-		return this.config.premiumPrice
+	get revolutionaryPrice(): number {
+		return this.config.revolutionaryPrice
 	}
 
 	async purchaseGiftCard(): Promise<GiftCard> {
@@ -117,7 +118,6 @@ class GiftCardPurchaseView implements Component<GiftCardPurchaseViewAttrs> {
 				".flex.center-horizontally.wrap",
 				model.availablePackages.map((option, index) => {
 					const value = parseFloat(option.value)
-					const withSubscriptionAmount = value - model.premiumPrice
 					return m(BuyOptionBox, {
 						heading: m(
 							".flex-center",
@@ -138,11 +138,7 @@ class GiftCardPurchaseView implements Component<GiftCardPurchaseViewAttrs> {
 							} as const
 						},
 						price: formatPrice(value, true),
-						helpLabel: () =>
-							lang.get(withSubscriptionAmount === 0 ? "giftCardOptionTextA_msg" : "giftCardOptionTextB_msg", {
-								"{remainingCredit}": formatPrice(withSubscriptionAmount, true),
-								"{fullCredit}": formatPrice(value, true),
-							}),
+						helpLabel: () => this.getGiftCardHelpText(model.revolutionaryPrice, value),
 						categories: [],
 						width: 230,
 						height: 250,
@@ -184,6 +180,21 @@ class GiftCardPurchaseView implements Component<GiftCardPurchaseViewAttrs> {
 	async onBuyButtonPressed(model: PurchaseGiftCardModel, onPurchaseSuccess: (giftCard: GiftCard) => void) {
 		const giftCard = await showProgressDialog("loading_msg", model.purchaseGiftCard())
 		onPurchaseSuccess(giftCard)
+	}
+
+	private getGiftCardHelpText(upgradePrice: number, giftCardValue: number): string {
+		let helpTextId: TranslationKeyType
+		if (giftCardValue < upgradePrice) {
+			helpTextId = "giftCardOptionTextC_msg"
+		} else if (giftCardValue == upgradePrice) {
+			helpTextId = "giftCardOptionTextD_msg"
+		} else {
+			helpTextId = "giftCardOptionTextE_msg"
+		}
+		return lang.get(helpTextId, {
+			"{remainingCredit}": formatPrice(giftCardValue - upgradePrice, true),
+			"{fullCredit}": formatPrice(giftCardValue, true),
+		})
 	}
 }
 
@@ -282,6 +293,6 @@ async function loadGiftCardModel(): Promise<PurchaseGiftCardModel> {
 		purchasePeriodMonths: filterInt(giftCardInfo.period),
 		availablePackages: giftCardInfo.options,
 		selectedPackage: Math.floor(giftCardInfo.options.length / 2),
-		premiumPrice: priceDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Revolutionary, UpgradePriceType.PlanActualPrice),
+		revolutionaryPrice: priceDataProvider.getSubscriptionPrice(PaymentInterval.Yearly, PlanType.Revolutionary, UpgradePriceType.PlanActualPrice),
 	})
 }

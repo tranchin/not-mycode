@@ -30,7 +30,6 @@ export default {
 		"accountSwitchCustomMailAddress_msg": "Please disable all custom domain email aliases.",
 		"accountSwitchFeature_msg": "Please deactivate the feature {featureName}.",
 		"accountSwitchMultipleCalendars_msg": "Please delete all additional calendars.",
-		"accountSwitchNotPossible_msg": "You need to deactivate all paid features before downgrading to a free account. {detailMsg}",
 		"accountSwitchSharedCalendar_msg": "Please remove all calendars shared with you.",
 		"accountSwitchTooManyActiveUsers_msg": "Please deactivate all additional users before switching the subscription.",
 		"accountWasStillCreated_msg": "Your account has already been created as a Free account. You may also cancel the payment now, login into your account and upgrade there later.",
@@ -426,7 +425,6 @@ export default {
 		"deleteLanguageConfirmation_msg": "Are you sure you want to delete the entry for \"{language}\"?",
 		"deleteSharedCalendarConfirm_msg": "The calendar \"{calendar}\" is shared with other users.",
 		"deleteSingleEventRecurrence_action": "Delete only this event",
-		"deleteTemplateGroups_msg": "There are still template lists active which will need to be deleted before you can cancel the Business feature. This may include shared template lists or template lists belonging to your users.",
 		"deleteTemplateGroup_msg": "Are you sure you want to delete your template list?",
 		"deleteTemplate_msg": "Are you sure you want to delete this template?",
 		"delete_action": "Delete",
@@ -1507,7 +1505,6 @@ export default {
 		"tooBigAttachment_msg": "The following files could not be attached because the overall size exceeds 25 MB: ",
 		"tooBigInlineImages_msg": "Only files up to {size} KB are allowed.",
 		"tooManyAttempts_msg": "Number of allowed attempts exceeded. Please try again later.",
-		"tooManyCustomDomains_msg": "You have too many custom domains active. Only one is available when disabling the Business feature.",
 		"tooManyGiftCards_msg": "You have reached the purchase limit of {amount} gift cards in the last {period}.",
 		"tooManyMailsAuto_msg": "Failed to send an automatic notification email because the number of allowed emails has been exceeded. The notification email is stored in the draft folder and you can try to send it later.",
 		"tooManyMails_msg": "It looks like you exceeded the number of allowed emails. Please try again later.",
@@ -1650,6 +1647,9 @@ export default {
 		"pricing.upgradeLater_msg": "Use Tutanota free of charge and upgrade later. Only for personal use.",
 		"addCustomDomainAddAdresses_msg": "The domain was assigned to your account, you can now create a new email address.",
 		"currentPlanDiscontinued_msg": "Your current plan is no longer available. Please choose between the plans displayed below.",
+		"tooManyCustomDomains_msg": "You have too many custom domains active.",
+		"deleteTemplateGroups_msg": "There are still template lists active which will need to be deleted before you can downgrade. This may include shared template lists or template lists belonging to your users.",
+		"accountSwitchNotPossible_msg": "You need to deactivate features before downgrading. {detailMsg}",
 		// TODO delete from phrase
 		"pricing.downgradeToPrivateNotAllowed_msg": "It is not possible to change the account usage from Business to Personal.",
 	}

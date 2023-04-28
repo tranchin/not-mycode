@@ -149,7 +149,7 @@ export function getPreconditionFailedPaymentMsg(data: string | null): Translatio
 	}
 }
 
-const enum BookingFailureReason {
+export const enum BookingFailureReason {
 	TOO_MANY_DOMAINS = "bookingservice.too_many_domains",
 	BUSINESS_USE = "bookingservice.business_use",
 	TOO_MANY_ALIASES = "bookingservice.too_many_aliases",
@@ -158,89 +158,6 @@ const enum BookingFailureReason {
 	WHITELABEL_DOMAIN_ACTIVE = "bookingservice.whitelabel_domain_active",
 	BALANCE_INSUFFICIENT = "balance.insufficient",
 	HAS_TEMPLATE_GROUP = "bookingservice.has_template_group",
-}
-
-/**
- * @returns True if it failed, false otherwise
- */
-export function bookItem(featureType: BookingItemFeatureType, amount: number): Promise<boolean> {
-	const bookingData = createBookingServiceData({
-		amount: amount.toString(),
-		featureType,
-		date: Const.CURRENT_DATE,
-	})
-	return locator.serviceExecutor
-		.post(BookingService, bookingData)
-		.then(() => false)
-		.catch(
-			ofClass(PreconditionFailedError, (error) => {
-				// error handling for cancelling a feature.
-				switch (error.data) {
-					case BookingFailureReason.BALANCE_INSUFFICIENT:
-						return Dialog.message("insufficientBalanceError_msg").then(() => true)
-
-					case BookingFailureReason.TOO_MANY_DOMAINS:
-						return Dialog.message("tooManyCustomDomains_msg").then(() => true)
-
-					case BookingFailureReason.BUSINESS_USE:
-						return Dialog.message("featureRequiredForBusinessUse_msg").then(() => true)
-
-					case BookingFailureReason.HAS_TEMPLATE_GROUP:
-						return Dialog.message("deleteTemplateGroups_msg").then(() => true)
-
-					default:
-						return Dialog.message(getBookingItemErrorMsg(featureType)).then(() => true)
-				}
-			}),
-		)
-}
-
-export function buyAliases(amount: number): Promise<boolean> {
-	return bookItem(BookingItemFeatureType.Alias, amount)
-}
-
-export function buyStorage(amount: number): Promise<boolean> {
-	return bookItem(BookingItemFeatureType.Storage, amount)
-}
-
-/**
- * @returns True if it failed, false otherwise
- */
-export function buyWhitelabel(enable: boolean): Promise<boolean> {
-	return bookItem(BookingItemFeatureType.Whitelabel, enable ? 1 : 0)
-}
-
-/**
- * @returns True if it failed, false otherwise
- */
-export function buySharing(enable: boolean): Promise<boolean> {
-	return bookItem(BookingItemFeatureType.Sharing, enable ? 1 : 0)
-}
-
-/**
- * @returns True if it failed, false otherwise
- */
-export function buyBusiness(enable: boolean): Promise<boolean> {
-	return bookItem(BookingItemFeatureType.Business, enable ? 1 : 0)
-}
-
-function getBookingItemErrorMsg(feature: BookingItemFeatureType): TranslationKey {
-	switch (feature) {
-		case BookingItemFeatureType.Alias:
-			return "emailAliasesTooManyActivatedForBooking_msg"
-
-		case BookingItemFeatureType.Storage:
-			return "storageCapacityTooManyUsedForBooking_msg"
-
-		case BookingItemFeatureType.Whitelabel:
-			return "whitelabelDomainExisting_msg"
-
-		case BookingItemFeatureType.Sharing:
-			return "unknownError_msg"
-
-		default:
-			return "unknownError_msg"
-	}
 }
 
 export function getLazyLoadedPayPalUrl(): LazyLoaded<string> {

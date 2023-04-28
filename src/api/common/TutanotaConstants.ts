@@ -533,7 +533,10 @@ export const enum UnsubscribeFailureReason {
 	TOO_MANY_CALENDARS = "unsubscribe.too_many_calendars",
 	CALENDAR_TYPE = "unsubscirbe.invalid_calendar_type",
 	TOO_MANY_ALIASES = "unsubscribe.too_many_aliases",
-	FEATURE = "unsubscribe.feature",
+	TOO_MUCH_STORAGE_USED = "unsubscribe.too_much_storage",
+	TOO_MANY_DOMAINS = "unsubscribe.too_many_domains",
+	HAS_TEMPLATE_GROUP = "unsubscribe.has_template_group",
+	WHITELABEL_DOMAIN_ACTIVE = "unsubscribe.whitelabel_domain_active",
 }
 
 export const Keys = Object.freeze({

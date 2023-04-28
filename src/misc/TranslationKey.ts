@@ -1636,3 +1636,7 @@ export type TranslationKeyType =
 	| "unlimitedRequired_msg"
 	| "addCustomDomainAddAdresses_msg"
 	| "currentPlanDiscontinued_msg"
+	| "giftCardOptionTextC_msg"
+	| "giftCardOptionTextD_msg"
+	| "giftCardOptionTextE_msg"
+	| "giftCardUpgradeNotifyRevolutionary_msg"

@@ -387,16 +387,18 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 			}
 		}
 
-		if (!this.logins.isEnabled(FeatureType.WhitelabelChild) && !isNewPaidPlan) {
-			this._adminFolders.push(
-				new SettingsFolder(
-					"contactForms_label",
-					() => Icons.Chat,
-					"contactforms",
-					() => new ContactFormListView(this),
-					undefined,
-				),
-			)
+		if (!this.logins.isEnabled(FeatureType.WhitelabelChild)) {
+			if (!isNewPaidPlan) {
+				this._adminFolders.push(
+					new SettingsFolder(
+						"contactForms_label",
+						() => Icons.Chat,
+						"contactforms",
+						() => new ContactFormListView(this),
+						undefined,
+					),
+				)
+			}
 
 			if (this.logins.getUserController().isGlobalAdmin()) {
 				this._adminFolders.push(

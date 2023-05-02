@@ -387,7 +387,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 			}
 		}
 
-		if (!this.logins.isEnabled(FeatureType.WhitelabelChild)) {
+		if (!this.logins.isEnabled(FeatureType.WhitelabelChild) && !isNewPaidPlan) {
 			this._adminFolders.push(
 				new SettingsFolder(
 					"contactForms_label",

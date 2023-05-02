@@ -61,7 +61,7 @@ export type UpgradeSubscriptionData = {
 	campaignInfoTextId: TranslationKey | null
 	upgradeType: UpgradeType
 	planPrices: PriceAndConfigProvider
-	currentPlan: PlanType
+	currentPlan: PlanType | null
 	subscriptionParameters: SubscriptionParameters | null
 	featureListProvider: FeatureListProvider
 	referralCode: string | null
@@ -195,7 +195,7 @@ export async function loadSignupWizard(
 		campaignInfoTextId,
 		upgradeType: UpgradeType.Signup,
 		planPrices: priceDataProvider,
-		currentPlan: PlanType.Free,
+		currentPlan: null,
 		subscriptionParameters: subscriptionParameters,
 		featureListProvider: featureListProvider,
 		referralCode,

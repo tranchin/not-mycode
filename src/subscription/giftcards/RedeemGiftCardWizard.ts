@@ -542,7 +542,7 @@ async function loadModel(hashFromUrl: string): Promise<RedeemGiftCardModel> {
 	const giftCardInfo = await locator.giftCardFacade.getGiftCardInfo(id, key)
 
 	const storedCredentials = await locator.credentialsProvider.getInternalCredentialsInfos()
-	const pricesDataProvider = await PriceAndConfigProvider.getInitializedInstance(null)
+	const pricesDataProvider = await PriceAndConfigProvider.getInitializedInstance(null, locator.serviceExecutor, null)
 
 	return new RedeemGiftCardModel(
 		{

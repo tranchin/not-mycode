@@ -1,6 +1,6 @@
 import { AccountType, FeatureType, GroupType, LegacyPlans, OperationType, PlanType } from "../common/TutanotaConstants"
 import type { Base64Url } from "@tutao/tutanota-utils"
-import { downcast, first, LazyLoaded, mapAndFilterNull, neverNull, ofClass } from "@tutao/tutanota-utils"
+import { downcast, first, mapAndFilterNull, neverNull, ofClass } from "@tutao/tutanota-utils"
 import { MediaType } from "../common/EntityFunctions"
 import { assertMainOrNode, getApiOrigin, isDesktop } from "../common/Env"
 import type { EntityUpdateData } from "./EventController"
@@ -37,7 +37,6 @@ import {
 } from "../entities/tutanota/TypeRefs"
 import { typeModels as sysTypeModels } from "../entities/sys/TypeModels"
 import { SessionType } from "../common/SessionType"
-import type { PriceAndConfigProvider } from "../../subscription/PriceUtils.js"
 import { isCustomizationEnabledForCustomer } from "../common/utils/Utils.js"
 
 assertMainOrNode()
@@ -53,7 +52,6 @@ export class UserController {
 		private _userSettingsGroupRoot: UserSettingsGroupRoot,
 		public readonly sessionType: SessionType,
 		private readonly entityClient: EntityClient,
-		private readonly priceAndConfigProvider: LazyLoaded<PriceAndConfigProvider>,
 	) {}
 
 	get userId(): Id {
@@ -134,10 +132,12 @@ export class UserController {
 		const type = await this.getPlanType()
 		return !this.isLegacyPlan(type) && type !== PlanType.Free
 	}
+
 	async isNewPaidBusinessPlan(): Promise<boolean> {
 		const type = await this.getPlanType()
 		return type === PlanType.Essential || type === PlanType.Advanced || type === PlanType.Unlimited
 	}
+
 	/**
 	 * Checks if the current plan allows adding users and groups.
 	 */
@@ -343,9 +343,5 @@ export async function initUserController({ user, userGroupInfo, sessionId, acces
 				),
 			),
 	])
-
-	const priceAndConfigProvider = new LazyLoaded(
-		async () => await (await import("../../subscription/PriceUtils.js")).PriceAndConfigProvider.getInitializedInstance(null),
-	)
-	return new UserController(user, userGroupInfo, sessionId, props, accessToken, userSettingsGroupRoot, sessionType, entityClient, priceAndConfigProvider)
+	return new UserController(user, userGroupInfo, sessionId, props, accessToken, userSettingsGroupRoot, sessionType, entityClient)
 }

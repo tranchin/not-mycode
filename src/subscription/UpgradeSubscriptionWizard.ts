@@ -1,9 +1,8 @@
 import type { Hex } from "@tutao/tutanota-utils"
-import { ofClass } from "@tutao/tutanota-utils"
+import { defer } from "@tutao/tutanota-utils"
 import {
 	AccountingInfo,
 	AccountingInfoTypeRef,
-	createReferralCodeGetIn,
 	createUpgradePriceServiceData,
 	Customer,
 	CustomerInfo,
@@ -25,7 +24,6 @@ import { formatNameAndAddress } from "../misc/Formatter"
 import m from "mithril"
 import stream from "mithril/stream"
 import type { TranslationKey, TranslationText } from "../misc/LanguageViewModel"
-import { assertTranslation } from "../misc/LanguageViewModel"
 import { createWizardDialog, wizardPageWrapper } from "../gui/base/WizardDialog.js"
 import { InvoiceAndPaymentDataPage, InvoiceAndPaymentDataPageAttrs } from "./InvoiceAndPaymentDataPage"
 import { UpgradeCongratulationsPage, UpgradeCongratulationsPageAttrs } from "./UpgradeCongratulationsPage.js"
@@ -33,13 +31,11 @@ import { SignupPage, SignupPageAttrs } from "./SignupPage"
 import { assertMainOrNode } from "../api/common/Env"
 import { locator } from "../api/main/MainLocator"
 import { StorageBehavior } from "../misc/UsageTestModel"
-import { ReferralCodeService, UpgradePriceService } from "../api/entities/sys/Services.js"
+import { UpgradePriceService } from "../api/entities/sys/Services.js"
 import { FeatureListProvider, SelectedSubscriptionOptions } from "./FeatureListProvider"
 import { UpgradeType } from "./SubscriptionUtils"
 import { UpgradeConfirmSubscriptionPage } from "./UpgradeConfirmSubscriptionPage.js"
 import { asPaymentInterval, PaymentInterval, PriceAndConfigProvider } from "./PriceUtils"
-import { UserError } from "../api/main/UserError.js"
-import { PreconditionFailedError } from "../api/common/error/RestError.js"
 
 assertMainOrNode()
 export type SubscriptionParameters = {
@@ -66,14 +62,13 @@ export type UpgradeSubscriptionData = {
 	// not initially set for signup but loaded in InvoiceAndPaymentDataPage
 	newAccountData: NewAccountData | null
 	registrationDataId: string | null
-	campaignInfoTextId: TranslationKey | null
+	priceInfoTextId: TranslationKey | null
 	upgradeType: UpgradeType
 	planPrices: PriceAndConfigProvider
 	currentPlan: PlanType | null
 	subscriptionParameters: SubscriptionParameters | null
 	featureListProvider: FeatureListProvider
 	referralCode: string | null
-	referralCodeMsg: TranslationKey | null
 	multipleUsersAllowed: boolean
 	acceptedPlans: AvailablePlanType[]
 	msg: TranslationText | null
@@ -102,9 +97,9 @@ async function loadCustomerAndInfo(): Promise<{
 	}
 }
 
-export async function showUpgradeWizard(acceptedPlans: AvailablePlanType[] = NewPaidPlans, msg?: TranslationText): Promise<void> {
+export async function showUpgradeWizard(acceptedPlans: AvailablePlanType[] = NewPaidPlans, msg?: TranslationText): Promise<PlanType> {
 	const { customer, accountingInfo } = await loadCustomerAndInfo()
-	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(null)
+	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(null, locator.serviceExecutor, null)
 
 	const prices = priceDataProvider.getRawPricingData()
 	const featureListProvider = await FeatureListProvider.getInitializedInstance()
@@ -129,14 +124,13 @@ export async function showUpgradeWizard(acceptedPlans: AvailablePlanType[] = New
 		customer: customer,
 		newAccountData: null,
 		registrationDataId: null,
-		campaignInfoTextId: prices.messageTextId ? assertTranslation(prices.messageTextId) : null,
+		priceInfoTextId: priceDataProvider.getPriceInfoMessage(),
 		upgradeType: UpgradeType.Initial,
 		currentPlan: PlanType.Free,
 		subscriptionParameters: null,
 		planPrices: priceDataProvider,
 		featureListProvider: featureListProvider,
 		referralCode: null,
-		referralCodeMsg: null,
 		multipleUsersAllowed: false,
 		acceptedPlans,
 		msg: msg != null ? msg : null,
@@ -146,8 +140,14 @@ export async function showUpgradeWizard(acceptedPlans: AvailablePlanType[] = New
 		wizardPageWrapper(InvoiceAndPaymentDataPage, new InvoiceAndPaymentDataPageAttrs(upgradeData)),
 		wizardPageWrapper(UpgradeConfirmSubscriptionPage, new InvoiceAndPaymentDataPageAttrs(upgradeData)),
 	]
-	const wizardBuilder = createWizardDialog(upgradeData, wizardPages)
+	const deferred = defer<PlanType>()
+
+	const wizardBuilder = createWizardDialog(upgradeData, wizardPages, async () => {
+		const customerInfo = await locator.logins.getUserController().loadCustomerInfo()
+		deferred.resolve(customerInfo.plan as PlanType)
+	})
 	wizardBuilder.dialog.show()
+	return deferred.promise
 }
 
 export async function loadSignupWizard(
@@ -160,30 +160,9 @@ export async function loadSignupWizard(
 	usageTestModel.setStorageBehavior(StorageBehavior.Ephemeral)
 	locator.usageTestController.setTests(await usageTestModel.loadActiveUsageTests())
 
-	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(registrationDataId)
+	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(registrationDataId, locator.serviceExecutor, referralCode)
 	const prices = priceDataProvider.getRawPricingData()
 	const featureListProvider = await FeatureListProvider.getInitializedInstance()
-	let referralCodeMsg: TranslationKey | null = null
-	if (referralCode != null) {
-		await locator.serviceExecutor
-			.get(ReferralCodeService, createReferralCodeGetIn({ referralCode }))
-			.then(() => {
-				referralCodeMsg = "referralSignup_msg"
-			})
-			.catch(
-				ofClass(PreconditionFailedError, (e) => {
-					referralCode = null // set to null to make sure the invalid code is not used
-					// display a message to the user about the invalid code
-					referralCodeMsg = "referralSignupInvalid_msg"
-				}),
-			)
-	}
-
-	const campaignInfoTextId = prices.messageTextId ? assertTranslation(prices.messageTextId) : null
-
-	if (referralCode != null && registrationDataId != null) {
-		throw new UserError("referralSignupCampaignError_msg")
-	}
 
 	const signupData: UpgradeSubscriptionData = {
 		options: {
@@ -206,14 +185,13 @@ export async function loadSignupWizard(
 		customer: null,
 		newAccountData: null,
 		registrationDataId,
-		campaignInfoTextId,
+		priceInfoTextId: priceDataProvider.getPriceInfoMessage(),
 		upgradeType: UpgradeType.Signup,
 		planPrices: priceDataProvider,
 		currentPlan: null,
 		subscriptionParameters: subscriptionParameters,
 		featureListProvider: featureListProvider,
 		referralCode,
-		referralCodeMsg,
 		multipleUsersAllowed: false,
 		acceptedPlans: AvailablePlans,
 		msg: null,

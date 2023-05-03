@@ -5,9 +5,10 @@ import type { TranslationKey, TranslationText } from "./LanguageViewModel"
 import { isIOSApp } from "../api/common/Env"
 import type { clickHandler } from "../gui/base/GuiUtils"
 import { locator } from "../api/main/MainLocator"
+import type { UserController } from "../api/main/UserController.js"
 import { BookingTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { GENERATED_MAX_ID } from "../api/common/utils/EntityUtils.js"
-import { AvailablePlanType, NewBusinessPlans, NewPaidPlans, NewPersonalPlans } from "../api/common/TutanotaConstants.js"
+import { AvailablePlanType, NewBusinessPlans, NewPaidPlans, NewPersonalPlans, PlanType } from "../api/common/TutanotaConstants.js"
 import { showSwitchDialog } from "../subscription/SwitchSubscriptionDialog.js"
 
 /**
@@ -64,7 +65,7 @@ export function checkPremiumSubscription(): Promise<boolean> {
 		})
 }
 
-export async function showMoreStorageNeededOrderDialog(loginController: LoginController, messageIdOrMessageFunction: TranslationKey): Promise<void> {
+export async function showMoreStorageNeededOrderDialog(loginController: LoginController, messageIdOrMessageFunction: TranslationKey): Promise<PlanType | void> {
 	const userController = locator.logins.getUserController()
 	if (!userController.isGlobalAdmin()) {
 		return Dialog.message("insufficientStorageWarning_msg")
@@ -89,26 +90,38 @@ export async function showPlanUpgradeRequiredDialog(acceptedPlans: AvailablePlan
 		showNotAvailableForFreeDialog(acceptedPlans)
 		return false
 	} else {
-		let customerInfo = await userController.loadCustomerInfo()
-		const bookings = await locator.entityClient.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
-		const { showSwitchDialog } = await import("../subscription/SwitchSubscriptionDialog")
-
 		if (reason == null) {
 			// show generic reason if not supplied
+			let customerInfo = await userController.loadCustomerInfo()
 			const businessPlanRequired =
 				acceptedPlans.filter((plan) => NewBusinessPlans.includes(plan)).length === acceptedPlans.length &&
 				!NewBusinessPlans.includes(downcast(customerInfo.plan))
 			reason = businessPlanRequired ? "pricing.notSupportedByPersonalPlan_msg" : "newPaidPlanRequired_msg"
 		}
-
-		await showSwitchDialog(
-			await userController.loadCustomer(),
-			customerInfo,
-			await userController.loadAccountingInfo(),
-			assertNotNull(bookings[0]),
-			acceptedPlans,
-			reason,
-		)
-		return acceptedPlans.includes(downcast(await userController.getPlanType()))
+		await showSwitchPlanDialog(userController, acceptedPlans, reason)
+		return acceptedPlans.includes(downcast<AvailablePlanType>(await userController.getPlanType()))
 	}
+}
+
+export async function showUpgradeWizardOrSwitchSubscriptionDialog(userController: UserController): Promise<PlanType> {
+	if (userController.isFreeAccount()) {
+		const { showUpgradeWizard } = await import("../subscription/UpgradeSubscriptionWizard")
+		return showUpgradeWizard()
+	} else {
+		return showSwitchPlanDialog(userController, NewPaidPlans)
+	}
+}
+
+async function showSwitchPlanDialog(userController: UserController, acceptedPlans: AvailablePlanType[], reason?: TranslationText): Promise<PlanType> {
+	let customerInfo = await userController.loadCustomerInfo()
+	const bookings = await locator.entityClient.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
+	const { showSwitchDialog } = await import("../subscription/SwitchSubscriptionDialog")
+	return showSwitchDialog(
+		await userController.loadCustomer(),
+		customerInfo,
+		await userController.loadAccountingInfo(),
+		assertNotNull(bookings[0]),
+		acceptedPlans,
+		reason ?? null,
+	)
 }

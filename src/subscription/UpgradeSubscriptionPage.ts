@@ -74,12 +74,11 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 		return m("#upgrade-account-dialog.pt", [
 			m(SubscriptionSelector, {
 				options: data.options,
-				campaignInfoTextId: data.campaignInfoTextId,
-				referralCodeMsg: data.referralCodeMsg,
+				priceInfoTextId: data.priceInfoTextId,
 				boxWidth: 230,
 				boxHeight: 270,
 				acceptedPlans: vnode.attrs.data.acceptedPlans,
-				isInitialUpgrade: data.upgradeType !== UpgradeType.Switch,
+				shouldStartNewPaymentInterval: data.upgradeType !== UpgradeType.Switch,
 				currentPlanType: data.currentPlan,
 				actionButtons: subscriptionActionButtons,
 				featureListProvider: vnode.attrs.data.featureListProvider,

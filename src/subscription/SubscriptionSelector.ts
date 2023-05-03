@@ -35,16 +35,15 @@ export type SubscriptionActionButtons = Record<AvailablePlanType, lazy<ButtonAtt
 
 export type SubscriptionSelectorAttr = {
 	options: SelectedSubscriptionOptions
-	campaignInfoTextId: TranslationKey | null
+	priceInfoTextId: TranslationKey | null
 	actionButtons: SubscriptionActionButtons
 	boxWidth: number
 	boxHeight: number
 	highlightPremium?: boolean
 	currentPlanType: PlanType | null
-	isInitialUpgrade: boolean
+	shouldStartNewPaymentInterval: boolean
 	featureListProvider: FeatureListProvider
 	priceAndConfigProvider: PriceAndConfigProvider
-	referralCodeMsg: TranslationKey | null
 	acceptedPlans: AvailablePlanType[]
 	multipleUsersAllowed: boolean
 	msg: TranslationText | null
@@ -130,8 +129,7 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 						items: BusinessUseItems,
 				  })
 				: null,
-			vnode.attrs.campaignInfoTextId && lang.exists(vnode.attrs.campaignInfoTextId) ? m(".b.center.mt", lang.get(vnode.attrs.campaignInfoTextId)) : null,
-			vnode.attrs.referralCodeMsg ? m(".b.center.mt", lang.get(vnode.attrs.referralCodeMsg)) : null,
+			vnode.attrs.priceInfoTextId && lang.exists(vnode.attrs.priceInfoTextId) ? m(".b.center.mt", lang.get(vnode.attrs.priceInfoTextId)) : null,
 			vnode.attrs.msg ? m(".b.center.mt", lang.getMaybeLazy(vnode.attrs.msg)) : null,
 			showCurrentPlanDiscontinuedHint ? m(".b.center.mt", lang.get("currentPlanDiscontinued_msg")) : null,
 			m(
@@ -193,9 +191,9 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 			featuresExpanded: this.featuresExpanded[targetSubscription] || this.featuresExpanded.All,
 			width: selectorAttrs.boxWidth,
 			height: selectorAttrs.boxHeight,
-			paymentInterval: selectorAttrs.isInitialUpgrade && targetSubscription !== PlanType.Free ? selectorAttrs.options.paymentInterval : null,
+			paymentInterval: selectorAttrs.shouldStartNewPaymentInterval && targetSubscription !== PlanType.Free ? selectorAttrs.options.paymentInterval : null,
 			highlighted: selectorAttrs.highlightPremium,
-			showReferenceDiscount: selectorAttrs.isInitialUpgrade,
+			showReferenceDiscount: selectorAttrs.shouldStartNewPaymentInterval,
 			renderCategoryTitle,
 			mobile,
 		}

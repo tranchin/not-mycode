@@ -1,5 +1,5 @@
 import { BookingItemFeatureType, Const, PaymentMethodType, PlanType } from "../api/common/TutanotaConstants"
-import { lang } from "../misc/LanguageViewModel"
+import { assertTranslation, lang, TranslationKey } from "../misc/LanguageViewModel"
 import { assertNotNull, downcast, neverNull } from "@tutao/tutanota-utils"
 import type { AccountingInfo, PlanPrices, PriceData, PriceItemData } from "../api/entities/sys/TypeRefs.js"
 import { createUpgradePriceServiceData, PlanPricesTypeRef, UpgradePriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
@@ -8,6 +8,7 @@ import { locator } from "../api/main/MainLocator"
 import { UpgradePriceService } from "../api/entities/sys/Services"
 import { IServiceExecutor } from "../api/common/ServiceRequest"
 import { ProgrammingError } from "../api/common/error/ProgrammingError.js"
+import { UserError } from "../api/main/UserError.js"
 
 export const enum PaymentInterval {
 	Monthly = 1,
@@ -115,15 +116,18 @@ export function getPriceFromPriceData(priceData: PriceData | null, featureType: 
 export class PriceAndConfigProvider {
 	private upgradePriceData: UpgradePriceServiceReturn | null = null
 	private planPrices: SubscriptionPlanPrices | null = null
+	private isReferralCodeSignup: boolean = false
 
 	private constructor() {}
 
-	private async init(registrationDataId: string | null, serviceExecutor: IServiceExecutor): Promise<void> {
+	private async init(registrationDataId: string | null, serviceExecutor: IServiceExecutor, referralCode: string | null): Promise<void> {
 		const data = createUpgradePriceServiceData({
 			date: Const.CURRENT_DATE,
 			campaign: registrationDataId,
+			referralCode: referralCode,
 		})
 		this.upgradePriceData = await serviceExecutor.get(UpgradePriceService, data)
+		this.isReferralCodeSignup = referralCode != null
 		this.planPrices = {
 			[PlanType.Free]: {
 				_type: PlanPricesTypeRef,
@@ -155,9 +159,15 @@ export class PriceAndConfigProvider {
 	static async getInitializedInstance(
 		registrationDataId: string | null,
 		serviceExecutor: IServiceExecutor = locator.serviceExecutor,
+		referralCode: string | null,
 	): Promise<PriceAndConfigProvider> {
+		// There should be only one method to request a discount either referralCode or a promotion
+		if (referralCode != null && registrationDataId != null) {
+			throw new UserError("referralSignupCampaignError_msg")
+		}
+
 		const priceDataProvider = new PriceAndConfigProvider()
-		await priceDataProvider.init(registrationDataId, serviceExecutor)
+		await priceDataProvider.init(registrationDataId, serviceExecutor, referralCode)
 		return priceDataProvider
 	}
 
@@ -186,6 +196,19 @@ export class PriceAndConfigProvider {
 
 	getPlanPrices(subscription: PlanType): PlanPrices {
 		return assertNotNull(this.planPrices)[subscription]
+	}
+
+	getPriceInfoMessage(): TranslationKey | null {
+		const rawData = this.getRawPricingData()
+		const bonusMonthMessage = getReasonForBonusMonths(Number(rawData.bonusMonthsForYearlyPlan), this.isReferralCodeSignup)
+		if (bonusMonthMessage) {
+			return bonusMonthMessage
+		} else if (rawData.messageTextId) {
+			// text id that is specified by a promotion.
+			return assertTranslation(rawData.messageTextId)
+		} else {
+			return null
+		}
 	}
 }
 
@@ -217,5 +240,22 @@ export function isSubscriptionDowngrade(targetSubscription: PlanType, currentSub
 		return order.indexOf(targetSubscription) > order.indexOf(downcast(currentSubscription))
 	} else {
 		return false
+	}
+}
+
+/**
+ * Helper function to determine the reason for bonus months that have be provided by the UpgradePriceService
+ * @param bonusMonths The amount of bonus month
+ * @param isReferralCodeSignup Indication if a referral code has been used to query the bonus months.
+ */
+function getReasonForBonusMonths(bonusMonths: Number, isReferralCodeSignup: boolean): TranslationKey | null {
+	if (bonusMonths == 12) {
+		return "chooseYearlyForOffer_msg"
+	} else if (bonusMonths == 1) {
+		return "referralSignup_msg"
+	} else if (bonusMonths == 0 && isReferralCodeSignup) {
+		return "referralSignupInvalid_msg"
+	} else {
+		return null
 	}
 }

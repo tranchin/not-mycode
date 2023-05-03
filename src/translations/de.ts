@@ -1667,5 +1667,8 @@ export default {
 		"pricing.downgradeToPrivateNotAllowed_msg": "Es ist nicht möglich einen Geschäftkunden-Account in einen Privat-Account umzuwandeln.",
 		"businessUseUpgradeNeeded_msg": "Du darfst leider gerade keine E-Mails senden oder empfangen (außer an den Support unter sales@tutao.de), da du einen Geschäftskunden-Account verwendest, der nur mit einem bezahlten Abo erlaubt ist. Bitte buche jetzt ein Abo.",
 		"buyEmailAliasInfo_msg": "Bitte wähle eins der E-Mail-Alias-Pakete aus, um die verfügbaren E-Mail-Aliasse zu ändern. Die gebuchten E-Mail-Aliasse können von beliebigen Benutzern verwendet werden.",
+		"newPlansNews_title": "Bereit für mehr?!",
+		"newPlansExplanation_msg": "Wir führen neue bezahlte Pläne in Tutanota ein: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
+		"newPlansOfferExplanation_msg": "Wechsel jetzt, und profitiere von unserem exclusiven Einführungsangebot: Buche jährlich, und bekomme das zweite Jahr umsonst dazu. Mit diesem einmaligen Angebot sparst du 50% auf alle Tutanota Pläne!!! 🥳",
 	}
 }

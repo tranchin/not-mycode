@@ -12,6 +12,7 @@ import {
 	FeatureType,
 	InvoiceData,
 	Keys,
+	LegacyPlans,
 	NewBusinessPlans,
 	PlanType,
 	UnsubscribeFailureReason,
@@ -47,7 +48,7 @@ export async function showSwitchDialog(
 	const deferred = defer<PlanType>()
 	const [featureListProvider, priceAndConfigProvider] = await showProgressDialog(
 		"pleaseWait_msg",
-		Promise.all([FeatureListProvider.getInitializedInstance(), PriceAndConfigProvider.getInitializedInstance(null)]),
+		Promise.all([FeatureListProvider.getInitializedInstance(), PriceAndConfigProvider.getInitializedInstance(null, locator.serviceExecutor, null)]),
 	)
 	const model = new SwitchSubscriptionDialogModel(customer, accountingInfo, await locator.logins.getUserController().getPlanType())
 	const cancelAction = () => {
@@ -68,24 +69,23 @@ export async function showSwitchDialog(
 	}
 	const currentPlanInfo = model.currentPlanInfo
 	const businessUse = stream(currentPlanInfo.businessUse)
+	const paymentInterval = stream(currentPlanInfo.paymentInterval)
 	const dialog: Dialog = Dialog.largeDialog(headerBarAttrs, {
 		view: () =>
 			m(
 				"#upgrade-account-dialog.pt",
 				m(SubscriptionSelector, {
-					// paymentInterval will not be updated as isInitialUpgrade is false
 					options: {
 						businessUse,
-						paymentInterval: stream(currentPlanInfo.paymentInterval),
+						paymentInterval: paymentInterval,
 					},
-					campaignInfoTextId: null,
-					referralCodeMsg: null,
+					priceInfoTextId: priceAndConfigProvider.getPriceInfoMessage(),
 					msg: reason,
 					boxWidth: 230,
 					boxHeight: 270,
 					acceptedPlans: acceptedPlans,
 					currentPlanType: currentPlanInfo.planType,
-					isInitialUpgrade: false,
+					shouldStartNewPaymentInterval: LegacyPlans.includes(currentPlanInfo.planType),
 					actionButtons: subscriptionActionButtons,
 					featureListProvider: featureListProvider,
 					priceAndConfigProvider,

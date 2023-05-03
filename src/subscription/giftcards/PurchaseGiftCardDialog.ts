@@ -287,7 +287,7 @@ async function loadGiftCardModel(): Promise<PurchaseGiftCardModel> {
 		)
 	}
 
-	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(null)
+	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(null, locator.serviceExecutor, null)
 	return new PurchaseGiftCardModel({
 		purchaseLimit: filterInt(giftCardInfo.maxPerPeriod),
 		purchasePeriodMonths: filterInt(giftCardInfo.period),

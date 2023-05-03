@@ -1652,7 +1652,7 @@ export default {
 		"currentPlanDiscontinued_msg": "Your current plan is no longer available. Please choose between the plans displayed below.",
 		"tooManyCustomDomains_msg": "You have too many custom domains active.",
 		"deleteTemplateGroups_msg": "There are still template lists active which will need to be deleted before you can downgrade. This may include shared template lists or template lists belonging to your users.",
-		"accountSwitchNotPossible_msg": "You need to deactivate features before downgrading. {detailMsg}",
+		"accountSwitchNotPossible_msg": "Downgrading is currently not possible. {detailMsg}",
 		"giftCardOptionTextC_msg": "For {fullCredit} credit or prepayment for a Revolutionary plan",
 		"giftCardOptionTextD_msg": "For {fullCredit} credit or a Revolutionary plan.",
 		"giftCardOptionTextE_msg": "For {fullCredit} credit or a Revolutionary plan with {remainingCredit} credit.",

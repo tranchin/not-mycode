@@ -537,6 +537,17 @@ export const enum UnsubscribeFailureReason {
 	TOO_MANY_DOMAINS = "unsubscribe.too_many_domains",
 	HAS_TEMPLATE_GROUP = "unsubscribe.has_template_group",
 	WHITELABEL_DOMAIN_ACTIVE = "unsubscribe.whitelabel_domain_active",
+	SHARED_GROUP_ACTIVE = "unsubscribe.shared_group_active",
+}
+
+// legacy, should be deleted after clients older than 3.114 have been disabled.
+export const enum BookingFailureReason {
+	TOO_MANY_DOMAINS = "bookingservice.too_many_domains",
+	TOO_MANY_ALIASES = "bookingservice.too_many_aliases",
+	TOO_MUCH_STORAGE_USED = "bookingservice.too_much_storage_used",
+	SHARED_GROUP_ACTIVE = "bookingservice.shared_group_active",
+	WHITELABEL_DOMAIN_ACTIVE = "bookingservice.whitelabel_domain_active",
+	HAS_TEMPLATE_GROUP = "bookingservice.has_template_group",
 }
 
 export const Keys = Object.freeze({

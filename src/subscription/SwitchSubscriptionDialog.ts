@@ -4,11 +4,19 @@ import { lang } from "../misc/LanguageViewModel"
 import { ButtonAttrs, ButtonType } from "../gui/base/Button.js"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
-import { AccountType, Const, InvoiceData, Keys, NewBusinessPlans, PlanType, UnsubscribeFailureReason } from "../api/common/TutanotaConstants"
+import {
+	AccountType,
+	BookingFailureReason,
+	Const,
+	InvoiceData,
+	Keys,
+	NewBusinessPlans,
+	PlanType,
+	UnsubscribeFailureReason,
+} from "../api/common/TutanotaConstants"
 import { SubscriptionActionButtons, SubscriptionSelector } from "./SubscriptionSelector"
 import stream from "mithril/stream"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
-import { BookingFailureReason } from "./SubscriptionUtils"
 import type { DialogHeaderBarAttrs } from "../gui/base/DialogHeaderBar"
 import type { CurrentSubscriptionInfo } from "./SwitchSubscriptionDialogModel"
 import { SwitchSubscriptionDialogModel } from "./SwitchSubscriptionDialogModel"
@@ -181,8 +189,7 @@ function handleSwitchAccountPreconditionFailed(e: PreconditionFailedError): Prom
 				break
 
 			default:
-				detailMsg = lang.get("unknownError_msg")
-				break
+				throw e
 		}
 
 		return Dialog.message(() =>

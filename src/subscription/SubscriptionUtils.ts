@@ -1,12 +1,10 @@
 import type { TranslationKey } from "../misc/LanguageViewModel"
-import { AccountType, BookingItemFeatureType, Const, getClientType, PlanType } from "../api/common/TutanotaConstants"
-import { PreconditionFailedError } from "../api/common/error/RestError"
+import { AccountType, BookingItemFeatureType, getClientType, PlanType } from "../api/common/TutanotaConstants"
 import type { Customer, CustomerInfo } from "../api/entities/sys/TypeRefs.js"
-import { Booking, createBookingServiceData, createPaymentDataServiceGetData } from "../api/entities/sys/TypeRefs.js"
-import { Dialog } from "../gui/base/Dialog"
-import { LazyLoaded, ofClass } from "@tutao/tutanota-utils"
+import { Booking, createPaymentDataServiceGetData } from "../api/entities/sys/TypeRefs.js"
+import { LazyLoaded } from "@tutao/tutanota-utils"
 import { locator } from "../api/main/MainLocator"
-import { BookingService, PaymentDataService } from "../api/entities/sys/Services"
+import { PaymentDataService } from "../api/entities/sys/Services"
 import { SubscriptionConfig } from "./FeatureListProvider"
 
 export const enum UpgradeType {
@@ -147,17 +145,6 @@ export function getPreconditionFailedPaymentMsg(data: string | null): Translatio
 		default:
 			return "payContactUsError_msg"
 	}
-}
-
-export const enum BookingFailureReason {
-	TOO_MANY_DOMAINS = "bookingservice.too_many_domains",
-	BUSINESS_USE = "bookingservice.business_use",
-	TOO_MANY_ALIASES = "bookingservice.too_many_aliases",
-	TOO_MUCH_STORAGE_USED = "bookingservice.too_much_storage_used",
-	SHARED_GROUP_ACTIVE = "bookingservice.shared_group_active",
-	WHITELABEL_DOMAIN_ACTIVE = "bookingservice.whitelabel_domain_active",
-	BALANCE_INSUFFICIENT = "balance.insufficient",
-	HAS_TEMPLATE_GROUP = "bookingservice.has_template_group",
 }
 
 export function getLazyLoadedPayPalUrl(): LazyLoaded<string> {

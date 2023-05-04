@@ -1,13 +1,15 @@
 import m from "mithril"
 import { Dialog } from "../gui/base/Dialog"
-import { lang } from "../misc/LanguageViewModel"
+import { lang, TranslationKey, TranslationText } from "../misc/LanguageViewModel"
 import { ButtonAttrs, ButtonType } from "../gui/base/Button.js"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import {
 	AccountType,
+	AvailablePlanType,
 	BookingFailureReason,
 	Const,
+	FeatureType,
 	InvoiceData,
 	Keys,
 	NewBusinessPlans,
@@ -29,6 +31,7 @@ import { defer, DeferredObject, lazy } from "@tutao/tutanota-utils"
 import { showSwitchToBusinessInvoiceDataDialog } from "./SwitchToBusinessInvoiceDataDialog.js"
 import { formatNameAndAddress } from "../misc/Formatter.js"
 import { getByAbbreviation } from "../api/common/CountryList.js"
+import { isCustomizationEnabledForCustomer } from "../api/common/utils/Utils.js"
 
 /**
  * Only shown if the user is already a Premium user. Allows cancelling the subscription (only private use) and switching the subscription to a different paid subscription.
@@ -38,6 +41,8 @@ export async function showSwitchDialog(
 	customerInfo: CustomerInfo,
 	accountingInfo: AccountingInfo,
 	lastBooking: Booking,
+	acceptedPlans: AvailablePlanType[],
+	reason: TranslationText | null,
 ): Promise<PlanType> {
 	const deferred = defer<PlanType>()
 	const [featureListProvider, priceAndConfigProvider] = await showProgressDialog(
@@ -82,17 +87,17 @@ export async function showSwitchDialog(
 					},
 					campaignInfoTextId: null,
 					referralCodeMsg: null,
+					msg: reason,
 					boxWidth: 230,
 					boxHeight: 270,
+					acceptedPlans: acceptedPlans,
 					currentPlanType: currentSubscriptionInfo.planType,
-					currentlySharingOrdered: currentSubscriptionInfo.currentlySharingOrdered,
-					currentlyBusinessOrdered: currentSubscriptionInfo.currentlyBusinessOrdered,
-					currentlyWhitelabelOrdered: currentSubscriptionInfo.currentlyWhitelabelOrdered,
 					orderedContactForms: currentSubscriptionInfo.orderedContactForms,
 					isInitialUpgrade: false,
 					actionButtons: subscriptionActionButtons,
 					featureListProvider: featureListProvider,
 					priceAndConfigProvider,
+					multipleUsersAllowed: isCustomizationEnabledForCustomer(customer, FeatureType.MultipleUsers),
 				}),
 			),
 	})

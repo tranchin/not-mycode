@@ -157,7 +157,7 @@ export class GroupListView implements UpdatableSettingsViewer {
 
 	addButtonClicked() {
 		if (locator.logins.getUserController().isFreeAccount()) {
-			showNotAvailableForFreeDialog(false)
+			showNotAvailableForFreeDialog()
 		} else {
 			AddGroupDialog.show()
 		}

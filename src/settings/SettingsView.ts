@@ -18,7 +18,7 @@ import { ContactFormListView } from "./contactform/ContactFormListView.js"
 import { WhitelabelSettingsViewer } from "./whitelabel/WhitelabelSettingsViewer"
 import { Icons } from "../gui/base/icons/Icons"
 import { theme } from "../gui/theme"
-import { FeatureType, GroupType } from "../api/common/TutanotaConstants"
+import { FeatureType, GroupType, LegacyPlans } from "../api/common/TutanotaConstants"
 import { BootIcons } from "../gui/base/icons/BootIcons"
 import { locator } from "../api/main/MainLocator"
 import { WhitelabelChildrenListView } from "./WhitelabelChildrenListView"
@@ -326,7 +326,8 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 
 	private async populateAdminFolders() {
 		await this.updateShowBusinessSettings()
-		const isNewPaidPlan = await this.logins.getUserController().isNewPaidPlan()
+		const currentPlanType = await this.logins.getUserController().getPlanType()
+		const isLegacyPlan = LegacyPlans.includes(currentPlanType)
 
 		if (await this.logins.getUserController().canHaveUsers()) {
 			this._adminFolders.push(
@@ -388,7 +389,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 		}
 
 		if (!this.logins.isEnabled(FeatureType.WhitelabelChild)) {
-			if (!isNewPaidPlan) {
+			if (isLegacyPlan) {
 				this._adminFolders.push(
 					new SettingsFolder(
 						"contactForms_label",
@@ -406,7 +407,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 						"adminSubscription_action",
 						() => BootIcons.Premium,
 						"subscription",
-						() => new SubscriptionViewer(isNewPaidPlan),
+						() => new SubscriptionViewer(currentPlanType),
 						undefined,
 					).setIsVisibleHandler(() => !isIOSApp() || !this.logins.getUserController().isFreeAccount()),
 				)

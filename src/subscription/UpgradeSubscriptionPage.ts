@@ -11,7 +11,7 @@ import { Dialog, DialogType } from "../gui/base/Dialog"
 import type { WizardPageAttrs, WizardPageN } from "../gui/base/WizardDialog.js"
 import { emitWizardEvent, WizardEventType } from "../gui/base/WizardDialog.js"
 import { DefaultAnimationTime } from "../gui/animation/Animations"
-import { Keys, PlanType } from "../api/common/TutanotaConstants"
+import { AvailablePlans, Keys, PlanType } from "../api/common/TutanotaConstants"
 import { Checkbox } from "../gui/base/Checkbox.js"
 import { locator } from "../api/main/MainLocator"
 import { UsageTest } from "@tutao/tutanota-usagetests"
@@ -78,15 +78,15 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 				referralCodeMsg: data.referralCodeMsg,
 				boxWidth: 230,
 				boxHeight: 270,
+				acceptedPlans: vnode.attrs.data.acceptedPlans,
 				isInitialUpgrade: data.upgradeType !== UpgradeType.Switch,
 				currentPlanType: data.currentPlan,
-				currentlySharingOrdered: false,
-				currentlyBusinessOrdered: false,
-				currentlyWhitelabelOrdered: false,
 				orderedContactForms: 0,
 				actionButtons: subscriptionActionButtons,
 				featureListProvider: vnode.attrs.data.featureListProvider,
 				priceAndConfigProvider: vnode.attrs.data.planPrices,
+				multipleUsersAllowed: vnode.attrs.data.multipleUsersAllowed,
+				msg: null,
 			}),
 		])
 	}

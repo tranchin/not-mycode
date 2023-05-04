@@ -1,6 +1,16 @@
 import m, { Children } from "mithril"
 import { assertMainOrNode } from "../api/common/Env"
-import { AccountType, AccountTypeNames, BookingItemFeatureType, Const, OperationType, PlanType } from "../api/common/TutanotaConstants"
+import {
+	AccountType,
+	AccountTypeNames,
+	AvailablePlans,
+	BookingItemFeatureType,
+	Const,
+	LegacyPlans,
+	NewPaidPlans,
+	OperationType,
+	PlanType,
+} from "../api/common/TutanotaConstants"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, GiftCard, OrderProcessingAgreement } from "../api/entities/sys/TypeRefs.js"
 import {
 	AccountingInfoTypeRef,
@@ -79,13 +89,13 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	private _accountingInfo: AccountingInfo | null = null
 	private _lastBooking: Booking | null = null
 	private _orderAgreement: OrderProcessingAgreement | null = null
-	private isNewPaidPlan: boolean
+	private currentPlanType: PlanType
 	private _isCancelled: boolean | null = null
 	private _giftCards: Map<Id, GiftCard>
 	private _giftCardsExpanded: Stream<boolean>
 
-	constructor(isNewPaidPlan: boolean) {
-		this.isNewPaidPlan = isNewPaidPlan
+	constructor(currentPlanType: PlanType) {
+		this.currentPlanType = currentPlanType
 		const isPremiumPredicate = () => locator.logins.getUserController().isPremiumAccount()
 
 		const deleteAccountExpanded = stream(false)
@@ -107,7 +117,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 						locator.logins.getUserController().isFreeAccount()
 							? m(IconButton, {
 									title: "upgrade_action",
-									click: showUpgradeWizard,
+									click: () => showUpgradeWizard(),
 									icon: Icons.Edit,
 									size: ButtonSize.Compact,
 							  })
@@ -116,7 +126,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 									title: "subscription_label",
 									click: () => {
 										if (this._accountingInfo && this._customer && this._customerInfo && this._lastBooking) {
-											showSwitchDialog(this._customer, this._customerInfo, this._accountingInfo, this._lastBooking)
+											showSwitchDialog(this._customer, this._customerInfo, this._accountingInfo, this._lastBooking, AvailablePlans, null)
 										}
 									},
 									icon: Icons.Edit,
@@ -149,7 +159,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					},
 					renderGiftCardTable(Array.from(this._giftCards.values()), isPremiumPredicate),
 				),
-				!isNewPaidPlan
+				LegacyPlans.includes(this.currentPlanType)
 					? [
 							m(".h4.mt-l", lang.get("adminPremiumFeatures_action")),
 							m(TextField, {
@@ -371,7 +381,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 							this._lastBooking = bookings.length > 0 ? bookings[bookings.length - 1] : null
 							this._customer = customer
 							this._isCancelled = customer.canceledPremiumAccount
-							this.isNewPaidPlan = await userController.isNewPaidPlan()
+							this.currentPlanType = await userController.getPlanType()
 
 							await this._updateSubscriptionField(this._isCancelled)
 
@@ -659,7 +669,7 @@ function changeSubscriptionInterval(accountingInfo: AccountingInfo, paymentInter
 function renderGiftCardTable(giftCards: GiftCard[], isPremiumPredicate: () => boolean): Children {
 	const addButtonAttrs: IconButtonAttrs = {
 		title: "buyGiftCard_label",
-		click: createNotAvailableForFreeClickHandler(false, () => showPurchaseGiftCardDialog(), isPremiumPredicate),
+		click: createNotAvailableForFreeClickHandler(NewPaidPlans, () => showPurchaseGiftCardDialog(), isPremiumPredicate),
 		icon: Icons.Add,
 		size: ButtonSize.Compact,
 	}

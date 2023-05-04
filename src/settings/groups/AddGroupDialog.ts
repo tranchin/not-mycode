@@ -212,7 +212,7 @@ function addTemplateGroup(name: string): Promise<boolean> {
 						e.data === TemplateGroupPreconditionFailedReason.BUSINESS_FEATURE_REQUIRED ||
 						e.data === TemplateGroupPreconditionFailedReason.UNLIMITED_REQUIRED
 					) {
-						showPlanUpgradeRequiredDialog([PlanType.Unlimited], "unlimitedRequired_msg")
+						showPlanUpgradeRequiredDialog([PlanType.Unlimited])
 					} else {
 						Dialog.message(() => e.message)
 					}

@@ -78,10 +78,10 @@ export class WhitelabelBrandingDomainSettings implements Component<WhitelabelBra
 
 	private async edit(isWhitelabelFeatureEnabled: boolean, customerInfo: CustomerInfo): Promise<void> {
 		if (locator.logins.getUserController().isFreeAccount()) {
-			showNotAvailableForFreeDialog(false)
+			showNotAvailableForFreeDialog([PlanType.Unlimited])
 		} else {
 			if (!isWhitelabelFeatureEnabled) {
-				isWhitelabelFeatureEnabled = await showPlanUpgradeRequiredDialog([PlanType.Unlimited], "unlimitedRequired_msg")
+				isWhitelabelFeatureEnabled = await showPlanUpgradeRequiredDialog([PlanType.Unlimited])
 			}
 			if (isWhitelabelFeatureEnabled) {
 				SetCustomDomainCertificateDialog.show(customerInfo)

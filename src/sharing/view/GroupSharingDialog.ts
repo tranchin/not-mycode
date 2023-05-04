@@ -9,7 +9,7 @@ import { lang } from "../../misc/LanguageViewModel"
 import { getMailAddressDisplayText } from "../../mail/model/MailUtils"
 import { ButtonType } from "../../gui/base/Button.js"
 import { showProgressDialog } from "../../gui/dialogs/ProgressDialog"
-import { ShareCapability } from "../../api/common/TutanotaConstants"
+import { NewPaidPlans, ShareCapability } from "../../api/common/TutanotaConstants"
 import { DropDownSelector } from "../../gui/base/DropDownSelector.js"
 import { PreconditionFailedError, TooManyRequestsError } from "../../api/common/error/RestError"
 import { TextField } from "../../gui/base/TextField.js"
@@ -230,7 +230,7 @@ async function showAddParticipantDialog(model: GroupSharingModel, texts: GroupSh
 			}
 
 			const { checkPremiumSubscription } = await import("../../misc/SubscriptionDialogs")
-			if (await checkPremiumSubscription(false)) {
+			if (await checkPremiumSubscription()) {
 				try {
 					const invitedMailAddresses = await showProgressDialog(
 						"calendarInvitationProgress_msg",
@@ -253,7 +253,7 @@ async function showAddParticipantDialog(model: GroupSharingModel, texts: GroupSh
 								true,
 							)
 							const { showSwitchDialog } = await import("../../subscription/SwitchSubscriptionDialog.js")
-							showSwitchDialog(customer, customerInfo, accountingInfo, bookings[0])
+							await showSwitchDialog(customer, customerInfo, accountingInfo, bookings[0], NewPaidPlans, "newPaidPlanRequired_msg")
 						} else {
 							Dialog.message(() => `${texts.sharingNotOrderedUser} ${lang.get("contactAdmin_msg")}`)
 						}

@@ -62,7 +62,7 @@ export function showSupportDialog(logins: LoginController) {
 				closeAction()
 			} else {
 				// noinspection JSIgnoredPromiseFromCall
-				showNotAvailableForFreeDialog(true)
+				showNotAvailableForFreeDialog()
 			}
 		},
 	}

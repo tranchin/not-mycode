@@ -28,8 +28,8 @@ export class WhitelabelStatusSettings implements Component<WhitelabelStatusSetti
 		return m(IconButton, {
 			title: "whitelabelDomain_label",
 			click: createNotAvailableForFreeClickHandler(
-				false,
-				() => showPlanUpgradeRequiredDialog([PlanType.Unlimited], "unlimitedRequired_msg"),
+				[PlanType.Unlimited],
+				() => showPlanUpgradeRequiredDialog([PlanType.Unlimited]),
 				() => logins.getUserController().isPremiumAccount(),
 			),
 			icon: Icons.Edit,

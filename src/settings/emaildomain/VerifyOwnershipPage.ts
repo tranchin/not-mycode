@@ -122,7 +122,7 @@ export class VerifyOwnershipPageAttrs implements WizardPageAttrs<AddDomainData> 
 				ofClass(PreconditionFailedError, (e) => {
 					if (e.data === CustomDomainFailureReasons.LIMIT_REACHED) {
 						// ignore promise. always return false to not switch to next page.
-						showPlanUpgradeRequiredDialog([PlanType.Legend, PlanType.Advanced, PlanType.Unlimited], "businessFeatureRequiredMultipleDomains_msg")
+						showPlanUpgradeRequiredDialog([PlanType.Legend, PlanType.Advanced, PlanType.Unlimited])
 					} else {
 						Dialog.message(() => e.toString())
 					}

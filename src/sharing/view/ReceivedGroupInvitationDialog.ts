@@ -111,13 +111,13 @@ export function showGroupInvitationDialog(invitation: ReceivedGroupInvitation) {
 
 async function checkCanAcceptInvitation(invitation: ReceivedGroupInvitation): Promise<boolean> {
 	const SubscriptionDialogUtils = await import("../../misc/SubscriptionDialogs")
-	const allowed = await SubscriptionDialogUtils.checkPremiumSubscription(false)
+	const allowed = await SubscriptionDialogUtils.checkPremiumSubscription()
 	if (!allowed) {
 		return false
 	}
 	const customer = await locator.logins.getUserController().loadCustomer()
 	if (groupRequiresBusinessFeature(getInvitationGroupType(invitation)) && !isCustomizationEnabledForCustomer(customer, FeatureType.BusinessFeatureEnabled)) {
-		return showPlanUpgradeRequiredDialog(NewPaidPlans, "businessFeatureRequiredGeneral_msg")
+		return showPlanUpgradeRequiredDialog(NewPaidPlans)
 	} else {
 		return true
 	}

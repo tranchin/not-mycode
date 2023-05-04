@@ -95,7 +95,7 @@ export class MailAddressTable implements Component<MailAddressTableAttrs> {
 		const { model } = attrs
 		switch (model.checkTryingToAddAlias()) {
 			case "freeaccount":
-				showNotAvailableForFreeDialog(true)
+				showNotAvailableForFreeDialog()
 				break
 			case "limitreached":
 				this.onAliasLimitReached()

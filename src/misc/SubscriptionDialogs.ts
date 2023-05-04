@@ -1,41 +1,35 @@
 import type { LoginController } from "../api/main/LoginController"
-import type { lazy } from "@tutao/tutanota-utils"
-import { assertNotNull, neverNull } from "@tutao/tutanota-utils"
+import { assertNotNull, downcast, neverNull } from "@tutao/tutanota-utils"
 import { Dialog } from "../gui/base/Dialog"
 import type { TranslationKey } from "./LanguageViewModel"
-import { InfoLink, lang } from "./LanguageViewModel"
 import { isIOSApp } from "../api/common/Env"
 import type { clickHandler } from "../gui/base/GuiUtils"
 import { locator } from "../api/main/MainLocator"
 import { BookingTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { GENERATED_MAX_ID } from "../api/common/utils/EntityUtils.js"
-import { PlanType } from "../api/common/TutanotaConstants.js"
+import { AvailablePlanType, NewBusinessPlans, NewPaidPlans, NewPersonalPlans } from "../api/common/TutanotaConstants.js"
+import { showSwitchDialog } from "../subscription/SwitchSubscriptionDialog.js"
 
 /**
  * Opens a dialog which states that the function is not available in the Free subscription and provides an option to upgrade.
- * @param isInPremiumIncluded Whether the feature is included in the premium membership or not.
  */
-export async function showNotAvailableForFreeDialog(isInPremiumIncluded: boolean, customMessage?: TranslationKey) {
-	const wizard = await import("../subscription/UpgradeSubscriptionWizard")
-
+export async function showNotAvailableForFreeDialog(acceptedPlans: AvailablePlanType[] = NewPaidPlans) {
 	if (isIOSApp()) {
 		await Dialog.message("notAvailableInApp_msg")
 	} else {
-		const baseMessage =
-			customMessage != null ? customMessage : !isInPremiumIncluded ? "onlyAvailableForPremiumNotIncluded_msg" : "onlyAvailableForPremium_msg"
-
-		const message = `${lang.get(baseMessage)}\n\n${lang.get("premiumOffer_msg")}`
-		const confirmed = await Dialog.reminder(lang.get("upgradeReminderTitle_msg"), message, InfoLink.PremiumProBusiness)
-		if (confirmed) {
-			wizard.showUpgradeWizard()
-		}
+		const wizard = await import("../subscription/UpgradeSubscriptionWizard")
+		await wizard.showUpgradeWizard(acceptedPlans)
 	}
 }
 
-export function createNotAvailableForFreeClickHandler(includedInPremium: boolean, click: clickHandler, available: () => boolean): clickHandler {
+export function createNotAvailableForFreeClickHandler(
+	acceptedPlans: AvailablePlanType[] = NewPaidPlans,
+	click: clickHandler,
+	available: () => boolean,
+): clickHandler {
 	return (e, dom) => {
 		if (!available()) {
-			showNotAvailableForFreeDialog(includedInPremium)
+			showNotAvailableForFreeDialog(acceptedPlans)
 		} else {
 			click(e, dom)
 		}
@@ -45,9 +39,9 @@ export function createNotAvailableForFreeClickHandler(includedInPremium: boolean
 /**
  * Returns whether premium is active and shows one of the showNotAvailableForFreeDialog or subscription cancelled dialogs if needed.
  */
-export function checkPremiumSubscription(included: boolean): Promise<boolean> {
+export function checkPremiumSubscription(): Promise<boolean> {
 	if (locator.logins.getUserController().isFreeAccount()) {
-		showNotAvailableForFreeDialog(included)
+		showNotAvailableForFreeDialog()
 		return Promise.resolve(false)
 	}
 
@@ -63,35 +57,45 @@ export function checkPremiumSubscription(included: boolean): Promise<boolean> {
 		})
 }
 
-export function showMoreStorageNeededOrderDialog(loginController: LoginController, messageIdOrMessageFunction: TranslationKey): Promise<void> {
+export async function showMoreStorageNeededOrderDialog(loginController: LoginController, messageIdOrMessageFunction: TranslationKey): Promise<void> {
 	const userController = locator.logins.getUserController()
-
 	if (!userController.isGlobalAdmin()) {
 		return Dialog.message("insufficientStorageWarning_msg")
 	}
-
-	const confirmMsg = () => lang.get(messageIdOrMessageFunction) + "\n\n" + lang.get("onlyAvailableForPremiumNotIncluded_msg")
-
-	return Dialog.confirm(confirmMsg, "upgrade_action").then((confirm) => {
-		if (confirm) {
-			import("../subscription/UpgradeSubscriptionWizard").then((wizard) => wizard.showUpgradeWizard())
+	const confirmed = await Dialog.confirm(messageIdOrMessageFunction, "upgrade_action")
+	if (confirmed) {
+		if (userController.isFreeAccount()) {
+			const wizard = await import("../subscription/UpgradeSubscriptionWizard")
+			return wizard.showUpgradeWizard()
 		}
-	})
+		await showPlanUpgradeRequiredDialog()
+	}
 }
 
 /**
  * @returns true if the needed plan has been ordered
  */
-export async function showPlanUpgradeRequiredDialog(acceptedPlans: PlanType[], reason: TranslationKey | lazy<string>): Promise<boolean> {
+export async function showPlanUpgradeRequiredDialog(acceptedPlans: AvailablePlanType[] = NewPaidPlans): Promise<boolean> {
 	const userController = locator.logins.getUserController()
 	if (userController.isFreeAccount()) {
-		showNotAvailableForFreeDialog(false)
+		showNotAvailableForFreeDialog()
 		return false
 	} else {
 		let customerInfo = await userController.loadCustomerInfo()
 		const bookings = await locator.entityClient.loadRange(BookingTypeRef, neverNull(customerInfo.bookings).items, GENERATED_MAX_ID, 1, true)
 		const { showSwitchDialog } = await import("../subscription/SwitchSubscriptionDialog")
-		await showSwitchDialog(await userController.loadCustomer(), customerInfo, await userController.loadAccountingInfo(), assertNotNull(bookings[0]))
-		return acceptedPlans.includes(await userController.getPlanType())
+
+		const businessPlanRequired =
+			acceptedPlans.filter((plan) => NewBusinessPlans.includes(plan)).length === acceptedPlans.length &&
+			NewPersonalPlans.includes(downcast(customerInfo.plan))
+		await showSwitchDialog(
+			await userController.loadCustomer(),
+			customerInfo,
+			await userController.loadAccountingInfo(),
+			assertNotNull(bookings[0]),
+			acceptedPlans,
+			businessPlanRequired ? "pricing.notSupportedByPersonalPlan_msg" : "newPaidPlanRequired_msg",
+		)
+		return acceptedPlans.includes(downcast(await userController.getPlanType()))
 	}
 }

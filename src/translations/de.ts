@@ -1652,7 +1652,6 @@ export default {
 		"yourMessage_label": "Deine Nachricht",
 		"you_label": "Du",
 		// TODO
-		"unlimitedRequired_msg": "Um diese Funktion zu verwenden, musst du zum Plan Unlimited wechseln.",
 		"currentPlanDiscontinued_msg": "Dein aktuelles Abonnement ist nicht mehr verfügbar. Bitte wähle eines der unten angezeigten Abonnements.",
 		"addCustomDomainAddAdresses_msg": "Die Domain wurde zu deinem Account hinzugefügt, du kannst nun eine neue E-Mail-Adresse erstellen.",
 		"giftCardOptionTextC_msg": "Für {fullCredit} Gutahben oder Anzahlung für einen Revolutionary-Account.",

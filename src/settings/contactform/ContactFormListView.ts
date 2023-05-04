@@ -143,7 +143,7 @@ export class ContactFormListView implements UpdatableSettingsViewer {
 
 	private addButtonClicked() {
 		if (locator.logins.getUserController().isFreeAccount()) {
-			showNotAvailableForFreeDialog(false)
+			showNotAvailableForFreeDialog()
 		} else {
 			ContactFormEditor.show(null, true, (contactFormId) => this.list.scrollToIdAndSelectWhenReceived(contactFormId))
 		}

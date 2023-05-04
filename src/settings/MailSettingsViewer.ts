@@ -401,7 +401,7 @@ export class MailSettingsViewer implements UpdatableSettingsViewer {
 
 	private async onEditStoredDataTimeRangeClicked() {
 		if (locator.logins.getUserController().isFreeAccount()) {
-			showNotAvailableForFreeDialog(true, "offlineStoragePremiumOnly_msg")
+			showNotAvailableForFreeDialog()
 		} else {
 			await showEditStoredDataTimeRangeDialog(this.offlineStorageSettings)
 			m.redraw()

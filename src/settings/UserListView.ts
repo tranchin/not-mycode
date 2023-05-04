@@ -171,7 +171,7 @@ export class UserListView implements UpdatableSettingsViewer {
 
 	private addButtonClicked() {
 		if (locator.logins.getUserController().isFreeAccount()) {
-			showNotAvailableForFreeDialog(false)
+			showNotAvailableForFreeDialog()
 		} else {
 			AddUserDialog.show()
 		}

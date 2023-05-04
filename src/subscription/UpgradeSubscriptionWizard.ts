@@ -10,7 +10,15 @@ import {
 	UpgradePriceServiceReturn,
 } from "../api/entities/sys/TypeRefs.js"
 import type { InvoiceData, PaymentData } from "../api/common/TutanotaConstants"
-import { Const, getPaymentMethodType, PaymentMethodType as PaymentMethod, PlanType } from "../api/common/TutanotaConstants"
+import {
+	AvailablePlans,
+	AvailablePlanType,
+	Const,
+	getPaymentMethodType,
+	NewPaidPlans,
+	PaymentMethodType as PaymentMethod,
+	PlanType,
+} from "../api/common/TutanotaConstants"
 import { getByAbbreviation } from "../api/common/CountryList"
 import { UpgradeSubscriptionPage, UpgradeSubscriptionPageAttrs } from "./UpgradeSubscriptionPage"
 import { formatNameAndAddress } from "../misc/Formatter"
@@ -66,6 +74,8 @@ export type UpgradeSubscriptionData = {
 	featureListProvider: FeatureListProvider
 	referralCode: string | null
 	referralCodeMsg: TranslationKey | null
+	multipleUsersAllowed: boolean
+	acceptedPlans: AvailablePlanType[]
 }
 
 export function loadUpgradePrices(registrationDataId: string | null): Promise<UpgradePriceServiceReturn> {
@@ -91,7 +101,7 @@ async function loadCustomerAndInfo(): Promise<{
 	}
 }
 
-export async function showUpgradeWizard(): Promise<void> {
+export async function showUpgradeWizard(acceptedPlans: AvailablePlanType[] = NewPaidPlans): Promise<void> {
 	const { customer, accountingInfo } = await loadCustomerAndInfo()
 	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(null)
 
@@ -126,6 +136,8 @@ export async function showUpgradeWizard(): Promise<void> {
 		featureListProvider: featureListProvider,
 		referralCode: null,
 		referralCodeMsg: null,
+		multipleUsersAllowed: false,
+		acceptedPlans,
 	}
 	const wizardPages = [
 		wizardPageWrapper(UpgradeSubscriptionPage, new UpgradeSubscriptionPageAttrs(upgradeData)),
@@ -200,6 +212,8 @@ export async function loadSignupWizard(
 		featureListProvider: featureListProvider,
 		referralCode,
 		referralCodeMsg,
+		multipleUsersAllowed: false,
+		acceptedPlans: AvailablePlans,
 	}
 
 	const invoiceAttrs = new InvoiceAndPaymentDataPageAttrs(signupData)

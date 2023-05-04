@@ -14,7 +14,7 @@ export async function createInitialTemplateListIfAllowed(): Promise<TemplateGrou
 	const allowed =
 		(await userController.getPlanType()) === PlanType.Unlimited ||
 		isCustomizationEnabledForCustomer(customer, FeatureType.BusinessFeatureEnabled) ||
-		(await showPlanUpgradeRequiredDialog([PlanType.Unlimited], "unlimitedRequired_msg"))
+		(await showPlanUpgradeRequiredDialog([PlanType.Unlimited]))
 	if (allowed) {
 		const groupId = await locator.groupManagementFacade.createTemplateGroup("")
 		return locator.entityClient.load<TemplateGroupRoot>(TemplateGroupRootTypeRef, groupId)

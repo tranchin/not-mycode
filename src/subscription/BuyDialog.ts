@@ -65,16 +65,6 @@ async function prepareDialog({ featureType, count, reactivate }: BookingParams):
 	}
 }
 
-/**
- * Shows the buy dialog to enable or disable the business package.
- * @param enable true if the business package should be enabled otherwise false.
- * @returns false if the execution was successful. True if the action has been cancelled by user or the precondition has failed.
- */
-export async function showBusinessBuyDialog(enable: boolean): Promise<boolean> {
-	// FIXME: make this show a switch subscription dialog for business
-	throw new Error("buy a business account ya cheapskate!")
-}
-
 function showDialog(okLabel: TranslationKey, view: () => Children) {
 	return new Promise<boolean>((resolve) => {
 		let dialog: Dialog

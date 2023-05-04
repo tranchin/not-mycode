@@ -552,7 +552,7 @@ export function showUserImportDialog(customDomains: string[]) {
 		child: form,
 		okAction: (csvDialog) => {
 			if (locator.logins.getUserController().isFreeAccount()) {
-				showNotAvailableForFreeDialog(false)
+				showNotAvailableForFreeDialog()
 			} else {
 				let closeCsvDialog = checkAndImportUserData(editor.getValue(), customDomains)
 

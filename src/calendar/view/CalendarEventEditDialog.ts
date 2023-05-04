@@ -164,7 +164,7 @@ export async function showCalendarEventDialog(
 				)
 				.catch(
 					ofClass(BusinessFeatureRequiredError, async (e) => {
-						const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(NewPaidPlans, () => e.message)
+						const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(NewPaidPlans)
 						// entity event updates are too slow to call updateBusinessFeature()
 						viewModel.hasBusinessFeature(businessFeatureOrdered)
 						return false
@@ -640,7 +640,7 @@ function renderAddAttendeesField(text: Stream<string>, viewModel: CalendarEventV
 			onRecipientAdded: async (address, name, contact) => {
 				const notAvailable = await viewModel.shouldShowSendInviteNotAvailable()
 				if (notAvailable) {
-					const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(NewPaidPlans, "businessFeatureRequiredInvite_msg")
+					const businessFeatureOrdered = await showPlanUpgradeRequiredDialog(NewPaidPlans)
 					if (businessFeatureOrdered) {
 						viewModel.addGuest(address, contact)
 					}

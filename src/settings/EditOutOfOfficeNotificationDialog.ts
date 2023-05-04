@@ -38,7 +38,7 @@ export function showEditOutOfOfficeNotificationDialog(outOfOfficeNotification: O
 			.saveOutOfOfficeNotification()
 			.then(() => cancel())
 			.catch(ofClass(UserError, (e) => showUserError(e)))
-			.catch(ofClass(BusinessFeatureRequiredError, (e) => showPlanUpgradeRequiredDialog(NewPaidPlans, () => e.message)))
+			.catch(ofClass(BusinessFeatureRequiredError, (e) => showPlanUpgradeRequiredDialog(NewPaidPlans)))
 	}
 
 	function cancel() {

@@ -31,98 +31,6 @@ export class PinchZoomV2 {
 		}
 
 		this.root.style.touchAction = "pan-y pan-x" // makes zooming smooth
-		////// new
-		// const outerThis = this
-		// let hammer = new Hammer(this.root, {})
-
-		// hammer.get("pinch").set({ enable: true })
-		// hammer.get("pan").set({ threshold: 0 })
-
-		// @ts-ignore
-		// hammer.on("doubletap", function (e) { //FIXME
-		// 	let scaleFactor = 1
-		// 	if (outerThis.current.zooming === false) {
-		// 		outerThis.current.zooming = true
-		// 	} else {
-		// 		outerThis.current.zooming = false
-		// 		scaleFactor = -scaleFactor
-		// 	}
-		//
-		// 	root.style.transition = "0.3s"
-		// 	setTimeout(function () {
-		// 		root.style.transition = "none"
-		// 	}, 300)
-		//
-		// 	let zoomOrigin = outerThis.getRelativePosition(root, { x: e.center.x, y: e.center.y }, outerThis.originalSize, outerThis.current.z)
-		// 	let d = outerThis.scaleFrom(zoomOrigin, outerThis.current.z, outerThis.current.z + scaleFactor)
-		// 	outerThis.setCurrentSafePosition(d.x, d.y, d.z)
-		//
-		// 	outerThis.last.x = outerThis.current.x
-		// 	outerThis.last.y = outerThis.current.y
-		// 	outerThis.last.z = outerThis.current.z
-		//
-		// 	outerThis.update()
-		// })
-
-		// @ts-ignore
-		// hammer.on("pan", function (e) {
-		// 	if (outerThis.current.z <= 1) {
-		// 		return // use browser behavior //FIXME propagation
-		// 	}
-		// 	if (outerThis.lastEvent !== "pan") {
-		// 		outerThis.fixDeltaIssue = {
-		// 			x: e.deltaX,
-		// 			y: e.deltaY,
-		// 		}
-		// 	}
-		//
-		// 	outerThis.setCurrentSafePosition(
-		// 		outerThis.last.x + e.deltaX - outerThis.fixDeltaIssue.x,
-		// 		outerThis.last.y + e.deltaY - outerThis.fixDeltaIssue.y,
-		// 		outerThis.current.z,
-		// 	)
-		// 	outerThis.lastEvent = "pan"
-		// 	outerThis.update()
-		// })
-
-		// @ts-ignore
-		// hammer.on("pinch", function (e) {
-		// 	let d = outerThis.scaleFrom(outerThis.pinchZoomOrigin, outerThis.last.z, outerThis.last.z * e.scale)
-		// 	outerThis.setCurrentSafePosition(d.x + outerThis.last.x + e.deltaX, d.y + outerThis.last.y + e.deltaY, d.z + outerThis.last.z)
-		// 	outerThis.lastEvent = "pinch"
-		// 	outerThis.update()
-		// })
-
-		// @ts-ignore
-		// hammer.on("pinchstart", function (e) {
-		// 	outerThis.pinchStart.x = e.center.x
-		// 	outerThis.pinchStart.y = e.center.y
-		// 	outerThis.pinchZoomOrigin = outerThis.getRelativePosition(
-		// 		outerThis.root,
-		// 		{
-		// 			x: outerThis.pinchStart.x,
-		// 			y: outerThis.pinchStart.y,
-		// 		},
-		// 		outerThis.originalSize,
-		// 		outerThis.current.z,
-		// 	)
-		// 	outerThis.lastEvent = "pinchstart"
-		// })
-
-		// // @ts-ignore
-		// hammer.on("panend", function (e) {
-		// 	outerThis.last.x = outerThis.current.x
-		// 	outerThis.last.y = outerThis.current.y
-		// 	outerThis.lastEvent = "panend"
-		// })
-
-		// // @ts-ignore
-		// hammer.on("pinchend", function (e) {
-		// 	outerThis.last.x = outerThis.current.x
-		// 	outerThis.last.y = outerThis.current.y
-		// 	outerThis.last.z = outerThis.current.z
-		// 	outerThis.lastEvent = "pinchend"
-		// })
 	}
 
 	private touchmove_handler(ev: TouchEvent) {
@@ -201,14 +109,14 @@ export class PinchZoomV2 {
 
 	private pinchHandling(ev: TouchEvent) {
 		// new pinch gesture?
-		let delta = { x: 0, y: 0 }
+		// let delta = { x: 0, y: 0 }
 		if (!(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))) {
 			this.startPinchSession(ev)
-			delta = this.calculateDelta(true, { x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
-			this.previousInput = { delta: { x: delta.x, y: delta.y }, event: "start" }
+			// delta = this.calculateDelta(true, { x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
+			// this.previousInput = { delta: { x: delta.x, y: delta.y }, event: "start" }
 		} else {
-			delta = this.calculateDelta(false, { x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
-			this.previousInput = { delta: { x: delta.x, y: delta.y }, event: "move" }
+			// delta = this.calculateDelta(false, { x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
+			// this.previousInput = { delta: { x: delta.x, y: delta.y }, event: "move" }
 		}
 
 		//update current touches
@@ -225,7 +133,7 @@ export class PinchZoomV2 {
 			) / this.pointDistance(this.firstMultiple.pointer1, this.firstMultiple.pointer2)
 
 		let d = this.scaleFrom(this.pinchZoomOrigin, this.last.z, this.last.z * scaling)
-		this.setCurrentSafePosition(d.x + this.last.x + delta.x, d.y + this.last.y + delta.y, d.z + this.last.z) //FIXME
+		this.setCurrentSafePosition(d.x + this.pinchZoomOrigin.x /* + this.last.x*/, d.y + this.pinchZoomOrigin.y /* + this.last.y*/, d.z + this.last.z) //FIXME
 		this.lastEvent = "pinch"
 		this.update()
 	}

@@ -1,6 +1,6 @@
 import m from "mithril"
 import { Dialog } from "../gui/base/Dialog"
-import { lang, TranslationKey, TranslationText } from "../misc/LanguageViewModel"
+import { lang, TranslationText } from "../misc/LanguageViewModel"
 import { ButtonAttrs, ButtonType } from "../gui/base/Button.js"
 import type { AccountingInfo, Booking, Customer, CustomerInfo, SwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
 import { createSwitchAccountTypePostIn } from "../api/entities/sys/TypeRefs.js"
@@ -27,7 +27,7 @@ import { SwitchAccountTypeService } from "../api/entities/sys/Services.js"
 import { BadRequestError, InvalidDataError, PreconditionFailedError } from "../api/common/error/RestError.js"
 import { FeatureListProvider } from "./FeatureListProvider"
 import { PriceAndConfigProvider } from "./PriceUtils"
-import { defer, DeferredObject, lazy } from "@tutao/tutanota-utils"
+import { defer, DeferredObject, downcast, lazy } from "@tutao/tutanota-utils"
 import { showSwitchToBusinessInvoiceDataDialog } from "./SwitchToBusinessInvoiceDataDialog.js"
 import { formatNameAndAddress } from "../misc/Formatter.js"
 import { getByAbbreviation } from "../api/common/CountryList.js"
@@ -92,7 +92,6 @@ export async function showSwitchDialog(
 					boxHeight: 270,
 					acceptedPlans: acceptedPlans,
 					currentPlanType: currentSubscriptionInfo.planType,
-					orderedContactForms: currentSubscriptionInfo.orderedContactForms,
 					isInitialUpgrade: false,
 					actionButtons: subscriptionActionButtons,
 					featureListProvider: featureListProvider,
@@ -248,7 +247,7 @@ async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, 
 
 	const userController = locator.logins.getUserController()
 	const customer = await userController.loadCustomer()
-	if (!customer.businessUse && NewBusinessPlans.includes(targetSubscription)) {
+	if (!customer.businessUse && NewBusinessPlans.includes(downcast(targetSubscription))) {
 		const accountingInfo = await userController.loadAccountingInfo()
 		const invoiceData: InvoiceData = {
 			invoiceAddress: formatNameAndAddress(accountingInfo.invoiceName, accountingInfo.invoiceAddress),

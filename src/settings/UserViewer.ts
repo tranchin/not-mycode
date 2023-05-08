@@ -23,7 +23,6 @@ import { checkAndImportUserData, CSV_USER_FORMAT } from "./ImportUsersViewer"
 import { MailAddressTable } from "./mailaddress/MailAddressTable.js"
 import { compareGroupInfos, getGroupInfoDisplayName } from "../api/common/utils/GroupUtils"
 import { CUSTOM_MIN_ID, isSameId } from "../api/common/utils/EntityUtils"
-import { showNotAvailableForFreeDialog } from "../misc/SubscriptionDialogs"
 import { showBuyDialog } from "../subscription/BuyDialog"
 import { TextField } from "../gui/base/TextField.js"
 import { locator } from "../api/main/MainLocator"
@@ -551,14 +550,9 @@ export function showUserImportDialog(customDomains: string[]) {
 		title: lang.get("importUsers_action"),
 		child: form,
 		okAction: (csvDialog) => {
-			if (locator.logins.getUserController().isFreeAccount()) {
-				showNotAvailableForFreeDialog()
-			} else {
-				let closeCsvDialog = checkAndImportUserData(editor.getValue(), customDomains)
-
-				if (closeCsvDialog) {
-					csvDialog.close()
-				}
+			let closeCsvDialog = checkAndImportUserData(editor.getValue(), customDomains)
+			if (closeCsvDialog) {
+				csvDialog.close()
 			}
 		},
 	})

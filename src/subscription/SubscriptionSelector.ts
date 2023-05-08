@@ -18,7 +18,7 @@ import {
 import { ProgrammingError } from "../api/common/error/ProgrammingError"
 import { ButtonAttrs } from "../gui/base/Button.js"
 import { downcast, lazy } from "@tutao/tutanota-utils"
-import { AvailablePlans, AvailablePlanType, LegacyPlans, NewBusinessPlans, NewPersonalPlans, PlanType } from "../api/common/TutanotaConstants.js"
+import { AvailablePlanType, LegacyPlans, NewBusinessPlans, NewPersonalPlans, PlanType } from "../api/common/TutanotaConstants.js"
 
 const BusinessUseItems: SegmentControlItem<boolean>[] = [
 	{
@@ -41,7 +41,6 @@ export type SubscriptionSelectorAttr = {
 	boxHeight: number
 	highlightPremium?: boolean
 	currentPlanType: PlanType | null
-	orderedContactForms: number
 	isInitialUpgrade: boolean
 	featureListProvider: FeatureListProvider
 	priceAndConfigProvider: PriceAndConfigProvider
@@ -73,6 +72,16 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 		All: false,
 	}
 
+	oninit(vnode: Vnode<SubscriptionSelectorAttr>): any {
+		const acceptedPlans = vnode.attrs.acceptedPlans
+		const onlyBusinessPlansAccepted = acceptedPlans.every((plan) => NewBusinessPlans.includes(plan))
+
+		if (onlyBusinessPlansAccepted) {
+			// if only business plans are accepted, we show them first even if the current plan is a personal plan
+			vnode.attrs.options.businessUse(true)
+		}
+	}
+
 	view(vnode: Vnode<SubscriptionSelectorAttr>): Children {
 		// Add BuyOptionBox margin twice to the boxWidth received
 		const columnWidth = vnode.attrs.boxWidth + BOX_MARGIN * 2
@@ -82,15 +91,17 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 
 		const acceptedPlans = vnode.attrs.acceptedPlans
 		let plans: AvailablePlanType[]
-		let showBusinessSelector: boolean
+		const currentPlan = vnode.attrs.currentPlanType
+		const onlyBusinessPlansAccepted = acceptedPlans.every((plan) => NewBusinessPlans.includes(plan))
+		// show the business segmentControl for signup, if on a personal plan or if also personal plans are accepted
+		let showBusinessSelector = currentPlan == null || NewPersonalPlans.includes(downcast(currentPlan)) || !onlyBusinessPlansAccepted
+
 		if (vnode.attrs.options.businessUse()) {
 			plans = [PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
 			additionalInfo = m(".flex.flex-column.items-center", [
 				featureExpander.All, // global feature expander
 				m(".smaller.mb.center", lang.get("pricing.subscriptionPeriodInfoBusiness_msg")),
 			])
-			const currentPlan = vnode.attrs.currentPlanType
-			showBusinessSelector = (currentPlan != null && NewPersonalPlans.includes(currentPlan)) || AvailablePlans === acceptedPlans
 		} else {
 			if (inMobileView) {
 				plans = [PlanType.Revolutionary, PlanType.Legend, PlanType.Free]

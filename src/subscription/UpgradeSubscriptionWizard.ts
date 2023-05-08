@@ -24,7 +24,7 @@ import { UpgradeSubscriptionPage, UpgradeSubscriptionPageAttrs } from "./Upgrade
 import { formatNameAndAddress } from "../misc/Formatter"
 import m from "mithril"
 import stream from "mithril/stream"
-import type { TranslationKey } from "../misc/LanguageViewModel"
+import type { TranslationKey, TranslationText } from "../misc/LanguageViewModel"
 import { assertTranslation } from "../misc/LanguageViewModel"
 import { createWizardDialog, wizardPageWrapper } from "../gui/base/WizardDialog.js"
 import { InvoiceAndPaymentDataPage, InvoiceAndPaymentDataPageAttrs } from "./InvoiceAndPaymentDataPage"
@@ -76,6 +76,7 @@ export type UpgradeSubscriptionData = {
 	referralCodeMsg: TranslationKey | null
 	multipleUsersAllowed: boolean
 	acceptedPlans: AvailablePlanType[]
+	msg: TranslationText | null
 }
 
 export function loadUpgradePrices(registrationDataId: string | null): Promise<UpgradePriceServiceReturn> {
@@ -101,7 +102,7 @@ async function loadCustomerAndInfo(): Promise<{
 	}
 }
 
-export async function showUpgradeWizard(acceptedPlans: AvailablePlanType[] = NewPaidPlans): Promise<void> {
+export async function showUpgradeWizard(acceptedPlans: AvailablePlanType[] = NewPaidPlans, msg?: TranslationText): Promise<void> {
 	const { customer, accountingInfo } = await loadCustomerAndInfo()
 	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(null)
 
@@ -138,6 +139,7 @@ export async function showUpgradeWizard(acceptedPlans: AvailablePlanType[] = New
 		referralCodeMsg: null,
 		multipleUsersAllowed: false,
 		acceptedPlans,
+		msg: msg != null ? msg : null,
 	}
 	const wizardPages = [
 		wizardPageWrapper(UpgradeSubscriptionPage, new UpgradeSubscriptionPageAttrs(upgradeData)),
@@ -214,6 +216,7 @@ export async function loadSignupWizard(
 		referralCodeMsg,
 		multipleUsersAllowed: false,
 		acceptedPlans: AvailablePlans,
+		msg: null,
 	}
 
 	const invoiceAttrs = new InvoiceAndPaymentDataPageAttrs(signupData)

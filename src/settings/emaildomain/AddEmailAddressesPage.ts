@@ -72,7 +72,6 @@ export class AddEmailAddressesPage implements Component<AddEmailAddressesPageAtt
 			m("h4.mt-l.text-center", lang.get("addCustomDomainAddresses_title")),
 			m(".mt.mb", lang.get("addCustomDomainAddAdresses_msg")),
 			m(SelectMailAddressForm, mailFormAttrs),
-			this.renderAliasCount(a),
 			locator.logins.getUserController().userGroupInfo.mailAddressAliases.length ? m(Table, aliasesTableAttrs) : null,
 			m(
 				".flex-center.full-width.pt-l.mb-l",
@@ -91,20 +90,6 @@ export class AddEmailAddressesPage implements Component<AddEmailAddressesPageAtt
 				),
 			),
 		])
-	}
-
-	private renderAliasCount(a: AddEmailAddressesPageAttrs): Children {
-		const model = a.data.editAliasFormAttrs.model
-		const aliasCount = model.aliasCount()
-		if (aliasCount == null) {
-			return null
-		}
-		return m(
-			".small.left",
-			aliasCount.availableToCreate === 0
-				? lang.get("adminMaxNbrOfAliasesReached_msg")
-				: lang.get("mailAddressAliasesMaxNbr_label", { "{1}": aliasCount.availableToCreate }),
-		)
 	}
 }
 

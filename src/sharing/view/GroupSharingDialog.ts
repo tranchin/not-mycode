@@ -14,7 +14,6 @@ import { DropDownSelector } from "../../gui/base/DropDownSelector.js"
 import { PreconditionFailedError, TooManyRequestsError } from "../../api/common/error/RestError"
 import { TextField } from "../../gui/base/TextField.js"
 import type { GroupInfo } from "../../api/entities/sys/TypeRefs.js"
-import { BookingTypeRef } from "../../api/entities/sys/TypeRefs.js"
 import { getCapabilityText, getMemberCabability, getSharedGroupName, hasCapabilityOnGroup, isShareableGroupType, isSharedGroupOwner } from "../GroupUtils"
 import { sendShareNotificationEmail } from "../GroupSharingUtils"
 import { GroupSharingModel } from "../model/GroupSharingModel"
@@ -27,7 +26,7 @@ import { getTextsForGroupType } from "../GroupGuiUtils"
 import { ResolvableRecipient, ResolveMode } from "../../api/main/RecipientsModel"
 import { MailRecipientsTextField } from "../../gui/MailRecipientsTextField.js"
 import { cleanMailAddress, findRecipientWithAddress } from "../../api/common/utils/CommonCalendarUtils.js"
-import { GENERATED_MAX_ID } from "../../api/common/utils/EntityUtils.js"
+import { showPlanUpgradeRequiredDialog } from "../../misc/SubscriptionDialogs.js"
 
 export async function showGroupSharingDialog(groupInfo: GroupInfo, allowGroupNameOverride: boolean) {
 	const groupType = downcast(assertNotNull(groupInfo.groupType))
@@ -229,7 +228,7 @@ async function showAddParticipantDialog(model: GroupSharingModel, texts: GroupSh
 				return Dialog.message("noRecipients_msg")
 			}
 
-			const { checkPremiumSubscription } = await import("../../misc/SubscriptionDialogs")
+			const { checkPremiumSubscription, showPlanUpgradeRequiredDialog } = await import("../../misc/SubscriptionDialogs")
 			if (await checkPremiumSubscription()) {
 				try {
 					const invitedMailAddresses = await showProgressDialog(
@@ -240,20 +239,8 @@ async function showAddParticipantDialog(model: GroupSharingModel, texts: GroupSh
 					await sendShareNotificationEmail(model.info, invitedMailAddresses, texts)
 				} catch (e) {
 					if (e instanceof PreconditionFailedError) {
-						const userController = locator.logins.getUserController()
-						if (userController.isGlobalAdmin()) {
-							const customer = await userController.loadCustomer()
-							const customerInfo = await userController.loadCustomerInfo()
-							const accountingInfo = await userController.loadAccountingInfo()
-							const bookings = await locator.entityClient.loadRange(
-								BookingTypeRef,
-								neverNull(customerInfo.bookings).items,
-								GENERATED_MAX_ID,
-								1,
-								true,
-							)
-							const { showSwitchDialog } = await import("../../subscription/SwitchSubscriptionDialog.js")
-							await showSwitchDialog(customer, customerInfo, accountingInfo, bookings[0], NewPaidPlans, "newPaidPlanRequired_msg")
+						if (locator.logins.getUserController().isGlobalAdmin()) {
+							await showPlanUpgradeRequiredDialog(NewPaidPlans)
 						} else {
 							Dialog.message(() => `${texts.sharingNotOrderedUser} ${lang.get("contactAdmin_msg")}`)
 						}

@@ -10,10 +10,9 @@ import {
 	isWhitelabelActive,
 } from "./SubscriptionUtils"
 import { PlanType } from "../api/common/TutanotaConstants"
-import type { AccountingInfo, Booking, Customer, CustomerInfo, PlanPrices, PriceServiceReturn } from "../api/entities/sys/TypeRefs.js"
+import type { AccountingInfo, Booking, Customer, CustomerInfo } from "../api/entities/sys/TypeRefs.js"
 import { asPaymentInterval, PaymentInterval } from "./PriceUtils"
 import type { BookingFacade } from "../api/worker/facades/lazy/BookingFacade.js"
-import { SubscriptionConfig } from "./FeatureListProvider"
 
 export type CurrentSubscriptionInfo = {
 	businessUse: boolean
@@ -47,7 +46,7 @@ export class SwitchSubscriptionDialogModel {
 	_initCurrentSubscriptionInfo(): CurrentSubscriptionInfo {
 		const paymentInterval: PaymentInterval = asPaymentInterval(this.accountingInfo.paymentInterval)
 		return {
-			businessUse: !!this.customer.businessUse,
+			businessUse: this.customer.businessUse,
 			planType: this.planType,
 			nbrOfUsers: getNbrOfUsers(this.lastBooking),
 			paymentInterval,
@@ -61,45 +60,4 @@ export class SwitchSubscriptionDialogModel {
 			orderedContactForms: getNbrOfContactForms(this.lastBooking),
 		}
 	}
-}
-
-export function isUpgradeAliasesNeeded(targetSubscriptionConfig: PlanPrices, currentNbrOfAliases: number): boolean {
-	return currentNbrOfAliases < Number(targetSubscriptionConfig.includedAliases)
-}
-
-export function isDowngradeAliasesNeeded(targetSubscriptionConfig: PlanPrices, currentNbrOfAliases: number, includedAliases: number): boolean {
-	// only order the target aliases package if it is smaller than the actual number of current aliases and if we have currently ordered more than the included aliases
-	return currentNbrOfAliases > Number(targetSubscriptionConfig.includedAliases) && currentNbrOfAliases > includedAliases
-}
-
-export function isUpgradeStorageNeeded(targetSubscriptionConfig: PlanPrices, currentAmountOfStorage: number): boolean {
-	return currentAmountOfStorage < Number(targetSubscriptionConfig.includedStorage)
-}
-
-export function isDowngradeStorageNeeded(targetSubscriptionConfig: PlanPrices, currentAmountOfStorage: number, includedStorage: number): boolean {
-	return currentAmountOfStorage > Number(targetSubscriptionConfig.includedStorage) && currentAmountOfStorage > includedStorage
-}
-
-export function isUpgradeSharingNeeded(targetSubscriptionConfig: PlanPrices, currentlySharingOrdered: boolean): boolean {
-	return !currentlySharingOrdered && targetSubscriptionConfig.sharing
-}
-
-export function isDowngradeSharingNeeded(targetSubscriptionConfig: PlanPrices, currentlySharingOrdered: boolean): boolean {
-	return currentlySharingOrdered && !targetSubscriptionConfig.sharing
-}
-
-export function isUpgradeBusinessNeeded(targetSubscriptionConfig: PlanPrices, currentlyBusinessOrdered: boolean): boolean {
-	return !currentlyBusinessOrdered && targetSubscriptionConfig.business
-}
-
-export function isDowngradeBusinessNeeded(targetSubscriptionConfig: PlanPrices, currentlyBusinessOrdered: boolean): boolean {
-	return currentlyBusinessOrdered && !targetSubscriptionConfig.business
-}
-
-export function isUpgradeWhitelabelNeeded(targetSubscriptionConfig: PlanPrices, currentlyWhitelabelOrdered: boolean): boolean {
-	return !currentlyWhitelabelOrdered && targetSubscriptionConfig.whitelabel
-}
-
-export function isDowngradeWhitelabelNeeded(targetSubscriptionConfig: PlanPrices, currentlyWhitelabelOrdered: boolean): boolean {
-	return currentlyWhitelabelOrdered && !targetSubscriptionConfig.whitelabel
 }

@@ -171,8 +171,8 @@ export const AvailablePlans: AvailablePlanType[] = [
 	PlanType.Unlimited,
 ]
 export const NewPaidPlans: AvailablePlanType[] = [PlanType.Revolutionary, PlanType.Legend, PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
-export const NewBusinessPlans = [PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
-export const NewPersonalPlans = [PlanType.Free, PlanType.Revolutionary, PlanType.Legend]
+export const NewBusinessPlans: AvailablePlanType[] = [PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
+export const NewPersonalPlans: AvailablePlanType[] = [PlanType.Free, PlanType.Revolutionary, PlanType.Legend]
 
 export const LegacyPlans = [PlanType.Premium, PlanType.PremiumBusiness, PlanType.Teams, PlanType.TeamsBusiness, PlanType.Pro]
 

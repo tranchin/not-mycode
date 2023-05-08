@@ -1,4 +1,4 @@
-import { assertEnumValue, CustomDomainValidationResult, PlanType } from "../../api/common/TutanotaConstants"
+import { assertEnumValue, AvailablePlanType, CustomDomainValidationResult, PlanType } from "../../api/common/TutanotaConstants"
 import m, { Children, Vnode, VnodeDOM } from "mithril"
 import type { AddDomainData } from "./AddDomainWizard"
 import { showProgressDialog } from "../../gui/dialogs/ProgressDialog"
@@ -121,8 +121,18 @@ export class VerifyOwnershipPageAttrs implements WizardPageAttrs<AddDomainData> 
 			.catch(
 				ofClass(PreconditionFailedError, (e) => {
 					if (e.data === CustomDomainFailureReasons.LIMIT_REACHED) {
+						const nbrOfCustomDomains = this.data.customerInfo.domainInfos.filter((domainInfo) => domainInfo.whitelabelConfig == null).length
+						const acceptedPlans: AvailablePlanType[] = []
+						if (nbrOfCustomDomains < 3) {
+							acceptedPlans.push(PlanType.Revolutionary, PlanType.Essential)
+						}
+						if (nbrOfCustomDomains < 10) {
+							acceptedPlans.push(PlanType.Legend, PlanType.Advanced)
+						}
+						acceptedPlans.push(PlanType.Unlimited)
+
 						// ignore promise. always return false to not switch to next page.
-						showPlanUpgradeRequiredDialog([PlanType.Legend, PlanType.Advanced, PlanType.Unlimited])
+						showPlanUpgradeRequiredDialog(acceptedPlans, "moreCustomDomainsRequired_msg")
 					} else {
 						Dialog.message(() => e.toString())
 					}

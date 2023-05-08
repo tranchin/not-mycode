@@ -6,7 +6,7 @@ import { windowFacade } from "../misc/WindowFacade"
 import { checkApprovalStatus } from "../misc/LoginUtils"
 import { locator } from "../api/main/MainLocator"
 import { ReceiveInfoService } from "../api/entities/tutanota/Services"
-import { InfoLink, lang } from "../misc/LanguageViewModel"
+import { lang } from "../misc/LanguageViewModel"
 import { getHourCycle } from "../misc/Formatter"
 import type { OutOfOfficeNotification } from "../api/entities/tutanota/TypeRefs.js"
 import { createReceiveInfoServiceData } from "../api/entities/tutanota/TypeRefs.js"
@@ -241,7 +241,7 @@ export class PostLoginActions implements IPostLoginAction {
 								) {
 									let message = lang.get("premiumOffer_msg")
 									let title = lang.get("upgradeReminderTitle_msg")
-									return Dialog.reminder(title, message, InfoLink.PremiumProBusiness)
+									return Dialog.reminder(title, message)
 										.then((confirm) => {
 											if (confirm) {
 												import("../subscription/UpgradeSubscriptionWizard").then((wizard) => wizard.showUpgradeWizard())

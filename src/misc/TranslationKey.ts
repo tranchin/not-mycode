@@ -1643,3 +1643,5 @@ export type TranslationKeyType =
 	| "pricing.perUserMonth_label"
 	| "pricing.notSupportedByPersonalPlan_msg"
 	| "newPaidPlanRequired_msg"
+	| "moreCustomDomainsRequired_msg"
+	| "moreAliasesRequired_msg"

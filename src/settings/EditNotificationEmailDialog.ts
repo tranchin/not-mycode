@@ -62,7 +62,7 @@ export async function showBuyOrSetNotificationEmailDialog(
 	existingTemplate?: NotificationMailTemplate,
 ): Promise<void> {
 	if (locator.logins.getUserController().isFreeAccount()) {
-		showNotAvailableForFreeDialog()
+		showNotAvailableForFreeDialog([PlanType.Unlimited])
 	} else {
 		const customerInfo = await locator.logins.getUserController().loadCustomerInfo()
 		let whitelabel = isWhitelabelActive(lastBooking, customerInfo)

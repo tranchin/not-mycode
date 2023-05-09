@@ -1636,10 +1636,10 @@ export default {
 		// TODO add to/ update phrase
 		"pricing.perUserMonthPaidYearly_label": "per user/month - paid yearly",
 		"pricing.perUserMonth_label": "per user/month",
-		"whitelabelDomainLinkInfo_msg": "The whitelabel feature, is only available with the Unlimited subscription. It allows you to activate the Tutanota login on your own domain (a subdomain), change the look of Tutanota according to your needs (e.g. corporate identity) and create contact forms for your clients. Please see",
+		"whitelabelDomainLinkInfo_msg": "The whitelabel feature, is only available with the Unlimited plan. It allows you to activate the Tutanota login on your own domain (a subdomain), change the look of Tutanota according to your needs (e.g. corporate identity). Please see",
 		"newPaidPlanRequired_msg": "To use this feature, you have to switch to one of the following plans.",
 		"moreCustomDomainsRequired_msg": "To add more custom domains, you have to switch to one of the following plans.",
-		"moreAliasesRequired_msg":  "To add email aliases, you have to switch to one of the following plans.",
+		"moreAliasesRequired_msg":  "To add more email aliases, you have to switch to one of the following plans.",
 		"pricing.privateUse_label": "Personal",
 		"onlyPrivateAccountFeature_msg": "Gift cards may only be redeemed by personal accounts",
 		"invoiceAddressInfoPrivate_msg": "This information is optional (max. 5 rows).",

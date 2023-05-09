@@ -49,14 +49,7 @@ export async function showSwitchDialog(
 		"pleaseWait_msg",
 		Promise.all([FeatureListProvider.getInitializedInstance(), PriceAndConfigProvider.getInitializedInstance(null)]),
 	)
-	const model = new SwitchSubscriptionDialogModel(
-		locator.bookingFacade,
-		customer,
-		customerInfo,
-		accountingInfo,
-		lastBooking,
-		await locator.logins.getUserController().getPlanType(),
-	)
+	const model = new SwitchSubscriptionDialogModel(customer, accountingInfo, await locator.logins.getUserController().getPlanType())
 	const cancelAction = () => {
 		dialog.close()
 		deferred.resolve(customerInfo.plan as PlanType)

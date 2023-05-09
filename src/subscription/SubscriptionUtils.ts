@@ -51,14 +51,6 @@ export function getTotalAliases(customer: Customer, customerInfo: CustomerInfo, 
 	}
 }
 
-export function getNbrOfUsers(lastBooking: Booking | null): number {
-	return getCurrentCount(BookingItemFeatureType.Users, lastBooking)
-}
-
-export function getNbrOfContactForms(lastBooking: Booking | null): number {
-	return getCurrentCount(BookingItemFeatureType.ContactForm, lastBooking)
-}
-
 export function isWhitelabelActive(lastBooking: Booking | null, customerInfo: CustomerInfo): boolean {
 	return getCurrentCount(BookingItemFeatureType.Whitelabel, lastBooking) !== 0 || customerInfo.plan == PlanType.Unlimited
 }

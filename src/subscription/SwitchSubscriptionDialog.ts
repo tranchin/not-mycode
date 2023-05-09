@@ -20,7 +20,7 @@ import { SubscriptionActionButtons, SubscriptionSelector } from "./SubscriptionS
 import stream from "mithril/stream"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
 import type { DialogHeaderBarAttrs } from "../gui/base/DialogHeaderBar"
-import type { CurrentSubscriptionInfo } from "./SwitchSubscriptionDialogModel"
+import type { CurrentPlanInfo } from "./SwitchSubscriptionDialogModel"
 import { SwitchSubscriptionDialogModel } from "./SwitchSubscriptionDialogModel"
 import { locator } from "../api/main/MainLocator"
 import { SwitchAccountTypeService } from "../api/entities/sys/Services.js"
@@ -66,8 +66,8 @@ export async function showSwitchDialog(
 		right: [],
 		middle: () => lang.get("subscription_label"),
 	}
-	const currentSubscriptionInfo = model.currentSubscriptionInfo
-	const businessUse = stream(currentSubscriptionInfo.businessUse)
+	const currentPlanInfo = model.currentPlanInfo
+	const businessUse = stream(currentPlanInfo.businessUse)
 	const dialog: Dialog = Dialog.largeDialog(headerBarAttrs, {
 		view: () =>
 			m(
@@ -76,7 +76,7 @@ export async function showSwitchDialog(
 					// paymentInterval will not be updated as isInitialUpgrade is false
 					options: {
 						businessUse,
-						paymentInterval: stream(currentSubscriptionInfo.paymentInterval),
+						paymentInterval: stream(currentPlanInfo.paymentInterval),
 					},
 					campaignInfoTextId: null,
 					referralCodeMsg: null,
@@ -84,7 +84,7 @@ export async function showSwitchDialog(
 					boxWidth: 230,
 					boxHeight: 270,
 					acceptedPlans: acceptedPlans,
-					currentPlanType: currentSubscriptionInfo.planType,
+					currentPlanType: currentPlanInfo.planType,
 					isInitialUpgrade: false,
 					actionButtons: subscriptionActionButtons,
 					featureListProvider: featureListProvider,
@@ -103,24 +103,24 @@ export async function showSwitchDialog(
 		[PlanType.Free]: () =>
 			({
 				label: "pricing.select_action",
-				click: () => cancelSubscription(dialog, currentSubscriptionInfo, deferred),
+				click: () => cancelSubscription(dialog, currentPlanInfo, deferred),
 				type: ButtonType.Login,
 			} as ButtonAttrs),
 
-		[PlanType.Revolutionary]: createSubscriptionPlanButton(dialog, PlanType.Revolutionary, currentSubscriptionInfo, deferred),
-		[PlanType.Legend]: createSubscriptionPlanButton(dialog, PlanType.Legend, currentSubscriptionInfo, deferred),
-		[PlanType.Essential]: createSubscriptionPlanButton(dialog, PlanType.Essential, currentSubscriptionInfo, deferred),
-		[PlanType.Advanced]: createSubscriptionPlanButton(dialog, PlanType.Advanced, currentSubscriptionInfo, deferred),
-		[PlanType.Unlimited]: createSubscriptionPlanButton(dialog, PlanType.Unlimited, currentSubscriptionInfo, deferred),
+		[PlanType.Revolutionary]: createPlanButton(dialog, PlanType.Revolutionary, currentPlanInfo, deferred),
+		[PlanType.Legend]: createPlanButton(dialog, PlanType.Legend, currentPlanInfo, deferred),
+		[PlanType.Essential]: createPlanButton(dialog, PlanType.Essential, currentPlanInfo, deferred),
+		[PlanType.Advanced]: createPlanButton(dialog, PlanType.Advanced, currentPlanInfo, deferred),
+		[PlanType.Unlimited]: createPlanButton(dialog, PlanType.Unlimited, currentPlanInfo, deferred),
 	}
 	dialog.show()
 	return deferred.promise
 }
 
-function createSubscriptionPlanButton(
+function createPlanButton(
 	dialog: Dialog,
 	targetSubscription: PlanType,
-	currentSubscriptionInfo: CurrentSubscriptionInfo,
+	currentPlanInfo: CurrentPlanInfo,
 	deferredPlan: DeferredObject<PlanType>,
 ): lazy<ButtonAttrs> {
 	return () => ({
@@ -128,7 +128,7 @@ function createSubscriptionPlanButton(
 		click: () => {
 			showProgressDialog(
 				"pleaseWait_msg",
-				switchSubscription(targetSubscription, dialog, currentSubscriptionInfo).then((newPlan) => deferredPlan.resolve(newPlan)),
+				switchSubscription(targetSubscription, dialog, currentPlanInfo).then((newPlan) => deferredPlan.resolve(newPlan)),
 			)
 		},
 		type: ButtonType.Login,
@@ -197,7 +197,7 @@ function handleSwitchAccountPreconditionFailed(e: PreconditionFailedError): Prom
 	}
 }
 
-async function tryDowngradePremiumToFree(switchAccountTypeData: SwitchAccountTypePostIn, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<PlanType> {
+async function tryDowngradePremiumToFree(switchAccountTypeData: SwitchAccountTypePostIn, currentPlanInfo: CurrentPlanInfo): Promise<PlanType> {
 	try {
 		await locator.serviceExecutor.post(SwitchAccountTypeService, switchAccountTypeData)
 		await locator.customerFacade.switchPremiumToFreeGroup()
@@ -212,11 +212,11 @@ async function tryDowngradePremiumToFree(switchAccountTypeData: SwitchAccountTyp
 		} else {
 			throw e
 		}
-		return currentSubscriptionInfo.planType
+		return currentPlanInfo.planType
 	}
 }
 
-async function cancelSubscription(dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo, planPromise: DeferredObject<PlanType>): Promise<void> {
+async function cancelSubscription(dialog: Dialog, currentPlanInfo: CurrentPlanInfo, planPromise: DeferredObject<PlanType>): Promise<void> {
 	if (!(await Dialog.confirm("unsubscribeConfirm_msg"))) {
 		return
 	}
@@ -226,16 +226,16 @@ async function cancelSubscription(dialog: Dialog, currentSubscriptionInfo: Curre
 	try {
 		await showProgressDialog(
 			"pleaseWait_msg",
-			tryDowngradePremiumToFree(switchAccountTypeData, currentSubscriptionInfo).then((newPlan) => planPromise.resolve(newPlan)),
+			tryDowngradePremiumToFree(switchAccountTypeData, currentPlanInfo).then((newPlan) => planPromise.resolve(newPlan)),
 		)
 	} finally {
 		dialog.close()
 	}
 }
 
-async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, currentSubscriptionInfo: CurrentSubscriptionInfo): Promise<PlanType> {
-	if (targetSubscription === currentSubscriptionInfo.planType) {
-		return currentSubscriptionInfo.planType
+async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, currentPlanInfo: CurrentPlanInfo): Promise<PlanType> {
+	if (targetSubscription === currentPlanInfo.planType) {
+		return currentPlanInfo.planType
 	}
 
 	const userController = locator.logins.getUserController()
@@ -249,7 +249,7 @@ async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, 
 		}
 		const updatedInvoiceData = await showSwitchToBusinessInvoiceDataDialog(customer, invoiceData, accountingInfo)
 		if (!updatedInvoiceData) {
-			return currentSubscriptionInfo.planType
+			return currentPlanInfo.planType
 		}
 	}
 
@@ -266,7 +266,7 @@ async function switchSubscription(targetSubscription: PlanType, dialog: Dialog, 
 		} catch (e) {
 			if (e instanceof PreconditionFailedError) {
 				await handleSwitchAccountPreconditionFailed(e)
-				return currentSubscriptionInfo.planType
+				return currentPlanInfo.planType
 			}
 			throw e
 		}

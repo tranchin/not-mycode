@@ -5,7 +5,6 @@ import { Booking, createPaymentDataServiceGetData } from "../api/entities/sys/Ty
 import { LazyLoaded } from "@tutao/tutanota-utils"
 import { locator } from "../api/main/MainLocator"
 import { PaymentDataService } from "../api/entities/sys/Services"
-import { SubscriptionConfig } from "./FeatureListProvider"
 
 export const enum UpgradeType {
 	Signup = "Signup",
@@ -27,8 +26,8 @@ export function getCurrentCount(featureType: BookingItemFeatureType, booking: Bo
 /**
  * Returns the available storage capacity for the customer in GB
  */
-export function getTotalStorageCapacity(customer: Customer, customerInfo: CustomerInfo, lastBooking: Booking | null): number {
-	let freeStorageCapacity = getIncludedStorageCapacity(customerInfo)
+export function getTotalStorageCapacityPerCustomer(customer: Customer, customerInfo: CustomerInfo, lastBooking: Booking | null): number {
+	let freeStorageCapacity = getIncludedStorageCapacityPerCustomer(customerInfo)
 
 	if (customer.type === AccountType.PREMIUM) {
 		return Math.max(freeStorageCapacity, getCurrentCount(BookingItemFeatureType.Storage, lastBooking))
@@ -37,18 +36,8 @@ export function getTotalStorageCapacity(customer: Customer, customerInfo: Custom
 	}
 }
 
-export function getIncludedStorageCapacity(customerInfo: CustomerInfo): number {
+function getIncludedStorageCapacityPerCustomer(customerInfo: CustomerInfo): number {
 	return Math.max(Number(customerInfo.includedStorageCapacity), Number(customerInfo.promotionStorageCapacity))
-}
-
-export function getTotalAliases(customer: Customer, customerInfo: CustomerInfo, lastBooking: Booking | null): number {
-	let freeAliases = getIncludedAliases(customerInfo)
-
-	if (customer.type === AccountType.PREMIUM) {
-		return Math.max(freeAliases, getCurrentCount(BookingItemFeatureType.Alias, lastBooking))
-	} else {
-		return freeAliases
-	}
 }
 
 export function isWhitelabelActive(lastBooking: Booking | null, customerInfo: CustomerInfo): boolean {
@@ -61,20 +50,6 @@ export function isSharingActive(lastBooking: Booking | null): boolean {
 
 export function isBusinessFeatureActive(lastBooking: Booking | null): boolean {
 	return getCurrentCount(BookingItemFeatureType.Business, lastBooking) !== 0
-}
-
-export function getIncludedAliases(customerInfo: CustomerInfo): number {
-	return Math.max(Number(customerInfo.includedEmailAliases), Number(customerInfo.promotionEmailAliases))
-}
-
-export function hasAllFeaturesInPlan(currentSubscription: SubscriptionConfig, planSubscription: SubscriptionConfig): boolean {
-	return !(
-		currentSubscription.nbrOfAliases < planSubscription.nbrOfAliases ||
-		currentSubscription.storageGb < planSubscription.storageGb ||
-		(!currentSubscription.sharing && planSubscription.sharing) ||
-		(!currentSubscription.whitelabel && planSubscription.whitelabel) ||
-		(!currentSubscription.business && planSubscription.business)
-	)
 }
 
 export type PaymentErrorCode =

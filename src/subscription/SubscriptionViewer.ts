@@ -25,7 +25,7 @@ import {
 import { assertNotNull, downcast, incrementDate, neverNull, noOp, ofClass, promiseMap } from "@tutao/tutanota-utils"
 import { lang, TranslationKey } from "../misc/LanguageViewModel"
 import { Icons } from "../gui/base/icons/Icons"
-import { asPaymentInterval, formatPrice, formatPriceDataWithInfo, PaymentInterval, PriceAndConfigProvider } from "./PriceUtils"
+import { asPaymentInterval, formatPrice, formatPriceDataWithInfo, PaymentInterval } from "./PriceUtils"
 import { formatDate, formatNameAndAddress, formatStorageSize } from "../misc/Formatter"
 import { getByAbbreviation } from "../api/common/CountryList"
 import { showUpgradeWizard } from "./UpgradeSubscriptionWizard"
@@ -37,7 +37,7 @@ import * as SignOrderAgreementDialog from "./SignOrderProcessingAgreementDialog"
 import { NotFoundError } from "../api/common/error/RestError"
 import type { EntityUpdateData } from "../api/main/EventController"
 import { isUpdateForTypeRef } from "../api/main/EventController"
-import { getCurrentCount, getTotalStorageCapacity, isBusinessFeatureActive, isSharingActive, isWhitelabelActive } from "./SubscriptionUtils"
+import { getCurrentCount, getTotalStorageCapacityPerCustomer, isBusinessFeatureActive, isSharingActive, isWhitelabelActive } from "./SubscriptionUtils"
 import { Button, ButtonType } from "../gui/base/Button.js"
 import { TextField } from "../gui/base/TextField.js"
 import { Dialog, DialogType } from "../gui/base/Dialog"
@@ -409,7 +409,9 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 	_updateStorageField(customer: Customer, customerInfo: CustomerInfo): Promise<void> {
 		return locator.customerFacade.readUsedCustomerStorage(getEtId(customer)).then((usedStorage) => {
 			const usedStorageFormatted = formatStorageSize(Number(usedStorage))
-			const totalStorageFormatted = formatStorageSize(getTotalStorageCapacity(customer, customerInfo, this._lastBooking) * Const.MEMORY_GB_FACTOR)
+			const totalStorageFormatted = formatStorageSize(
+				getTotalStorageCapacityPerCustomer(customer, customerInfo, this._lastBooking) * Const.MEMORY_GB_FACTOR,
+			)
 
 			this._storageFieldValue(
 				lang.get("amountUsedOf_label", {

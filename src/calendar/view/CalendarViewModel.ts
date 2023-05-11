@@ -49,7 +49,7 @@ import type { EntityUpdateData } from "../../api/main/EventController"
 import { EventController, isUpdateForTypeRef } from "../../api/main/EventController"
 import { EntityClient } from "../../api/common/EntityClient"
 import { ProgressTracker } from "../../api/main/ProgressTracker"
-import { DeviceConfig } from "../../misc/DeviceConfig"
+import { DeviceConfig, SortParams } from "../../misc/DeviceConfig"
 import type { EventDragHandlerCallbacks } from "./EventDragHandler"
 import { locator } from "../../api/main/MainLocator.js"
 
@@ -102,9 +102,10 @@ export class CalendarViewModel implements EventDragHandlerCallbacks {
 	readonly _redrawStream: Stream<void>
 	readonly _deviceConfig: DeviceConfig
 	readonly _timeZone: string
+	private sortParams: SortParams
 
 	constructor(
-		loginController: LoginController,
+		private readonly loginController: LoginController,
 		createCalendarEventViewModelCallback: CreateCalendarEventViewModelFunction,
 		calendarModel: CalendarModel,
 		entityClient: EntityClient,
@@ -124,6 +125,7 @@ export class CalendarViewModel implements EventDragHandlerCallbacks {
 		this._eventsForDays = freezeMap(new Map())
 		this._deviceConfig = deviceConfig
 		this._hiddenCalendars = new Set(this._deviceConfig.getHiddenCalendars(userId))
+		this.sortParams = this._deviceConfig.getSortParams(userId)
 		this.selectedDate = stream(getStartOfDay(new Date()))
 		this._redrawStream = stream()
 		this._draggedEvent = null
@@ -177,6 +179,16 @@ export class CalendarViewModel implements EventDragHandlerCallbacks {
 
 	get hiddenCalendars(): ReadonlySet<Id> {
 		return this._hiddenCalendars
+	}
+
+	getSortParams(section: keyof SortParams): Id[] {
+		let sortParams = this.sortParams[section]
+		if (sortParams.length === 0 && this.calendarInfos.isLoaded()) {
+			const calendarInfos = Array.from(this.calendarInfos.getLoaded().values()).filter((calendarInfo) => calendarInfo.shared === (section === "shared"))
+			sortParams = this.sortParams[section] = calendarInfos.map((calendarInfo) => calendarInfo.groupRoot._id)
+			this.persistSortParams()
+		}
+		return sortParams
 	}
 
 	get eventsForDays(): EventsForDays {
@@ -645,6 +657,22 @@ export class CalendarViewModel implements EventDragHandlerCallbacks {
 	_redraw() {
 		// Need to pass some argument to make it a "set" operation
 		this._redrawStream(undefined)
+	}
+
+	setSortParams(calendarInfo: CalendarInfo, direction: "up" | "down", section: keyof SortParams) {
+		let sectionElements = this.sortParams[section]
+		let idx = sectionElements.indexOf(calendarInfo.groupRoot._id)
+		let temp = sectionElements[idx]
+
+		let adjacentIdx = direction === "up" ? Math.max(idx - 1, 0) : Math.min(idx + 1, sectionElements.length - 1)
+		sectionElements[idx] = sectionElements[adjacentIdx]
+		sectionElements[adjacentIdx] = temp
+
+		this.persistSortParams()
+	}
+
+	private persistSortParams() {
+		this._deviceConfig.setSortParams(this.loginController.getUserController().userId, this.sortParams)
 	}
 }
 

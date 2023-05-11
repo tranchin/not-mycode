@@ -27,7 +27,7 @@ import { Dialog } from "../../gui/base/Dialog"
 import { isApp } from "../../api/common/Env"
 import { px, size } from "../../gui/size"
 import { FolderColumnView } from "../../gui/FolderColumnView.js"
-import { deviceConfig } from "../../misc/DeviceConfig"
+import { deviceConfig, SortParams } from "../../misc/DeviceConfig"
 import { exportCalendar, showCalendarImportDialog } from "../export/CalendarImporterDialog"
 import { CalendarEventViewModel } from "../date/CalendarEventViewModel"
 import { showNotAvailableForFreeDialog } from "../../misc/SubscriptionDialogs"
@@ -556,42 +556,66 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 		return this.viewModel.calendarInfos.isLoaded()
 			? Array.from(this.viewModel.calendarInfos.getLoaded().values())
 					.filter((calendarInfo) => calendarInfo.shared === shared)
-					.map((calendarInfo) => {
+					.sort((a, b) => {
+						const sortParams = this.viewModel.getSortParams(shared ? "shared" : "private")
+						if (sortParams.length === 0) {
+							return -1
+						}
+
+						let idxA = sortParams.indexOf(a.groupRoot._id)
+						let idxB = sortParams.indexOf(b.groupRoot._id)
+
+						return idxA - idxB
+					})
+					.map((calendarInfo, idx, calendarInfos) => {
 						const { userSettingsGroupRoot } = locator.logins.getUserController()
 						const existingGroupSettings = userSettingsGroupRoot.groupSettings.find((gc) => gc.group === calendarInfo.groupInfo.group) ?? null
 						const colorValue = "#" + (existingGroupSettings ? existingGroupSettings.color : defaultCalendarColor)
 						const groupRootId = calendarInfo.groupRoot._id
-						return m(".folder-row.flex-start.plr-button", [
-							m(".flex.flex-grow.center-vertically.button-height", [
-								m(".calendar-checkbox", {
-									onclick: () => {
-										const newHiddenCalendars = new Set(this.viewModel.hiddenCalendars)
-										this.viewModel.hiddenCalendars.has(groupRootId)
-											? newHiddenCalendars.delete(groupRootId)
-											: newHiddenCalendars.add(groupRootId)
+						const moveActions: Array<"up" | "down"> = []
+						if (idx !== 0) {
+							moveActions.push("up")
+						}
+						if (idx !== calendarInfos.length - 1) {
+							moveActions.push("down")
+						}
+						return m(
+							".folder-row.flex-start.plr-button",
+							{
+								key: calendarInfo.groupRoot._id,
+							},
+							[
+								m(".flex.flex-grow.center-vertically.button-height", [
+									m(".calendar-checkbox", {
+										onclick: () => {
+											const newHiddenCalendars = new Set(this.viewModel.hiddenCalendars)
+											this.viewModel.hiddenCalendars.has(groupRootId)
+												? newHiddenCalendars.delete(groupRootId)
+												: newHiddenCalendars.add(groupRootId)
 
-										this.viewModel.setHiddenCalendars(newHiddenCalendars)
-									},
-									style: {
-										"border-color": colorValue,
-										background: this.viewModel.hiddenCalendars.has(groupRootId) ? "" : colorValue,
-										transition: "all 0.3s",
-										cursor: "pointer",
-										marginLeft: px(size.hpad_button),
-									},
-								}),
-								m(
-									".pl-m.b.flex-grow.text-ellipsis",
-									{
-										style: {
-											width: 0,
+											this.viewModel.setHiddenCalendars(newHiddenCalendars)
 										},
-									},
-									getSharedGroupName(calendarInfo.groupInfo, shared),
-								),
-							]),
-							this._createCalendarActionDropdown(calendarInfo, colorValue, existingGroupSettings, userSettingsGroupRoot, shared),
-						])
+										style: {
+											"border-color": colorValue,
+											background: this.viewModel.hiddenCalendars.has(groupRootId) ? "" : colorValue,
+											transition: "all 0.3s",
+											cursor: "pointer",
+											marginLeft: px(size.hpad_button),
+										},
+									}),
+									m(
+										".pl-m.b.flex-grow.text-ellipsis",
+										{
+											style: {
+												width: 0,
+											},
+										},
+										getSharedGroupName(calendarInfo.groupInfo, shared),
+									),
+								]),
+								this._createCalendarActionDropdown(calendarInfo, colorValue, existingGroupSettings, userSettingsGroupRoot, shared, moveActions),
+							],
+						)
 					})
 			: null
 	}
@@ -602,6 +626,7 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 		existingGroupSettings: GroupSettings | null,
 		userSettingsGroupRoot: UserSettingsGroupRoot,
 		sharedCalendar: boolean,
+		moveActons: Array<"up" | "down">,
 	): Children {
 		const { group, groupInfo, groupRoot } = calendarInfo
 		const user = locator.logins.getUserController().user
@@ -612,6 +637,22 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 			size: ButtonSize.Compact,
 			click: createDropdown({
 				lazyButtons: () => [
+					moveActons.includes("up")
+						? {
+								label: "moveUp_action",
+								icon: Icons.ArrowBackward,
+								size: ButtonSize.Compact,
+								click: () => this._updateSortParams(calendarInfo, "up", sharedCalendar ? "shared" : "private"),
+						  }
+						: null,
+					moveActons.includes("down")
+						? {
+								label: "moveDown_action",
+								icon: Icons.ArrowForward,
+								size: ButtonSize.Compact,
+								click: () => this._updateSortParams(calendarInfo, "down", sharedCalendar ? "shared" : "private"),
+						  }
+						: null,
 					{
 						label: "edit_action",
 						icon: Icons.Edit,
@@ -686,6 +727,10 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 				}
 			})
 		})
+	}
+
+	_updateSortParams(calendarInfo: CalendarInfo, direction: "up" | "down", section: keyof SortParams) {
+		this.viewModel.setSortParams(calendarInfo, direction, section)
 	}
 
 	_onPressedEditCalendar(

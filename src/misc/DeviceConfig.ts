@@ -13,6 +13,10 @@ import { NewsItemStorage } from "./news/NewsModel.js"
 
 assertMainOrNodeBoot()
 export const defaultThemeId: ThemeId = "light"
+export type SortParams = {
+	private: Id[]
+	shared: Id[]
+}
 
 /**
  * Definition of the config object that will be saved to local storage
@@ -26,6 +30,7 @@ interface ConfigObject {
 	_defaultCalendarView: Record<Id, CalendarViewType | null>
 	/** map from user id to a list of calendar grouproots*/
 	_hiddenCalendars: Record<Id, Id[]>
+	sortParams: Record<Id, SortParams>
 	/** map from user id to a list of expanded folders (elementId)*/
 	expandedMailFolders: Record<Id, Id[]>
 	_signupToken: string
@@ -82,6 +87,7 @@ export class DeviceConfig implements CredentialsStorage, UsageTestStorage, NewsI
 			scheduledAlarmModelVersionPerUser: loadedConfig.scheduledAlarmModelVersionPerUser ?? {},
 			_language: loadedConfig._language ?? null,
 			_defaultCalendarView: loadedConfig._defaultCalendarView ?? {},
+			sortParams: loadedConfig.sortParams ?? {},
 			_hiddenCalendars: loadedConfig._hiddenCalendars ?? {},
 			expandedMailFolders: loadedConfig.expandedMailFolders ?? {},
 			_testDeviceId: loadedConfig._testDeviceId ?? null,
@@ -216,6 +222,15 @@ export class DeviceConfig implements CredentialsStorage, UsageTestStorage, NewsI
 
 	getHiddenCalendars(user: Id): Id[] {
 		return this.config._hiddenCalendars.hasOwnProperty(user) ? this.config._hiddenCalendars[user] : []
+	}
+
+	getSortParams(userId: Id): SortParams {
+		return this.config.sortParams[userId] ?? { shared: [], private: [] }
+	}
+
+	setSortParams(userId: Id, params: SortParams) {
+		this.config.sortParams[userId] = params
+		this.writeToStorage()
 	}
 
 	setHiddenCalendars(user: Id, calendars: Id[]) {

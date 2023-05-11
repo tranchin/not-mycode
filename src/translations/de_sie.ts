@@ -1642,7 +1642,7 @@ export default {
 		"whitelabelDomainLinkInfo_msg": "Das Whitelabel-Feature ist nur in dem Unlimited-Abonnement enthalten. Es ermöglicht den Tutanota-Login auf deiner eigenen Domain (Subdomain) und die Anpassung des Aussehens von Tutanota an deine eigenen Wünsche (z.B. Corporate Identity). Siehe ",
 		"newPaidPlanRequired_msg": "Um diese Funktion zu benutzen, müssen Sie auf eines der folgenden Abonnements wechseln.",
 		"moreCustomDomainsRequired_msg": "Um weitere eigene Domains hinzuzufügen, müssen Sie auf eines der folgenden Abonnements wechseln.",
-		"moreAliasesRequired_msg":  "Um weitere E-Mail-Aliasse hinzuzufügen, müssen Sie auf eines der folgenden Abonnements wechseln.",
+		"moreAliasesRequired_msg": "Um weitere E-Mail-Aliasse hinzuzufügen, müssen Sie auf eines der folgenden Abonnements wechseln.",
 		"onlyPrivateAccountFeature_msg": "Gutscheine können nur von privaten Accounts eingelöst werden",
 		"invoiceAddressInfoPrivate_msg": "Diese Information ist optional (max. 5 Zeilen).",
 		"addCustomDomainAddAdresses_msg": "Die Domain wurde zu Ihrem Account hinzugefügt, Sie können nun eine neue E-Mail-Adresse erstellen.",
@@ -1655,13 +1655,12 @@ export default {
 		"giftCardOptionTextE_msg": "Für {fullCredit} Guthaben oder einen Revolutionary-Account mit {remainingCredit} Guthaben.",
 		"giftCardUpgradeNotifyRevolutionary_msg": "Ihr Account wird automatisch auf einen Revolutionary-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird Ihrem Guthabenkonto gutgeschrieben.",
 		"pricing.notSupportedByPersonalPlan_msg": "Die Funktion wird nicht von einem Privatkunden-Abonnement unterstützt. Sie müssen zu einem Business-Abonnement wechseln.",
-
 		"insufficientStorageAdmin_msg": "Der verfügbare Speicherplatz wurde verbraucht, dadurch können keine weiteren E-Mails empfangen oder gesendet werden. Entfernen Sie Inhalte aus Ihrem Postfach, um Speicherplatz freizugeben, oder buchen Sie ein Abonnement mit mehr Speicherplatz.",
 		"insufficientStorageWarning_msg": "Der verfügbare Speicher Ihres Postfaches ist fast verbraucht. Entfernen Sie Inhalte aus Ihrem Postfach, um Speicherplatz freizugeben oder buchen Sie ein Abonnement mit mehr Speicherplatz.",
 		"premiumOffer_msg": "Ihre Unterstützung hilft uns Privatsphäre für alle zugänglich zu machen. Genieße die vielen exklusiven Vorteile für zahlende Kunden!",
 		"upgradeReminderTitle_msg": "Upgraden Sie jetzt!",
 		"showMoreUpgrade_action": "Abonnements auswählen",
-
+		"contactFormLegacy_msg": "Ein Kontaktformular ist aktiviert. Diese Funktion wird nicht mehr unterstützt. Bitte entfernen Sie alle Kontaktformulare vor dem Wechsel des Abonnements.",
 		// TODO delete
 		"giftCardUpgradeNotify_msg": "Ihr Account wird automatisch auf einen Premium-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird Ihrem Guthabenkonto gutgeschrieben.",
 		"orderAliasesConfirm_msg": "Sie können ein größeres E-Mail-Alias-Paket buchen, um mehr Aliasse anzulegen.",

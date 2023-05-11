@@ -1645,3 +1645,4 @@ export type TranslationKeyType =
 	| "newPaidPlanRequired_msg"
 	| "moreCustomDomainsRequired_msg"
 	| "moreAliasesRequired_msg"
+	| "contactFormLegacy_msg"

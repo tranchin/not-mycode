@@ -1655,13 +1655,12 @@ export default {
 		"giftCardOptionTextE_msg": "Für {fullCredit} Guthaben oder einen Revolutionary-Account mit {remainingCredit} Guthaben.",
 		"giftCardUpgradeNotifyRevolutionary_msg": "Dein Account wird automatisch auf einen Revolutionary-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird deinem Guthabenkonto gutgeschrieben.",
 		"pricing.notSupportedByPersonalPlan_msg": "Die Funktion wird nicht von einem Privatkunden-Abonnement unterstützt. Du musst zu einem Business-Abonnement wechseln.",
-
 		"insufficientStorageAdmin_msg": "Der verfügbare Speicherplatz wurde verbraucht, dadurch können keine weiteren E-Mails empfangen oder gesendet werden. Entferne Inhalte aus deinem Postfach, um Speicherplatz freizugeben, oder buche ein Abonnement mit mehr Speicherplatz.",
 		"insufficientStorageWarning_msg": "Der verfügbare Speicher deines Postfaches ist fast verbraucht. Entferne Inhalte aus deinem Postfach, um Speicherplatz freizugeben oder buche ein Abonnement mit mehr Speicherplatz.",
 		"premiumOffer_msg": "Deine Unterstützung hilft uns Privatsphäre für alle zugänglich zu machen. Genieße die vielen exklusiven Vorteile für zahlende Kunden!",
 		"upgradeReminderTitle_msg": "Upgrade jetzt!",
 		"showMoreUpgrade_action": "Abonnements auswählen",
-
+		"contactFormLegacy_msg": "Ein Kontaktformular ist aktiviert. Diese Funktion wird nicht mehr unterstützt. Bitte entferne alle Kontaktformulare vor dem Wechsel des Abonnements.",
 		// TODO delete
 		"giftCardUpgradeNotify_msg": "Dein Account wird automatisch auf einen Premium-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird deinem Guthabenkonto gutgeschrieben.",
 		"orderAliasesConfirm_msg": "Du kannst ein größeres E-Mail-Alias-Paket buchen, um mehr Aliasse anzulegen.",

@@ -1659,6 +1659,7 @@ export default {
 		"premiumOffer_msg": "Your support will enable us to offer privacy to everyone. Enjoy the many benefits you get with a paid plan now!",
 		"upgradeReminderTitle_msg": "Upgrade now!",
 		"showMoreUpgrade_action": "Choose plan",
+		"contactFormLegacy_msg": "A contact form is activated. This feature is no longer supported. Please delete all contact forms before switching plans.",
 		// TODO delete from phrase
 		"orderAliasesConfirm_msg": "You can choose a larger plan to register more aliases.",
 		"giftCardUpgradeNotify_msg": "You will be automatically upgraded to a Premium account with a yearly subscription. The cost of the first year ({price}) will be paid for with your gift card and the remaining value ({credit}) will be credited to your account.",

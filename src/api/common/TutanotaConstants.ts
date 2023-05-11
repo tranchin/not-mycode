@@ -547,6 +547,7 @@ export const enum UnsubscribeFailureReason {
 	HAS_TEMPLATE_GROUP = "unsubscribe.has_template_group",
 	WHITELABEL_DOMAIN_ACTIVE = "unsubscribe.whitelabel_domain_active",
 	SHARED_GROUP_ACTIVE = "unsubscribe.shared_group_active",
+	HAS_CONTACT_FORM = "unsubscribe.has_contact_form",
 }
 
 // legacy, should be deleted after clients older than 3.114 have been disabled.

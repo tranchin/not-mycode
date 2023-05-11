@@ -185,6 +185,10 @@ function handleSwitchAccountPreconditionFailed(e: PreconditionFailedError): Prom
 				detailMsg = lang.get("whitelabelDomainExisting_msg")
 				break
 
+			case UnsubscribeFailureReason.HAS_CONTACT_FORM:
+				detailMsg = lang.get("contactFormLegacy_msg")
+				break
+
 			default:
 				throw e
 		}

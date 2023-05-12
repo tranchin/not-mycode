@@ -6,14 +6,18 @@ type CoordinatePair = {
 export class PinchZoomV2 {
 	private dragTouchIDs: Set<number> = new Set<number>()
 	private pinchTouchIDs: Set<number> = new Set<number>()
-	private firstMultiple: { pointer1: CoordinatePair; pointer2: CoordinatePair } = { pointer1: { x: 0, y: 0 }, pointer2: { x: 0, y: 0 } }
+	private lastMultiple: { pointer1: CoordinatePair; pointer2: CoordinatePair } = { pointer1: { x: 0, y: 0 }, pointer2: { x: 0, y: 0 } }
 	private previousDelta: CoordinatePair = { x: 0, y: 0 }
 	private offsetDelta: CoordinatePair = { x: 0, y: 0 }
 	private previousInput: { delta: CoordinatePair; event: string } = { delta: { x: 0, y: 0 }, event: "end" }
+	private initialCoords = { x: 0, y: 0, x2: 0, y2: 0 }
 
 	constructor(private readonly root: HTMLElement, private readonly parent: HTMLElement) {
-		const initialCoords = this.getCoords(this.root) // already needs to be rendered
-		this.originalSize = { width: Math.abs(initialCoords.x2 - initialCoords.x), height: Math.abs(initialCoords.y2 - initialCoords.y) }
+		this.initialCoords = this.getCoords(this.root) // already needs to be rendered
+		this.current.x = this.initialCoords.x
+		this.current.y = this.initialCoords.y
+		console.log("initialcoords", this.initialCoords.x, this.initialCoords.y)
+		this.originalSize = { width: Math.abs(this.initialCoords.x2 - this.initialCoords.x), height: Math.abs(this.initialCoords.y2 - this.initialCoords.y) }
 
 		console.log("new Pinch to zoom----------------")
 		// this.setInitialScale(1)
@@ -31,6 +35,7 @@ export class PinchZoomV2 {
 		}
 
 		this.root.style.touchAction = "pan-y pan-x" // makes zooming smooth
+		this.root.style.transformOrigin = "center" // zooms in the right position
 	}
 
 	private touchmove_handler(ev: TouchEvent) {
@@ -73,7 +78,7 @@ export class PinchZoomV2 {
 	}
 
 	private pointDistance(point1: CoordinatePair, point2: CoordinatePair): number {
-		return Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2))
+		return Math.round(Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2)))
 	}
 
 	private centerOfPoints(...points: CoordinatePair[]): CoordinatePair {
@@ -87,14 +92,14 @@ export class PinchZoomV2 {
 	}
 
 	private startPinchSession(ev: TouchEvent) {
-		this.firstMultiple = {
+		this.lastMultiple = {
 			pointer1: { x: ev.touches[0].clientX, y: ev.touches[0].clientY },
 			pointer2: { x: ev.touches[1].clientX, y: ev.touches[1].clientY },
 		}
 
-		const pinchCenter = this.centerOfPoints({ x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
-		this.pinchStart.x = pinchCenter.x
-		this.pinchStart.y = pinchCenter.y
+		this.pinchCenter = this.centerOfPoints({ x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
+		this.pinchStart.x = this.pinchCenter.x
+		this.pinchStart.y = this.pinchCenter.y
 		this.pinchZoomOrigin = this.getRelativePosition(
 			this.root,
 			{
@@ -124,16 +129,16 @@ export class PinchZoomV2 {
 
 		// Calculate the scaling (1 = no scaling, 0 = maximum pinched in, >1 pinching out
 		const scaling =
-			this.pointDistance(
-				{ x: ev.touches[0].clientX, y: ev.touches[0].clientY },
-				{
-					x: ev.touches[1].clientX,
-					y: ev.touches[1].clientY,
-				},
-			) / this.pointDistance(this.firstMultiple.pointer1, this.firstMultiple.pointer2)
+			this.pointDistance({ x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY }) /
+			this.pointDistance(this.lastMultiple.pointer1, this.lastMultiple.pointer2)
+
+		this.lastMultiple.pointer1 = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
+		this.lastMultiple.pointer2 = { x: ev.touches[1].clientX, y: ev.touches[1].clientY }
 
 		let d = this.scaleFrom(this.pinchZoomOrigin, this.last.z, this.last.z * scaling)
-		this.setCurrentSafePosition(d.x + this.pinchZoomOrigin.x /* + this.last.x*/, d.y + this.pinchZoomOrigin.y /* + this.last.y*/, d.z + this.last.z) //FIXME
+		let d2 = this.newScaledCoordinates(this.pinchCenter, scaling)
+		// this.setCurrentSafePosition(d.x + this.pinchZoomOrigin.x /* + this.last.x*/, d.y + this.pinchZoomOrigin.y /* + this.last.y*/, d.z + this.last.z) //FIXME
+		this.setCurrentSafePosition(d2, this.current.z + (scaling - 1)) //FIXME // scaling prob. wrong
 		this.lastEvent = "pinch"
 		this.update()
 	}
@@ -160,7 +165,9 @@ export class PinchZoomV2 {
 				}
 			}
 
-			this.setCurrentSafePosition(this.last.x + delta.x - this.fixDeltaIssue.x, this.last.y + delta.y - this.fixDeltaIssue.y, this.current.z)
+			// this.setCurrentSafePosition({x: this.last.x + delta.x - this.fixDeltaIssue.x, y: this.last.y + delta.y - this.fixDeltaIssue.y}, this.current.z) //FIXME
+			this.current.x = this.last.x + delta.x - this.fixDeltaIssue.x
+			this.current.y = this.last.y + delta.y - this.fixDeltaIssue.y
 			this.lastEvent = "pan"
 			this.update()
 		}
@@ -185,6 +192,7 @@ export class PinchZoomV2 {
 	//// new
 
 	private pinchZoomOrigin: { x: number; y: number } = { x: 0, y: 0 }
+	private pinchCenter: { x: number; y: number } = { x: 0, y: 0 }
 	private fixDeltaIssue: { x: number; y: number } = { x: 0, y: 0 }
 	private pinchStart: { x: number; y: number } = { x: 0, y: 0 }
 	private lastEvent: string = ""
@@ -211,6 +219,7 @@ export class PinchZoomV2 {
 	}
 
 	private getRelativePosition(
+		//FIXME what does that do?
 		element: HTMLElement,
 		point: { x: number; y: number },
 		originalSize: { width: number; height: number },
@@ -266,6 +275,49 @@ export class PinchZoomV2 {
 		return output
 	}
 
+	private newScaledCoordinates(zoomPosition: CoordinatePair, newScale: number) {
+		console.log("zoomPosition", zoomPosition)
+		const currentNormalizedCoordinates = {
+			x: this.current.x,
+			y: this.current.y,
+			x2: this.current.x + this.originalSize.width,
+			y2: this.current.y + this.originalSize.height,
+		} // current coordinates without scaling
+		// zoomPosition = { x: zoomPosition.x - currentCoordinates.x, y: zoomPosition.y - currentCoordinates.y } // shift in case that display was scrolled
+		// console.log("corrected position", zoomPosition)
+		const newCoordinates = this.scaleAndShift(zoomPosition, newScale, currentNormalizedCoordinates)
+
+		return { x: currentNormalizedCoordinates.x + newCoordinates.xOffset, y: currentNormalizedCoordinates.y + newCoordinates.yOffset }
+	}
+
+	// returns the offset to the current points
+	private scaleAndShift(zoomPosition: CoordinatePair, newScale: number, currentCoordinates: { x: number; y: number; x2: number; y2: number }) {
+		const middle: CoordinatePair = this.centerOfPoints(
+			{ x: currentCoordinates.x, y: currentCoordinates.y },
+			{ x: currentCoordinates.x2, y: currentCoordinates.y2 },
+		)
+		console.log("middle of root", middle)
+
+		console.log("newScale", newScale)
+		console.log("offset x", (newScale - 1) * (middle.x - zoomPosition.x))
+
+		return {
+			xOffset: Math.round((newScale - 1) * (middle.x - zoomPosition.x)),
+			yOffset: Math.round((newScale - 1) * (middle.y - zoomPosition.y)),
+		}
+
+		// return {
+		// 	ax: (newScale - 1) * (middle.x - zoomPosition.x), // topleft corner
+		// 	ay: (newScale - 1) * (middle.y - zoomPosition.x),
+		// 	bx: (newScale - 1) * (middle.x - zoomPosition.x), // bottomleft corner
+		// 	by: (newScale - 1) * (middle.x - zoomPosition.x),
+		// 	cx: (newScale - 1) * (middle.x - zoomPosition.x), // bottomright corner
+		// 	cy: (newScale - 1) * (middle.x - zoomPosition.x),
+		// 	dx: (newScale - 1) * (middle.x - zoomPosition.x), // topright corner
+		// 	dy: (newScale - 1) * (middle.x - zoomPosition.x),
+		// }
+	}
+
 	private getCoordinateShiftDueToScale(size: { width: number; height: number }, scale: number) {
 		let newWidth = scale * size.width
 		let newHeight = scale * size.height
@@ -278,10 +330,14 @@ export class PinchZoomV2 {
 	}
 
 	private update() {
-		console.log(`x: ${this.current.x}, y: ${this.current.y}`)
+		console.log(`x: ${this.current.x}, y: ${this.current.y}, z: ${this.current.z}`)
 		this.current.height = this.originalSize.height * this.current.z
 		this.current.width = this.originalSize.width * this.current.z
-		this.root.style.transform = "translate3d(" + this.current.x + "px, " + this.current.y + "px, 0) scale(" + this.current.z + ")"
+		console.log("root before transform", JSON.stringify(this.getCoords(this.root)))
+		this.root.style.transformOrigin = "center" // zooms in the right position
+		this.root.style.transform =
+			"translate3d(" + (this.current.x - this.initialCoords.x) + "px, " + (this.current.y - this.initialCoords.y) + "px, 0) scale(" + this.current.z + ")"
+		console.log("root after transform", JSON.stringify(this.getCoords(this.root)))
 	}
 
 	/**
@@ -291,29 +347,48 @@ export class PinchZoomV2 {
 	 * right x should not be < initial right x
 	 * @param newX
 	 * @param newY
-	 * @param newZ
+	 * @param scaling
 	 * @private
 	 */
-	private setCurrentSafePosition(newX: number, newY: number, newZ: number) {
-		console.log(`newX: ${newX}, newY: ${newY}`)
+	private setCurrentSafePosition(newPosition: CoordinatePair, scaling: number) {
+		console.log(`newX: ${newPosition.x}, newy: ${newPosition.y}`)
 		let parentBorders = this.getCoords(this.parent)
-		let rootBorders = this.getCoords(this.root)
+		const rootBorders = { x: newPosition.x, y: newPosition.y, x2: newPosition.x + this.originalSize.width, y2: newPosition.y + this.originalSize.height }
 
-		const currentWidth = rootBorders.x2 - rootBorders.x
-		const currentHeight = rootBorders.y2 - rootBorders.y
-		const newWidth = Math.round(this.originalSize.width * newZ)
-		const newHeight = Math.round(this.originalSize.height * newZ)
-		const modifierX = (currentWidth - newWidth) / 2
-		const modifierY = (currentHeight - newHeight) / 2
+		const newMiddle: CoordinatePair = this.centerOfPoints({ x: rootBorders.x, y: rootBorders.y }, { x: rootBorders.x2, y: rootBorders.y2 })
 
-		if (rootBorders.x + newX + modifierX < parentBorders.x && rootBorders.x2 + newX > parentBorders.x2) {
+		scaling = Math.max(1, Math.min(3, scaling)) // don't allow zooming out or zooming in more than 3x
+
+		const scaledX1 = rootBorders.x + (scaling - 1) * (rootBorders.x - newMiddle.x)
+		const scaledX2 = rootBorders.x2 + (scaling - 1) * (rootBorders.x2 - newMiddle.x)
+
+		const scaledY1 = rootBorders.y + (scaling - 1) * (rootBorders.y - newMiddle.y)
+		const scaledY2 = rootBorders.y2 + (scaling - 1) * (rootBorders.y2 - newMiddle.y)
+		// const currentWidth = rootBorders.x2 - rootBorders.x
+		// const currentHeight = rootBorders.y2 - rootBorders.y
+		// const newWidth = Math.round(this.originalSize.width * newZ)
+		// const newHeight = Math.round(this.originalSize.height * newZ)
+		// const modifierX = (currentWidth - newWidth) / 2
+		// const modifierY = (currentHeight - newHeight) / 2
+
+		console.log("scaledX1", scaledX1)
+		console.log("parentBorder x", parentBorders.x)
+		console.log("scaledX2", scaledX2)
+		console.log("parentBorder x2", parentBorders.x2)
+		let xChanged = false
+		let yChanged = false
+		if (scaledX1 <= parentBorders.x && scaledX2 >= parentBorders.x2) {
 			// also take the scaling into account
-			this.current.x = newX
+			console.log("current x", this.current.x)
+			this.current.x = newPosition.x
+			xChanged = true
 		}
-		if (rootBorders.y + newY + modifierY < parentBorders.y && rootBorders.y2 + newY + modifierY > parentBorders.y2) {
-			this.current.y = newY
+		if (scaledY1 <= parentBorders.y && scaledY2 >= parentBorders.y2) {
+			this.current.y = newPosition.y
+			yChanged = true
 		}
-
-		this.current.z = Math.max(1, Math.min(4, newZ)) // don't allow zooming out or zooming in more than 3x
+		if (xChanged || yChanged) {
+			this.current.z = scaling
+		}
 	}
 }

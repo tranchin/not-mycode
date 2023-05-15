@@ -1,5 +1,5 @@
 import type { InvoiceData, PaymentData, SpamRuleFieldType, SpamRuleType } from "../../../common/TutanotaConstants.js"
-import { AccountType, BookingItemFeatureType, Const, GroupType } from "../../../common/TutanotaConstants.js"
+import { AccountType, BookingItemFeatureType, Const, CounterType, GroupType } from "../../../common/TutanotaConstants.js"
 import type {
 	AccountingInfo,
 	CustomDomainReturn,
@@ -146,8 +146,8 @@ export class CustomerFacade {
 	 * @return The amount of used storage in byte.
 	 */
 	readUsedCustomerStorage(customerId: Id): Promise<number> {
-		return this.counters.readCounterValue(Const.COUNTER_USED_MEMORY_INTERNAL, customerId).then((usedMemoryInternal) => {
-			return this.counters.readCounterValue(Const.COUNTER_USED_MEMORY_EXTERNAL, customerId).then((usedMemoryExternal) => {
+		return this.counters.readCounterValue(CounterType.Default, Const.COUNTER_USED_MEMORY_INTERNAL, customerId).then((usedMemoryInternal) => {
+			return this.counters.readCounterValue(CounterType.Default, Const.COUNTER_USED_MEMORY_EXTERNAL, customerId).then((usedMemoryExternal) => {
 				return Number(usedMemoryInternal) + Number(usedMemoryExternal)
 			})
 		})

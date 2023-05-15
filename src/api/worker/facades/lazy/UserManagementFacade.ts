@@ -1,4 +1,4 @@
-import { AccountType, Const, GroupType } from "../../../common/TutanotaConstants.js"
+import { AccountType, Const, CounterType, GroupType } from "../../../common/TutanotaConstants.js"
 import type { User } from "../../../entities/sys/TypeRefs.js"
 import {
 	createMembershipAddData,
@@ -159,7 +159,7 @@ export class UserManagementFacade {
 	}
 
 	async readUsedUserStorage(user: User): Promise<number> {
-		const counterValue = await this.counters.readCounterValue(Const.COUNTER_USED_USER_MEMORY, user.userGroup.group)
+		const counterValue = await this.counters.readCounterValue(CounterType.UserStorageLegacy, neverNull(user.customer), user.userGroup.group)
 		return Number(counterValue)
 	}
 

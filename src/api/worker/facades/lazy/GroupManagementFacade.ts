@@ -1,4 +1,4 @@
-import { Const, GroupType } from "../../../common/TutanotaConstants.js"
+import { Const, CounterType, GroupType } from "../../../common/TutanotaConstants.js"
 import type { InternalGroupData, UserAreaGroupData } from "../../../entities/tutanota/TypeRefs.js"
 import {
 	createCreateLocalAdminGroupData,
@@ -34,8 +34,8 @@ export class GroupManagementFacade {
 		private readonly serviceExecutor: IServiceExecutor,
 	) {}
 
-	async readUsedSharedMailGroupStorage(groupId: Id): Promise<number> {
-		const counterValue = await this.counters.readCounterValue(Const.COUNTER_USED_USER_MEMORY, groupId)
+	async readUsedSharedMailGroupStorage(group: Group): Promise<number> {
+		const counterValue = await this.counters.readCounterValue(CounterType.UserStorageLegacy, neverNull(group.customer), group._id)
 		return Number(counterValue)
 	}
 

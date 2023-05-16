@@ -2857,6 +2857,8 @@ export type UpgradePriceServiceData = {
 	_format: NumberString;
 	campaign: null | string;
 	date: null | Date;
+
+	referralCode:  null | Id;
 }
 export const UpgradePriceServiceReturnTypeRef: TypeRef<UpgradePriceServiceReturn> = new TypeRef("sys", "UpgradePriceServiceReturn")
 
@@ -2868,6 +2870,7 @@ export type UpgradePriceServiceReturn = {
 	_type: TypeRef<UpgradePriceServiceReturn>;
 
 	_format: NumberString;
+	bonusMonthsForYearlyPlan: NumberString;
 	business: boolean;
 	messageTextId: null | string;
 

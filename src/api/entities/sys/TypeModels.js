@@ -3485,7 +3485,7 @@ export const typeModels = {
             "perUserAliasCount": {
                 "final": false,
                 "name": "perUserAliasCount",
-                "id": 2091,
+                "id": 2093,
                 "since": 86,
                 "type": "Number",
                 "cardinality": "One",
@@ -3494,7 +3494,7 @@ export const typeModels = {
             "perUserStorageCapacity": {
                 "final": false,
                 "name": "perUserStorageCapacity",
-                "id": 2090,
+                "id": 2092,
                 "since": 86,
                 "type": "Number",
                 "cardinality": "One",
@@ -3503,7 +3503,7 @@ export const typeModels = {
             "plan": {
                 "final": false,
                 "name": "plan",
-                "id": 2095,
+                "id": 2097,
                 "since": 86,
                 "type": "Number",
                 "cardinality": "One",
@@ -5391,7 +5391,7 @@ export const typeModels = {
             "storageCounter": {
                 "final": true,
                 "name": "storageCounter",
-                "id": 2089,
+                "id": 2091,
                 "since": 86,
                 "type": "ELEMENT_ASSOCIATION",
                 "cardinality": "ZeroOrOne",
@@ -6527,15 +6527,15 @@ export const typeModels = {
         "name": "MailAddressAliasGetIn",
         "since": 86,
         "type": "DATA_TRANSFER_TYPE",
-        "id": 2092,
-        "rootId": "A3N5cwAILA",
+        "id": 2094,
+        "rootId": "A3N5cwAILg",
         "versioned": false,
         "encrypted": false,
         "values": {
             "_format": {
                 "final": false,
                 "name": "_format",
-                "id": 2093,
+                "id": 2095,
                 "since": 86,
                 "type": "Number",
                 "cardinality": "One",
@@ -6546,7 +6546,7 @@ export const typeModels = {
             "targetGroup": {
                 "final": false,
                 "name": "targetGroup",
-                "id": 2094,
+                "id": 2096,
                 "since": 86,
                 "type": "ELEMENT_ASSOCIATION",
                 "cardinality": "One",
@@ -7964,7 +7964,7 @@ export const typeModels = {
             "business": {
                 "final": false,
                 "name": "business",
-                "id": 2097,
+                "id": 2099,
                 "since": 86,
                 "type": "Boolean",
                 "cardinality": "One",
@@ -8027,7 +8027,7 @@ export const typeModels = {
             "sharing": {
                 "final": false,
                 "name": "sharing",
-                "id": 2096,
+                "id": 2098,
                 "since": 86,
                 "type": "Boolean",
                 "cardinality": "One",
@@ -8036,7 +8036,7 @@ export const typeModels = {
             "whitelabel": {
                 "final": false,
                 "name": "whitelabel",
-                "id": 2098,
+                "id": 2100,
                 "since": 86,
                 "type": "Boolean",
                 "cardinality": "One",
@@ -11201,7 +11201,18 @@ export const typeModels = {
                 "encrypted": false
             }
         },
-        "associations": {},
+        "associations": {
+            "referralCode": {
+                "final": false,
+                "name": "referralCode",
+                "id": 2077,
+                "since": 86,
+                "type": "ELEMENT_ASSOCIATION",
+                "cardinality": "ZeroOrOne",
+                "refType": "ReferralCode",
+                "dependency": null
+            }
+        },
         "app": "sys",
         "version": "86"
     },
@@ -11219,6 +11230,15 @@ export const typeModels = {
                 "name": "_format",
                 "id": 1470,
                 "since": 39,
+                "type": "Number",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "bonusMonthsForYearlyPlan": {
+                "final": false,
+                "name": "bonusMonthsForYearlyPlan",
+                "id": 2083,
+                "since": 86,
                 "type": "Number",
                 "cardinality": "One",
                 "encrypted": false
@@ -11246,7 +11266,7 @@ export const typeModels = {
             "advancedPrices": {
                 "final": false,
                 "name": "advancedPrices",
-                "id": 2080,
+                "id": 2081,
                 "since": 86,
                 "type": "AGGREGATION",
                 "cardinality": "One",
@@ -11256,7 +11276,7 @@ export const typeModels = {
             "essentialPrices": {
                 "final": false,
                 "name": "essentialPrices",
-                "id": 2079,
+                "id": 2080,
                 "since": 86,
                 "type": "AGGREGATION",
                 "cardinality": "One",
@@ -11266,7 +11286,7 @@ export const typeModels = {
             "legendaryPrices": {
                 "final": false,
                 "name": "legendaryPrices",
-                "id": 2078,
+                "id": 2079,
                 "since": 86,
                 "type": "AGGREGATION",
                 "cardinality": "One",
@@ -11306,7 +11326,7 @@ export const typeModels = {
             "revolutionaryPrices": {
                 "final": false,
                 "name": "revolutionaryPrices",
-                "id": 2077,
+                "id": 2078,
                 "since": 86,
                 "type": "AGGREGATION",
                 "cardinality": "One",
@@ -11336,7 +11356,7 @@ export const typeModels = {
             "unlimitedPrices": {
                 "final": false,
                 "name": "unlimitedPrices",
-                "id": 2081,
+                "id": 2082,
                 "since": 86,
                 "type": "AGGREGATION",
                 "cardinality": "One",

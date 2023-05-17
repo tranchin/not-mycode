@@ -214,9 +214,6 @@ export const Const = {
 	UPGRADE_REMINDER_INTERVAL: 14 * 24 * 60 * 60 * 1000,
 	MEMORY_GB_FACTOR: 1000000000,
 	MEMORY_WARNING_FACTOR: 0.9,
-	COUNTER_USED_MEMORY_INTERNAL: "UsedMemoryInternalNew",
-	COUNTER_USED_MEMORY_EXTERNAL: "UsedMemoryExternalNew",
-	COUNTER_USED_MEMORY: "UsedMemoryNew",
 	// Sets the current date for testing date dependent services. Only available in test environments.
 	CURRENT_DATE: null,
 	CURRENCY_SYMBOL_EUR: "€",

@@ -145,12 +145,9 @@ export class CustomerFacade {
 	 * Reads the used storage of a customer in bytes.
 	 * @return The amount of used storage in byte.
 	 */
-	readUsedCustomerStorage(customerId: Id): Promise<number> {
-		return this.counters.readCounterValue(CounterType.Default, Const.COUNTER_USED_MEMORY_INTERNAL, customerId).then((usedMemoryInternal) => {
-			return this.counters.readCounterValue(CounterType.Default, Const.COUNTER_USED_MEMORY_EXTERNAL, customerId).then((usedMemoryExternal) => {
-				return Number(usedMemoryInternal) + Number(usedMemoryExternal)
-			})
-		})
+	async readUsedCustomerStorage(customerId: Id): Promise<number> {
+		const customerCounters = await this.counters.readAllCustomerCounterValues(CounterType.UserStorageLegacy, customerId)
+		return customerCounters.reduce((sum, counterValue) => sum + Number(counterValue.value), 0)
 	}
 
 	/**

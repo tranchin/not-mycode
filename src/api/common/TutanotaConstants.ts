@@ -220,7 +220,6 @@ export const Const = {
 	// Sets the current date for testing date dependent services. Only available in test environments.
 	CURRENT_DATE: null,
 	CURRENCY_SYMBOL_EUR: "€",
-	COUNTER_USED_USER_MEMORY: "UsedUserMemoryNew",
 } as const
 
 export const TUTANOTA_MAIL_ADDRESS_DOMAINS = ["tutanota.com", "tutanota.de", "tutamail.com", "tuta.io", "keemail.me"]

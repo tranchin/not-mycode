@@ -9,17 +9,17 @@ assertWorkerOrNode()
 export class CounterFacade {
 	constructor(private readonly serviceExecutor: IServiceExecutor) {}
 
-	async readCounterValue(counterType: CounterType, rowName: string, columnName: Id): Promise<NumberString | null> {
+	async readCounterValue(counterType: CounterType, rowName: string, columnName: Id): Promise<number> {
 		const counterData = createReadCounterData({
 			counterType,
 			rowName,
 			columnName,
 		})
 		const counterReturn = await this.serviceExecutor.get(CounterService, counterData)
-		return counterReturn.counterValues[0].value
+		return Number(counterReturn.counterValues[0].value)
 	}
 
-	async readAllCustomerCounterValues(counterType: CounterType, customerId: Id): Promise<CounterValue[] | null> {
+	async readAllCustomerCounterValues(counterType: CounterType, customerId: Id): Promise<CounterValue[]> {
 		const counterData = createReadCounterData({
 			counterType,
 			rowName: customerId,

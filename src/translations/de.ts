@@ -1661,14 +1661,19 @@ export default {
 		"upgradeReminderTitle_msg": "Upgrade jetzt!",
 		"showMoreUpgrade_action": "Abonnements auswählen",
 		"contactFormLegacy_msg": "Ein Kontaktformular ist aktiviert. Diese Funktion wird nicht mehr unterstützt. Bitte entferne alle Kontaktformulare vor dem Wechsel des Abonnements.",
+		"newPlansNews_title": "Bereit für mehr?!",
+		"newPlansExplanation_msg": "Wir führen neue bezahlte Pläne in Tutanota ein: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
+		"newPlansOfferExplanation_msg": "Wechsel jetzt, und profitiere von unserem exclusiven Einführungsangebot: Buche jährlich, und bekomme das zweite Jahr umsonst dazu. Mit diesem einmaligen Angebot sparst du 50% auf alle Tutanota Pläne!!! 🥳",
+		"switchNow_action": "Wechsel jetzt",
+		"newPlansOfferEndingNews_title": "Letzte Chance! 🥳",
+		"newPlansExplanationPast_msg": "Wir haben neue bezahlte Pläne in Tutanota eingeführt: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
+		"newPlansOfferEnding_msg": "Wechsel jetzt, und bekomme zwei Jahre für den Preis von eins! Aber du musst schnell sein: diese einmalige Angebot läuft in einigen Tagen ab.",
+		"chooseYearlyForOffer_msg": "Buche jährlich, und bekomme das zweite Jahr umsonst dazu.",
 		// TODO delete
 		"giftCardUpgradeNotify_msg": "Dein Account wird automatisch auf einen Premium-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird deinem Guthabenkonto gutgeschrieben.",
 		"orderAliasesConfirm_msg": "Du kannst ein größeres E-Mail-Alias-Paket buchen, um mehr Aliasse anzulegen.",
 		"pricing.downgradeToPrivateNotAllowed_msg": "Es ist nicht möglich einen Geschäftkunden-Account in einen Privat-Account umzuwandeln.",
 		"businessUseUpgradeNeeded_msg": "Du darfst leider gerade keine E-Mails senden oder empfangen (außer an den Support unter sales@tutao.de), da du einen Geschäftskunden-Account verwendest, der nur mit einem bezahlten Abo erlaubt ist. Bitte buche jetzt ein Abo.",
 		"buyEmailAliasInfo_msg": "Bitte wähle eins der E-Mail-Alias-Pakete aus, um die verfügbaren E-Mail-Aliasse zu ändern. Die gebuchten E-Mail-Aliasse können von beliebigen Benutzern verwendet werden.",
-		"newPlansNews_title": "Bereit für mehr?!",
-		"newPlansExplanation_msg": "Wir führen neue bezahlte Pläne in Tutanota ein: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
-		"newPlansOfferExplanation_msg": "Wechsel jetzt, und profitiere von unserem exclusiven Einführungsangebot: Buche jährlich, und bekomme das zweite Jahr umsonst dazu. Mit diesem einmaligen Angebot sparst du 50% auf alle Tutanota Pläne!!! 🥳",
 	}
 }

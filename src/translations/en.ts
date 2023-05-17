@@ -1668,6 +1668,8 @@ export default {
 		"newPlansOfferExplanation_msg": "Switch now, and benefit from our exclusive introduction deal: Book yearly, and you'll get the second year for free. With this one-time offer you can save 50% on all brand-new Tutanota plans!!! 🥳",
 		"newPlansOfferEnding_msg": "Switch now, and get two years for the price of one! But you better be quick: This one-time offer expires in a few days.\n",
 		"chooseYearlyForOffer_msg": "Book yearly, and you'll get the second year for free.",
+		"bonusMonth_msg": "You have been granted {months} bonus months.",
+		"bonus_label": "Bonus",
 		// TODO delete from phrase
 		"orderAliasesConfirm_msg": "You can choose a larger plan to register more aliases.",
 		"giftCardUpgradeNotify_msg": "You will be automatically upgraded to a Premium account with a yearly subscription. The cost of the first year ({price}) will be paid for with your gift card and the remaining value ({credit}) will be credited to your account.",

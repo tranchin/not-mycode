@@ -1654,3 +1654,5 @@ export type TranslationKeyType =
 	| "newPlansExplanationPast_msg"
 	| "newPlansOfferEnding_msg"
 	| "chooseYearlyForOffer_msg"
+	| "bonus_label"
+	| "bonusMonth_msg"

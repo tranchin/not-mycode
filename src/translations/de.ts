@@ -1669,6 +1669,8 @@ export default {
 		"newPlansExplanationPast_msg": "Wir haben neue bezahlte Pläne in Tutanota eingeführt: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
 		"newPlansOfferEnding_msg": "Wechsel jetzt, und bekomme zwei Jahre für den Preis von eins! Aber du musst schnell sein: diese einmalige Angebot läuft in einigen Tagen ab.",
 		"chooseYearlyForOffer_msg": "Buche jährlich, und bekomme das zweite Jahr umsonst dazu.",
+		"bonusMonth_msg": "Du hast {months} Bonus-Monate erhalten.",
+		"bonus_label": "Bonus",
 		// TODO delete
 		"giftCardUpgradeNotify_msg": "Dein Account wird automatisch auf einen Premium-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird deinem Guthabenkonto gutgeschrieben.",
 		"orderAliasesConfirm_msg": "Du kannst ein größeres E-Mail-Alias-Paket buchen, um mehr Aliasse anzulegen.",

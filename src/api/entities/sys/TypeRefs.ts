@@ -300,6 +300,7 @@ export type Booking = {
 	_owner: Id;
 	_ownerGroup: null | Id;
 	_permissions: Id;
+	bonusMonth: NumberString;
 	createDate: Date;
 	endDate: null | Date;
 	paymentInterval: NumberString;

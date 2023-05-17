@@ -1142,6 +1142,15 @@ export const typeModels = {
                 "cardinality": "One",
                 "encrypted": false
             },
+            "bonusMonth": {
+                "final": false,
+                "name": "bonusMonth",
+                "id": 2101,
+                "since": 86,
+                "type": "Number",
+                "cardinality": "One",
+                "encrypted": false
+            },
             "createDate": {
                 "final": false,
                 "name": "createDate",

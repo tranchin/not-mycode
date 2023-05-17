@@ -145,6 +145,11 @@
 					"info": "RemoveValue Booking/business/720."
 				},
 				{
+					"name": "AddValue",
+					"sourceType": "Booking",
+					"info": "AddValue Booking/bonusMonth/2101."
+				},
+				{
 					"name": "ChangeValueCardinality",
 					"sourceType": "Customer",
 					"info": "ChangeValueCardinality Customer/businessUse/One."

@@ -552,6 +552,8 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 				selectable: false,
 			},
 		]
+
+		const bonusMonths = this._lastBooking ? Number(this._lastBooking.bonusMonth) : 0
 		return [
 			m(DropDownSelector, {
 				label: "paymentInterval_label",
@@ -565,6 +567,13 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 					}
 				},
 			}),
+			bonusMonths === 0
+				? null
+				: m(TextField, {
+						label: "bonus_label",
+						value: lang.get("bonusMonth_msg", { "{months}": bonusMonths }),
+						disabled: true,
+				  }),
 			m(TextField, {
 				label: () =>
 					this._nextPeriodPriceVisible && this._periodEndDate

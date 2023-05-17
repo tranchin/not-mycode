@@ -1671,6 +1671,7 @@ export default {
 		"chooseYearlyForOffer_msg": "Buche jährlich, und bekomme das zweite Jahr umsonst dazu.",
 		"bonusMonth_msg": "Du hast {months} Bonus-Monate erhalten.",
 		"bonus_label": "Bonus",
+		"switchSubscriptionInfo_msg": "Ein neuer Abrechnungszeitraum beginnt, wenn Du zu einem anderen Abonnement wechselst. Du erhältst eine Gutschrift für die verbliebenen Monate des aktuellen Abonnements.",
 		// TODO delete
 		"giftCardUpgradeNotify_msg": "Dein Account wird automatisch auf einen Premium-Account mit einem jährlichen Abonnement umgestellt. Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({credit}) wird deinem Guthabenkonto gutgeschrieben.",
 		"orderAliasesConfirm_msg": "Du kannst ein größeres E-Mail-Alias-Paket buchen, um mehr Aliasse anzulegen.",

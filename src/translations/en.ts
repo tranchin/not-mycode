@@ -1670,6 +1670,7 @@ export default {
 		"chooseYearlyForOffer_msg": "Book yearly, and you'll get the second year for free.",
 		"bonusMonth_msg": "You have been granted {months} bonus months.",
 		"bonus_label": "Bonus",
+		"switchSubscriptionInfo_msg": "A new subscription period is started when you switch plans. You will receive a credit for the remaining months of your old subscription.",
 		// TODO delete from phrase
 		"orderAliasesConfirm_msg": "You can choose a larger plan to register more aliases.",
 		"giftCardUpgradeNotify_msg": "You will be automatically upgraded to a Premium account with a yearly subscription. The cost of the first year ({price}) will be paid for with your gift card and the remaining value ({credit}) will be credited to your account.",

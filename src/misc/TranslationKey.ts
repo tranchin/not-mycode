@@ -1656,3 +1656,4 @@ export type TranslationKeyType =
 	| "chooseYearlyForOffer_msg"
 	| "bonus_label"
 	| "bonusMonth_msg"
+	| "switchSubscriptionInfo_msg"

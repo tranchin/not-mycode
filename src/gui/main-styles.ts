@@ -2204,5 +2204,15 @@ styles.registerStyle("main", () => {
 			"list-style": "disc",
 			"text-align": "left",
 		},
+		".bonus-month": {
+			background: theme.content_accent,
+			color: theme.content_bg,
+			width: px(100),
+			height: px(100),
+			// right: px(100),
+			"border-radius": px(100),
+
+			// position: "absolute",
+		},
 	}
 })

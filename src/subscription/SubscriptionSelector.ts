@@ -95,11 +95,13 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 		// show the business segmentControl for signup, if on a personal plan or if also personal plans are accepted
 		let showBusinessSelector = currentPlan == null || NewPersonalPlans.includes(downcast(currentPlan)) || !onlyBusinessPlansAccepted
 
+		let subscriptionPeriodInfoMsg = currentPlan !== PlanType.Free ? lang.get("switchSubscriptionInfo_msg") + " " : ""
 		if (vnode.attrs.options.businessUse()) {
 			plans = [PlanType.Essential, PlanType.Advanced, PlanType.Unlimited]
+			subscriptionPeriodInfoMsg += lang.get("pricing.subscriptionPeriodInfoBusiness_msg")
 			additionalInfo = m(".flex.flex-column.items-center", [
 				featureExpander.All, // global feature expander
-				m(".smaller.mb.center", lang.get("pricing.subscriptionPeriodInfoBusiness_msg")),
+				m(".smaller.mb.center", subscriptionPeriodInfoMsg),
 			])
 		} else {
 			if (inMobileView) {
@@ -107,9 +109,10 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 			} else {
 				plans = [PlanType.Free, PlanType.Revolutionary, PlanType.Legend]
 			}
+			subscriptionPeriodInfoMsg += lang.get("pricing.subscriptionPeriodInfoPrivate_msg")
 			additionalInfo = m(".flex.flex-column.items-center", [
 				featureExpander.All, // global feature expander
-				m(".smaller.mb.center", lang.get("pricing.subscriptionPeriodInfoPrivate_msg")),
+				m(".smaller.mb.center", subscriptionPeriodInfoMsg),
 			])
 			showBusinessSelector = true
 		}
@@ -120,7 +123,10 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 				return this.renderBuyOptionBox(vnode.attrs, i === 0, inMobileView, personalPlan, featureExpander)
 			})
 
+		const isYearly = vnode.attrs.options.paymentInterval() === 12
+
 		const showCurrentPlanDiscontinuedHint = vnode.attrs.currentPlanType != null && LegacyPlans.includes(vnode.attrs.currentPlanType)
+		const bonusMonths = Number(vnode.attrs.priceAndConfigProvider.getRawPricingData().bonusMonthsForYearlyPlan)
 		return [
 			showBusinessSelector
 				? m(SegmentControl, {
@@ -129,7 +135,16 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 						items: BusinessUseItems,
 				  })
 				: null,
-			vnode.attrs.priceInfoTextId && lang.exists(vnode.attrs.priceInfoTextId) ? m(".b.center.mt", lang.get(vnode.attrs.priceInfoTextId)) : null,
+			m(".flex-center.items-center.mt", [
+				vnode.attrs.priceInfoTextId && lang.exists(vnode.attrs.priceInfoTextId) ? m(".b.center", lang.get(vnode.attrs.priceInfoTextId)) : null,
+				bonusMonths > 0
+					? m(".bonus-month.flex-center.items-center.text-center.b.ml-m", { style: { visibility: isYearly ? "visible" : "hidden" } }, [
+							"+" + bonusMonths,
+							m("br"),
+							lang.get("months_label"),
+					  ])
+					: null,
+			]),
 			vnode.attrs.msg ? m(".b.center.mt", lang.getMaybeLazy(vnode.attrs.msg)) : null,
 			showCurrentPlanDiscontinuedHint ? m(".b.center.mt", lang.get("currentPlanDiscontinued_msg")) : null,
 			m(

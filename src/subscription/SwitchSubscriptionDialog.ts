@@ -124,7 +124,7 @@ function createPlanButton(
 	deferredPlan: DeferredObject<PlanType>,
 ): lazy<ButtonAttrs> {
 	return () => ({
-		label: "pricing.select_action",
+		label: "buy_action",
 		click: () => {
 			showProgressDialog(
 				"pleaseWait_msg",

@@ -580,7 +580,7 @@ export class SettingsView extends BaseTopLevelView implements TopLevelView<Setti
 												{
 													label: "exportUsers_action",
 													click: () =>
-														exportUserCsv(locator.entityClient, locator.userManagementFacade, this.logins, locator.fileController),
+														exportUserCsv(locator.entityClient, this.logins, locator.fileController, locator.counterFacade),
 												},
 											],
 										}),

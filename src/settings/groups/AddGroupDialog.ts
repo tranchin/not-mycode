@@ -89,10 +89,6 @@ export class AddGroupDialogViewModel {
 		return this._groupManagementFacade.createMailGroup(this.groupName, this.mailAddress)
 	}
 
-	createLocalAdminGroup(): Promise<void> {
-		return this._groupManagementFacade.createLocalAdminGroup(this.groupName)
-	}
-
 	validateAddGroupInput(): TranslationKey | null {
 		if (this.groupType === GroupType.Mail) {
 			return this.errorMessageId
@@ -107,7 +103,7 @@ export class AddGroupDialogViewModel {
 		if (locator.logins.isEnabled(FeatureType.WhitelabelChild)) {
 			return []
 		} else {
-			return locator.logins.getUserController().isGlobalAdmin() ? [GroupType.Mail, GroupType.LocalAdmin] : [GroupType.Mail]
+			return [GroupType.Mail]
 		}
 	}
 
@@ -151,22 +147,6 @@ export function show(): void {
 						if (accepted) {
 							dialog.close()
 							return viewModel.createMailGroup()
-						}
-					}),
-				)
-			} else if (viewModel.groupType === GroupType.LocalAdmin) {
-				showProgressDialog(
-					"pleaseWait_msg",
-					showBuyDialog({
-						featureType: newPlan ? toFeatureType(planType) : BookingItemFeatureType.LocalAdminGroup,
-						bookingText: "localAdminGroup_label",
-						count: 1,
-						freeAmount: 0,
-						reactivate: false,
-					}).then((accepted) => {
-						if (accepted) {
-							dialog.close()
-							return viewModel.createLocalAdminGroup()
 						}
 					}),
 				)

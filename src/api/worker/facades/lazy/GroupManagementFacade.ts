@@ -1,7 +1,6 @@
 import { Const, CounterType, GroupType } from "../../../common/TutanotaConstants.js"
 import type { InternalGroupData, UserAreaGroupData } from "../../../entities/tutanota/TypeRefs.js"
 import {
-	createCreateLocalAdminGroupData,
 	createCreateMailGroupData,
 	createDeleteGroupData,
 	createInternalGroupData,
@@ -68,24 +67,6 @@ export class GroupManagementFacade {
 			groupData: mailGroupData,
 		})
 		await this.serviceExecutor.post(MailGroupService, data)
-	}
-
-	async createLocalAdminGroup(name: string): Promise<void> {
-		let adminGroupId = this.user.getGroupId(GroupType.Admin)
-
-		let adminGroupKey = this.user.getGroupKey(adminGroupId)
-
-		let customerGroupKey = this.user.getGroupKey(this.user.getGroupId(GroupType.Customer))
-
-		let groupKey = aes128RandomKey()
-		let groupInfoSessionKey = aes128RandomKey()
-		const keyPair = await this.rsa.generateKey()
-		const mailGroupData = await this.generateInternalGroupData(keyPair, groupKey, groupInfoSessionKey, adminGroupId, adminGroupKey, customerGroupKey)
-		const data = createCreateLocalAdminGroupData({
-			encryptedName: encryptString(groupInfoSessionKey, name),
-			groupData: mailGroupData,
-		})
-		await this.serviceExecutor.post(LocalAdminGroupService, data)
 	}
 
 	/**

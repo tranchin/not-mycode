@@ -1657,3 +1657,5 @@ export type TranslationKeyType =
 	| "bonus_label"
 	| "bonusMonth_msg"
 	| "switchSubscriptionInfo_msg"
+	| "giftCardUpgradeNotifyCredit_msg"
+	| "giftCardUpgradeNotifyDebit_msg"

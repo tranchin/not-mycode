@@ -440,15 +440,26 @@ class RedeemGiftCardPage implements WizardPageN<RedeemGiftCardModel> {
 		])
 	}
 
+	private getCreditOrDebitMessage(model: RedeemGiftCardModel): string {
+		const remainingAmount = Number(model.giftCardInfo.value) - model.premiumPrice
+		if (remainingAmount > 0) {
+			return `${lang.get("giftCardUpgradeNotifyCredit_msg", {
+				"{price}": formatPrice(model.premiumPrice, true),
+				"{amount}": formatPrice(remainingAmount, true),
+			})} ${lang.get("creditUsageOptions_msg")}`
+		} else if (remainingAmount < 0) {
+			return lang.get("giftCardUpgradeNotifyDebit_msg", {
+				"{price}": formatPrice(model.premiumPrice, true),
+				"{amount}": formatPrice(remainingAmount * -1, true),
+			})
+		} else {
+			return ""
+		}
+	}
+
 	private renderInfoForFreeAccounts(model: RedeemGiftCardModel): Children {
 		return [
-			m(
-				".pt-l.plr-l",
-				`${lang.get("giftCardUpgradeNotifyRevolutionary_msg", {
-					"{price}": formatPrice(model.premiumPrice, true),
-					"{credit}": formatPrice(Number(model.giftCardInfo.value) - model.premiumPrice, true),
-				})} ${lang.get("creditUsageOptions_msg")}`,
-			),
+			m(".pt-l.plr-l", `${lang.get("giftCardUpgradeNotifyRevolutionary_msg")} ${this.getCreditOrDebitMessage(model)}`),
 			m(".center.h4.pt", lang.get("upgradeConfirm_msg")),
 			m(".flex-space-around.flex-wrap", [
 				m(".flex-grow-shrink-half.plr-l", [

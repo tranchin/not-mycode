@@ -1999,6 +1999,7 @@ export type PlanPrices = {
 	additionalUserPriceMonthly: NumberString;
 	business: boolean;
 	contactFormPriceMonthly: NumberString;
+	customDomains: NumberString;
 	firstYearDiscount: NumberString;
 	includedAliases: NumberString;
 	includedStorage: NumberString;
@@ -2877,6 +2878,7 @@ export type UpgradePriceServiceReturn = {
 
 	advancedPrices: PlanPrices;
 	essentialPrices: PlanPrices;
+	freePrices: PlanPrices;
 	legendaryPrices: PlanPrices;
 	premiumBusinessPrices: PlanPrices;
 	premiumPrices: PlanPrices;

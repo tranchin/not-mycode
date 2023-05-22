@@ -330,6 +330,8 @@ export function getReplacement(
 ): Record<string, string | number> | undefined {
 	const { priceAndConfigProvider, options } = attrs
 	switch (key) {
+		case "customDomains":
+			return { "{amount}": priceAndConfigProvider.getPlanPrices(subscription).customDomains }
 		case "mailAddressAliases":
 			return { "{amount}": priceAndConfigProvider.getPlanPrices(subscription).includedAliases }
 		case "storage":

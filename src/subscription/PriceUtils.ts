@@ -129,20 +129,7 @@ export class PriceAndConfigProvider {
 		this.upgradePriceData = await serviceExecutor.get(UpgradePriceService, data)
 		this.isReferralCodeSignup = referralCode != null
 		this.planPrices = {
-			[PlanType.Free]: {
-				_type: PlanPricesTypeRef,
-				_id: "dummy",
-				additionalUserPriceMonthly: "0",
-				contactFormPriceMonthly: "0",
-				firstYearDiscount: "0",
-				includedAliases: "0",
-				includedStorage: "0",
-				monthlyPrice: "0",
-				monthlyReferencePrice: "0",
-				sharing: false,
-				business: false,
-				whitelabel: false,
-			},
+			[PlanType.Free]: this.upgradePriceData.freePrices,
 			[PlanType.Premium]: this.upgradePriceData.premiumPrices,
 			[PlanType.PremiumBusiness]: this.upgradePriceData.premiumBusinessPrices,
 			[PlanType.Teams]: this.upgradePriceData.teamsPrices,

@@ -26,8 +26,7 @@ import { assertNotNull, downcast, incrementDate, neverNull, noOp, ofClass, promi
 import { lang, TranslationKey } from "../misc/LanguageViewModel"
 import { Icons } from "../gui/base/icons/Icons"
 import { asPaymentInterval, formatPrice, formatPriceDataWithInfo, PaymentInterval } from "./PriceUtils"
-import { formatDate, formatNameAndAddress, formatStorageSize } from "../misc/Formatter"
-import { getByAbbreviation } from "../api/common/CountryList"
+import { formatDate, formatStorageSize } from "../misc/Formatter"
 import { showUpgradeWizard } from "./UpgradeSubscriptionWizard"
 import { showSwitchDialog } from "./SwitchSubscriptionDialog"
 import stream from "mithril/stream"
@@ -563,7 +562,7 @@ export class SubscriptionViewer implements UpdatableSettingsViewer {
 				dropdownWidth: 300,
 				selectionChangedHandler: (value: number) => {
 					if (this._accountingInfo) {
-						changeSubscriptionInterval(this._accountingInfo, value, this._periodEndDate)
+						showChangeSubscriptionIntervalDialog(this._accountingInfo, value, this._periodEndDate)
 					}
 				},
 			}),
@@ -649,7 +648,7 @@ function _getAccountTypeName(type: AccountType, subscription: PlanType): string 
 	}
 }
 
-function changeSubscriptionInterval(accountingInfo: AccountingInfo, paymentInterval: PaymentInterval, periodEndDate: Date | null): void {
+function showChangeSubscriptionIntervalDialog(accountingInfo: AccountingInfo, paymentInterval: PaymentInterval, periodEndDate: Date | null): void {
 	if (accountingInfo && accountingInfo.invoiceCountry && asPaymentInterval(accountingInfo.paymentInterval) !== paymentInterval) {
 		const confirmationMessage = () => {
 			return periodEndDate
@@ -659,19 +658,9 @@ function changeSubscriptionInterval(accountingInfo: AccountingInfo, paymentInter
 				: lang.get("subscriptionChange_msg")
 		}
 
-		Dialog.confirm(confirmationMessage).then((confirmed) => {
+		Dialog.confirm(confirmationMessage).then(async (confirmed) => {
 			if (confirmed) {
-				const invoiceCountry = neverNull(getByAbbreviation(neverNull(accountingInfo.invoiceCountry)))
-				locator.customerFacade.updatePaymentData(
-					paymentInterval,
-					{
-						invoiceAddress: formatNameAndAddress(accountingInfo.invoiceName, accountingInfo.invoiceAddress),
-						country: invoiceCountry,
-						vatNumber: accountingInfo.invoiceVatIdNo,
-					},
-					null,
-					invoiceCountry,
-				)
+				await locator.customerFacade.changePaymentInterval(accountingInfo, paymentInterval)
 			}
 		})
 	}

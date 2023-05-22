@@ -42,6 +42,7 @@ import type { UserManagementFacade } from "./UserManagementFacade.js"
 import type { GroupManagementFacade } from "./GroupManagementFacade.js"
 import { CounterFacade } from "./CounterFacade.js"
 import type { Country } from "../../../common/CountryList.js"
+import { getByAbbreviation } from "../../../common/CountryList.js"
 import { LockedError } from "../../../common/error/RestError.js"
 import type { RsaKeyPair } from "@tutao/tutanota-crypto"
 import { aes128RandomKey, bitArrayToUint8Array, encryptKey, hexToPublicKey, sha256Hash, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
@@ -54,6 +55,7 @@ import { BookingFacade } from "./BookingFacade.js"
 import { UserFacade } from "../UserFacade.js"
 import { PaymentInterval } from "../../../../subscription/PriceUtils.js"
 import { ExposedOperationProgressTracker, OperationId } from "../../../main/OperationProgressTracker.js"
+import { formatNameAndAddress } from "../../../../misc/Formatter.js"
 
 assertWorkerOrNode()
 
@@ -396,36 +398,49 @@ export class CustomerFacade {
 		}
 	}
 
-	updatePaymentData(
+	async updatePaymentData(
 		paymentInterval: PaymentInterval,
 		invoiceData: InvoiceData,
 		paymentData: PaymentData | null,
 		confirmedInvoiceCountry: Country | null,
 	): Promise<PaymentDataServicePutReturn> {
-		return this.entityClient.load(CustomerTypeRef, assertNotNull(this.userFacade.getLoggedInUser().customer)).then((customer) => {
-			return this.entityClient.load(CustomerInfoTypeRef, customer.customerInfo).then((customerInfo) => {
-				return this.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo).then(async (accountingInfo) => {
-					return this.cryptoFacade.resolveSessionKeyForInstance(accountingInfo).then((accountingInfoSessionKey) => {
-						const service = createPaymentDataServicePutData()
-						service.paymentInterval = paymentInterval.toString()
-						service.invoiceName = ""
-						service.invoiceAddress = invoiceData.invoiceAddress
-						service.invoiceCountry = invoiceData.country ? invoiceData.country.a : ""
-						service.invoiceVatIdNo = invoiceData.vatNumber ? invoiceData.vatNumber : ""
-						service.paymentMethod = paymentData ? paymentData.paymentMethod : accountingInfo.paymentMethod ? accountingInfo.paymentMethod : ""
-						service.paymentMethodInfo = null
-						service.paymentToken = null
+		let customer = await this.entityClient.load(CustomerTypeRef, assertNotNull(this.userFacade.getLoggedInUser().customer))
+		let customerInfo = await this.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
+		let accountingInfo = await this.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo)
+		let accountingInfoSessionKey = await this.cryptoFacade.resolveSessionKeyForInstance(accountingInfo)
+		const service = createPaymentDataServicePutData()
+		service.paymentInterval = paymentInterval.toString()
+		service.invoiceName = ""
+		service.invoiceAddress = invoiceData.invoiceAddress
+		service.invoiceCountry = invoiceData.country ? invoiceData.country.a : ""
+		service.invoiceVatIdNo = invoiceData.vatNumber ? invoiceData.vatNumber : ""
+		service.paymentMethod = paymentData ? paymentData.paymentMethod : accountingInfo.paymentMethod ? accountingInfo.paymentMethod : ""
+		service.paymentMethodInfo = null
+		service.paymentToken = null
+		if (paymentData && paymentData.creditCardData) {
+			service.creditCard = paymentData.creditCardData
+		}
+		service.confirmedCountry = confirmedInvoiceCountry ? confirmedInvoiceCountry.a : null
+		return this.serviceExecutor.put(PaymentDataService, service, { sessionKey: accountingInfoSessionKey ?? undefined })
+	}
 
-						if (paymentData && paymentData.creditCardData) {
-							service.creditCard = paymentData.creditCardData
-						}
-
-						service.confirmedCountry = confirmedInvoiceCountry ? confirmedInvoiceCountry.a : null
-						return this.serviceExecutor.put(PaymentDataService, service, { sessionKey: accountingInfoSessionKey ?? undefined })
-					})
-				})
-			})
-		})
+	/**
+	 * Convenience function to change the payment interval for the current subscription
+	 * @param accountingInfo accounting info
+	 * @param newPaymentInterval new payment interval
+	 */
+	async changePaymentInterval(accountingInfo: AccountingInfo, newPaymentInterval: PaymentInterval): Promise<PaymentDataServicePutReturn> {
+		const invoiceCountry = neverNull(getByAbbreviation(neverNull(accountingInfo.invoiceCountry)))
+		return this.updatePaymentData(
+			newPaymentInterval,
+			{
+				invoiceAddress: formatNameAndAddress(accountingInfo.invoiceName, accountingInfo.invoiceAddress),
+				country: invoiceCountry,
+				vatNumber: accountingInfo.invoiceVatIdNo,
+			},
+			null,
+			invoiceCountry,
+		)
 	}
 
 	async downloadInvoice(invoiceNumber: string): Promise<DataFile> {

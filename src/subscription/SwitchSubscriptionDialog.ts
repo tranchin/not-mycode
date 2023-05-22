@@ -27,7 +27,7 @@ import { locator } from "../api/main/MainLocator"
 import { SwitchAccountTypeService } from "../api/entities/sys/Services.js"
 import { BadRequestError, InvalidDataError, PreconditionFailedError } from "../api/common/error/RestError.js"
 import { FeatureListProvider } from "./FeatureListProvider"
-import { PriceAndConfigProvider } from "./PriceUtils"
+import { PaymentInterval, PriceAndConfigProvider } from "./PriceUtils"
 import { defer, DeferredObject, downcast, lazy } from "@tutao/tutanota-utils"
 import { showSwitchToBusinessInvoiceDataDialog } from "./SwitchToBusinessInvoiceDataDialog.js"
 import { formatNameAndAddress } from "../misc/Formatter.js"
@@ -107,14 +107,28 @@ export async function showSwitchDialog(
 				type: ButtonType.Login,
 			} as ButtonAttrs),
 
-		[PlanType.Revolutionary]: createPlanButton(dialog, PlanType.Revolutionary, currentPlanInfo, deferred),
-		[PlanType.Legend]: createPlanButton(dialog, PlanType.Legend, currentPlanInfo, deferred),
-		[PlanType.Essential]: createPlanButton(dialog, PlanType.Essential, currentPlanInfo, deferred),
-		[PlanType.Advanced]: createPlanButton(dialog, PlanType.Advanced, currentPlanInfo, deferred),
-		[PlanType.Unlimited]: createPlanButton(dialog, PlanType.Unlimited, currentPlanInfo, deferred),
+		[PlanType.Revolutionary]: createPlanButton(dialog, PlanType.Revolutionary, currentPlanInfo, deferred, paymentInterval, accountingInfo),
+		[PlanType.Legend]: createPlanButton(dialog, PlanType.Legend, currentPlanInfo, deferred, paymentInterval, accountingInfo),
+		[PlanType.Essential]: createPlanButton(dialog, PlanType.Essential, currentPlanInfo, deferred, paymentInterval, accountingInfo),
+		[PlanType.Advanced]: createPlanButton(dialog, PlanType.Advanced, currentPlanInfo, deferred, paymentInterval, accountingInfo),
+		[PlanType.Unlimited]: createPlanButton(dialog, PlanType.Unlimited, currentPlanInfo, deferred, paymentInterval, accountingInfo),
 	}
 	dialog.show()
 	return deferred.promise
+}
+
+async function doSwitchPlan(
+	accountingInfo: AccountingInfo,
+	newPaymentInterval: PaymentInterval,
+	targetSubscription: PlanType,
+	dialog: Dialog,
+	currentPlanInfo: CurrentPlanInfo,
+	deferredPlan: DeferredObject<PlanType>,
+) {
+	if (currentPlanInfo.paymentInterval !== newPaymentInterval) {
+		await locator.customerFacade.changePaymentInterval(accountingInfo, newPaymentInterval)
+	}
+	await switchSubscription(targetSubscription, dialog, currentPlanInfo).then((newPlan) => deferredPlan.resolve(newPlan))
 }
 
 function createPlanButton(
@@ -122,13 +136,15 @@ function createPlanButton(
 	targetSubscription: PlanType,
 	currentPlanInfo: CurrentPlanInfo,
 	deferredPlan: DeferredObject<PlanType>,
+	newPaymentInterval: stream<PaymentInterval>,
+	accountingInfo: AccountingInfo,
 ): lazy<ButtonAttrs> {
 	return () => ({
 		label: "buy_action",
-		click: () => {
-			showProgressDialog(
+		click: async () => {
+			await showProgressDialog(
 				"pleaseWait_msg",
-				switchSubscription(targetSubscription, dialog, currentPlanInfo).then((newPlan) => deferredPlan.resolve(newPlan)),
+				doSwitchPlan(accountingInfo, newPaymentInterval(), targetSubscription, dialog, currentPlanInfo, deferredPlan),
 			)
 		},
 		type: ButtonType.Login,

@@ -41,7 +41,7 @@ export type SubscriptionSelectorAttr = {
 	boxHeight: number
 	highlightPremium?: boolean
 	currentPlanType: PlanType | null
-	shouldStartNewPaymentInterval: boolean
+	allowSwitchingPaymentInterval: boolean
 	featureListProvider: FeatureListProvider
 	priceAndConfigProvider: PriceAndConfigProvider
 	acceptedPlans: AvailablePlanType[]
@@ -206,9 +206,9 @@ export class SubscriptionSelector implements Component<SubscriptionSelectorAttr>
 			featuresExpanded: this.featuresExpanded[targetSubscription] || this.featuresExpanded.All,
 			width: selectorAttrs.boxWidth,
 			height: selectorAttrs.boxHeight,
-			paymentInterval: selectorAttrs.shouldStartNewPaymentInterval && targetSubscription !== PlanType.Free ? selectorAttrs.options.paymentInterval : null,
+			paymentInterval: selectorAttrs.allowSwitchingPaymentInterval && targetSubscription !== PlanType.Free ? selectorAttrs.options.paymentInterval : null,
 			highlighted: selectorAttrs.highlightPremium,
-			showReferenceDiscount: selectorAttrs.shouldStartNewPaymentInterval,
+			showReferenceDiscount: selectorAttrs.allowSwitchingPaymentInterval,
 			renderCategoryTitle,
 			mobile,
 		}

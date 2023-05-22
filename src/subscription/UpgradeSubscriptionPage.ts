@@ -78,7 +78,7 @@ export class UpgradeSubscriptionPage implements WizardPageN<UpgradeSubscriptionD
 				boxWidth: 230,
 				boxHeight: 270,
 				acceptedPlans: vnode.attrs.data.acceptedPlans,
-				shouldStartNewPaymentInterval: data.upgradeType !== UpgradeType.Switch,
+				allowSwitchingPaymentInterval: data.upgradeType !== UpgradeType.Switch,
 				currentPlanType: data.currentPlan,
 				actionButtons: subscriptionActionButtons,
 				featureListProvider: vnode.attrs.data.featureListProvider,

@@ -69,7 +69,7 @@ export async function showSwitchDialog(
 	}
 	const currentPlanInfo = model.currentPlanInfo
 	const businessUse = stream(currentPlanInfo.businessUse)
-	const paymentInterval = stream(currentPlanInfo.paymentInterval)
+	const paymentInterval = stream(PaymentInterval.Yearly) // always default to yearly
 	const dialog: Dialog = Dialog.largeDialog(headerBarAttrs, {
 		view: () =>
 			m(
@@ -85,7 +85,7 @@ export async function showSwitchDialog(
 					boxHeight: 270,
 					acceptedPlans: acceptedPlans,
 					currentPlanType: currentPlanInfo.planType,
-					shouldStartNewPaymentInterval: LegacyPlans.includes(currentPlanInfo.planType),
+					allowSwitchingPaymentInterval: currentPlanInfo.paymentInterval !== PaymentInterval.Yearly && LegacyPlans.includes(currentPlanInfo.planType),
 					actionButtons: subscriptionActionButtons,
 					featureListProvider: featureListProvider,
 					priceAndConfigProvider,

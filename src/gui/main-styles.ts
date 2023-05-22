@@ -2209,10 +2209,7 @@ styles.registerStyle("main", () => {
 			color: theme.content_bg,
 			width: px(100),
 			height: px(100),
-			// right: px(100),
 			"border-radius": px(100),
-
-			// position: "absolute",
 		},
 	}
 })

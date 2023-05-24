@@ -1680,5 +1680,8 @@ export default {
 		"switchSubscriptionInfo_msg": "Ein neuer Abrechnungszeitraum beginnt, wenn Sie zu einem anderen Abonnement wechseln. Sie erhalten eine Gutschrift für die verbleibenden Monate des aktuellen Abonnements.",
 		"giftCardUpgradeNotifyCredit_msg": "Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({amount}) wird Ihrem Guthabenkonto gutgeschrieben.",
 		"giftCardUpgradeNotifyDebit_msg": "Ein  Teil des Preises des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins beglichen. Bitte bezahlen Sie den Restbetrag ({amount}) unter 'Einstellungen' ⇨ 'Bezahlung'.",
-	}
+		"pricing.comparison3Domains_msg": "3 eigene Domains",
+		"pricing.comparison10Domains_msg": "10 eigene Domains",
+		"pricing.comparisonUnlimitedDomains_msg": "Unbegrenzte Domains",
+		"pricing.security_label": "Sicherheit",	}
 }

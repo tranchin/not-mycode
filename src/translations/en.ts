@@ -1676,5 +1676,9 @@ export default {
 		"bonusMonth_msg": "You have been granted {months} bonus months.",
 		"bonus_label": "Bonus",
 		"switchSubscriptionInfo_msg": "A new subscription period is started when you switch plans. You will receive credit for the remaining months of your old subscription.",
+		"pricing.comparison3Domains_msg": "3 custom domains",
+		"pricing.comparison10Domains_msg": "10 custom domains",
+		"pricing.comparisonUnlimitedDomains_msg": "Unlimited custom domains",
+		"pricing.security_label": "Security",
 	}
 }

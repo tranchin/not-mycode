@@ -1662,6 +1662,19 @@ export default {
 		"yourCalendars_label": "Your calendars",
 		"yourFolders_action": "YOUR FOLDERS",
 		"yourMessage_label": "Your message",
-		"you_label": "You"
+		"you_label": "You",
+
+		"giftCardUpgradeNotifyCredit_msg": "The cost of the first year ({price}) will be paid for with your gift card and the remaining value ({amount}) will be credited to your account.",
+		"giftCardUpgradeNotifyDebit_msg": "The cost of the first year ({price}) will be partially paid for with your gift card. Please go to 'Settings' ⇨ 'Payment' to pay the remaining value ({amount}).",
+		"pricing.notSupportedByPersonalPlan_msg": "The required feature is not supported by a personal plan. You need to pick a business plan.",
+		"switchNow_action": "Switch now",
+		"newPlansExplanation_msg": "We are introducing new packages to Tutanota: {plan1} with 20 GB storage & 15 alias email addresses and {plan2} with 500 GB & 30 email alias addresses! 💪",
+		"newPlansExplanationPast_msg": "We have introduced new packages to Tutanota: {plan1} with 20 GB storage & 15 alias email addresses and {plan2} with 500 GB & 30 email alias addresses! 💪",
+		"newPlansOfferExplanation_msg": "Switch now, and benefit from our exclusive introduction deal: Book yearly, and you'll get the second year for free. With this one-time offer you can save 50% on all brand-new Tutanota plans!!! 🥳",
+		"newPlansOfferEnding_msg": "Switch now, and get two years for the price of one! But you better be quick: This one-time offer expires in a few days.\n",
+		"chooseYearlyForOffer_msg": "Book yearly, and you'll get the second year for free.",
+		"bonusMonth_msg": "You have been granted {months} bonus months.",
+		"bonus_label": "Bonus",
+		"switchSubscriptionInfo_msg": "A new subscription period is started when you switch plans. You will receive credit for the remaining months of your old subscription.",
 	}
 }

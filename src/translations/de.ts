@@ -1666,6 +1666,19 @@ export default {
 		"yourCalendars_label": "Deine Kalender",
 		"yourFolders_action": "DEINE ORDNER",
 		"yourMessage_label": "Deine Nachricht",
-		"you_label": "Du"
+		"you_label": "Du",
+
+		"pricing.notSupportedByPersonalPlan_msg": "Die Funktion wird nicht von einem Privatkunden-Abonnement unterstützt. Du musst zu einem Abonnement für Geschäftskunden wechseln.",
+		"newPlansExplanation_msg": "Wir führen neue bezahlte Abonnements in Tutanota ein: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
+		"newPlansOfferExplanation_msg": "Wechsele jetzt, und profitiere von unserem exklusiven Einführungsangebot: Buche jährlich, und erhalte das zweite Jahr umsonst dazu. Mit diesem einmaligen Angebot sparst du 50% auf alle Tutanota Abonnements!!! 🥳",
+		"switchNow_action": "Wechsele jetzt",
+		"newPlansExplanationPast_msg": "Wir haben neue bezahlte Abonnements in Tutanota eingeführt: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
+		"newPlansOfferEnding_msg": "Wechsele jetzt, und erhalte zwei Jahre für den Preis von einem! Aber sei schnell: dieses einmalige Angebot läuft in einigen Tagen ab.\n",
+		"chooseYearlyForOffer_msg": "Buche mit jährlichem Abrechnungszeitraum, und erhalte das zweite Jahr umsonst dazu.",
+		"bonusMonth_msg": "Du hast {months} Bonus-Monate erhalten.",
+		"bonus_label": "Bonus",
+		"switchSubscriptionInfo_msg": "Ein neuer Abrechnungszeitraum beginnt, wenn Du zu einem anderen Abonnement wechselst. Du erhältst eine Gutschrift für die verbleibenden Monate des aktuellen Abonnements.",
+		"giftCardUpgradeNotifyCredit_msg": "Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({amount}) wird deinem Guthabenkonto gutgeschrieben.",
+		"giftCardUpgradeNotifyDebit_msg": "Ein  Teil des Preises des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins beglichen. Bitte bezahle den Restbetrag ({amount}) unter 'Einstellungen' ⇨ 'Bezahlung'.",
 	}
 }

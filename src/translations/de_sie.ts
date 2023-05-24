@@ -1666,6 +1666,19 @@ export default {
 		"yourCalendars_label": "Deine Kalender",
 		"yourFolders_action": "Ihre ORDNER",
 		"yourMessage_label": "Ihre Nachricht",
-		"you_label": "Sie"
+		"you_label": "Sie",
+
+		"pricing.notSupportedByPersonalPlan_msg": "Die Funktion wird nicht von einem Privatkunden-Abonnement unterstützt. Sie müssen zu einem Abonnement für Geschäftskunden wechseln.",
+		"newPlansExplanation_msg": "Wir führen neue bezahlte Abonnements in Tutanota ein: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
+		"newPlansOfferExplanation_msg": "Wechseln Sie jetzt, und profitieren Sie von unserem exklusiven Einführungsangebot: Buchen Sie jährlich, und erhalten Sie das zweite Jahr umsonst dazu. Mit diesem einmaligen Angebot sparen Sie 50% auf alle Tutanota Abonnements!!! 🥳",
+		"switchNow_action": "Wechseln Sie jetzt",
+		"newPlansExplanationPast_msg": "Wir haben neue bezahlte Abonnements in Tutanota eingeführt: {plan1} mit 20 GB Speicher & 15 extra E-Mail-Adressen und {plan2} mit 500 GB Speicher & 30 extra E-Mail-Adressen! 💪",
+		"newPlansOfferEnding_msg": "Wechseln Sie jetzt, und erhalten Sie zwei Jahre für den Preis von einem! Aber seien Sie schnell: dieses einmalige Angebot läuft in einigen Tagen ab.",
+		"chooseYearlyForOffer_msg": "Buchen Sie mit jährlichem Abrechnungszeitraum, und erhalten Sie das zweite Jahr umsonst dazu.",
+		"bonusMonth_msg": "Sie haben {months} Bonus-Monate erhalten.",
+		"bonus_label": "Bonus",
+		"switchSubscriptionInfo_msg": "Ein neuer Abrechnungszeitraum beginnt, wenn Sie zu einem anderen Abonnement wechseln. Sie erhalten eine Gutschrift für die verbleibenden Monate des aktuellen Abonnements.",
+		"giftCardUpgradeNotifyCredit_msg": "Der Preis des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins abgezogen und der Restbetrag ({amount}) wird Ihrem Guthabenkonto gutgeschrieben.",
+		"giftCardUpgradeNotifyDebit_msg": "Ein  Teil des Preises des ersten Jahres ({price}) wird von dem Guthaben des Gutscheins beglichen. Bitte bezahlen Sie den Restbetrag ({amount}) unter 'Einstellungen' ⇨ 'Bezahlung'.",
 	}
 }

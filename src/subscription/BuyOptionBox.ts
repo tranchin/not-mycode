@@ -12,6 +12,7 @@ import { asPaymentInterval, formatMonthlyPrice, getCountFromPriceData, getPriceF
 import type { BookingFacade } from "../api/worker/facades/lazy/BookingFacade.js"
 import Stream from "mithril/stream"
 import { Icons } from "../gui/base/icons/Icons"
+import { BootIcons } from "../gui/base/icons/BootIcons"
 
 export type BuyOptionBoxAttr = {
 	heading: string | Children
@@ -162,11 +163,8 @@ export class BuyOptionBox implements Component<BuyOptionBoxAttr> {
 						.filter((f) => !f.omit || this.featuresExpanded)
 						.map((f) =>
 							m(this.featureListItemSelector, { key: f.key }, [
-								m(Icon, { icon: f.antiFeature ? Icons.Cancel : Icons.Checkmark }),
-								m(".small.text-left.align-self-center.pl-s.button-height.flex-grow.min-width-0.break-word", [
-									f.heart ? m("span.pr-s", "❤️") : [],
-									m("span", f.text),
-								]),
+								f.heart ? m(Icon, { icon: BootIcons.Heart }) : m(Icon, { icon: f.antiFeature ? Icons.Cancel : Icons.Checkmark }),
+								m(".small.text-left.align-self-center.pl-s.button-height.flex-grow.min-width-0.break-word", [m("span", f.text)]),
 								f.toolTip
 									? //@ts-ignore
 									  m(InfoIcon, { text: f.toolTip })

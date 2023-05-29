@@ -100,15 +100,15 @@ export class PinchZoomV2 {
 		this.pinchCenter = this.centerOfPoints({ x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
 		this.pinchStart.x = this.pinchCenter.x
 		this.pinchStart.y = this.pinchCenter.y
-		this.pinchZoomOrigin = this.getRelativePosition(
-			this.root,
-			{
-				x: this.pinchStart.x,
-				y: this.pinchStart.y,
-			},
-			this.originalSize,
-			this.current.z,
-		)
+		// this.pinchZoomOrigin = this.getRelativePosition(
+		// 	this.root,
+		// 	{
+		// 		x: this.pinchStart.x,
+		// 		y: this.pinchStart.y,
+		// 	},
+		// 	this.originalSize,
+		// 	this.current.z,
+		// )
 		this.lastEvent = "pinchstart"
 	}
 
@@ -135,7 +135,7 @@ export class PinchZoomV2 {
 		this.lastMultiple.pointer1 = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
 		this.lastMultiple.pointer2 = { x: ev.touches[1].clientX, y: ev.touches[1].clientY }
 
-		let d = this.scaleFrom(this.pinchZoomOrigin, this.last.z, this.last.z * scaling)
+		// let d = this.scaleFrom(this.pinchZoomOrigin, this.last.z, this.last.z * scaling)
 		let d2 = this.newScaledCoordinates(this.pinchCenter, scaling)
 		// this.setCurrentSafePosition(d.x + this.pinchZoomOrigin.x /* + this.last.x*/, d.y + this.pinchZoomOrigin.y /* + this.last.y*/, d.z + this.last.z) //FIXME
 		this.setCurrentSafePosition(d2, this.current.z + (scaling - 1)) //FIXME // scaling prob. wrong
@@ -191,7 +191,7 @@ export class PinchZoomV2 {
 
 	//// new
 
-	private pinchZoomOrigin: { x: number; y: number } = { x: 0, y: 0 }
+	// private pinchZoomOrigin: { x: number; y: number } = { x: 0, y: 0 }
 	private pinchCenter: { x: number; y: number } = { x: 0, y: 0 }
 	private fixDeltaIssue: { x: number; y: number } = { x: 0, y: 0 }
 	private pinchStart: { x: number; y: number } = { x: 0, y: 0 }
@@ -334,9 +334,11 @@ export class PinchZoomV2 {
 		this.current.height = this.originalSize.height * this.current.z
 		this.current.width = this.originalSize.width * this.current.z
 		console.log("root before transform", JSON.stringify(this.getCoords(this.root)))
-		this.root.style.transformOrigin = "center" // zooms in the right position
-		this.root.style.transform =
-			"translate3d(" + (this.current.x - this.initialCoords.x) + "px, " + (this.current.y - this.initialCoords.y) + "px, 0) scale(" + this.current.z + ")"
+		const currentCoordinates = this.getCoords(this.root)
+		this.root.style.transformOrigin = `${this.pinchCenter.x - currentCoordinates.x}px ${this.pinchCenter.y - currentCoordinates.y}px` // zooms in the right position
+		// this.root.style.transform =
+		// 	"translate3d(" + (this.current.x - this.initialCoords.x) + "px, " + (this.current.y - this.initialCoords.y) + "px, 0) scale(" + this.current.z + ")"
+		this.root.style.transform = "translate3d(0px, 0px, 0) scale(" + this.current.z + ")"
 		console.log("root after transform", JSON.stringify(this.getCoords(this.root)))
 	}
 
@@ -377,13 +379,14 @@ export class PinchZoomV2 {
 		console.log("parentBorder x2", parentBorders.x2)
 		let xChanged = false
 		let yChanged = false
-		if (scaledX1 <= parentBorders.x && scaledX2 >= parentBorders.x2) {
+		if (true || (scaledX1 <= parentBorders.x && scaledX2 >= parentBorders.x2)) {
+			//FIXME remove
 			// also take the scaling into account
 			console.log("current x", this.current.x)
 			this.current.x = newPosition.x
 			xChanged = true
 		}
-		if (scaledY1 <= parentBorders.y && scaledY2 >= parentBorders.y2) {
+		if (true || (scaledY1 <= parentBorders.y && scaledY2 >= parentBorders.y2)) {
 			this.current.y = newPosition.y
 			yChanged = true
 		}

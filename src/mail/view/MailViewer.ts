@@ -310,8 +310,8 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			key: "mailBody",
 			oncreate: (vnode) => {
 				const dom = vnode.dom as HTMLElement
-				dom.style.paddingTop = "200px"
-				dom.style.paddingLeft = "200px"
+				// dom.style.paddingTop = "200px"
+				// dom.style.paddingLeft = "200px"
 				this.setDomBody(dom)
 				this.updateLineHeight(dom)
 				console.log("oncreate")

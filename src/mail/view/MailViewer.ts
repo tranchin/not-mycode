@@ -329,8 +329,6 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				if (!this.bodyLineHeight) {
 					this.updateLineHeight(vnode.dom as HTMLElement)
 				}
-
-				console.log("onupdate")
 				this.rescale(false) //FIXME
 				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs, vnode.dom as HTMLElement)
 				this.rescale(false)
@@ -515,7 +513,6 @@ export class MailViewer implements Component<MailViewerAttrs> {
 			//|| this.currentScale != -1) {
 			return
 		}
-		console.log("rescaling")
 		const containerWidth = child.offsetWidth
 
 		if (!this.isScaling || containerWidth > child.scrollWidth) {

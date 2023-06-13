@@ -77,12 +77,12 @@ export class PinchZoomV2 {
 	private calculateSessionTransformOrigin(currentScaling: number, newScaling: number): CoordinatePair {
 		// scaling = 1
 		// newScaling = 0.00001
-		console.log("computedStyle", getComputedStyle(this.mailBody).top)
-		console.log("original Position", JSON.stringify(this.getOriginalPosition())) //FIXME revert transformation with current coordinates, scale and last origin?
+		// console.log("computedStyle", getComputedStyle(this.mailBody).top)
+		// console.log("original Position", JSON.stringify(this.getOriginalPosition())) //FIXME revert transformation with current coordinates, scale and last origin?
 		return { x: this.pinchCenter.x - this.pinchSessionOffset.x, y: this.pinchCenter.y - this.pinchSessionOffset.y } //FIXME pinchSessionOffset should not include scaling which it currently does but still y-scrolling (x-scrolling?)
 		let scaling = currentScaling + newScaling
 		if (scaling === 1) {
-			console.log("newTransformOrigin", this.pinchCenter)
+			// console.log("newTransformOrigin", this.pinchCenter)
 			return { x: this.pinchCenter.x - this.pinchSessionOffset.x, y: this.pinchCenter.y - this.pinchSessionOffset.y }
 		}
 
@@ -93,19 +93,19 @@ export class PinchZoomV2 {
 			y: (currentCoords.y - this.pinchCenter.y) / currentScaling + this.pinchCenter.y,
 		}
 
-		console.log("currentCoords x", currentCoords.x)
-		console.log("revertedCoords", revertedCoords)
+		// console.log("currentCoords x", currentCoords.x)
+		// console.log("revertedCoords", revertedCoords)
 		let targetCoords: CoordinatePair = {
 			x: newScaling * (revertedCoords.x - this.pinchCenter.x) + revertedCoords.x,
 			y: newScaling * (revertedCoords.y - this.pinchCenter.y) + revertedCoords.y,
 		}
-		console.log("targetCoords", targetCoords)
-		console.log("scaling", scaling)
+		// console.log("targetCoords", targetCoords)
+		// console.log("scaling", scaling)
 		let newTransformOrigin: CoordinatePair = {
 			x: (targetCoords.x - this.pinchSessionOffset.x - scaling * this.initialMailBodyCoords.x) / (1 - scaling) - this.pinchSessionOffset.x,
 			y: (targetCoords.y - this.pinchSessionOffset.y - scaling * this.initialMailBodyCoords.y) / (1 - scaling) - this.pinchSessionOffset.y,
 		}
-		console.log("newTransformOrigin", newTransformOrigin)
+		// console.log("newTransformOrigin", newTransformOrigin)
 		return newTransformOrigin
 	}
 
@@ -150,20 +150,23 @@ export class PinchZoomV2 {
 
 	private calculateSessionsTranslation(): CoordinatePair {
 		let currentRect = this.getCoords(this.mailBody)
-		let relativeRect = { x: currentRect.x - this.initialMailBodyCoords.x, y: currentRect.y - this.initialMailBodyCoords.y }
-		let relativePinchCenter = { x: this.pinchCenter.x - this.initialMailBodyCoords.x, y: this.pinchCenter.y - this.initialMailBodyCoords.y }
-		console.log("relativePinchCenter", relativePinchCenter)
-		console.log(
-			"translation",
-			JSON.stringify({
-				x: relativePinchCenter.x - (relativePinchCenter.x - relativeRect.x) / this.current.z,
-				y: relativePinchCenter.y - (relativePinchCenter.y - relativeRect.y) / this.current.z,
-			}),
-		)
-		return {
+		console.log("mail body", JSON.stringify(currentRect))
+
+		// let scrollPosition = this.getScrollPosition(this.mailBody)
+		// console.log("scroll position", JSON.stringify(scrollPosition))
+
+		// let relativeRect = { x: currentRect.x - this.initialMailBodyCoords.x, y: currentRect.y - this.initialMailBodyCoords.y }
+		let relativeRect = { x: currentRect.x - currentRect.x, y: currentRect.y - currentRect.y }
+		// let relativePinchCenter = { x: this.pinchCenter.x - this.initialMailBodyCoords.x, y: this.pinchCenter.y - this.initialMailBodyCoords.y }
+		//TODO do not use currentRect, but the scrolled rect here
+		let relativePinchCenter = { x: this.pinchCenter.x - currentRect.x, y: this.pinchCenter.y - currentRect.y }
+		console.log("relativePinchCenter", JSON.stringify(relativePinchCenter))
+		let sessionTranslation = {
 			x: relativePinchCenter.x - (relativePinchCenter.x - relativeRect.x) / this.current.z,
 			y: relativePinchCenter.y - (relativePinchCenter.y - relativeRect.y) / this.current.z,
 		}
+		console.log("sessionTranslation", JSON.stringify(sessionTranslation))
+		return sessionTranslation
 	}
 
 	private startPinchSession(ev: TouchEvent) {
@@ -180,6 +183,16 @@ export class PinchZoomV2 {
 		this.pinchSessionOffset.x = currentCoords.x
 		this.pinchSessionOffset.y = currentCoords.y
 		this.pinchSessionTranslation = this.calculateSessionsTranslation()
+
+		let currentRect = this.getCoords(this.mailBody)
+		let transformOrigin = {
+			// x: this.pinchCenter.x - this.initialMailBodyCoords.x,
+			// y: this.pinchCenter.y - this.initialMailBodyCoords.y
+			x: this.pinchCenter.x - currentRect.x, //TODO: includes scaled change of position. just use scroll position from the original size
+			y: this.pinchCenter.y - currentRect.y,
+		}
+		console.log("transformOrigin", JSON.stringify(transformOrigin))
+		this.mailBody.style.transformOrigin = `${transformOrigin.x}px ${transformOrigin.y}px` // zooms in the right position //FIXME approach 2
 		// this.pinchZoomOrigin = this.getRelativePosition(
 		// 	this.mailBody,
 		// 	{
@@ -368,7 +381,7 @@ export class PinchZoomV2 {
 	}
 
 	private newScaledCoordinates(zoomPosition: CoordinatePair, newScale: number) {
-		console.log("zoomPosition", zoomPosition)
+		// console.log("zoomPosition", zoomPosition)
 		const currentNormalizedCoordinates = {
 			x: this.current.x,
 			y: this.current.y,
@@ -388,10 +401,10 @@ export class PinchZoomV2 {
 			{ x: currentCoordinates.x, y: currentCoordinates.y },
 			{ x: currentCoordinates.x2, y: currentCoordinates.y2 },
 		)
-		console.log("middle of mailBody", middle)
+		// console.log("middle of mailBody", middle)
 
-		console.log("newScale", newScale)
-		console.log("offset x", (newScale - 1) * (middle.x - zoomPosition.x))
+		// console.log("newScale", newScale)
+		// console.log("offset x", (newScale - 1) * (middle.x - zoomPosition.x))
 
 		return {
 			xOffset: Math.round((newScale - 1) * (middle.x - zoomPosition.x)),
@@ -422,18 +435,21 @@ export class PinchZoomV2 {
 	}
 
 	private update() {
-		console.log(`x: ${this.current.x}, y: ${this.current.y}, z: ${this.current.z}`)
-		this.current.height = this.originalMailBodySize.height * this.current.z
-		this.current.width = this.originalMailBodySize.width * this.current.z
-		console.log("mailBody before transform", JSON.stringify(this.getCoords(this.mailBody)))
-		const currentCoordinates = this.getCoords(this.mailBody)
-		this.mailBody.style.transformOrigin = `${this.sessionTransformOrigin.x}px ${this.sessionTransformOrigin.y}px` // zooms in the right position //FIXME approach 1
-		// this.mailBody.style.transformOrigin = `${this.pinchCenter.x - this.initialMailBodyCoords.x}px ${this.pinchCenter.y - this.initialMailBodyCoords.y}px` // zooms in the right position //FIXME approach 2
+		// console.log(`x: ${this.current.x}, y: ${this.current.y}, z: ${this.current.z}`)
+
+		// TODO: removed. do we need this?
+		// this.current.height = this.originalMailBodySize.height * this.current.z
+		// this.current.width = this.originalMailBodySize.width * this.current.z
+
+		// console.log("mailBody before transform", JSON.stringify(this.getCoords(this.mailBody)))
+		// const currentCoordinates = this.getCoords(this.mailBody)
+		// this.mailBody.style.transformOrigin = `${this.sessionTransformOrigin.x}px ${this.sessionTransformOrigin.y}px` // zooms in the right position //FIXME approach 1
+
 		// this.mailBody.style.transform =
 		// 	"translate3d(" + (this.current.x - this.initialMailBodyCoords.x) + "px, " + (this.current.y - this.initialMailBodyCoords.y) + "px, 0) scale(" + this.current.z + ")"
-		this.mailBody.style.transform = `translate3d(${0}px, ${0}px, 0) scale(${this.current.z})` //FIXME approach 1
-		// this.mailBody.style.transform = `translate3d(${this.pinchSessionTranslation.x}px, ${this.pinchSessionTranslation.y}px, 0) scale(${this.current.z})` //FIXME approach 2
-		console.log("mailBody after transform", JSON.stringify(this.getCoords(this.mailBody)))
+		//this.mailBody.style.transform = `translate3d(${0}px, ${0}px, 0) scale(${this.current.z})` //FIXME approach 1
+		this.mailBody.style.transform = `translate3d(${this.pinchSessionTranslation.x}px, ${this.pinchSessionTranslation.y}px, 0) scale(${this.current.z})` //FIXME approach 2
+		// console.log("mailBody after transform", JSON.stringify(this.getCoords(this.mailBody)))
 	}
 
 	/**
@@ -447,7 +463,7 @@ export class PinchZoomV2 {
 	 * @private
 	 */
 	private setCurrentSafePosition(newPosition: CoordinatePair, scaling: number) {
-		console.log(`newX: ${newPosition.x}, newy: ${newPosition.y}`)
+		// console.log(`newX: ${newPosition.x}, newy: ${newPosition.y}`)
 		let parentBorders = this.getCoords(this.viewport)
 		const rootBorders = {
 			x: newPosition.x,
@@ -472,15 +488,15 @@ export class PinchZoomV2 {
 		// const modifierX = (currentWidth - newWidth) / 2
 		// const modifierY = (currentHeight - newHeight) / 2
 
-		console.log("scaledX1", scaledX1)
-		console.log("parentBorder x", parentBorders.x)
-		console.log("scaledX2", scaledX2)
-		console.log("parentBorder x2", parentBorders.x2)
+		// console.log("scaledX1", scaledX1)
+		// console.log("parentBorder x", parentBorders.x)
+		// console.log("scaledX2", scaledX2)
+		// console.log("parentBorder x2", parentBorders.x2)
 		let xChanged = false
 		let yChanged = false
 		if (true || (scaledX1 <= parentBorders.x && scaledX2 >= parentBorders.x2)) {
 			//FIXME remove
-			console.log("current x", this.current.x)
+			// console.log("current x", this.current.x)
 			this.current.x = newPosition.x
 			xChanged = true
 		}

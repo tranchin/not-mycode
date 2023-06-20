@@ -419,8 +419,10 @@ export class ListModel<ElementType extends ListElement> {
 
 	enterMultiselect() {
 		// avoid having the viewed element as a preselected one which might be confusing.
-		this.selectNone()
-		this.updateState({ inMultiselect: true })
+
+		// we merged in selectNone() to avoid an additional update
+		this.rangeSelectionAnchorIndex = null
+		this.updateState({ inMultiselect: true, selectedItems: new Set<ElementType>(), activeIndex: null })
 	}
 
 	sort() {

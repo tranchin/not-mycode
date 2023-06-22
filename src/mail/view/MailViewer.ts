@@ -34,7 +34,6 @@ import { editDraft, mailViewerMargin, mailViewerPadding, showHeaderDialog } from
 import { ToggleButton } from "../../gui/base/ToggleButton.js"
 import { locator } from "../../api/main/MainLocator.js"
 import { PinchZoom } from "../../gui/PinchZoom.js"
-import { PinchZoomV2 } from "../../gui/PinchZoomV2.js"
 
 assertMainOrNode()
 // map of inline image cid to InlineImageReference
@@ -81,7 +80,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	private viewModel!: MailViewerViewModel
 	private topScrollValue = 0
 	private pinchZoomable: PinchZoom | null = null
-	private pinchZoomableV2: PinchZoomV2 | null = null
+	private pinchZoomableV2: PinchZoom | null = null
 	private topScrollValues: Array<stream<number>> = []
 
 	private readonly shortcuts: Array<Shortcut>
@@ -404,7 +403,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 		if (client.isMobileDevice()) {
 			// this.pinchZoomable = new PinchZoom(wrapNode, parent, this.topScrollValues, [])
-			this.pinchZoomableV2 = new PinchZoomV2(wrapNode, parent)
+			this.pinchZoomableV2 = new PinchZoom(wrapNode, parent)
 		} else {
 			wrapNode.addEventListener("click", (event) => {
 				const href = (event.target as Element | null)?.closest("a")?.getAttribute("href") ?? null

@@ -1,68 +1,219 @@
-import { client } from "../misc/ClientDetector.js"
-import stream from "mithril/stream"
-
-enum MoveDirection {
-	X,
-	Y,
-}
-
 type CoordinatePair = {
 	x: number
 	y: number
 }
 
 export class PinchZoom {
-	private evCache: PointerEvent[] = []
-	private touchCount = 0
-	// pinching
-	private prevDiff = -1
-	private maxScale = -1
-	private minScale = -1
-	private currentScale = -1
-	private xMiddle = -1
-	private yMiddle = -1
+	private lastEvent: string = ""
+
+	// zooming
 	private pinchTouchIDs: Set<number> = new Set<number>()
+	private lastMultiple: { pointer1: CoordinatePair; pointer2: CoordinatePair } = { pointer1: { x: 0, y: 0 }, pointer2: { x: 0, y: 0 } }
+	private initialZoomableRectCoords = { x: 0, y: 0, x2: 0, y2: 0 }
+	private initialViewportCoords = { x: 0, y: 0, x2: 0, y2: 0 }
+	private pinchCenter: { x: number; y: number } = { x: 0, y: 0 }
+	private pinchSessionTranslation: CoordinatePair = { x: 0, y: 0 }
+	private readonly originalMailBodySize = { width: 0, height: 0 }
+
+	private delta = {
+		x: 0,
+		y: 0,
+	}
+
+	private current = {
+		x: 0,
+		y: 0,
+		z: 1,
+		zooming: false,
+		width: this.originalMailBodySize.width * 1,
+		height: this.originalMailBodySize.height * 1,
+	}
+
+	private last = {
+		x: this.current.x,
+		y: this.current.y,
+		z: this.current.z,
+	}
 
 	// dragging
+	private previousDelta: CoordinatePair = { x: 0, y: 0 }
+	private offsetDelta: CoordinatePair = { x: 0, y: 0 }
+	private previousInput: { delta: CoordinatePair; event: string } = { delta: { x: 0, y: 0 }, event: "end" }
 	private dragTouchIDs: Set<number> = new Set<number>()
-	private offsetX = -1
-	private offsetY = -1
-	private startX = -1
-	private startY = -1
-	private currentX = -1
-	private currentY = -1
-	private lastOffsetX = 0 //what should be the default that can never be reached be?
-	private lastOffsetY = 0
-	private currentTransformOrigin: CoordinatePair = { x: 0, y: 0 }
-	private lastTransformOrigin: CoordinatePair = { x: 0, y: 0 }
-	private transformOriginNotInitialized = true
+	private fixDeltaIssue: { x: number; y: number } = { x: 0, y: 0 }
 
-	private topScrollValue: number = 0
+	/**
+	 *
+	 * @param zoomableRect
+	 * @param viewport
+	 */
+	constructor(private readonly zoomableRect: HTMLElement, private readonly viewport: HTMLElement) {
+		this.initialZoomableRectCoords = this.getCoords(this.zoomableRect) // already needs to be rendered
+		this.current.x = this.initialZoomableRectCoords.x
+		this.current.y = this.initialZoomableRectCoords.y
+		console.log("initialcoords", this.initialZoomableRectCoords.x, this.initialZoomableRectCoords.y)
+		this.originalMailBodySize = {
+			width: Math.abs(this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x),
+			height: Math.abs(this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y),
+		}
 
-	constructor(
-		private readonly root: HTMLElement,
-		private readonly parent: HTMLElement,
-		private readonly topScrollValues: Array<stream<number>>,
-		private readonly leftScrollValues: Array<stream<number>>,
-	) {
+		this.initialViewportCoords = this.getCoords(this.viewport)
+
 		console.log("new Pinch to zoom----------------")
-		this.setInitialScale(1)
-		this.root.ontouchend = (e) => {
-			this.removeTouches()
-			// console.log("touch end")
+		this.zoomableRect.ontouchend = (e) => {
+			this.removeTouches(e)
 		}
-		this.root.ontouchmove = (e) => {
+		this.zoomableRect.ontouchmove = (e) => {
 			this.touchmove_handler(e)
-			// console.log("touch move")
 		}
-		this.root.ontouchcancel = (e) => {
-			this.removeTouches()
-			// console.log("touch cancel")
+		this.zoomableRect.ontouchcancel = (e) => {
+			this.removeTouches(e)
+		}
+
+		this.zoomableRect.style.touchAction = "pan-y pan-x" // makes zooming smooth
+		this.viewport.style.overflow = "hidden" // disable default scroll behavior
+		// this.zoomableRect.style.overflow = "hidden"
+		// this.zoomableRect.style.overflowX = "hidden"
+		zoomableRect.ondragstart = (e) => {
+			console.log("dragstart")
+			e.preventDefault()
+		}
+		zoomableRect.ondrag = (e) => {
+			e.preventDefault()
+		}
+
+		setTimeout(() => {
+			// this.debug()
+		}, 1000)
+	}
+
+	private touchIdCounter = 0
+
+	private createTouch(x: number, y: number, id: number): Touch {
+		return new Touch({
+			clientX: x,
+			clientY: y,
+			force: 0,
+			identifier: id,
+			pageX: 0,
+			pageY: 0,
+			radiusX: 0,
+			radiusY: 0,
+			rotationAngle: 0,
+			screenX: 0,
+			screenY: 0,
+			target: new EventTarget(),
+		})
+	}
+
+	private async debug() {
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 350 - i, 0), this.createTouch(100, 400 + i, 1)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		await new Promise((f) => setTimeout(f, 1000))
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 350 - i, 2), this.createTouch(100, 450 + i, 3)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		// drag
+		await new Promise((f) => setTimeout(f, 2000))
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100 + i, 350, 4)] }))
+			await new Promise((f) => setTimeout(f, 500))
+		}
+	}
+
+	private async debugFine() {
+		for (let i = 0; i < 40; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 350 - i, 0), this.createTouch(100, 400 + i, 1)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		// drag
+		await new Promise((f) => setTimeout(f, 2000))
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100 + i, 350, 4)] }))
+			await new Promise((f) => setTimeout(f, 500))
+		}
+	}
+
+	// change second pinch center x and y and drag in x direction -> fails
+	private async dummyTest1() {
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 350 - i, 0), this.createTouch(100, 400 + i, 1)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		await new Promise((f) => setTimeout(f, 1000))
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(120, 350 - i, 2), this.createTouch(100, 450 + i, 3)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		// drag
+		await new Promise((f) => setTimeout(f, 2000))
+		for (let i = 0; i < 300; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100 + i, 350, 4)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+	}
+
+	// change second pinch center x and drag in x direction -> works?
+	private async dummyTest2() {
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 350 - i, 0), this.createTouch(100, 400 + i, 1)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		await new Promise((f) => setTimeout(f, 1000))
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(120, 350 - i, 2), this.createTouch(100, 400 + i, 3)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		// drag
+		await new Promise((f) => setTimeout(f, 2000))
+		for (let i = 0; i < 300; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100 + i, 350, 4)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+	}
+
+	// change second pinch center y and drag in y direction -> works?
+	private async dummyTest3() {
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 350 - i, 0), this.createTouch(100, 400 + i, 1)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		await new Promise((f) => setTimeout(f, 1000))
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 400 - i, 2), this.createTouch(100, 600 + i, 3)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		// drag
+		await new Promise((f) => setTimeout(f, 2000))
+		for (let i = 0; i < 300; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 350 + i, 4)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+	}
+
+	// change second pinch center y and drag in x direction -> fails
+	private async dummyTest4() {
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 350 - i, 0), this.createTouch(100, 400 + i, 1)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		await new Promise((f) => setTimeout(f, 1000))
+		for (let i = 0; i < 20; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100, 360 - i, 2), this.createTouch(100, 410 + i, 3)] }))
+			await new Promise((f) => setTimeout(f, 50))
+		}
+		// drag
+		await new Promise((f) => setTimeout(f, 2000))
+		for (let i = 0; i < 300; i++) {
+			this.touchmove_handler(new TouchEvent("TouchEvent", { touches: [this.createTouch(100 + i, 350, 4)] }))
+			await new Promise((f) => setTimeout(f, 50))
 		}
 	}
 
 	private touchmove_handler(ev: TouchEvent) {
-		// console.log(ev)
 		switch (ev.touches.length) {
 			case 1:
 				this.dragHandling(ev)
@@ -75,232 +226,392 @@ export class PinchZoom {
 		}
 	}
 
-	private pinchHandling(ev: TouchEvent) {
-		// Calculate the distance between the two pointers
-		const curDiff = Math.sqrt(Math.pow(ev.touches[1].clientX - ev.touches[0].clientX, 2) + Math.pow(ev.touches[1].clientY - ev.touches[0].clientY, 2))
-		// console.log(this.touchIDs)
-		if (!(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))) {
-			// in case of a new touch
-			this.xMiddle = (ev.touches[1].pageX + ev.touches[0].pageX) / 2 // keep initial zoom center for whole zoom operation even if fingers are moving
-			this.yMiddle = (ev.touches[1].pageY + ev.touches[0].pageY) / 2
-			this.prevDiff = -1
-		}
-		// console.log(curDiff)
-		// console.log("prev" + this.prevDiff)
-
-		if (this.prevDiff > 0) {
-			const additionalFactor = 1.01
-			const changeFactor = 40 * window.devicePixelRatio // should be dependent on the devices dpi?
-			this.zoom((curDiff - this.prevDiff) / changeFactor, this.xMiddle, this.yMiddle)
-		}
-
-		this.pinchTouchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
-
-		// Cache the distance for the next move event
-		this.prevDiff = curDiff
-	}
-
-	private dragHandling(ev: TouchEvent) {
-		//FIXME check for new touch
-		if (this.currentScale > 1) {
-			// otherwise no need to drag
-			ev.preventDefault()
-			const newX = ev.touches[0].pageX
-			const newY = ev.touches[0].pageY
-			if (!this.dragTouchIDs.has(ev.touches[0].identifier)) {
-				console.log("new touch")
-				this.dragTouchIDs = new Set<number>([ev.touches[0].identifier])
-				this.startX = newX
-				this.startY = newY
-				this.currentX = newX
-				this.currentY = newY
-			}
-
-			// if (this.offsetX !== newX && this.offsetX !== -1) {
-			this.moveBy(newX - this.currentX, newY - this.currentY)
-			// this.directMove(this.currentX - newX, this.currentY - newY)
-			// }
-			// if (this.offsetY !== newY && this.offsetY !== -1) {
-			// 	this.moveBy(MoveDirection.Y, newY - this.currentY)
-			// }
-			// this.offsetX = newX
-			// this.offsetY = newY
-			this.currentX = newX
-			this.currentY = newY
-		}
-	}
-
-	private directMove(changeX: number, changeY: number) {
-		this.root.style.top = this.root.offsetTop - changeY + "px"
-		this.root.style.left = this.root.offsetLeft - changeX + "px"
-	}
-
-	private moveBy(changeX: number, changeY: number) {
-		// FIXME maybe combine, no need for separate direction
-		// if (direction === MoveDirection.X) {
-		// this.root.style.translate = `${changeBY / this.currentScale}px, 0px`
-		// this.root.style.transform = `translate(${-changeX}px, ${changeY}px) scale(${this.currentScale})`
-		// } else if (direction === MoveDirection.Y) {
-		// this.root.style.translate = `0px, ${changeBY / this.currentScale}px`
-		// this.root.style.transform = `translate(0px, ${changeBY / this.currentScale}px) scale(${this.currentScale})`
-		// }
-
-		// if (this.lastOffsetY === -1 && this.lastOffsetX === -1) {
-		// 	this.lastOffsetX = this.currentX + generatedOffset.x
-		// 	this.lastOffsetY = this.currentY + generatedOffset.y
-		// } else {
-		// 	this.lastOffsetX = this.currentX + generatedOffset.x //FIXME
-		// 	this.lastOffsetY = this.currentY + generatedOffset.y
-		// }
-
-		this.updateTransformOrigin()
-		const scalingFactor = this.interpolateTransformation()
-		console.log(`scaling factor`, scalingFactor)
-		this.root.style.transformOrigin = `${this.currentTransformOrigin.x * scalingFactor}px ${this.currentTransformOrigin.y * scalingFactor}px` // I guess not super correct //FIXME shouldn't be necessary??!
-		// this.root.style.transformOrigin = "top left"
-		// this.root.style.transition = "transform 300ms ease-in-out"
-		// console.log(`changeBy: ${-changeX}, ${changeY}, current scale: ${this.currentScale}, transform origin: x=${this.currentX + generatedOffset.x}, y=${this.currentY + generatedOffset.y}`)
-	}
-
-	private interpolateTransformation(): number {
-		const inverted = this.maxScale - this.currentScale // inverted relationship
-		return Math.pow(this.minScale + inverted, 3)
-	}
-
-	private invalidBorder(): boolean {
-		if (
-			this.root.style.left > this.parent.style.left ||
-			this.root.style.right < this.parent.style.right ||
-			this.root.style.top > this.parent.style.top ||
-			this.root.style.bottom < this.parent.style.bottom
-		) {
-			return true
-		}
-		return false
-	}
-
-	private updateTransformOrigin() {
-		if (this.invalidBorder()) {
-			return
-		}
-		if (this.transformOriginNotInitialized) {
-			const generatedOffset = this.generateOffset()
-			this.currentTransformOrigin = {
-				x: this.startX + (this.startX - this.currentX) + generatedOffset.x,
-				y: this.startY + (this.startY - this.currentY) + generatedOffset.y,
-			}
-			this.lastTransformOrigin.x = this.currentTransformOrigin.x
-			this.lastTransformOrigin.y = this.currentTransformOrigin.y
-			this.transformOriginNotInitialized = false
+	private removeTouches(ev: TouchEvent) {
+		this.previousInput.event = "end"
+		if (ev.touches.length > 0) {
+			this.last.x = this.current.x
+			this.last.y = this.current.y
+			this.last.z = this.current.z
+			this.lastEvent = "pinchend"
+			this.pinchTouchIDs.clear()
 		} else {
-			this.currentTransformOrigin = {
-				x: this.lastTransformOrigin.x + (this.startX - this.currentX),
-				y: this.lastTransformOrigin.y + (this.startY - this.currentY),
-			}
+			this.last.x = this.current.x
+			this.last.y = this.current.y
+			this.lastEvent = "panend"
+			this.dragTouchIDs.clear()
 		}
-		console.log(`transform origin: x-${this.currentTransformOrigin.x}, y-${this.currentTransformOrigin.y}`)
 	}
 
-	private zoom(zoomModifier: number, centerX: number, centerY: number) {
-		const child = this.root
-		console.log("zoom")
-		if (!client.isMobileDevice() || !child) {
-			return
-		}
-		// console.log("container Width", containerWidth)
-		// console.log("child scroll width", child.scrollWidth)
-
-		if (this.currentScale === -1) {
-			const realScale = child.getBoundingClientRect().width / child.offsetWidth
-			// console.log("actual scale", realScale)
-			const containerWidth = child.offsetWidth
-			const width = child.scrollWidth
-			this.saveScale(realScale) //containerWidth / width
-		}
-		// console.log("current scale", this.currentScale)
-		if (zoomModifier > 0) {
-			// zooming in
-			this.currentScale = Math.min(this.currentScale + zoomModifier, this.maxScale) // * multiplier
-			child.style.transform = `scale(${this.currentScale})`
-			// const heightDiff = child.scrollHeight - child.scrollHeight * this.currentScale
-			// child.style.marginBottom = `${-heightDiff}px`
-		} else {
-			this.currentScale = Math.max(this.currentScale + zoomModifier, this.minScale) // * multiplier
-			child.style.transform = `scale(${this.currentScale})`
-			// const heightDiff = child.scrollHeight - child.scrollHeight * scale
-			// child.style.marginBottom = `${-heightDiff}px`
-		}
-
-		const generatedOffset = this.generateOffset()
-
-		// ios 15 bug: transformOrigin magically disappears so we ensure that it's always set
-		// console.log(`${parseInt(centerX.toString())}px ${parseInt(centerY.toString())}px`)
-		const heightDiff = child.scrollHeight - child.scrollHeight * this.currentScale
-		const widthDiff = child.scrollWidth - child.scrollWidth * this.currentScale
-		// console.log(child.scrollHeight)
-		// console.log("heightDiff", heightDiff)
-		// console.log("widthDiff", widthDiff)
-		// console.log("x and y", centerX, centerY)
-		// console.log(this.topScrollValue)
-		// child.style.transformOrigin = `${centerX}px ${centerY + this.topScrollValue}px` // FIXME should consider were mail body is currently placed, especially when zoomed out
-		// child.style.transformOrigin = "top left" // definitely works but looks not nice
-		// child.style.transformOrigin = `${centerX}px ${0}px`
-		console.log("scrolltop", this.root.scrollTop)
-		// this.updateTransformOrigin()
-		child.style.transformOrigin = `${centerX + generatedOffset.x}px ${centerY + generatedOffset.y}px`
-		// child.style.transformOrigin = `${this.currentTransformOrigin.x}px ${this.currentTransformOrigin.x}px`
-		// child.style.transformBox = ""
-		child.style.transition = "transform 300ms ease-in-out"
+	private pointDistance(point1: CoordinatePair, point2: CoordinatePair): number {
+		return Math.round(Math.sqrt(Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2)))
 	}
 
-	private generateOffset(): CoordinatePair {
-		console.log(`top scroll root: ${this.root.scrollTop}`)
-		let xOffset = 0
-		let yOffset = 0
-		// if (this.lastOffsetX === -1 || this.lastOffsetY === -1) {
-		for (const xStream of this.leftScrollValues) {
-			xOffset += xStream()
+	private centerOfPoints(...points: CoordinatePair[]): CoordinatePair {
+		let x = 0
+		let y = 0
+		for (let point of points) {
+			x += point.x
+			y += point.y
 		}
-		for (const yStream of this.topScrollValues) {
-			yOffset += yStream()
+		return { x: Math.round(x / points.length), y: Math.round(y / points.length) }
+	}
+
+	private getCoords(elem: HTMLElement) {
+		// crossbrowser version
+		let box = elem.getBoundingClientRect()
+
+		let body = document.body
+		let docEl = document.documentElement
+
+		let scrollTop = window.pageYOffset || docEl.scrollTop || body.scrollTop
+		let scrollLeft = window.pageXOffset || docEl.scrollLeft || body.scrollLeft
+
+		let clientTop = docEl.clientTop || body.clientTop || 0
+		let clientLeft = docEl.clientLeft || body.clientLeft || 0
+
+		let top = box.top + scrollTop - clientTop
+		let left = box.left + scrollLeft - clientLeft
+		let bottom = box.bottom + scrollTop - clientTop
+		let right = box.right + scrollLeft - clientLeft
+
+		return { x: Math.round(left), y: Math.round(top), x2: Math.round(right), y2: Math.round(bottom) }
+	}
+
+	private getTransformOrigin(elem: HTMLElement) {
+		const computedStyle = getComputedStyle(this.zoomableRect)
+		let transformOrigin = computedStyle.transformOrigin
+
+		let numberPattern = /-?\d+\.?\d*/g
+		let transformOriginValues = transformOrigin.match(numberPattern) //relative
+		return transformOriginValues || ["0", "0"]
+	}
+
+	private getCurrentOriginalRect() {
+		let currentScrollOffset = this.getScrollOffset()
+		return {
+			x: this.initialZoomableRectCoords.x - currentScrollOffset.x,
+			y: this.initialZoomableRectCoords.y - currentScrollOffset.y,
 		}
-		// 	this.lastOffsetX = xOffset
-		// 	this.lastOffsetY = yOffset
-		// }
-		// return { x: this.lastOffsetX, y: this.lastOffsetY }
-		return { x: xOffset, y: yOffset }
 	}
 
 	/**
-	 *
-	 * @param scale reset if no values given
+	 * returns the offset of the moved surrounding / viewport
+	 **/
+	private getScrollOffset() {
+		let currentViewport = this.getCoords(this.viewport)
+
+		return {
+			x: this.initialViewportCoords.x - currentViewport.x,
+			y: this.initialViewportCoords.y - currentViewport.y,
+		}
+
+		//FIXME probably remove later because not needed
+		// let currentRect = this.getCoords(this.zoomableRect)
+		//
+		// const computedStyle = getComputedStyle(this.zoomableRect)
+		// let transformMatrix = computedStyle.transform === "none" ? "matrix(1, 0, 0, 1, 0, 0)" : computedStyle.transform
+		// console.log("matrix", transformMatrix)
+		// let transformOrigin = computedStyle.transformOrigin
+		//
+		// let numberPattern = /-?\d+\.?\d*/g
+		//
+		// let matrixValues = transformMatrix.match(numberPattern)
+		// console.log("values", matrixValues)
+		// let transformOriginValues = transformOrigin.match(numberPattern) //relative
+		// // let absoluteTransformOrigin
+		//
+		// // currentX = tX - ((uX + tX) - uX) * s
+		//
+		// let withoutScaling = {
+		// 	x: currentRect.x + (Number(matrixValues![0]) - 1) * Number(transformOriginValues![0]), // https://www.w3schools.com/css/css3_2dtransforms.asp
+		// 	y: currentRect.y + (Number(matrixValues![3]) - 1) * Number(transformOriginValues![1]),
+		// }
+		//
+		// return {
+		// 	x: withoutScaling.x - Number(matrixValues![4]),
+		// 	y: withoutScaling.y - Number(matrixValues![5]),
+		// }
+	}
+
+	// zooming
+
+	private calculateSessionsTranslationAndSetTransformOrigin(): CoordinatePair {
+		let currentZoomableRect = this.getCoords(this.zoomableRect)
+		let scrollOffset = this.getScrollOffset()
+		console.log("originalRect", JSON.stringify(scrollOffset))
+		const computedStyles = getComputedStyle(this.zoomableRect)
+		console.log("computed style", computedStyles.transform, computedStyles.transformOrigin)
+
+		let transformedInitialZoomableRect = {
+			x: Math.round((currentZoomableRect.x + this.pinchCenter.x * (this.current.z - 1)) / this.current.z),
+			y: Math.round((currentZoomableRect.y + this.pinchCenter.y * (this.current.z - 1)) / this.current.z),
+		}
+		console.log("transformedInitialMailbody", JSON.stringify(transformedInitialZoomableRect))
+		let sessionTranslation = {
+			x: transformedInitialZoomableRect.x - this.initialZoomableRectCoords.x + scrollOffset.x,
+			y: transformedInitialZoomableRect.y - this.initialZoomableRectCoords.y + scrollOffset.y,
+		}
+
+		// transform origin
+		let transformOrigin = {
+			// is relative to the new transformed zoomableRect
+			x: this.pinchCenter.x - transformedInitialZoomableRect.x,
+			y: this.pinchCenter.y - transformedInitialZoomableRect.y,
+		}
+		console.log("pinchCenter", JSON.stringify(this.pinchCenter))
+		console.log("transformOrigin", JSON.stringify(transformOrigin))
+		console.log("current zoom", this.current.z)
+
+		this.zoomableRect.style.transformOrigin = `${transformOrigin.x}px ${transformOrigin.y}px` // zooms in the right position //FIXME approach 2
+
+		console.log("displayed coordinates", JSON.stringify(currentZoomableRect))
+		console.log("should be equals currentRectX", this.lastPinchCenter.x - (this.lastPinchCenter.x - this.initialZoomableRectCoords.x) * this.current.z)
+
+		return sessionTranslation
+	}
+
+	private lastPinchCenter = { x: 0, y: 0 }
+
+	private startPinchSession(ev: TouchEvent) {
+		this.lastMultiple = {
+			pointer1: { x: ev.touches[0].clientX, y: ev.touches[0].clientY },
+			pointer2: { x: ev.touches[1].clientX, y: ev.touches[1].clientY },
+		}
+
+		this.lastPinchCenter = this.pinchCenter
+		this.pinchCenter = this.centerOfPoints({ x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
+		if (this.lastPinchCenter.x === 0 && this.lastPinchCenter.y === 0) {
+			this.lastPinchCenter = this.pinchCenter
+		}
+		let currentCoords = this.getCoords(this.zoomableRect)
+		this.pinchSessionTranslation = this.calculateSessionsTranslationAndSetTransformOrigin()
+
+		let currentRect = this.getCoords(this.zoomableRect)
+		this.lastEvent = "pinchstart"
+	}
+
+	private pinchHandling(ev: TouchEvent) {
+		// new pinch gesture?
+		if (!(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))) {
+			this.startPinchSession(ev)
+		}
+		//update current touches
+		this.pinchTouchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
+
+		// Calculate the scaling (1 = no scaling, 0 = maximum pinched in, >1 pinching out
+		const scaling =
+			this.pointDistance({ x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY }) /
+			this.pointDistance(this.lastMultiple.pointer1, this.lastMultiple.pointer2)
+
+		this.lastMultiple.pointer1 = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
+		this.lastMultiple.pointer2 = { x: ev.touches[1].clientX, y: ev.touches[1].clientY }
+
+		let d2 = this.newScaledCoordinates(this.pinchCenter, scaling)
+		// this.setCurrentSafePosition(d.x + this.pinchZoomOrigin.x /* + this.last.x*/, d.y + this.pinchZoomOrigin.y /* + this.last.y*/, d.z + this.last.z) //FIXME
+		this.setCurrentSafePosition(d2, this.current.z + (scaling - 1)) //FIXME // scaling prob. wrong
+		this.lastEvent = "pinch"
+		this.update()
+	}
+
+	private newScaledCoordinates(zoomPosition: CoordinatePair, newScale: number) {
+		// console.log("zoomPosition", zoomPosition)
+		const currentNormalizedCoordinates = {
+			x: this.current.x,
+			y: this.current.y,
+			x2: this.current.x + this.originalMailBodySize.width,
+			y2: this.current.y + this.originalMailBodySize.height,
+		} // current coordinates without scaling
+		// zoomPosition = { x: zoomPosition.x - currentCoordinates.x, y: zoomPosition.y - currentCoordinates.y } // shift in case that display was scrolled
+		// console.log("corrected position", zoomPosition)
+		const newCoordinates = this.scaleAndShift(zoomPosition, newScale, currentNormalizedCoordinates)
+
+		return { x: currentNormalizedCoordinates.x + newCoordinates.xOffset, y: currentNormalizedCoordinates.y + newCoordinates.yOffset }
+	}
+
+	// returns the offset to the current points
+	private scaleAndShift(zoomPosition: CoordinatePair, newScale: number, currentCoordinates: { x: number; y: number; x2: number; y2: number }) {
+		const middle: CoordinatePair = this.centerOfPoints(
+			{ x: currentCoordinates.x, y: currentCoordinates.y },
+			{ x: currentCoordinates.x2, y: currentCoordinates.y2 },
+		)
+		// console.log("middle of zoomableRect", middle)
+
+		// console.log("newScale", newScale)
+		// console.log("offset x", (newScale - 1) * (middle.x - zoomPosition.x))
+
+		return {
+			xOffset: Math.round((newScale - 1) * (middle.x - zoomPosition.x)),
+			yOffset: Math.round((newScale - 1) * (middle.y - zoomPosition.y)),
+		}
+	}
+
+	// dragging
+
+	private dragHandling(ev: TouchEvent) {
+		//FIXME check for new touch
+		if (this.current.z > 1) {
+			ev.stopPropagation() // maybe not if is not movable FIXME
+			ev.preventDefault()
+
+			let delta = { x: 0, y: 0 }
+			if (!this.dragTouchIDs.has(ev.touches[0].identifier)) {
+				// new dragging
+				this.dragTouchIDs = new Set<number>([ev.touches[0].identifier])
+				delta = { x: 0, y: 0 } //this.calculateDelta(true, { x: ev.touches[0].clientX, y: ev.touches[0].clientY }) //FIXME I think delta also needs to be changed if the surrounding is scrolled/ changed
+			} else {
+				// still same dragging
+				delta = { x: ev.touches[0].clientX - this.previousInput.delta.x, y: ev.touches[0].clientY - this.previousInput.delta.y } // this.calculateDelta(false, { x: ev.touches[0].clientX, y: ev.touches[0].clientY })
+			}
+
+			if (this.lastEvent !== "pan") {
+				this.fixDeltaIssue = {
+					x: delta.x,
+					y: delta.y,
+				}
+			}
+
+			// this.setCurrentSafePosition({x: this.last.x + delta.x - this.fixDeltaIssue.x, y: this.last.y + delta.y - this.fixDeltaIssue.y}, this.current.z) //FIXME
+			this.current.x = this.last.x + delta.x - this.fixDeltaIssue.x
+			this.current.y = this.last.y + delta.y - this.fixDeltaIssue.y
+			this.lastEvent = "pan"
+			this.previousInput.delta = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
+			console.log("delta", JSON.stringify(delta))
+			let currentTransformOrigin = this.getTransformOrigin(this.zoomableRect)
+			let currentRect = this.getCoords(this.zoomableRect)
+			let currentOriginalRect = this.getCurrentOriginalRect()
+			console.log("current original rect", JSON.stringify(currentOriginalRect))
+			let newTransformOrigin = {
+				x: (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.current.z), //FIXME pinchSessionTranslation needs to be considered
+				y: (currentRect.y + delta.y - (currentOriginalRect.y + this.pinchSessionTranslation.y)) / (1 - this.current.z),
+				// y: Number(currentTransformOrigin[1]),
+			}
+
+			console.log("new transform origin", JSON.stringify(newTransformOrigin))
+			console.log(
+				"currentRect",
+				JSON.stringify(currentRect),
+				"z",
+				this.current.z,
+				"currentOrigionalRect",
+				JSON.stringify(currentOriginalRect),
+				"deltas",
+				delta.x,
+				delta.y,
+			)
+			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${newTransformOrigin.y}px`
+			// this.zoomableRect.style.transformOrigin = `${Number(currentTransformOrigin[0]) - delta.x}px ${
+			// 	Number(currentTransformOrigin[1]) - delta.y
+			// }px`
+			this.delta.x += delta.x
+			this.delta.y += delta.y
+			// console.log(
+			// 	"deltas",
+			// 	delta.x,
+			// 	delta.y,
+			// 	"z",
+			// 	this.current.z,
+			// 	"scaled deltas",
+			// 	delta.x / this.current.z,
+			// 	delta.y / this.current.z,
+			// 	"overall deltas",
+			// 	this.delta.x,
+			// 	this.delta.y,
+			// )
+
+			this.current.x += delta.x //FIXME 1 drag approach
+			this.current.y += delta.y
+			this.update()
+		}
+	}
+
+	private calculateDelta(startOfInput: boolean, ...points: CoordinatePair[]): CoordinatePair {
+		//FIXME
+		// FIXME return value is semantically not quite accurate
+		const center = this.centerOfPoints(...points)
+		let offset = this.offsetDelta || {} //FIXME
+		let prevDelta = this.previousDelta || {}
+		let prevInput = this.previousInput || {}
+
+		if (startOfInput || prevInput.event === "end") {
+			prevDelta = this.previousDelta = {
+				x: prevInput.delta.x || 0,
+				y: prevInput.delta.y || 0,
+			}
+
+			offset = this.offsetDelta = {
+				x: center.x,
+				y: center.y,
+			}
+		}
+
+		const deltaX = prevDelta.x + (center.x - offset.x)
+		const deltaY = prevDelta.y + (center.y - offset.y)
+		return { x: deltaX, y: deltaY }
+	}
+
+	// update
+
+	private update() {
+		this.zoomableRect.style.transform = `translate3d(${this.pinchSessionTranslation.x}px, ${this.pinchSessionTranslation.y}px, 0) scale(${this.current.z})` //FIXME 1 drag approach pinchSessionTranslation
+		// this.zoomableRect.style.transform = `translate3d(${this.pinchSessionTranslation.x + this.delta.x}px, ${
+		// 	this.pinchSessionTranslation.y + this.delta.y
+		// }px, 0) scale(${this.current.z})` //FIXME 1 drag approach pinchSessionTranslation
+	}
+
+	/**
+	 * top y should not be > initial top y
+	 * bottom y should not be < initial bottom y
+	 * left x should not be > initial left x
+	 * right x should not be < initial right x
+	 * @param newX
+	 * @param newY
+	 * @param scaling
 	 * @private
 	 */
-	private saveScale(scale: number = -1) {
-		console.log("change scale")
-		if (scale === -1) {
-			this.currentScale = -1
-			this.maxScale = -1
-			this.minScale = -1
-		} else {
-			this.currentScale = scale
-			this.minScale = scale //- 0.1 // should further zooming out be possible? //FIXME
-			this.maxScale = scale + 1
+	private setCurrentSafePosition(newPosition: CoordinatePair, scaling: number) {
+		// console.log(`newX: ${newPosition.x}, newy: ${newPosition.y}`)
+		let parentBorders = this.getCoords(this.viewport)
+		const rootBorders = {
+			x: newPosition.x,
+			y: newPosition.y,
+			x2: newPosition.x + this.originalMailBodySize.width,
+			y2: newPosition.y + this.originalMailBodySize.height,
 		}
-		console.log("new scale", this.currentScale)
-	}
 
-	setInitialScale(scale: number) {
-		console.log("initialize scaling", scale)
-		if (this.currentScale === -1) {
-			this.saveScale(scale)
+		const newMiddle: CoordinatePair = this.centerOfPoints({ x: rootBorders.x, y: rootBorders.y }, { x: rootBorders.x2, y: rootBorders.y2 })
+
+		scaling = Math.max(1, Math.min(3, scaling)) // don't allow zooming out or zooming in more than 3x
+
+		const scaledX1 = rootBorders.x + (scaling - 1) * (rootBorders.x - newMiddle.x)
+		const scaledX2 = rootBorders.x2 + (scaling - 1) * (rootBorders.x2 - newMiddle.x)
+
+		const scaledY1 = rootBorders.y + (scaling - 1) * (rootBorders.y - newMiddle.y)
+		const scaledY2 = rootBorders.y2 + (scaling - 1) * (rootBorders.y2 - newMiddle.y)
+		// const currentWidth = rootBorders.x2 - rootBorders.x
+		// const currentHeight = rootBorders.y2 - rootBorders.y
+		// const newWidth = Math.round(this.originalMailBodySize.width * newZ)
+		// const newHeight = Math.round(this.originalMailBodySize.height * newZ)
+		// const modifierX = (currentWidth - newWidth) / 2
+		// const modifierY = (currentHeight - newHeight) / 2
+
+		// console.log("scaledX1", scaledX1)
+		// console.log("parentBorder x", parentBorders.x)
+		// console.log("scaledX2", scaledX2)
+		// console.log("parentBorder x2", parentBorders.x2)
+		let xChanged = false
+		let yChanged = false
+		if (true || (scaledX1 <= parentBorders.x && scaledX2 >= parentBorders.x2)) {
+			//FIXME remove
+			// console.log("current x", this.current.x)
+			this.current.x = newPosition.x
+			xChanged = true
 		}
-	}
-
-	private removeTouches() {
-		this.lastTransformOrigin.x = this.currentTransformOrigin.x
-		this.lastTransformOrigin.y = this.currentTransformOrigin.y
-		this.pinchTouchIDs.clear()
-		this.dragTouchIDs.clear()
+		if (true || (scaledY1 <= parentBorders.y && scaledY2 >= parentBorders.y2)) {
+			this.current.y = newPosition.y
+			yChanged = true
+		}
+		if (xChanged || yChanged) {
+			this.current.z = scaling
+		}
 	}
 }

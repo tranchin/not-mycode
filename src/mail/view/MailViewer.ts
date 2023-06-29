@@ -520,9 +520,9 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		} else {
 			const width = child.scrollWidth
 			const scale = containerWidth / width
-			// if (this.pinchZoomable) {
-			// 	this.pinchZoomable.setInitialScale(scale)
-			// }
+			if (this.pinchZoomableV2) {
+				this.pinchZoomableV2.setInitialScale(scale)
+			}
 			const heightDiff = child.scrollHeight - child.scrollHeight * scale
 			child.style.transform = `scale(${scale})`
 			child.style.marginBottom = `${-heightDiff}px`

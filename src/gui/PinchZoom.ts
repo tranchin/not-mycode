@@ -13,7 +13,9 @@ export class PinchZoom {
 	private initialViewportCoords = { x: 0, y: 0, x2: 0, y2: 0 }
 	private pinchCenter: { x: number; y: number } = { x: 0, y: 0 }
 	private pinchSessionTranslation: CoordinatePair = { x: 0, y: 0 }
-	private readonly originalMailBodySize = { width: 0, height: 0 }
+	private readonly initialMailBodySize = { width: 0, height: 0 }
+	private originalMailBodySize = { width: 0, height: 0 }
+	private zoomBoundaries = { min: 1, max: 3 }
 
 	private delta = {
 		x: 0,
@@ -48,13 +50,19 @@ export class PinchZoom {
 	 * @param viewport
 	 */
 	constructor(private readonly zoomableRect: HTMLElement, private readonly viewport: HTMLElement) {
+		//	 different initial zoom so far only works for transform origin 0,0
 		this.initialZoomableRectCoords = this.getCoords(this.zoomableRect) // already needs to be rendered
 		this.current.x = this.initialZoomableRectCoords.x
 		this.current.y = this.initialZoomableRectCoords.y
-		console.log("initialcoords", this.initialZoomableRectCoords.x, this.initialZoomableRectCoords.y)
+		console.log("initialcoords", JSON.stringify(this.initialZoomableRectCoords))
+		console.log("viewportCoords", JSON.stringify(this.getCoords(this.viewport)))
+		this.initialMailBodySize = {
+			width: this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x,
+			height: this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y,
+		}
 		this.originalMailBodySize = {
-			width: Math.abs(this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x),
-			height: Math.abs(this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y),
+			width: this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x,
+			height: this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y,
 		}
 
 		this.initialViewportCoords = this.getCoords(this.viewport)
@@ -74,17 +82,27 @@ export class PinchZoom {
 		this.viewport.style.overflow = "hidden" // disable default scroll behavior
 		// this.zoomableRect.style.overflow = "hidden"
 		// this.zoomableRect.style.overflowX = "hidden"
-		zoomableRect.ondragstart = (e) => {
-			console.log("dragstart")
-			e.preventDefault()
-		}
-		zoomableRect.ondrag = (e) => {
-			e.preventDefault()
-		}
+		// zoomableRect.ondragstart = (e) => {
+		// 	console.log("dragstart")
+		// 	e.preventDefault()
+		// }
+		// zoomableRect.ondrag = (e) => {
+		// 	e.preventDefault()
+		// }
 
 		setTimeout(() => {
 			// this.debug()
 		}, 1000)
+	}
+
+	setInitialScale(scale: number) {
+		this.current.z = scale
+		this.zoomBoundaries = { min: scale, max: scale + 2 }
+		console.log("initialZoom", scale)
+		this.originalMailBodySize = {
+			width: (this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x) / scale,
+			height: (this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y) / scale,
+		}
 	}
 
 	private touchIdCounter = 0
@@ -274,7 +292,8 @@ export class PinchZoom {
 		let bottom = box.bottom + scrollTop - clientTop
 		let right = box.right + scrollLeft - clientLeft
 
-		return { x: Math.round(left), y: Math.round(top), x2: Math.round(right), y2: Math.round(bottom) }
+		// return { x: Math.round(left), y: Math.round(top), x2: Math.round(right), y2: Math.round(bottom) }
+		return { x: left, y: top, x2: right, y2: bottom }
 	}
 
 	private getTransformOrigin(elem: HTMLElement): CoordinatePair {
@@ -346,8 +365,8 @@ export class PinchZoom {
 		console.log("computed style", computedStyles.transform, computedStyles.transformOrigin)
 
 		let transformedInitialZoomableRect = {
-			x: Math.round((currentZoomableRect.x + this.pinchCenter.x * (this.current.z - 1)) / this.current.z),
-			y: Math.round((currentZoomableRect.y + this.pinchCenter.y * (this.current.z - 1)) / this.current.z),
+			x: (currentZoomableRect.x + this.pinchCenter.x * (this.current.z - 1)) / this.current.z, //FIXME round was removed
+			y: (currentZoomableRect.y + this.pinchCenter.y * (this.current.z - 1)) / this.current.z,
 		}
 		console.log("transformedInitialMailbody", JSON.stringify(transformedInitialZoomableRect))
 		let sessionTranslation = {
@@ -386,12 +405,11 @@ export class PinchZoom {
 		if (this.lastPinchCenter.x === 0 && this.lastPinchCenter.y === 0) {
 			this.lastPinchCenter = this.pinchCenter
 		}
-		let currentCoords = this.getCoords(this.zoomableRect)
+
 		let translationAndOrigin = this.calculateSessionsTranslationAndSetTransformOrigin()
 		this.pinchSessionTranslation = translationAndOrigin.sessionTranslation
+		this.getCoords(this.zoomableRect)
 
-		let currentRect = this.getCoords(this.zoomableRect)
-		this.lastEvent = "pinchstart"
 		return translationAndOrigin.newTransformOrigin
 	}
 
@@ -412,53 +430,52 @@ export class PinchZoom {
 		this.lastMultiple.pointer1 = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
 		this.lastMultiple.pointer2 = { x: ev.touches[1].clientX, y: ev.touches[1].clientY }
 
-		let d2 = this.newScaledCoordinates(this.pinchCenter, scaling)
+		// let d2 = this.newScaledCoordinates(this.pinchCenter, scaling)
 		// this.setCurrentSafePosition(d.x + this.pinchZoomOrigin.x /* + this.last.x*/, d.y + this.pinchZoomOrigin.y /* + this.last.y*/, d.z + this.last.z) //FIXME
 		// this.setCurrentSafePosition(d2, this.current.z + (scaling - 1)) //FIXME // scaling prob. wrong
 		this.setCurrentSafePosition(transformOrigin, this.getCurrentOriginalRect(), this.current.z + (scaling - 1))
-		this.lastEvent = "pinch"
 		this.update()
 	}
 
-	private newScaledCoordinates(zoomPosition: CoordinatePair, newScale: number) {
-		// console.log("zoomPosition", zoomPosition)
-		const currentNormalizedCoordinates = {
-			x: this.current.x,
-			y: this.current.y,
-			x2: this.current.x + this.originalMailBodySize.width,
-			y2: this.current.y + this.originalMailBodySize.height,
-		} // current coordinates without scaling
-		// zoomPosition = { x: zoomPosition.x - currentCoordinates.x, y: zoomPosition.y - currentCoordinates.y } // shift in case that display was scrolled
-		// console.log("corrected position", zoomPosition)
-		const newCoordinates = this.scaleAndShift(zoomPosition, newScale, currentNormalizedCoordinates)
-
-		return { x: currentNormalizedCoordinates.x + newCoordinates.xOffset, y: currentNormalizedCoordinates.y + newCoordinates.yOffset }
-	}
+	// private newScaledCoordinates(zoomPosition: CoordinatePair, newScale: number) {
+	// 	// console.log("zoomPosition", zoomPosition)
+	// 	const currentNormalizedCoordinates = {
+	// 		x: this.current.x,
+	// 		y: this.current.y,
+	// 		x2: this.current.x + this.originalMailBodySize.width,
+	// 		y2: this.current.y + this.originalMailBodySize.height,
+	// 	} // current coordinates without scaling
+	// 	// zoomPosition = { x: zoomPosition.x - currentCoordinates.x, y: zoomPosition.y - currentCoordinates.y } // shift in case that display was scrolled
+	// 	// console.log("corrected position", zoomPosition)
+	// 	const newCoordinates = this.scaleAndShift(zoomPosition, newScale, currentNormalizedCoordinates)
+	//
+	// 	return { x: currentNormalizedCoordinates.x + newCoordinates.xOffset, y: currentNormalizedCoordinates.y + newCoordinates.yOffset }
+	// }
 
 	// returns the offset to the current points
-	private scaleAndShift(zoomPosition: CoordinatePair, newScale: number, currentCoordinates: { x: number; y: number; x2: number; y2: number }) {
-		const middle: CoordinatePair = this.centerOfPoints(
-			{ x: currentCoordinates.x, y: currentCoordinates.y },
-			{ x: currentCoordinates.x2, y: currentCoordinates.y2 },
-		)
-		// console.log("middle of zoomableRect", middle)
-
-		// console.log("newScale", newScale)
-		// console.log("offset x", (newScale - 1) * (middle.x - zoomPosition.x))
-
-		return {
-			xOffset: Math.round((newScale - 1) * (middle.x - zoomPosition.x)),
-			yOffset: Math.round((newScale - 1) * (middle.y - zoomPosition.y)),
-		}
-	}
+	// private scaleAndShift(zoomPosition: CoordinatePair, newScale: number, currentCoordinates: { x: number; y: number; x2: number; y2: number }) {
+	// 	const middle: CoordinatePair = this.centerOfPoints(
+	// 		{ x: currentCoordinates.x, y: currentCoordinates.y },
+	// 		{ x: currentCoordinates.x2, y: currentCoordinates.y2 },
+	// 	)
+	// 	// console.log("middle of zoomableRect", middle)
+	//
+	// 	// console.log("newScale", newScale)
+	// 	// console.log("offset x", (newScale - 1) * (middle.x - zoomPosition.x))
+	//
+	// 	return {
+	// 		xOffset: Math.round((newScale - 1) * (middle.x - zoomPosition.x)),
+	// 		yOffset: Math.round((newScale - 1) * (middle.y - zoomPosition.y)),
+	// 	}
+	// }
 
 	// dragging
 
 	private dragHandling(ev: TouchEvent) {
 		//FIXME check for new touch
-		if (this.current.z > 1) {
-			ev.stopPropagation() // maybe not if is not movable FIXME
-			ev.preventDefault()
+		if (this.current.z > this.zoomBoundaries.min) {
+			// ev.stopPropagation() // maybe not if is not movable FIXME
+			// ev.preventDefault()
 
 			let delta = { x: 0, y: 0 }
 			if (!this.dragTouchIDs.has(ev.touches[0].identifier)) {
@@ -469,36 +486,24 @@ export class PinchZoom {
 				// still same dragging
 				delta = { x: ev.touches[0].clientX - this.previousInput.delta.x, y: ev.touches[0].clientY - this.previousInput.delta.y } // this.calculateDelta(false, { x: ev.touches[0].clientX, y: ev.touches[0].clientY })
 			}
-
-			if (this.lastEvent !== "pan") {
-				this.fixDeltaIssue = {
-					x: delta.x,
-					y: delta.y,
-				}
-			}
-
-			// this.setCurrentSafePosition({x: this.last.x + delta.x - this.fixDeltaIssue.x, y: this.last.y + delta.y - this.fixDeltaIssue.y}, this.current.z) //FIXME
-			this.current.x = this.last.x + delta.x - this.fixDeltaIssue.x
-			this.current.y = this.last.y + delta.y - this.fixDeltaIssue.y
-			this.lastEvent = "pan"
 			this.previousInput.delta = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
-			console.log("delta", JSON.stringify(delta))
-			let currentTransformOrigin = this.getTransformOrigin(this.zoomableRect)
 			let currentRect = this.getCoords(this.zoomableRect)
 			let currentOriginalRect = this.getCurrentOriginalRect()
-			console.log("current original rect", JSON.stringify(currentOriginalRect))
 			let newTransformOrigin = {
 				x: (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.current.z), //FIXME pinchSessionTranslation needs to be considered
 				y: (currentRect.y + delta.y - (currentOriginalRect.y + this.pinchSessionTranslation.y)) / (1 - this.current.z),
-				// y: Number(currentTransformOrigin[1]),
 			}
 
-			console.log("new transform origin", JSON.stringify(newTransformOrigin))
-			// this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${newTransformOrigin.y}px`
-			// this.zoomableRect.style.transformOrigin = `${Number(currentTransformOrigin[0]) - delta.x}px ${
-			// 	Number(currentTransformOrigin[1]) - delta.y
-			// }px`
-			this.setCurrentSafePosition(newTransformOrigin, this.getCurrentOriginalRect(), this.current.z)
+			let bordersReached = this.setCurrentSafePosition(newTransformOrigin, this.getCurrentOriginalRect(), this.current.z)
+			if (!ev.cancelable) {
+				console.log("event is cancelable", ev.cancelable, bordersReached.verticalTransformationAllowed)
+			}
+			if (ev.cancelable && bordersReached.verticalTransformationAllowed) {
+				// console.log("preventdefault")
+				// ev.stopPropagation()
+				ev.preventDefault()
+			}
+
 			this.update()
 		}
 	}
@@ -523,8 +528,19 @@ export class PinchZoom {
 	 * @private
 	 */
 	private setCurrentSafePosition(newTransformOrigin: CoordinatePair, currentOriginalPosition: CoordinatePair, scaling: number) {
-		// console.log(`newX: ${newPosition.x}, newy: ${newPosition.y}`)
-		let viewportBorders = this.getCoords(this.viewport)
+		let currentScrollOffset = this.getScrollOffset()
+		const borders = {
+			x: this.initialZoomableRectCoords.x - currentScrollOffset.x,
+			y: this.initialZoomableRectCoords.y - currentScrollOffset.y,
+			x2: this.initialZoomableRectCoords.x - currentScrollOffset.x + this.initialMailBodySize.width,
+			y2: this.initialZoomableRectCoords.y - currentScrollOffset.y + this.initialMailBodySize.height,
+		}
+		console.log("currentOriginalPosition", currentOriginalPosition)
+		console.log("this.originalMailBodySize.width", this.originalMailBodySize.width)
+		console.log("this.originalMailBodySize.height", this.originalMailBodySize.height)
+		console.log("newTransformOrigin", newTransformOrigin)
+		console.log("translation", this.pinchSessionTranslation)
+		console.log("scaling", scaling)
 		const targetedOutcome = this.simulateTransformation(
 			currentOriginalPosition,
 			this.originalMailBodySize.width,
@@ -534,42 +550,29 @@ export class PinchZoom {
 			scaling,
 		)
 		let currentTransformOrigin = this.getTransformOrigin(this.zoomableRect)
-		// const newMiddle: CoordinatePair = this.centerOfPoints({ x: targetedOutcome.x, y: targetedOutcome.y }, { x: targetedOutcome.x2, y: targetedOutcome.y2 })
 
-		scaling = Math.max(1, Math.min(3, scaling)) // don't allow zooming out or zooming in more than 3x
+		scaling = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, scaling)) // don't allow zooming out or zooming in more than 3x
 
-		// const scaledX1 = rootBorders.x + (scaling - 1) * (rootBorders.x - newMiddle.x)
-		// const scaledX2 = rootBorders.x2 + (scaling - 1) * (rootBorders.x2 - newMiddle.x)
-		//
-		// const scaledY1 = rootBorders.y + (scaling - 1) * (rootBorders.y - newMiddle.y)
-		// const scaledY2 = rootBorders.y2 + (scaling - 1) * (rootBorders.y2 - newMiddle.y)
-		// const currentWidth = rootBorders.x2 - rootBorders.x
-		// const currentHeight = rootBorders.y2 - rootBorders.y
-		// const newWidth = Math.round(this.originalMailBodySize.width * newZ)
-		// const newHeight = Math.round(this.originalMailBodySize.height * newZ)
-		// const modifierX = (currentWidth - newWidth) / 2
-		// const modifierY = (currentHeight - newHeight) / 2
+		// console.log("targeted", JSON.stringify(targetedOutcome))
+		// console.log("viewport", JSON.stringify(viewportBorders))
 
-		// console.log("scaledX1", scaledX1)
-		// console.log("parentBorder x", viewportBorders.x)
-		// console.log("scaledX2", scaledX2)
-		// console.log("parentBorder x2", viewportBorders.x2)
-		let xChanged = false
-		let yChanged = false
-		if (true || (targetedOutcome.x <= viewportBorders.x && targetedOutcome.x2 >= viewportBorders.x2)) {
-			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${currentTransformOrigin.y}px`
-			//FIXME remove
-			// console.log("current x", this.current.x)
-			// this.current.x = newPosition.x
-			xChanged = true
-		}
-		if (true || (targetedOutcome.y <= viewportBorders.y && targetedOutcome.y2 >= viewportBorders.y2)) {
-			this.zoomableRect.style.transformOrigin = `${currentTransformOrigin.x}px ${newTransformOrigin.y}px`
-			// this.current.y = newPosition.y
-			yChanged = true
-		}
-		if (xChanged || yChanged) {
+		let horizontalTransformationAllowed = targetedOutcome.x <= borders.x && targetedOutcome.x2 >= borders.x2
+		let verticalTransformationAllowed = targetedOutcome.y <= borders.y && targetedOutcome.y2 >= borders.y2
+
+		if (horizontalTransformationAllowed && verticalTransformationAllowed) {
+			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${newTransformOrigin.y}px`
 			this.current.z = scaling
+		} else if (horizontalTransformationAllowed) {
+			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${currentTransformOrigin.y}px`
+			this.current.z = scaling
+		} else if (verticalTransformationAllowed) {
+			this.zoomableRect.style.transformOrigin = `${currentTransformOrigin.x}px ${newTransformOrigin.y}px`
+			this.current.z = scaling
+		}
+
+		return {
+			verticalTransformationAllowed,
+			horizontalTransformationAllowed,
 		}
 	}
 

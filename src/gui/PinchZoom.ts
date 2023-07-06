@@ -15,6 +15,7 @@ export class PinchZoom {
 	private pinchSessionTranslation: CoordinatePair = { x: 0, y: 0 }
 	private readonly initialMailBodySize = { width: 0, height: 0 }
 	private originalMailBodySize = { width: 0, height: 0 }
+	private minimalZoomableRectSize = { width: 0, height: 0 }
 	private zoomBoundaries = { min: 1, max: 3 }
 
 	private delta = {
@@ -45,22 +46,29 @@ export class PinchZoom {
 	private fixDeltaIssue: { x: number; y: number } = { x: 0, y: 0 }
 
 	/**
-	 *
+	 * The size of the zoomableRect must not change. If that is the case a new PinchZoom object should be created.
+	 * @precondition zoomableRect.x <= viewport.x && zoomableRect.y <= viewport.y && zoomableRect.x2 >= viewport.x2 && zoomableRect.y2 >= viewport.y2
 	 * @param zoomableRect
 	 * @param viewport
 	 */
-	constructor(private readonly zoomableRect: HTMLElement, private readonly viewport: HTMLElement) {
-		//	 different initial zoom so far only works for transform origin 0,0
+	constructor(private readonly zoomableRect: HTMLElement, private readonly viewport: HTMLElement, private readonly initiallyZoomToViewport: boolean) {
 		this.initialZoomableRectCoords = this.getCoords(this.zoomableRect) // already needs to be rendered
 		this.current.x = this.initialZoomableRectCoords.x
 		this.current.y = this.initialZoomableRectCoords.y
 		console.log("initialcoords", JSON.stringify(this.initialZoomableRectCoords))
+		setTimeout(() => {
+			console.log("initialcoords2", JSON.stringify(this.getCoords(this.zoomableRect)))
+		}, 1000)
 		console.log("viewportCoords", JSON.stringify(this.getCoords(this.viewport)))
 		this.initialMailBodySize = {
 			width: this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x,
 			height: this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y,
 		}
 		this.originalMailBodySize = {
+			width: 660, //this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x, //FIXME zoomableRect is limited in x direction even if larger
+			height: this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y,
+		}
+		this.minimalZoomableRectSize = {
 			width: this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x,
 			height: this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y,
 		}
@@ -69,6 +77,7 @@ export class PinchZoom {
 
 		console.log("new Pinch to zoom----------------")
 		this.zoomableRect.ontouchend = (e) => {
+			//FIXME remove listeners when removed from dom?
 			this.removeTouches(e)
 		}
 		this.zoomableRect.ontouchmove = (e) => {
@@ -90,19 +99,63 @@ export class PinchZoom {
 		// 	e.preventDefault()
 		// }
 
+		console.log("current scroll height zoomablerect", this.zoomableRect.offsetHeight)
 		setTimeout(() => {
 			// this.debug()
+			// if (this.initiallyZoomToViewport) {
+			// 	this.rescale()
+			// }
 		}, 1000)
+
+		if (this.initiallyZoomToViewport) {
+			this.rescale()
+		}
+	}
+
+	private rescale() {
+		const containerWidth = this.viewport.offsetWidth //FIXME should we also use offsetWidth for pinchZoom
+
+		console.log("scrollWidth", this.zoomableRect.scrollWidth)
+		if (containerWidth > this.zoomableRect.scrollWidth) {
+			this.zoomableRect.style.transform = ""
+			this.zoomableRect.style.marginBottom = ""
+		} else {
+			const width = this.zoomableRect.scrollWidth
+			const scale = containerWidth / width
+
+			//FIXME viewport
+			const heightDiff = this.viewport.scrollHeight - this.viewport.scrollHeight * scale
+			// this.viewport.style.height = `${this.originalMailBodySize.height * scale}px`
+			// child.style.transform = `scale(${scale})`
+			// this.viewport.style.marginBottom = `${-heightDiff}px`
+			const currentViewport = this.getCoords(this.viewport)
+			console.log("current height", currentViewport.y2 - currentViewport.y, this.viewport.scrollHeight)
+			console.log("new height", (currentViewport.y2 - currentViewport.y) * scale)
+			console.log("blocksize height", this.viewport.style.blockSize)
+			console.log("client height", this.viewport.clientHeight)
+			console.log("offset height", this.viewport.offsetHeight)
+			console.log("rect", this.zoomableRect.style.height)
+
+			this.viewport.style.height = `${this.viewport.scrollHeight * scale}px`
+
+			this.minimalZoomableRectSize.height = this.minimalZoomableRectSize.height * scale
+			this.zoomBoundaries = { min: scale, max: this.zoomBoundaries.max }
+			this.setCurrentSafePosition({ x: 0, y: 0 }, this.getCurrentOriginalRect(), scale)
+			this.update()
+			// this.viewport.style.marginBottom = `${-heightDiff}px`
+		}
+
+		// ios 15 bug: transformOrigin magically disappears so we ensure that it's always set FIXME
 	}
 
 	setInitialScale(scale: number) {
-		this.current.z = scale
-		this.zoomBoundaries = { min: scale, max: scale + 2 }
-		console.log("initialZoom", scale)
-		this.originalMailBodySize = {
-			width: (this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x) / scale,
-			height: (this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y) / scale,
-		}
+		// this.current.z = scale
+		// this.zoomBoundaries = { min: scale, max: scale + 2 }
+		// console.log("initialZoom", scale)
+		// this.originalMailBodySize = {
+		// 	width: (this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x) / scale,
+		// 	height: (this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y) / scale,
+		// }
 	}
 
 	private touchIdCounter = 0
@@ -529,18 +582,27 @@ export class PinchZoom {
 	 */
 	private setCurrentSafePosition(newTransformOrigin: CoordinatePair, currentOriginalPosition: CoordinatePair, scaling: number) {
 		let currentScrollOffset = this.getScrollOffset()
+		let currentViewport = this.getCoords(this.viewport)
 		const borders = {
 			x: this.initialZoomableRectCoords.x - currentScrollOffset.x,
 			y: this.initialZoomableRectCoords.y - currentScrollOffset.y,
-			x2: this.initialZoomableRectCoords.x - currentScrollOffset.x + this.initialMailBodySize.width,
-			y2: this.initialZoomableRectCoords.y - currentScrollOffset.y + this.initialMailBodySize.height,
+			x2: this.initialZoomableRectCoords.x - currentScrollOffset.x + this.minimalZoomableRectSize.width,
+			y2: this.initialZoomableRectCoords.y - currentScrollOffset.y + this.minimalZoomableRectSize.height,
 		}
+		// const borders = {
+		// 	x: currentViewport.x,
+		// 	y: currentViewport.y,
+		// 	x2: currentViewport.x2,
+		// 	y2: currentViewport.y2,
+		// }
 		console.log("currentOriginalPosition", currentOriginalPosition)
 		console.log("this.originalMailBodySize.width", this.originalMailBodySize.width)
 		console.log("this.originalMailBodySize.height", this.originalMailBodySize.height)
 		console.log("newTransformOrigin", newTransformOrigin)
 		console.log("translation", this.pinchSessionTranslation)
 		console.log("scaling", scaling)
+		scaling = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, scaling)) // don't allow zooming out or zooming in more than 3x
+		console.log("newScale", scaling)
 		const targetedOutcome = this.simulateTransformation(
 			currentOriginalPosition,
 			this.originalMailBodySize.width,
@@ -551,8 +613,6 @@ export class PinchZoom {
 		)
 		let currentTransformOrigin = this.getTransformOrigin(this.zoomableRect)
 
-		scaling = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, scaling)) // don't allow zooming out or zooming in more than 3x
-
 		// console.log("targeted", JSON.stringify(targetedOutcome))
 		// console.log("viewport", JSON.stringify(viewportBorders))
 
@@ -560,12 +620,16 @@ export class PinchZoom {
 		let verticalTransformationAllowed = targetedOutcome.y <= borders.y && targetedOutcome.y2 >= borders.y2
 
 		if (horizontalTransformationAllowed && verticalTransformationAllowed) {
+			//FIXME we should differentiate between each 4 sides - otherwise zooming out does not work, if only 1 border is touched
+			console.log("case1")
 			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${newTransformOrigin.y}px`
 			this.current.z = scaling
 		} else if (horizontalTransformationAllowed) {
+			console.log("case2")
 			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${currentTransformOrigin.y}px`
 			this.current.z = scaling
 		} else if (verticalTransformationAllowed) {
+			console.log("case3")
 			this.zoomableRect.style.transformOrigin = `${currentTransformOrigin.x}px ${newTransformOrigin.y}px`
 			this.current.z = scaling
 		}

@@ -80,7 +80,6 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	private viewModel!: MailViewerViewModel
 	private topScrollValue = 0
 	private pinchZoomable: PinchZoom | null = null
-	private pinchZoomableV2: PinchZoom | null = null
 	private topScrollValues: Array<stream<number>> = []
 
 	private readonly shortcuts: Array<Shortcut>
@@ -91,6 +90,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	private domBody: HTMLElement | null = null
 
 	private shadowDomRoot: ShadowRoot | null = null
+	private shadowDomMailContent: HTMLElement | null = null
 	private currentlyRenderedMailBody: DocumentFragment | null = null
 	private lastContentBlockingStatus: ContentBlockingStatus | null = null
 
@@ -315,10 +315,12 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				this.updateLineHeight(dom)
 				console.log("oncreate")
 				this.topScrollValues = []
-				this.rescale(false) //FIXME
+				// this.rescale(false) //FIXME
+				// console.log("rescale oncreate")
 				this.renderShadowMailBody(sanitizedMailBody, attrs, vnode.dom as HTMLElement)
 			},
 			onupdate: (vnode) => {
+				console.log("onupdate")
 				const dom = vnode.dom as HTMLElement
 				this.setDomBody(dom)
 
@@ -328,9 +330,8 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				if (!this.bodyLineHeight) {
 					this.updateLineHeight(vnode.dom as HTMLElement)
 				}
-				this.rescale(false) //FIXME
-				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs, vnode.dom as HTMLElement)
-				this.rescale(false)
+				// this.rescale(false) //FIXME
+				// console.log("rescale onupdate 2")
 
 				if (this.currentlyRenderedMailBody !== sanitizedMailBody) this.renderShadowMailBody(sanitizedMailBody, attrs, vnode.dom as HTMLElement)
 				// If the quote behavior changes (e.g. after loading is finished) we should update the quotes.
@@ -339,6 +340,11 @@ export class MailViewer implements Component<MailViewerAttrs> {
 					this.updateCollapsedQuotes(assertNotNull(this.shadowDomRoot), attrs.defaultQuoteBehavior === "expand")
 				}
 				this.currentQuoteBehavior = attrs.defaultQuoteBehavior
+
+				if (client.isMobileDevice() && !this.pinchZoomable && this.shadowDomMailContent) {
+					console.log("create pinchzoom")
+					this.pinchZoomable = new PinchZoom(this.shadowDomMailContent, vnode.dom as HTMLElement, true)
+				}
 			},
 			onbeforeremove: () => {
 				// Clear dom body in case there will be a new one, we want promise to be up-to-date
@@ -378,6 +384,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 	 * @private
 	 */
 	private renderShadowMailBody(sanitizedMailBody: DocumentFragment, attrs: MailViewerAttrs, parent: HTMLElement) {
+		console.log("rendershadowmailbody")
 		this.currentQuoteBehavior = attrs.defaultQuoteBehavior
 		assertNonNull(this.shadowDomRoot, "shadow dom root is null!")
 		while (this.shadowDomRoot.firstChild) {
@@ -388,6 +395,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		wrapNode.style.lineHeight = String(this.bodyLineHeight ? this.bodyLineHeight.toString() : size.line_height)
 		wrapNode.style.transformOrigin = "top left"
 		wrapNode.appendChild(sanitizedMailBody.cloneNode(true))
+		this.shadowDomMailContent = wrapNode
 
 		// query all top level block quotes
 		const quoteElements = Array.from(wrapNode.querySelectorAll("blockquote:not(blockquote blockquote)")) as HTMLElement[]
@@ -402,8 +410,18 @@ export class MailViewer implements Component<MailViewerAttrs> {
 		this.shadowDomRoot.appendChild(wrapNode)
 
 		if (client.isMobileDevice()) {
+			this.pinchZoomable = null
 			// this.pinchZoomable = new PinchZoom(wrapNode, parent, this.topScrollValues, [])
-			this.pinchZoomableV2 = new PinchZoom(wrapNode, parent)
+			// console.log("create pinchzoom")
+			// if (!this.pinchZoomable) { FIXME
+			// 	this.pinchZoomable = new PinchZoom(wrapNode, parent, true)
+			// }
+			new ResizeObserver((entries) => {
+				// the PinchZoom class does not allow a changing zoomable rect size (mail body content). When we show previously unloaded images the size
+				// of the mail body changes. So we have to create a new PinchZoom object
+				console.log("creating new pinchzoom due to resize", entries[0].target, entries[0].target.getBoundingClientRect().bottom)
+				this.pinchZoomable = new PinchZoom(wrapNode, parent as HTMLElement, true)
+			}).observe(wrapNode)
 		} else {
 			wrapNode.addEventListener("click", (event) => {
 				const href = (event.target as Element | null)?.closest("a")?.getAttribute("href") ?? null
@@ -508,29 +526,30 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 	private rescale(animate: boolean) {
 		const child = this.domBody
-		if (!client.isMobileDevice() || !child) {
-			//|| this.currentScale != -1) {
-			return
-		}
-		const containerWidth = child.offsetWidth
-
-		if (!this.isScaling || containerWidth > child.scrollWidth) {
-			child.style.transform = ""
-			child.style.marginBottom = ""
-		} else {
-			const width = child.scrollWidth
-			const scale = containerWidth / width
-			if (this.pinchZoomableV2) {
-				this.pinchZoomableV2.setInitialScale(scale)
-			}
-			const heightDiff = child.scrollHeight - child.scrollHeight * scale
-			child.style.transform = `scale(${scale})`
-			child.style.marginBottom = `${-heightDiff}px`
-		}
-
-		child.style.transition = animate ? "transform 200ms ease-in-out" : ""
-		// ios 15 bug: transformOrigin magically disappears so we ensure that it's always set
-		child.style.transformOrigin = "top left"
+		console.log("rescale", child!.offsetWidth / child!.scrollWidth)
+		// if (!client.isMobileDevice() || !child) {
+		// 	//|| this.currentScale != -1) {
+		// 	return
+		// }
+		// const containerWidth = child.offsetWidth
+		//
+		// if (!this.isScaling || containerWidth > child.scrollWidth) {
+		// 	child.style.transform = ""
+		// 	child.style.marginBottom = ""
+		// } else {
+		// 	const width = child.scrollWidth
+		// 	const scale = containerWidth / width
+		// 	if (this.pinchZoomable) {
+		// 		this.pinchZoomable.setInitialScale(scale)
+		// 	}
+		// 	const heightDiff = child.scrollHeight - child.scrollHeight * scale
+		// 	child.style.transform = `scale(${scale})`
+		// 	child.style.marginBottom = `${-heightDiff}px`
+		// }
+		//
+		// child.style.transition = animate ? "transform 200ms ease-in-out" : ""
+		// // ios 15 bug: transformOrigin magically disappears so we ensure that it's always set
+		// child.style.transformOrigin = "top left"
 	}
 
 	private setupShortcuts(attrs: MailViewerAttrs): Array<Shortcut> {

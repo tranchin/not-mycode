@@ -45,6 +45,14 @@ export class PinchZoom {
 	private dragTouchIDs: Set<number> = new Set<number>()
 	private fixDeltaIssue: { x: number; y: number } = { x: 0, y: 0 }
 
+	// double tap
+	private DOUBLE_TAP_TIME_MS = 350
+	private lastTap: {
+		x: number
+		y: number
+		time: number
+	} = { x: 0, y: 0, time: 0 }
+
 	/**
 	 * The size of the zoomableRect must not change. If that is the case a new PinchZoom object should be created.
 	 * @precondition zoomableRect.x <= viewport.x && zoomableRect.y <= viewport.y && zoomableRect.x2 >= viewport.x2 && zoomableRect.y2 >= viewport.y2
@@ -64,10 +72,13 @@ export class PinchZoom {
 			width: this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x,
 			height: this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y,
 		}
+
+		// the content of the zoomable rect can be bigger than the rect itself due to overflow
 		this.originalMailBodySize = {
-			width: 660, //this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x, //FIXME zoomableRect is limited in x direction even if larger
-			height: this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y,
+			width: Math.max(this.zoomableRect.scrollWidth, this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x),
+			height: Math.max(this.zoomableRect.scrollHeight, this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y),
 		}
+		console.log("originalSize", JSON.stringify(this.originalMailBodySize))
 		this.minimalZoomableRectSize = {
 			width: this.initialZoomableRectCoords.x2 - this.initialZoomableRectCoords.x,
 			height: this.initialZoomableRectCoords.y2 - this.initialZoomableRectCoords.y,
@@ -79,6 +90,30 @@ export class PinchZoom {
 		this.zoomableRect.ontouchend = (e) => {
 			//FIXME remove listeners when removed from dom?
 			this.removeTouches(e)
+			if (e.touches.length === 0 && e.changedTouches.length === 1) {
+				// FIXME still contains the touch? // e.changedTouches
+				this.handleDoubleTap(
+					e,
+					(e) => {}, //FIXME how to do the click
+					() => {
+						let scale = 1
+						if (this.current.z > this.zoomBoundaries.min) {
+							scale = this.zoomBoundaries.min
+						} else {
+							scale = (this.zoomBoundaries.min + this.zoomBoundaries.max) / 2 // FIXME what would be reasonable?
+						}
+						const newTransformOrigin = this.calculateSessionsTranslationAndSetTransformOrigin({
+							x: e.changedTouches[0].clientX,
+							y: e.changedTouches[0].clientY,
+						}).newTransformOrigin
+						this.setCurrentSafePosition(newTransformOrigin, this.getCurrentOriginalRect(), scale)
+						this.update()
+					},
+				)
+			}
+		}
+		this.zoomableRect.ontouchstart = (e) => {
+			//TODO double tap
 		}
 		this.zoomableRect.ontouchmove = (e) => {
 			this.touchmove_handler(e)
@@ -410,7 +445,10 @@ export class PinchZoom {
 
 	// zooming
 
-	private calculateSessionsTranslationAndSetTransformOrigin(): { sessionTranslation: CoordinatePair; newTransformOrigin: CoordinatePair } {
+	private calculateSessionsTranslationAndSetTransformOrigin(absoluteZoomPosition: CoordinatePair): {
+		sessionTranslation: CoordinatePair
+		newTransformOrigin: CoordinatePair
+	} {
 		let currentZoomableRect = this.getCoords(this.zoomableRect)
 		let scrollOffset = this.getScrollOffset()
 		console.log("originalRect", JSON.stringify(scrollOffset))
@@ -418,8 +456,8 @@ export class PinchZoom {
 		console.log("computed style", computedStyles.transform, computedStyles.transformOrigin)
 
 		let transformedInitialZoomableRect = {
-			x: (currentZoomableRect.x + this.pinchCenter.x * (this.current.z - 1)) / this.current.z, //FIXME round was removed
-			y: (currentZoomableRect.y + this.pinchCenter.y * (this.current.z - 1)) / this.current.z,
+			x: (currentZoomableRect.x + absoluteZoomPosition.x * (this.current.z - 1)) / this.current.z, //FIXME round was removed
+			y: (currentZoomableRect.y + absoluteZoomPosition.y * (this.current.z - 1)) / this.current.z,
 		}
 		console.log("transformedInitialMailbody", JSON.stringify(transformedInitialZoomableRect))
 		let sessionTranslation = {
@@ -430,8 +468,8 @@ export class PinchZoom {
 		// transform origin
 		let transformOrigin = {
 			// is relative to the new transformed zoomableRect
-			x: this.pinchCenter.x - transformedInitialZoomableRect.x,
-			y: this.pinchCenter.y - transformedInitialZoomableRect.y,
+			x: absoluteZoomPosition.x - transformedInitialZoomableRect.x,
+			y: absoluteZoomPosition.y - transformedInitialZoomableRect.y,
 		}
 		console.log("pinchCenter", JSON.stringify(this.pinchCenter))
 		console.log("transformOrigin", JSON.stringify(transformOrigin))
@@ -459,7 +497,7 @@ export class PinchZoom {
 			this.lastPinchCenter = this.pinchCenter
 		}
 
-		let translationAndOrigin = this.calculateSessionsTranslationAndSetTransformOrigin()
+		let translationAndOrigin = this.calculateSessionsTranslationAndSetTransformOrigin(this.pinchCenter)
 		this.pinchSessionTranslation = translationAndOrigin.sessionTranslation
 		this.getCoords(this.zoomableRect)
 
@@ -561,6 +599,42 @@ export class PinchZoom {
 		}
 	}
 
+	// double tap
+
+	private handleDoubleTap(e: TouchEvent, singleClickAction: (e: TouchEvent) => void, doubleClickAction: (e: TouchEvent) => void) {
+		const lastClick = this.lastTap.time
+		const now = Date.now()
+		const touch = e.changedTouches[0]
+
+		// If there are no touches or it's not cancellable event (e.g. scroll) or more than certain time has passed or finger moved too
+		// much then do nothing
+		if (
+			!touch ||
+			!e.cancelable ||
+			Date.now() - this.lastTap.time > this.DOUBLE_TAP_TIME_MS ||
+			touch.clientX - this.lastTap.x > 40 ||
+			touch.clientY - this.lastTap.y > 40
+		) {
+			this.lastTap = { x: touch.clientX, y: touch.clientY, time: now }
+			return
+		}
+
+		e.preventDefault()
+
+		if (now - lastClick < this.DOUBLE_TAP_TIME_MS) {
+			this.lastTap.time = 0
+			doubleClickAction(e)
+		} else {
+			setTimeout(() => {
+				if (this.lastTap.time === now) {
+					singleClickAction(e)
+				}
+			}, this.DOUBLE_TAP_TIME_MS)
+		}
+
+		this.lastTap = { x: touch.clientX, y: touch.clientY, time: now }
+	}
+
 	// update
 
 	private update() {
@@ -583,18 +657,20 @@ export class PinchZoom {
 	private setCurrentSafePosition(newTransformOrigin: CoordinatePair, currentOriginalPosition: CoordinatePair, scaling: number) {
 		let currentScrollOffset = this.getScrollOffset()
 		let currentViewport = this.getCoords(this.viewport)
-		const borders = {
+		let borders = {
 			x: this.initialZoomableRectCoords.x - currentScrollOffset.x,
 			y: this.initialZoomableRectCoords.y - currentScrollOffset.y,
 			x2: this.initialZoomableRectCoords.x - currentScrollOffset.x + this.minimalZoomableRectSize.width,
 			y2: this.initialZoomableRectCoords.y - currentScrollOffset.y + this.minimalZoomableRectSize.height,
 		}
-		// const borders = {
-		// 	x: currentViewport.x,
-		// 	y: currentViewport.y,
-		// 	x2: currentViewport.x2,
-		// 	y2: currentViewport.y2,
-		// }
+		borders = {
+			x: currentViewport.x + 1, //FIXME tolerance
+			y: currentViewport.y + 1,
+			x2: currentViewport.x2 - 1,
+			y2: currentViewport.y2 - 1,
+		}
+
+		// console.log("borders", JSON.stringify(borders), JSON.stringify(borderss))
 		console.log("currentOriginalPosition", currentOriginalPosition)
 		console.log("this.originalMailBodySize.width", this.originalMailBodySize.width)
 		console.log("this.originalMailBodySize.height", this.originalMailBodySize.height)
@@ -611,6 +687,7 @@ export class PinchZoom {
 			this.pinchSessionTranslation,
 			scaling,
 		)
+		console.log("targeted outcome border", JSON.stringify(targetedOutcome))
 		let currentTransformOrigin = this.getTransformOrigin(this.zoomableRect)
 
 		// console.log("targeted", JSON.stringify(targetedOutcome))

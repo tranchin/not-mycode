@@ -52,6 +52,7 @@ export class PinchZoom {
 		y: number
 		time: number
 	} = { x: 0, y: 0, time: 0 }
+	private lastTouchEndTime = 0
 
 	/**
 	 * The size of the zoomableRect must not change. If that is the case a new PinchZoom object should be created.
@@ -59,7 +60,12 @@ export class PinchZoom {
 	 * @param zoomableRect
 	 * @param viewport
 	 */
-	constructor(private readonly zoomableRect: HTMLElement, private readonly viewport: HTMLElement, private readonly initiallyZoomToViewport: boolean) {
+	constructor(
+		private readonly zoomableRect: HTMLElement,
+		private readonly viewport: HTMLElement,
+		private readonly initiallyZoomToViewport: boolean,
+		private readonly singleClickAction: (e: Event, target: EventTarget | null) => void,
+	) {
 		this.initialZoomableRectCoords = this.getCoords(this.zoomableRect) // already needs to be rendered
 		this.current.x = this.initialZoomableRectCoords.x
 		this.current.y = this.initialZoomableRectCoords.y
@@ -87,14 +93,17 @@ export class PinchZoom {
 		this.initialViewportCoords = this.getCoords(this.viewport)
 
 		console.log("new Pinch to zoom----------------")
-		this.zoomableRect.ontouchend = (e) => {
+		this.zoomableRect.addEventListener("touchend", (event) => {
+			const eventTarget = event.target // it is necessary to save the target because otherwise it changes and is not accurate anymore after the bubbling phase
+			console.log("touchend pinchzoom", eventTarget, event.eventPhase, event.currentTarget)
 			//FIXME remove listeners when removed from dom?
-			this.removeTouches(e)
-			if (e.touches.length === 0 && e.changedTouches.length === 1) {
+			this.removeTouches(event)
+			if (event.touches.length === 0 && event.changedTouches.length === 1) {
 				// FIXME still contains the touch? // e.changedTouches
 				this.handleDoubleTap(
-					e,
-					(e) => {}, //FIXME how to do the click
+					event,
+					eventTarget,
+					(e, target) => singleClickAction(e, target), //FIXME how to do the click
 					() => {
 						let scale = 1
 						if (this.current.z > this.zoomBoundaries.min) {
@@ -102,18 +111,26 @@ export class PinchZoom {
 						} else {
 							scale = (this.zoomBoundaries.min + this.zoomBoundaries.max) / 2 // FIXME what would be reasonable?
 						}
-						const newTransformOrigin = this.calculateSessionsTranslationAndSetTransformOrigin({
-							x: e.changedTouches[0].clientX,
-							y: e.changedTouches[0].clientY,
-						}).newTransformOrigin
-						this.setCurrentSafePosition(newTransformOrigin, this.getCurrentOriginalRect(), scale)
+						const translationAndOrigin = this.calculateSessionsTranslationAndSetTransformOrigin({
+							x: event.changedTouches[0].clientX,
+							y: event.changedTouches[0].clientY,
+						})
+						// this.pinchSessionTranslation = translationAndOrigin.sessionTranslation //should no be changed here, only when really something happens
+						this.setCurrentSafePosition(
+							translationAndOrigin.newTransformOrigin,
+							translationAndOrigin.sessionTranslation,
+							this.getCurrentOriginalRect(),
+							scale,
+						)
 						this.update()
 					},
 				)
 			}
-		}
+		})
 		this.zoomableRect.ontouchstart = (e) => {
 			//TODO double tap
+			const touch = e.touches[0]
+			this.lastTap = { x: touch.clientX, y: touch.clientY, time: Date.now() }
 		}
 		this.zoomableRect.ontouchmove = (e) => {
 			this.touchmove_handler(e)
@@ -175,7 +192,7 @@ export class PinchZoom {
 
 			this.minimalZoomableRectSize.height = this.minimalZoomableRectSize.height * scale
 			this.zoomBoundaries = { min: scale, max: this.zoomBoundaries.max }
-			this.setCurrentSafePosition({ x: 0, y: 0 }, this.getCurrentOriginalRect(), scale)
+			this.setCurrentSafePosition({ x: 0, y: 0 }, { x: 0, y: 0 }, this.getCurrentOriginalRect(), scale)
 			this.update()
 			// this.viewport.style.marginBottom = `${-heightDiff}px`
 		}
@@ -501,14 +518,17 @@ export class PinchZoom {
 		this.pinchSessionTranslation = translationAndOrigin.sessionTranslation
 		this.getCoords(this.zoomableRect)
 
-		return translationAndOrigin.newTransformOrigin
+		return translationAndOrigin
 	}
 
 	private pinchHandling(ev: TouchEvent) {
 		// new pinch gesture?
 		let transformOrigin = this.getTransformOrigin(this.zoomableRect)
+		let pinchSessionTranslation = this.pinchSessionTranslation
 		if (!(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))) {
-			transformOrigin = this.startPinchSession(ev)
+			const startedPinchSession = this.startPinchSession(ev)
+			transformOrigin = startedPinchSession.newTransformOrigin
+			pinchSessionTranslation = startedPinchSession.sessionTranslation
 		}
 		//update current touches
 		this.pinchTouchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
@@ -524,7 +544,7 @@ export class PinchZoom {
 		// let d2 = this.newScaledCoordinates(this.pinchCenter, scaling)
 		// this.setCurrentSafePosition(d.x + this.pinchZoomOrigin.x /* + this.last.x*/, d.y + this.pinchZoomOrigin.y /* + this.last.y*/, d.z + this.last.z) //FIXME
 		// this.setCurrentSafePosition(d2, this.current.z + (scaling - 1)) //FIXME // scaling prob. wrong
-		this.setCurrentSafePosition(transformOrigin, this.getCurrentOriginalRect(), this.current.z + (scaling - 1))
+		this.setCurrentSafePosition(transformOrigin, pinchSessionTranslation, this.getCurrentOriginalRect(), this.current.z + (scaling - 1))
 		this.update()
 	}
 
@@ -585,7 +605,7 @@ export class PinchZoom {
 				y: (currentRect.y + delta.y - (currentOriginalRect.y + this.pinchSessionTranslation.y)) / (1 - this.current.z),
 			}
 
-			let bordersReached = this.setCurrentSafePosition(newTransformOrigin, this.getCurrentOriginalRect(), this.current.z)
+			let bordersReached = this.setCurrentSafePosition(newTransformOrigin, this.pinchSessionTranslation, this.getCurrentOriginalRect(), this.current.z)
 			if (!ev.cancelable) {
 				console.log("event is cancelable", ev.cancelable, bordersReached.verticalTransformationAllowed)
 			}
@@ -601,8 +621,13 @@ export class PinchZoom {
 
 	// double tap
 
-	private handleDoubleTap(e: TouchEvent, singleClickAction: (e: TouchEvent) => void, doubleClickAction: (e: TouchEvent) => void) {
-		const lastClick = this.lastTap.time
+	private handleDoubleTap(
+		e: TouchEvent,
+		target: EventTarget | null,
+		singleClickAction: (e: TouchEvent, target: EventTarget | null) => void,
+		doubleClickAction: (e: TouchEvent) => void,
+	) {
+		const lastClick = this.lastTouchEndTime
 		const now = Date.now()
 		const touch = e.changedTouches[0]
 
@@ -612,27 +637,31 @@ export class PinchZoom {
 			!touch ||
 			!e.cancelable ||
 			Date.now() - this.lastTap.time > this.DOUBLE_TAP_TIME_MS ||
-			touch.clientX - this.lastTap.x > 40 ||
-			touch.clientY - this.lastTap.y > 40
+			Math.abs(touch.clientX - this.lastTap.x) > 40 ||
+			Math.abs(touch.clientY - this.lastTap.y) > 40
 		) {
-			this.lastTap = { x: touch.clientX, y: touch.clientY, time: now }
 			return
 		}
 
 		e.preventDefault()
 
 		if (now - lastClick < this.DOUBLE_TAP_TIME_MS) {
-			this.lastTap.time = 0
+			this.lastTouchEndTime = 0
 			doubleClickAction(e)
 		} else {
 			setTimeout(() => {
-				if (this.lastTap.time === now) {
-					singleClickAction(e)
+				if (
+					this.lastTouchEndTime === now && // same touch
+					Math.abs(touch.clientX - this.lastTap.x) < 40 &&
+					Math.abs(touch.clientY - this.lastTap.y) < 40
+				) {
+					// touch.client = where touch leaves the display; lastTap = where it started
+					singleClickAction(e, target)
 				}
 			}, this.DOUBLE_TAP_TIME_MS)
 		}
 
-		this.lastTap = { x: touch.clientX, y: touch.clientY, time: now }
+		this.lastTouchEndTime = now
 	}
 
 	// update
@@ -654,7 +683,12 @@ export class PinchZoom {
 	 * @param scaling
 	 * @private
 	 */
-	private setCurrentSafePosition(newTransformOrigin: CoordinatePair, currentOriginalPosition: CoordinatePair, scaling: number) {
+	private setCurrentSafePosition(
+		newTransformOrigin: CoordinatePair,
+		pinchSessionTranslation: CoordinatePair,
+		currentOriginalPosition: CoordinatePair,
+		scaling: number,
+	) {
 		let currentScrollOffset = this.getScrollOffset()
 		let currentViewport = this.getCoords(this.viewport)
 		let borders = {
@@ -675,7 +709,7 @@ export class PinchZoom {
 		console.log("this.originalMailBodySize.width", this.originalMailBodySize.width)
 		console.log("this.originalMailBodySize.height", this.originalMailBodySize.height)
 		console.log("newTransformOrigin", newTransformOrigin)
-		console.log("translation", this.pinchSessionTranslation)
+		console.log("translation", pinchSessionTranslation)
 		console.log("scaling", scaling)
 		scaling = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, scaling)) // don't allow zooming out or zooming in more than 3x
 		console.log("newScale", scaling)
@@ -684,7 +718,7 @@ export class PinchZoom {
 			this.originalMailBodySize.width,
 			this.originalMailBodySize.height,
 			newTransformOrigin,
-			this.pinchSessionTranslation,
+			pinchSessionTranslation,
 			scaling,
 		)
 		console.log("targeted outcome border", JSON.stringify(targetedOutcome))
@@ -700,14 +734,17 @@ export class PinchZoom {
 			//FIXME we should differentiate between each 4 sides - otherwise zooming out does not work, if only 1 border is touched
 			console.log("case1")
 			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${newTransformOrigin.y}px`
+			this.pinchSessionTranslation = pinchSessionTranslation
 			this.current.z = scaling
 		} else if (horizontalTransformationAllowed) {
 			console.log("case2")
 			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${currentTransformOrigin.y}px`
+			this.pinchSessionTranslation = pinchSessionTranslation
 			this.current.z = scaling
 		} else if (verticalTransformationAllowed) {
 			console.log("case3")
 			this.zoomableRect.style.transformOrigin = `${currentTransformOrigin.x}px ${newTransformOrigin.y}px`
+			this.pinchSessionTranslation = pinchSessionTranslation
 			this.current.z = scaling
 		}
 

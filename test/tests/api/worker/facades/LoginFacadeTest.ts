@@ -11,7 +11,7 @@ import {
 	User,
 	UserTypeRef,
 } from "../../../../../src/api/entities/sys/TypeRefs"
-import { createAuthVerifier, encryptKey, generateKeyFromPassphrase, KeyLength, keyToBase64, sha256Hash } from "@tutao/tutanota-crypto"
+import { createAuthVerifier, encryptKey, generateKeyFromPassphraseBcrypt, KeyLength, keyToBase64, sha256Hash } from "@tutao/tutanota-crypto"
 import { LoginFacade, LoginListener, ResumeSessionErrorReason } from "../../../../../src/api/worker/facades/LoginFacade"
 import { IServiceExecutor } from "../../../../../src/api/common/ServiceRequest"
 import { EntityClient } from "../../../../../src/api/common/EntityClient"
@@ -40,7 +40,7 @@ const { anything } = matchers
 const SALT = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
 
 function makeUser({ id, passphrase, salt }) {
-	const userPassphraseKey = generateKeyFromPassphrase(passphrase, salt, KeyLength.b128)
+	const userPassphraseKey = generateKeyFromPassphraseBcrypt(passphrase, salt, KeyLength.b128)
 
 	const groupKey = encryptKey(userPassphraseKey, [3229306880, 2716953871, 4072167920, 3901332676])
 

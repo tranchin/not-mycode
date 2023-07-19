@@ -12,6 +12,7 @@ export const dependencyMap = {
 	linkifyjs: path.normalize("./libs/linkify.js"),
 	"linkifyjs/html": path.normalize("./libs/linkify-html.js"),
 	cborg: path.normalize("./libs/cborg.js"),
+	"argon2-browser": path.normalize("./node_modules/argon2-browser/dist/argon2-bundled.min.js"),
 }
 
 /**

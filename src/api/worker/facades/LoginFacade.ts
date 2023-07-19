@@ -64,7 +64,7 @@ import {
 	createAuthVerifier,
 	createAuthVerifierAsBase64Url,
 	encryptKey,
-	generateKeyFromPassphrase,
+	generateKeyFromPassphraseBcrypt,
 	generateRandomSalt,
 	KeyLength,
 	keyToUint8Array,
@@ -333,7 +333,7 @@ export class LoginFacade {
 		}
 
 		console.log("login external worker")
-		let userPassphraseKey = generateKeyFromPassphrase(passphrase, salt, KeyLength.b128)
+		let userPassphraseKey = generateKeyFromPassphraseBcrypt(passphrase, salt, KeyLength.b128)
 		// the verifier is always sent as url parameter, so it must be url encoded
 		let authVerifier = createAuthVerifierAsBase64Url(userPassphraseKey)
 		let authToken = base64ToBase64Url(uint8ArrayToBase64(sha256Hash(salt)))
@@ -537,7 +537,7 @@ export class LoginFacade {
 
 		if (externalUserSalt) {
 			await this.checkOutdatedExternalSalt(credentials, sessionData, externalUserSalt)
-			userPassphraseKey = generateKeyFromPassphrase(passphrase, externalUserSalt, KeyLength.b128)
+			userPassphraseKey = generateKeyFromPassphraseBcrypt(passphrase, externalUserSalt, KeyLength.b128)
 		} else {
 			userPassphraseKey = await this.loadUserPassphraseKey(credentials.login, passphrase)
 		}
@@ -670,7 +670,7 @@ export class LoginFacade {
 		mailAddress = mailAddress.toLowerCase().trim()
 		const saltRequest = createSaltData({ mailAddress })
 		return this.serviceExecutor.get(SaltService, saltRequest).then((saltReturn: SaltReturn) => {
-			return generateKeyFromPassphrase(passphrase, saltReturn.salt, KeyLength.b128)
+			return generateKeyFromPassphraseBcrypt(passphrase, saltReturn.salt, KeyLength.b128)
 		})
 	}
 
@@ -757,9 +757,9 @@ export class LoginFacade {
 
 	async changePassword(oldPassword: string, newPassword: string): Promise<void> {
 		const userSalt = assertNotNull(this.userFacade.getLoggedInUser().salt)
-		let oldAuthVerifier = createAuthVerifier(generateKeyFromPassphrase(oldPassword, userSalt, KeyLength.b128))
+		let oldAuthVerifier = createAuthVerifier(generateKeyFromPassphraseBcrypt(oldPassword, userSalt, KeyLength.b128))
 		let salt = generateRandomSalt()
-		let userPassphraseKey = generateKeyFromPassphrase(newPassword, salt, KeyLength.b128)
+		let userPassphraseKey = generateKeyFromPassphraseBcrypt(newPassword, salt, KeyLength.b128)
 		let pwEncUserGroupKey = encryptKey(userPassphraseKey, this.userFacade.getUserGroupKey())
 		let authVerifier = createAuthVerifier(userPassphraseKey)
 		let service = createChangePasswordData()
@@ -773,7 +773,7 @@ export class LoginFacade {
 	async deleteAccount(password: string, reason: string, takeover: string): Promise<void> {
 		let d = createDeleteCustomerData()
 		const userSalt = assertNotNull(this.userFacade.getLoggedInUser().salt)
-		d.authVerifier = createAuthVerifier(generateKeyFromPassphrase(password, userSalt, KeyLength.b128))
+		d.authVerifier = createAuthVerifier(generateKeyFromPassphraseBcrypt(password, userSalt, KeyLength.b128))
 		d.undelete = false
 		d.customer = neverNull(neverNull(this.userFacade.getLoggedInUser()).customer)
 		d.reason = reason
@@ -848,7 +848,7 @@ export class LoginFacade {
 					.then((recoverCode) => {
 						const groupKey = aes256DecryptKey(recoverCodeKey, recoverCode.recoverCodeEncUserGroupKey)
 						let salt = generateRandomSalt()
-						let userPassphraseKey = generateKeyFromPassphrase(newPassword, salt, KeyLength.b128)
+						let userPassphraseKey = generateKeyFromPassphraseBcrypt(newPassword, salt, KeyLength.b128)
 						let pwEncUserGroupKey = encryptKey(userPassphraseKey, groupKey)
 						let newPasswordVerifier = createAuthVerifier(userPassphraseKey)
 						const postData = createChangePasswordData()

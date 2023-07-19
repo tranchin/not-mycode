@@ -9,7 +9,8 @@ export {
 	ENABLE_MAC,
 	IV_BYTE_LENGTH,
 } from "./encryption/Aes.js"
-export { generateRandomSalt, generateKeyFromPassphrase } from "./hashes/Bcrypt.js"
+export { generateRandomSalt, generateKeyFromPassphrase as generateKeyFromPassphraseBcrypt } from "./hashes/Bcrypt.js"
+export { generateKeyFromPassphrase as generateKeyFromPassphraseArgon2id } from "./hashes/Argon2id.js"
 export { CryptoError } from "./misc/CryptoError.js"
 export { KeyLength, EntropySource } from "./misc/Constants.js"
 export {

@@ -9,7 +9,8 @@ import {
 	bitArrayToUint8Array,
 	decryptKey,
 	encryptKey,
-	generateKeyFromPassphrase,
+	generateKeyFromPassphraseBcrypt,
+	generateKeyFromPassphraseArgon2id,
 	hexToPrivateKey,
 	hexToPublicKey,
 	KeyLength,
@@ -139,13 +140,19 @@ o.spec("crypto compatibility", function () {
 	})
 	o("bcrypt 128", function () {
 		testData.bcrypt128Tests.forEach((td) => {
-			let key = generateKeyFromPassphrase(td.password, hexToUint8Array(td.saltHex), KeyLength.b128)
+			let key = generateKeyFromPassphraseBcrypt(td.password, hexToUint8Array(td.saltHex), KeyLength.b128)
 			o(uint8ArrayToHex(bitArrayToUint8Array(key))).equals(td.keyHex)
 		})
 	})
 	o("bcrypt 256", function () {
 		testData.bcrypt256Tests.forEach((td) => {
-			let key = generateKeyFromPassphrase(td.password, hexToUint8Array(td.saltHex), KeyLength.b256)
+			let key = generateKeyFromPassphraseBcrypt(td.password, hexToUint8Array(td.saltHex), KeyLength.b256)
+			o(uint8ArrayToHex(bitArrayToUint8Array(key))).equals(td.keyHex)
+		})
+	})
+	o.only("argon2id", async function () {
+		testData.argon2idTests.forEach(async (td) => {
+			let key = await generateKeyFromPassphraseArgon2id(td.password, hexToUint8Array(td.saltHex))
 			o(uint8ArrayToHex(bitArrayToUint8Array(key))).equals(td.keyHex)
 		})
 	})

@@ -1,18 +1,18 @@
 // @ts-ignore[untyped-import]
 import { uint8ArrayToBitArray } from "../misc/Utils.js"
 import { Aes256Key } from "../encryption/Aes.js"
-import argon2 from "argon2-browser"
+import argon2, { Argon2BrowserHashOptions, Argon2BrowserHashResult } from "argon2-browser"
+
 const { ArgonType, hash } = argon2
-import type { Argon2BrowserHashOptions, Argon2BrowserHashResult } from "argon2-browser"
 
 const ITERATIONS = 2
-const MEMORY_IN_MB = 20 * 1024
+const MEMORY_IN_KiB = 32 * 1024
 const PARALLELISM = 1
 const KEY_LENGTH = 32
 
 const defaultOptions = {
 	time: ITERATIONS,
-	mem: MEMORY_IN_MB,
+	mem: MEMORY_IN_KiB,
 	hashLen: KEY_LENGTH,
 	parallelism: PARALLELISM,
 	type: ArgonType.Argon2id,

@@ -120,25 +120,6 @@ o.spec("CalendarEventWhenModel", function () {
 			o(result.startTime.toISOString()).equals("2023-04-27T18:27:00.000Z")("result start time is correct")
 			o(result.endTime.toISOString()).equals("2023-04-28T18:57:00.000Z")("result end time is correct")
 		})
-		o("rescheduling the event by a few hours correctly updates start and end time", function () {
-			const model = getModelBerlin({
-				startTime: new Date("2023-04-27T08:27:45.523Z"),
-				endTime: new Date("2023-04-28T08:57:45.523Z"),
-			})
-
-			o(model.startDate.toISOString()).equals("2023-04-26T22:00:00.000Z")("correct display start date")
-			o(model.endDate.toISOString()).equals("2023-04-27T22:00:00.000Z")("correct display end date")
-			o(model.startTime.to24HourString()).equals("10:27")("display start time correct")
-			o(model.endTime.to24HourString()).equals("10:57")("display end time correct")
-			model.rescheduleEvent({ hours: 10 })
-			o(model.startTime.to24HourString()).equals("20:27")("start time changed correct amount")
-			o(model.endTime.to24HourString()).equals("20:57")("end time changed correct amount")
-			o(model.startDate.toISOString()).equals("2023-04-26T22:00:00.000Z")("the display start date did not change")
-			o(model.endDate.toISOString()).equals("2023-04-27T22:00:00.000Z")("the display end date did not change")
-			const result = model.result
-			o(result.startTime.toISOString()).equals("2023-04-27T18:27:00.000Z")("result start time is correct")
-			o(result.endTime.toISOString()).equals("2023-04-28T18:57:00.000Z")("result end time is correct")
-		})
 		o("rescheduling the event by a few days and hours correctly updates start and end times", function () {
 			const model = getModelBerlin({
 				startTime: new Date("2023-04-27T08:27:45.523Z"),

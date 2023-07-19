@@ -3655,6 +3655,68 @@
 			"saltHex": "25e70b01c0d564d00298abb4a9822e60"
 		}
 	],
+	"argon2idTests": [
+		{
+			"password": "password",
+			"keyHex": "de59f7a222c1ef630fb5da1be755ee5c460fb57d733ad2e362ed2a01ed44ac68",
+			"saltHex": "4ac9796036cd28377d57220e8d64acb8"
+		},
+		{
+			"password": "password1",
+			"keyHex": "c1988a9fe5a61d35b1afdd9c90c2fd341f0cbe57e0fc23ec9097c60f1913d1bc",
+			"saltHex": "b8b2540a203e37bbc03bf2c2a14372e2"
+		},
+		{
+			"password": "letmein",
+			"keyHex": "62f762d5fccbbec622456b22799a3fcf57b139a487ccc9f2bfb0b15fe41dabd6",
+			"saltHex": "829080f1b6323c57ab107c5eabc1507f"
+		},
+		{
+			"password": "?",
+			"keyHex": "a48f497c06fa5638414017e506530b98c68c0c9fa8b1ff8a431ba2721651f94c",
+			"saltHex": "491ae1add690a04c7dfab4fe821b122c"
+		},
+		{
+			"password": "%",
+			"keyHex": "16a154a27649cd910edfad847651ca2fdea825338e19d72924e54592fd7f0940",
+			"saltHex": "2557ee3798f9cfdc04a11179287fbe8b"
+		},
+		{
+			"password": "€uropa",
+			"keyHex": "b7b758ce76b494d6118be388628d782648a4e3c7cfdb0c974f433ee3a36b0b5f",
+			"saltHex": "5c51874d5536a76e3215007ac26678b7"
+		},
+		{
+			"password": "?uropa",
+			"keyHex": "85b89b6b42bdc65399f6f0759c61f667a8fb85e6df0e6f9a5cb5dee19c13f41c",
+			"saltHex": "907d7d60e7256ea369d3ad8907c964db"
+		},
+		{
+			"password": "This passphrase is relatively long, I hope I won't forget it",
+			"keyHex": "2ed1c8a332208d60764d44e3082ae2ff8c82e1fe1145eac5a7de727120f5cd54",
+			"saltHex": "0ed92ca8ecf1e30bc01ff5939d432a46"
+		},
+		{
+			"password": "This passphrase is relatively long, I hope I won't forget it!",
+			"keyHex": "66eb97be3bdfa5f37ed468101daae6cc1843e3d88b4f50413be57f547de1eb9e",
+			"saltHex": "ad1922881222af4bc770793f76c7eb4a"
+		},
+		{
+			"password": "",
+			"keyHex": "b84dce161e736774fbb493255947a0c23922aa43a0b1774e8a35cfeece2aff43",
+			"saltHex": "bd9abf81a251a53fbf6d005476e860b9"
+		},
+		{
+			"password": "Vitor jagt zwölf Boxkämpfer quer über den großen Sylter Deich.",
+			"keyHex": "93d150926123d4397c3684e1757818004c538ee243167d785717aea42bc84046",
+			"saltHex": "8612243591d58a0d36a138cf265ed352"
+		},
+		{
+			"password": "Só juíza chata não vê câmera frágil e dá kiwi à ré sexy que pôs ações em baú.",
+			"keyHex": "a59dcc697456f3b4384830df210ced858d00de31a8605d6b3393b68f6b1ceca3",
+			"saltHex": "d258d86af2f539cc59ddf763ebf53307"
+		}
+	],
 	"compressionTests": [
 		{
 			"uncompressedText": "",

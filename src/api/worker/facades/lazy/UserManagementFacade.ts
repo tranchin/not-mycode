@@ -28,7 +28,7 @@ import {
 	decryptKey,
 	encrypt256Key,
 	encryptKey,
-	generateKeyFromPassphrase,
+	generateKeyFromPassphraseBcrypt,
 	generateRandomSalt,
 	KeyLength,
 	random,
@@ -57,7 +57,7 @@ export class UserManagementFacade {
 	async changeUserPassword(user: User, newPassword: string): Promise<void> {
 		const userGroupKey = await this.groupManagement.getGroupKeyViaAdminEncGKey(user.userGroup.group)
 		const salt = generateRandomSalt()
-		const passwordKey = generateKeyFromPassphrase(newPassword, salt, KeyLength.b128)
+		const passwordKey = generateKeyFromPassphraseBcrypt(newPassword, salt, KeyLength.b128)
 		const pwEncUserGroupKey = encryptKey(passwordKey, userGroupKey)
 		const passwordVerifier = createAuthVerifier(passwordKey)
 		const data = createResetPasswordData({
@@ -244,7 +244,7 @@ export class UserManagementFacade {
 		recoverData: RecoverData,
 	): UserAccountUserData {
 		let salt = generateRandomSalt()
-		let userPassphraseKey = generateKeyFromPassphrase(password, salt, KeyLength.b128)
+		let userPassphraseKey = generateKeyFromPassphraseBcrypt(password, salt, KeyLength.b128)
 		let mailGroupKey = aes128RandomKey()
 		let contactGroupKey = aes128RandomKey()
 		let fileGroupKey = aes128RandomKey()
@@ -284,7 +284,7 @@ export class UserManagementFacade {
 
 	generateContactFormUserAccountData(userGroupKey: Aes128Key, password: string): ContactFormUserData {
 		let salt = generateRandomSalt()
-		let userPassphraseKey = generateKeyFromPassphrase(password, salt, KeyLength.b128)
+		let userPassphraseKey = generateKeyFromPassphraseBcrypt(password, salt, KeyLength.b128)
 		let mailGroupKey = aes128RandomKey()
 		let clientKey = aes128RandomKey()
 		let mailboxSessionKey = aes128RandomKey()
@@ -324,7 +324,7 @@ export class UserManagementFacade {
 			return Promise.reject(new Error("Auth is missing"))
 		}
 
-		const key = generateKeyFromPassphrase(password, assertNotNull(user.salt), KeyLength.b128)
+		const key = generateKeyFromPassphraseBcrypt(password, assertNotNull(user.salt), KeyLength.b128)
 		const extraHeaders = {
 			authVerifier: createAuthVerifierAsBase64Url(key),
 		}
@@ -346,7 +346,7 @@ export class UserManagementFacade {
 		recoverPasswordEntity.recoverCodeEncUserGroupKey = recoverCodeEncUserGroupKey
 		recoverPasswordEntity._ownerGroup = this.userFacade.getUserGroupId()
 		recoverPasswordEntity.verifier = recoveryCodeVerifier
-		const pwKey = generateKeyFromPassphrase(password, neverNull(user.salt), KeyLength.b128)
+		const pwKey = generateKeyFromPassphraseBcrypt(password, neverNull(user.salt), KeyLength.b128)
 		const authVerifier = createAuthVerifierAsBase64Url(pwKey)
 		return this.entityClient
 			.setup(null, recoverPasswordEntity, {

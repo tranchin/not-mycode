@@ -99,7 +99,7 @@ import {
 	createAuthVerifier,
 	decryptKey,
 	encryptKey,
-	generateKeyFromPassphrase,
+	generateKeyFromPassphraseBcrypt,
 	generateRandomSalt,
 	KeyLength,
 	keyToUint8Array,
@@ -617,7 +617,7 @@ export class MailFacade {
 				}
 
 				const salt = generateRandomSalt()
-				const passwordKey = generateKeyFromPassphrase(password, salt, KeyLength.b128)
+				const passwordKey = generateKeyFromPassphraseBcrypt(password, salt, KeyLength.b128)
 				const passwordVerifier = createAuthVerifier(passwordKey)
 				const externalGroupKeys = await this._getExternalGroupKey(recipient.address, passwordKey, passwordVerifier)
 				const data = createSecureExternalRecipientKeyData()

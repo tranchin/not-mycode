@@ -1,7 +1,9 @@
 // @ts-ignore[untyped-import]
 import { uint8ArrayToBitArray } from "../misc/Utils.js"
 import { Aes256Key } from "../encryption/Aes.js"
-import { Argon2BrowserHashOptions, Argon2BrowserHashResult, ArgonType, hash } from "argon2-browser"
+import argon2 from "argon2-browser"
+const { ArgonType, hash } = argon2
+import type { Argon2BrowserHashOptions, Argon2BrowserHashResult } from "argon2-browser"
 
 const ITERATIONS = 2
 const MEMORY_IN_MB = 20 * 1024
@@ -28,6 +30,7 @@ export async function generateKeyFromPassphrase(pass: string, salt: Uint8Array):
 		pass,
 		salt,
 	}
+
 	const result: Argon2BrowserHashResult = await hash(input)
 	return uint8ArrayToBitArray(result.hash)
 }

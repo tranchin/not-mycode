@@ -20,8 +20,12 @@
 		"LICENSE.txt",
 		"tsconfig.json"
 	],
+	"dependencies": {
+		"@types/argon2-browser": "1.18.1",
+		"argon2-browser": "1.18.0"
+	},
 	"devDependencies": {
-		"typescript": "5.0.3",
+		"typescript": "5.0.4",
 		"@tutao/tutanota-utils": "3.115.2",
 		"ospec": "https://github.com/tutao/ospec.git#0472107629ede33be4c4d19e89f237a6d7b0cb11"
 	}

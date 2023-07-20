@@ -46,15 +46,30 @@ o.spec("Argon2id", async function () {
 			"Só juíza chata não vê câmera frágil e dá kiwi à ré sexy que pôs ações em baú.",
 		]
 
+		const salts = [
+			"4ac9796036cd28377d57220e8d64acb8",
+			"b8b2540a203e37bbc03bf2c2a14372e2",
+			"829080f1b6323c57ab107c5eabc1507f",
+			"491ae1add690a04c7dfab4fe821b122c",
+			"2557ee3798f9cfdc04a11179287fbe8b",
+			"5c51874d5536a76e3215007ac26678b7",
+			"907d7d60e7256ea369d3ad8907c964db",
+			"0ed92ca8ecf1e30bc01ff5939d432a46",
+			"ad1922881222af4bc770793f76c7eb4a",
+			"bd9abf81a251a53fbf6d005476e860b9",
+			"8612243591d58a0d36a138cf265ed352",
+			"d258d86af2f539cc59ddf763ebf53307",
+		]
+
 		const outputs: Array<{ password: string; keyHex: string; saltHex: string }> = []
 		for (let i = 0; i < passwords.length; i++) {
-			const salt = generateRandomSalt()
+			const salt = hexToUint8Array(salts[i])
 			const key = await generateKeyFromPassphrase(passwords[i], salt)
 			const keyHex = _keyToHex(key)
 			outputs.push({
 				password: passwords[i],
 				keyHex: keyHex,
-				saltHex: uint8ArrayToHex(salt),
+				saltHex: salts[i],
 			})
 		}
 		console.log("argon2idTests: ", JSON.stringify(outputs, null, 2))

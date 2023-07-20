@@ -95,7 +95,6 @@ export class PinchZoom {
 		console.log("new Pinch to zoom----------------")
 		this.zoomableRect.addEventListener("touchend", (event) => {
 			const eventTarget = event.target // it is necessary to save the target because otherwise it changes and is not accurate anymore after the bubbling phase
-			console.log("touchend pinchzoom", eventTarget, event.eventPhase, event.currentTarget)
 			//FIXME remove listeners when removed from dom?
 			this.removeTouches(event)
 			if (event.touches.length === 0 && event.changedTouches.length === 1) {
@@ -111,7 +110,7 @@ export class PinchZoom {
 						} else {
 							scale = (this.zoomBoundaries.min + this.zoomBoundaries.max) / 2 // FIXME what would be reasonable?
 						}
-						const translationAndOrigin = this.calculateSessionsTranslationAndSetTransformOrigin({
+						const translationAndOrigin = this.calculateSessionsTranslationAndTransformOrigin({
 							x: event.changedTouches[0].clientX,
 							y: event.changedTouches[0].clientY,
 						})
@@ -462,7 +461,7 @@ export class PinchZoom {
 
 	// zooming
 
-	private calculateSessionsTranslationAndSetTransformOrigin(absoluteZoomPosition: CoordinatePair): {
+	private calculateSessionsTranslationAndTransformOrigin(absoluteZoomPosition: CoordinatePair): {
 		sessionTranslation: CoordinatePair
 		newTransformOrigin: CoordinatePair
 	} {
@@ -500,6 +499,18 @@ export class PinchZoom {
 		return { sessionTranslation: sessionTranslation, newTransformOrigin: transformOrigin }
 	}
 
+	private calculateTransformOriginFromTarget(
+		targetCoordinates: CoordinatePair,
+		currentOriginalPosition: CoordinatePair,
+		sessionTranslation: CoordinatePair,
+		scaling: number,
+	): CoordinatePair {
+		return {
+			x: (currentOriginalPosition.x + sessionTranslation.x - targetCoordinates.x) / (scaling - 1), // FIXME numerical unstable (causes weird behaviour while zooming out at scale 1)
+			y: (currentOriginalPosition.y + sessionTranslation.y - targetCoordinates.y) / (scaling - 1),
+		}
+	}
+
 	private lastPinchCenter = { x: 0, y: 0 }
 
 	private startPinchSession(ev: TouchEvent) {
@@ -514,8 +525,8 @@ export class PinchZoom {
 			this.lastPinchCenter = this.pinchCenter
 		}
 
-		let translationAndOrigin = this.calculateSessionsTranslationAndSetTransformOrigin(this.pinchCenter)
-		this.pinchSessionTranslation = translationAndOrigin.sessionTranslation
+		let translationAndOrigin = this.calculateSessionsTranslationAndTransformOrigin(this.pinchCenter)
+		// this.pinchSessionTranslation = translationAndOrigin.sessionTranslation // FIXME can be removed?
 		this.getCoords(this.zoomableRect)
 
 		return translationAndOrigin
@@ -601,7 +612,7 @@ export class PinchZoom {
 			let currentRect = this.getCoords(this.zoomableRect)
 			let currentOriginalRect = this.getCurrentOriginalRect()
 			let newTransformOrigin = {
-				x: (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.current.z), //FIXME pinchSessionTranslation needs to be considered
+				x: (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.current.z), //FIXME numerical instable
 				y: (currentRect.y + delta.y - (currentOriginalRect.y + this.pinchSessionTranslation.y)) / (1 - this.current.z),
 			}
 
@@ -705,14 +716,14 @@ export class PinchZoom {
 		}
 
 		// console.log("borders", JSON.stringify(borders), JSON.stringify(borderss))
-		console.log("currentOriginalPosition", currentOriginalPosition)
-		console.log("this.originalMailBodySize.width", this.originalMailBodySize.width)
-		console.log("this.originalMailBodySize.height", this.originalMailBodySize.height)
-		console.log("newTransformOrigin", newTransformOrigin)
-		console.log("translation", pinchSessionTranslation)
-		console.log("scaling", scaling)
+		// console.log("currentOriginalPosition", currentOriginalPosition)
+		// console.log("this.originalMailBodySize.width", this.originalMailBodySize.width)
+		// console.log("this.originalMailBodySize.height", this.originalMailBodySize.height)
+		// console.log("newTransformOrigin", newTransformOrigin)
+		// console.log("translation", pinchSessionTranslation)
+		// console.log("scaling", scaling)
 		scaling = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, scaling)) // don't allow zooming out or zooming in more than 3x
-		console.log("newScale", scaling)
+		// console.log("newScale", scaling)
 		const targetedOutcome = this.simulateTransformation(
 			currentOriginalPosition,
 			this.originalMailBodySize.width,
@@ -721,15 +732,23 @@ export class PinchZoom {
 			pinchSessionTranslation,
 			scaling,
 		)
+		const targetedHeight = targetedOutcome.y2 - targetedOutcome.y
+		const targetedWidth = targetedOutcome.x2 - targetedOutcome.x
 		console.log("targeted outcome border", JSON.stringify(targetedOutcome))
 		let currentTransformOrigin = this.getTransformOrigin(this.zoomableRect)
 
 		// console.log("targeted", JSON.stringify(targetedOutcome))
 		// console.log("viewport", JSON.stringify(viewportBorders))
+		const horizontal1Allowed = targetedOutcome.x <= borders.x
+		const horizontal2Allowed = targetedOutcome.x2 >= borders.x2
 
-		let horizontalTransformationAllowed = targetedOutcome.x <= borders.x && targetedOutcome.x2 >= borders.x2
-		let verticalTransformationAllowed = targetedOutcome.y <= borders.y && targetedOutcome.y2 >= borders.y2
+		const vertical1Allowed = targetedOutcome.y <= borders.y
+		const vertical2Allowed = targetedOutcome.y2 >= borders.y2
 
+		const horizontalTransformationAllowed = horizontal1Allowed && horizontal2Allowed
+		const verticalTransformationAllowed = vertical1Allowed && vertical2Allowed
+
+		scaling = Math.max(scaling, 1.001) //FIXME remove
 		if (horizontalTransformationAllowed && verticalTransformationAllowed) {
 			//FIXME we should differentiate between each 4 sides - otherwise zooming out does not work, if only 1 border is touched
 			console.log("case1")
@@ -738,15 +757,108 @@ export class PinchZoom {
 			this.current.z = scaling
 		} else if (horizontalTransformationAllowed) {
 			console.log("case2")
-			this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${currentTransformOrigin.y}px`
+			let adjustedTransformOrigin = newTransformOrigin
+			if (!vertical1Allowed) {
+				adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+					{
+						x: targetedOutcome.x,
+						y: borders.y,
+					},
+					currentOriginalPosition,
+					pinchSessionTranslation,
+					scaling,
+				)
+			} else if (!vertical2Allowed) {
+				// should exclude each other because of minimum scale
+				adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+					{
+						x: targetedOutcome.x,
+						y: borders.y2 - targetedHeight,
+					},
+					currentOriginalPosition,
+					pinchSessionTranslation,
+					scaling,
+				)
+			}
+			this.zoomableRect.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
+			// this.zoomableRect.style.transformOrigin = `${newTransformOrigin.x}px ${currentTransformOrigin.y}px`
 			this.pinchSessionTranslation = pinchSessionTranslation
 			this.current.z = scaling
 		} else if (verticalTransformationAllowed) {
 			console.log("case3")
-			this.zoomableRect.style.transformOrigin = `${currentTransformOrigin.x}px ${newTransformOrigin.y}px`
+			let adjustedTransformOrigin = newTransformOrigin
+			if (!horizontal1Allowed) {
+				adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+					{
+						x: borders.x,
+						y: targetedOutcome.y,
+					},
+					currentOriginalPosition,
+					pinchSessionTranslation,
+					scaling,
+				)
+			} else if (!horizontal2Allowed) {
+				// should exclude each other because of minimum scale
+				adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+					{
+						x: borders.x2 - targetedWidth,
+						y: targetedOutcome.y,
+					},
+					currentOriginalPosition,
+					pinchSessionTranslation,
+					scaling,
+				)
+			}
+			this.zoomableRect.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
+			// this.zoomableRect.style.transformOrigin = `${currentTransformOrigin.x}px ${newTransformOrigin.y}px`
+			this.pinchSessionTranslation = pinchSessionTranslation
+			this.current.z = scaling
+		} else if (!horizontal1Allowed && !vertical1Allowed) {
+			console.log("case4")
+			let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+				{ x: borders.x, y: borders.y },
+				currentOriginalPosition,
+				pinchSessionTranslation,
+				scaling,
+			)
+			this.zoomableRect.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
+			this.pinchSessionTranslation = pinchSessionTranslation
+			this.current.z = scaling
+		} else if (!horizontal1Allowed && !vertical2Allowed) {
+			console.log("case5")
+			let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+				{ x: borders.x, y: borders.y2 - targetedHeight },
+				currentOriginalPosition,
+				pinchSessionTranslation,
+				scaling,
+			)
+			this.zoomableRect.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
+			this.pinchSessionTranslation = pinchSessionTranslation
+			this.current.z = scaling
+		} else if (!horizontal2Allowed && !vertical1Allowed) {
+			console.log("case6")
+			let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+				{ x: borders.x2 - targetedWidth, y: borders.y },
+				currentOriginalPosition,
+				pinchSessionTranslation,
+				scaling,
+			)
+			this.zoomableRect.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
+			this.pinchSessionTranslation = pinchSessionTranslation
+			this.current.z = scaling
+		} else if (!horizontal2Allowed && !vertical2Allowed) {
+			console.log("case7")
+			let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+				{ x: borders.x2 - targetedWidth, y: borders.y2 - targetedHeight },
+				currentOriginalPosition,
+				pinchSessionTranslation,
+				scaling,
+			)
+			this.zoomableRect.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
 			this.pinchSessionTranslation = pinchSessionTranslation
 			this.current.z = scaling
 		}
+		console.log("transform origin", JSON.stringify(this.getTransformOrigin(this.zoomableRect)))
 
 		return {
 			verticalTransformationAllowed,

@@ -423,7 +423,6 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				// of the mail body changes. So we have to create a new PinchZoom object
 				console.log("creating new pinchzoom due to resize", entries[0].target, entries[0].target.getBoundingClientRect().bottom)
 				this.pinchZoomable = new PinchZoom(wrapNode, parent as HTMLElement, true, (e, target) => {
-					console.log("single click action", e.target, e.eventPhase, e.currentTarget, target)
 					this.handleAnchorClick(e, target, true)
 				})
 			}).observe(wrapNode)
@@ -733,7 +732,6 @@ export class MailViewer implements Component<MailViewerAttrs> {
 
 	private handleAnchorClick(event: Event, eventTarget: EventTarget | null, shouldDispatchSyntheticClick: boolean): void {
 		const href = (eventTarget as Element | null)?.closest("a")?.getAttribute("href") ?? null
-		console.log("Event:", event, href)
 		if (href) {
 			if (href.startsWith("mailto:")) {
 				event.preventDefault()

@@ -125,6 +125,21 @@
 					"info": "AddAssociation CalendarRepeatRule/excludedDates/AGGREGATION/1319."
 				}
 			]
+		},
+		{
+			"version": 62,
+			"changes": [
+				{
+					"name": "AddValue",
+					"sourceType": "UserAccountUserData",
+					"info": "AddValue UserAccountUserData/kdfVersion/1320."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "SecureExternalRecipientKeyData",
+					"info": "AddValue SecureExternalRecipientKeyData/kdfVersion/1322."
+				}
+			]
 		}
 	]
 }

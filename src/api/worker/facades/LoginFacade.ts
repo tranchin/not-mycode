@@ -24,7 +24,7 @@ import {
 	SessionService,
 	TakeOverDeletedAddressService,
 } from "../../entities/sys/Services"
-import { AccountType, CloseEventBusOption } from "../../common/TutanotaConstants"
+import { AccountType, CloseEventBusOption, KdfType } from "../../common/TutanotaConstants"
 import { CryptoError } from "../../common/error/CryptoError"
 import type { GroupInfo, SaltReturn, SecondFactorAuthData, User } from "../../entities/sys/TypeRefs.js"
 import {
@@ -64,6 +64,7 @@ import {
 	createAuthVerifier,
 	createAuthVerifierAsBase64Url,
 	encryptKey,
+	generateKeyFromPassphraseArgon2id,
 	generateKeyFromPassphraseBcrypt,
 	generateRandomSalt,
 	KeyLength,
@@ -77,7 +78,7 @@ import {
 } from "@tutao/tutanota-crypto"
 import { CryptoFacade, encryptString } from "../crypto/CryptoFacade"
 import { InstanceMapper } from "../crypto/InstanceMapper"
-import { Aes128Key } from "@tutao/tutanota-crypto/dist/encryption/Aes"
+import { Aes128Key, Aes256Key } from "@tutao/tutanota-crypto/dist/encryption/Aes"
 import { IServiceExecutor } from "../../common/ServiceRequest"
 import { SessionType } from "../../common/SessionType"
 import { CacheStorageLateInitializer } from "../rest/CacheStorageProxy"
@@ -325,6 +326,7 @@ export class LoginFacade {
 		userId: Id,
 		passphrase: string,
 		salt: Uint8Array,
+		kdfType: KdfType,
 		clientIdentifier: string,
 		persistentSession: boolean,
 	): Promise<NewSessionData> {
@@ -333,7 +335,7 @@ export class LoginFacade {
 		}
 
 		console.log("login external worker")
-		let userPassphraseKey = generateKeyFromPassphraseBcrypt(passphrase, salt, KeyLength.b128)
+		let userPassphraseKey = await this.deriveUserPassphraseKey(kdfType, passphrase, salt)
 		// the verifier is always sent as url parameter, so it must be url encoded
 		let authVerifier = createAuthVerifierAsBase64Url(userPassphraseKey)
 		let authToken = base64ToBase64Url(uint8ArrayToBase64(sha256Hash(salt)))
@@ -377,6 +379,17 @@ export class LoginFacade {
 				type: "external",
 			},
 			databaseKey: null,
+		}
+	}
+
+	private async deriveUserPassphraseKey(kdfType: KdfType, passphrase: string, salt: Uint8Array): Promise<Aes128Key | Aes256Key> {
+		switch (kdfType) {
+			case KdfType.Bcrypt: {
+				return generateKeyFromPassphraseBcrypt(passphrase, salt, KeyLength.b128)
+			}
+			case KdfType.Argon2id: {
+				return generateKeyFromPassphraseArgon2id(passphrase, salt)
+			}
 		}
 	}
 
@@ -666,12 +679,11 @@ export class LoginFacade {
 		}
 	}
 
-	private loadUserPassphraseKey(mailAddress: string, passphrase: string): Promise<Aes128Key> {
+	private async loadUserPassphraseKey(mailAddress: string, passphrase: string): Promise<Aes128Key | Aes256Key> {
 		mailAddress = mailAddress.toLowerCase().trim()
 		const saltRequest = createSaltData({ mailAddress })
-		return this.serviceExecutor.get(SaltService, saltRequest).then((saltReturn: SaltReturn) => {
-			return generateKeyFromPassphraseBcrypt(passphrase, saltReturn.salt, KeyLength.b128)
-		})
+		const saltReturn = await this.serviceExecutor.get(SaltService, saltRequest)
+		return this.deriveUserPassphraseKey(saltReturn.kdfVersion as KdfType, passphrase, saltReturn.salt)
 	}
 
 	/**

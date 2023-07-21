@@ -8,7 +8,7 @@ import { client } from "../../misc/ClientDetector"
 import type { LoginFacade, NewSessionData } from "../worker/facades/LoginFacade"
 import { ResumeSessionErrorReason } from "../worker/facades/LoginFacade"
 import type { Credentials } from "../../misc/credentials/Credentials"
-import { FeatureType } from "../common/TutanotaConstants"
+import { FeatureType, KdfType } from "../common/TutanotaConstants"
 import { CredentialsAndDatabaseKey } from "../../misc/credentials/CredentialsProvider.js"
 import { SessionType } from "../common/SessionType"
 import { IMainLocator, locator } from "./MainLocator"
@@ -110,13 +110,21 @@ export class LoginController {
 		this.partialLogin.resolve()
 	}
 
-	async createExternalSession(userId: Id, password: string, salt: Uint8Array, clientIdentifier: string, sessionType: SessionType): Promise<Credentials> {
+	async createExternalSession(
+		userId: Id,
+		password: string,
+		salt: Uint8Array,
+		kdfType: KdfType,
+		clientIdentifier: string,
+		sessionType: SessionType,
+	): Promise<Credentials> {
 		const loginFacade = await this.getLoginFacade()
 		const persistentSession = sessionType === SessionType.Persistent
 		const { user, credentials, sessionId, userGroupInfo } = await loginFacade.createExternalSession(
 			userId,
 			password,
 			salt,
+			kdfType,
 			clientIdentifier,
 			persistentSession,
 		)

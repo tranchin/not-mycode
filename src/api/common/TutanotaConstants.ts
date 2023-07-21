@@ -130,6 +130,11 @@ export const enum OperationType {
 	DELETE = "2",
 }
 
+export enum KdfType {
+	Bcrypt = "0",
+	Argon2id = "1",
+}
+
 export enum AccountType {
 	SYSTEM = "0",
 	FREE = "1",

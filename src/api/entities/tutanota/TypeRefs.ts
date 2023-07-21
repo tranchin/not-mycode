@@ -854,6 +854,7 @@ export type ExternalUserData = {
 	externalUserEncUserGroupInfoSessionKey: Uint8Array;
 	internalMailEncMailGroupInfoSessionKey: Uint8Array;
 	internalMailEncUserGroupInfoSessionKey: Uint8Array;
+	kdfVersion: NumberString;
 	userEncClientKey: Uint8Array;
 	verifier: Uint8Array;
 
@@ -1843,6 +1844,7 @@ export type SecureExternalRecipientKeyData = {
 
 	_id: Id;
 	autoTransmitPassword: null | string;
+	kdfVersion: NumberString;
 	mailAddress: string;
 	ownerEncBucketKey: null | Uint8Array;
 	passwordVerifier: Uint8Array;
@@ -2029,6 +2031,7 @@ export type UserAccountUserData = {
 	customerEncMailGroupInfoSessionKey: Uint8Array;
 	encryptedName: Uint8Array;
 	fileEncFileSystemSessionKey: Uint8Array;
+	kdfVersion: NumberString;
 	mailAddress: string;
 	mailEncMailBoxSessionKey: Uint8Array;
 	pwEncUserGroupKey: Uint8Array;

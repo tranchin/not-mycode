@@ -6,14 +6,13 @@ import { lang } from "../misc/LanguageViewModel"
 import { keyManager, Shortcut } from "../misc/KeyManager"
 import { client } from "../misc/ClientDetector"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
-import { Keys } from "../api/common/TutanotaConstants"
+import { KdfType, Keys } from "../api/common/TutanotaConstants"
 import { progressIcon } from "../gui/base/Icon"
 import { Button, ButtonType } from "../gui/base/Button.js"
 import { Autocomplete, TextField, TextFieldType as TextFieldType } from "../gui/base/TextField.js"
 import { Checkbox } from "../gui/base/Checkbox.js"
 import { MessageBox } from "../gui/base/MessageBox.js"
 import { renderInfoLinks } from "./LoginView"
-import { AppHeaderAttrs, Header } from "../gui/Header.js"
 import { GENERATED_MIN_ID } from "../api/common/utils/EntityUtils"
 import { getLoginErrorMessage, handleExpectedLoginError } from "../misc/LoginUtils"
 import type { CredentialsProvider } from "../misc/credentials/CredentialsProvider.js"
@@ -28,6 +27,12 @@ import { LoginScreenHeader } from "../gui/LoginScreenHeader.js"
 
 assertMainOrNode()
 
+type UrlData = { userId: Id; salt: Uint8Array; kdfType: KdfType }
+
+function isKdfType(kdfType: string): kdfType is KdfType {
+	return Object.values(KdfType).includes(kdfType as KdfType)
+}
+
 export class ExternalLoginViewModel {
 	password: string = ""
 	doSavePassword: boolean = false
@@ -36,8 +41,8 @@ export class ExternalLoginViewModel {
 	autologinInProgress = false
 	showAutoLoginButton = false
 
-	private _urlData: { userId: Id; salt: Uint8Array } | null = null
-	get urlData(): { userId: Id; salt: Uint8Array } {
+	private _urlData: UrlData | null = null
+	get urlData(): UrlData {
 		return assertNotNull(this._urlData)
 	}
 
@@ -58,8 +63,8 @@ export class ExternalLoginViewModel {
 		const persistentSession = this.doSavePassword
 
 		const sessionType = persistentSession ? SessionType.Persistent : SessionType.Login
-		const { userId, salt } = this.urlData
-		const newCredentials = await locator.logins.createExternalSession(userId, password, salt, clientIdentifier, sessionType)
+		const { userId, salt, kdfType } = this.urlData
+		const newCredentials = await locator.logins.createExternalSession(userId, password, salt, kdfType, clientIdentifier, sessionType)
 
 		this.password = ""
 
@@ -138,9 +143,21 @@ export class ExternalLoginViewModel {
 		try {
 			const id = decodeURIComponent(location.hash).substring(6) // cutoff #mail/ from #mail/KduzrgF----0S3BTO2gypfDMketWB_PbqQ
 
+			const userIdOffset = 0
+			const saltOffset = userIdOffset + GENERATED_MIN_ID.length
+			const kdfOffset = saltOffset + 22
+
+			const kdfType = id.length === kdfOffset ? KdfType.Bcrypt : id.substring(kdfOffset, kdfOffset + 1)
+			if (!isKdfType(kdfType)) {
+				// noinspection ExceptionCaughtLocallyJS
+				throw new Error("bad kdf type")
+			}
+
 			this._urlData = {
-				userId: id.substring(0, GENERATED_MIN_ID.length),
-				salt: base64ToUint8Array(base64UrlToBase64(id.substring(GENERATED_MIN_ID.length))),
+				userId: id.substring(userIdOffset, saltOffset),
+				salt: base64ToUint8Array(base64UrlToBase64(id.substring(saltOffset, kdfOffset))),
+				// ensure old links are still valid
+				kdfType: kdfType,
 			}
 
 			const credentials = await this.credentialsProvider.getCredentialsByUserId(this.urlData.userId)

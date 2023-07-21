@@ -12,6 +12,7 @@ import { FeatureType, KdfType } from "../common/TutanotaConstants"
 import { CredentialsAndDatabaseKey } from "../../misc/credentials/CredentialsProvider.js"
 import { SessionType } from "../common/SessionType"
 import { IMainLocator, locator } from "./MainLocator"
+import { ExternalUserKeyDeriver } from "../../misc/LoginUtils.js"
 
 assertMainOrNodeBoot()
 
@@ -144,16 +145,16 @@ export class LoginController {
 	/**
 	 * Resume an existing session using stored credentials, may or may not unlock a persistent local database
 	 * @param credentials: The stored credentials and optional database key for the offline db
-	 * @param externalUserSalt
+	 * @param externalUserKeyDeriver
 	 * @param offlineTimeRangeDays: the user configured time range for their offline storage, used to initialize the offline db
 	 */
 	async resumeSession(
 		{ credentials, databaseKey }: CredentialsAndDatabaseKey,
-		externalUserSalt?: Uint8Array | null,
+		externalUserKeyDeriver?: ExternalUserKeyDeriver | null,
 		offlineTimeRangeDays?: number | null,
 	): Promise<ResumeSessionResult> {
 		const loginFacade = await this.getLoginFacade()
-		const resumeResult = await loginFacade.resumeSession(credentials, externalUserSalt ?? null, databaseKey ?? null, offlineTimeRangeDays ?? null)
+		const resumeResult = await loginFacade.resumeSession(credentials, externalUserKeyDeriver ?? null, databaseKey ?? null, offlineTimeRangeDays ?? null)
 		if (resumeResult.type === "error") {
 			return resumeResult
 		} else {

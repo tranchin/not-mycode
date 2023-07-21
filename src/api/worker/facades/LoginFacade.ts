@@ -24,9 +24,9 @@ import {
 	SessionService,
 	TakeOverDeletedAddressService,
 } from "../../entities/sys/Services"
-import { AccountType, CloseEventBusOption, KdfType } from "../../common/TutanotaConstants"
+import { AccountType, asKdfType, CloseEventBusOption, Const, KdfType } from "../../common/TutanotaConstants"
 import { CryptoError } from "../../common/error/CryptoError"
-import type { GroupInfo, SaltReturn, SecondFactorAuthData, User } from "../../entities/sys/TypeRefs.js"
+import type { GroupInfo, SecondFactorAuthData, User } from "../../entities/sys/TypeRefs.js"
 import {
 	Challenge,
 	createAutoLoginDataGet,
@@ -89,6 +89,7 @@ import { EntropyFacade } from "./EntropyFacade.js"
 import { BlobAccessTokenFacade } from "./BlobAccessTokenFacade.js"
 import { ProgrammingError } from "../../common/error/ProgrammingError.js"
 import { DatabaseKeyFactory } from "../../../misc/credentials/DatabaseKeyFactory.js"
+import { ExternalUserKeyDeriver } from "../../../misc/LoginUtils.js"
 
 assertWorkerOrNode()
 
@@ -382,7 +383,10 @@ export class LoginFacade {
 		}
 	}
 
-	private async deriveUserPassphraseKey(kdfType: KdfType, passphrase: string, salt: Uint8Array): Promise<Aes128Key | Aes256Key> {
+	/**
+	 * Derive a key given a KDF type, passphrase, and salt
+	 */
+	async deriveUserPassphraseKey(kdfType: KdfType, passphrase: string, salt: Uint8Array): Promise<Aes128Key | Aes256Key> {
 		switch (kdfType) {
 			case KdfType.Bcrypt: {
 				return generateKeyFromPassphraseBcrypt(passphrase, salt, KeyLength.b128)
@@ -421,13 +425,13 @@ export class LoginFacade {
 	/**
 	 * Resumes previously created session (using persisted credentials).
 	 * @param credentials the saved credentials to use
-	 * @param externalUserSalt
+	 * @param externalUserKeyDeriver information for deriving a key (if external user)
 	 * @param databaseKey key to unlock the local database (if enabled)
 	 * @param timeRangeDays the user configured time range for the offline database
 	 */
 	async resumeSession(
 		credentials: Credentials,
-		externalUserSalt: Uint8Array | null,
+		externalUserKeyDeriver: ExternalUserKeyDeriver | null,
 		databaseKey: Uint8Array | null,
 		timeRangeDays: number | null,
 	): Promise<ResumeSessionResult> {
@@ -467,7 +471,7 @@ export class LoginFacade {
 				if (user.accountType !== AccountType.PREMIUM) {
 					// if account is free do not start offline login/async login workflow.
 					// await before return to catch errors here
-					return await this.finishResumeSession(credentials, externalUserSalt, cacheInfo).catch(
+					return await this.finishResumeSession(credentials, externalUserKeyDeriver, cacheInfo).catch(
 						ofClass(ConnectionError, async () => {
 							await this.resetSession()
 							return { type: "error", reason: ResumeSessionErrorReason.OfflineNotAvailableForFree }
@@ -488,7 +492,7 @@ export class LoginFacade {
 					console.log("Could not do start login, groupInfo is not cached, falling back to sync login")
 					if (e instanceof LoginIncompleteError) {
 						// await before return to catch the errors here
-						return await this.finishResumeSession(credentials, externalUserSalt, cacheInfo)
+						return await this.finishResumeSession(credentials, externalUserKeyDeriver, cacheInfo)
 					} else {
 						// noinspection ExceptionCaughtLocallyJS: we want to make sure we go throw the same exit point
 						throw e
@@ -505,7 +509,7 @@ export class LoginFacade {
 				return { type: "success", data }
 			} else {
 				// await before return to catch errors here
-				return await this.finishResumeSession(credentials, externalUserSalt, cacheInfo)
+				return await this.finishResumeSession(credentials, externalUserKeyDeriver, cacheInfo)
 			}
 		} catch (e) {
 			// If we initialized the cache, but then we couldn't authenticate we should de-initialize
@@ -541,16 +545,20 @@ export class LoginFacade {
 		}
 	}
 
-	private async finishResumeSession(credentials: Credentials, externalUserSalt: Uint8Array | null, cacheInfo: CacheInfo): Promise<ResumeSessionSuccess> {
+	private async finishResumeSession(
+		credentials: Credentials,
+		externalUserKeyDeriver: ExternalUserKeyDeriver | null,
+		cacheInfo: CacheInfo,
+	): Promise<ResumeSessionSuccess> {
 		const sessionId = this.getSessionId(credentials)
 		const sessionData = await this.loadSessionData(credentials.accessToken)
 		const encryptedPassword = base64ToUint8Array(assertNotNull(credentials.encryptedPassword, "encryptedPassword was null!"))
 		const passphrase = utf8Uint8ArrayToString(aes128Decrypt(sessionData.accessKey, encryptedPassword))
-		let userPassphraseKey: Aes128Key
+		let userPassphraseKey: Aes128Key | Aes256Key
 
-		if (externalUserSalt) {
-			await this.checkOutdatedExternalSalt(credentials, sessionData, externalUserSalt)
-			userPassphraseKey = generateKeyFromPassphraseBcrypt(passphrase, externalUserSalt, KeyLength.b128)
+		if (externalUserKeyDeriver) {
+			await this.checkOutdatedExternalSalt(credentials, sessionData, externalUserKeyDeriver.salt)
+			userPassphraseKey = await this.deriveUserPassphraseKey(externalUserKeyDeriver.kdfType, passphrase, externalUserKeyDeriver.salt)
 		} else {
 			userPassphraseKey = await this.loadUserPassphraseKey(credentials.login, passphrase)
 		}
@@ -768,13 +776,19 @@ export class LoginFacade {
 	}
 
 	async changePassword(oldPassword: string, newPassword: string): Promise<void> {
-		const userSalt = assertNotNull(this.userFacade.getLoggedInUser().salt)
-		let oldAuthVerifier = createAuthVerifier(generateKeyFromPassphraseBcrypt(oldPassword, userSalt, KeyLength.b128))
-		let salt = generateRandomSalt()
-		let userPassphraseKey = generateKeyFromPassphraseBcrypt(newPassword, salt, KeyLength.b128)
-		let pwEncUserGroupKey = encryptKey(userPassphraseKey, this.userFacade.getUserGroupKey())
-		let authVerifier = createAuthVerifier(userPassphraseKey)
-		let service = createChangePasswordData()
+		const currentKdfType = this.userFacade.getLoggedInUser().kdfVersion as KdfType
+		const oldSalt = assertNotNull(this.userFacade.getLoggedInUser().salt)
+		const oldUserPassphraseKey = await this.deriveUserPassphraseKey(currentKdfType, oldPassword, oldSalt)
+		const oldAuthVerifier = createAuthVerifier(oldUserPassphraseKey)
+
+		const salt = generateRandomSalt()
+		const newKdfType = this.pickKdfType(currentKdfType)
+		const userPassphraseKey = await this.deriveUserPassphraseKey(newKdfType, newPassword, salt)
+		const pwEncUserGroupKey = encryptKey(userPassphraseKey, this.userFacade.getUserGroupKey())
+		const authVerifier = createAuthVerifier(userPassphraseKey)
+		const service = createChangePasswordData()
+
+		service.kdfVersion = newKdfType
 		service.oldVerifier = oldAuthVerifier
 		service.salt = salt
 		service.verifier = authVerifier
@@ -782,10 +796,18 @@ export class LoginFacade {
 		await this.serviceExecutor.post(ChangePasswordService, service)
 	}
 
+	/**
+	 * Determine the KDF type to use, in case it is overridden via `Const`
+	 */
+	pickKdfType(currentKdfType: KdfType): KdfType {
+		return Const.USE_NEW_KDF_TYPE ? KdfType.Argon2id : currentKdfType
+	}
+
 	async deleteAccount(password: string, reason: string, takeover: string): Promise<void> {
-		let d = createDeleteCustomerData()
+		const d = createDeleteCustomerData()
 		const userSalt = assertNotNull(this.userFacade.getLoggedInUser().salt)
-		d.authVerifier = createAuthVerifier(generateKeyFromPassphraseBcrypt(password, userSalt, KeyLength.b128))
+		const passwordKey = await this.deriveUserPassphraseKey(asKdfType(this.userFacade.getLoggedInUser().kdfVersion), password, userSalt)
+		d.authVerifier = createAuthVerifier(passwordKey)
 		d.undelete = false
 		d.customer = neverNull(neverNull(this.userFacade.getLoggedInUser()).customer)
 		d.reason = reason
@@ -798,18 +820,8 @@ export class LoginFacade {
 		await this.serviceExecutor.delete(CustomerService, d)
 	}
 
-	decryptUserPassword(userId: string, deviceToken: string, encryptedPassword: string): Promise<string> {
-		const getData = createAutoLoginDataGet()
-		getData.userId = userId
-		getData.deviceToken = deviceToken
-		return this.serviceExecutor.get(AutoLoginService, getData).then((returnData) => {
-			const key = uint8ArrayToKey(returnData.deviceKey)
-			return utf8Uint8ArrayToString(aes128Decrypt(key, base64ToUint8Array(encryptedPassword)))
-		})
-	}
-
 	/** Changes user password to another one using recoverCode instead of the old password. */
-	recoverLogin(mailAddress: string, recoverCode: string, newPassword: string, clientIdentifier: string): Promise<void> {
+	async recoverLogin(mailAddress: string, recoverCode: string, newPassword: string, clientIdentifier: string): Promise<void> {
 		const sessionData = createCreateSessionData()
 		const recoverCodeKey = uint8ArrayToBitArray(hexToUint8Array(recoverCode))
 		const recoverCodeVerifier = createAuthVerifier(recoverCodeKey)
@@ -838,43 +850,54 @@ export class LoginFacade {
 			this.blobAccessTokenFacade,
 		)
 		const entityClient = new EntityClient(eventRestClient)
-		return this.serviceExecutor
-			.post(SessionService, sessionData) // Don't pass email address to avoid proposing to reset second factor when we're resetting password
-			.then((createSessionReturn) => this.waitUntilSecondFactorApprovedOrCancelled(createSessionReturn, null))
-			.then((sessionData) => {
-				return entityClient
-					.load(UserTypeRef, sessionData.userId, undefined, {
-						accessToken: sessionData.accessToken,
-					})
-					.then((user) => {
-						if (user.auth == null || user.auth.recoverCode == null) {
-							return Promise.reject(new Error("missing recover code"))
-						}
+		const createSessionReturn = await this.serviceExecutor.post(SessionService, sessionData) // Don't pass email address to avoid proposing to reset second factor when we're resetting password
 
-						const extraHeaders = {
-							accessToken: sessionData.accessToken,
-							recoverCodeVerifier: recoverCodeVerifierBase64,
-						}
-						return entityClient.load(RecoverCodeTypeRef, user.auth.recoverCode, undefined, extraHeaders)
-					})
-					.then((recoverCode) => {
-						const groupKey = aes256DecryptKey(recoverCodeKey, recoverCode.recoverCodeEncUserGroupKey)
-						let salt = generateRandomSalt()
-						let userPassphraseKey = generateKeyFromPassphraseBcrypt(newPassword, salt, KeyLength.b128)
-						let pwEncUserGroupKey = encryptKey(userPassphraseKey, groupKey)
-						let newPasswordVerifier = createAuthVerifier(userPassphraseKey)
-						const postData = createChangePasswordData()
-						postData.salt = salt
-						postData.pwEncUserGroupKey = pwEncUserGroupKey
-						postData.verifier = newPasswordVerifier
-						postData.recoverCodeVerifier = recoverCodeVerifier
-						const extraHeaders = {
-							accessToken: sessionData.accessToken,
-						}
-						return this.serviceExecutor.post(ChangePasswordService, postData, { extraHeaders })
-					})
-					.finally(() => this.deleteSession(sessionData.accessToken))
-			})
+		const sessionData2ElectricBoogaloo = await this.waitUntilSecondFactorApprovedOrCancelled(createSessionReturn, null)
+		const user = await entityClient.load(UserTypeRef, sessionData2ElectricBoogaloo.userId, undefined, {
+			accessToken: sessionData2ElectricBoogaloo.accessToken,
+		})
+		if (user.auth == null || user.auth.recoverCode == null) {
+			throw new Error("missing recover code")
+		}
+		const extraHeaders4 = {
+			accessToken: sessionData2ElectricBoogaloo.accessToken,
+			recoverCodeVerifier: recoverCodeVerifierBase64,
+		}
+
+		const recoverCode3RevengeOfTheSith = await entityClient.load(RecoverCodeTypeRef, user.auth.recoverCode, undefined, extraHeaders4)
+
+		try {
+			const groupKey = aes256DecryptKey(recoverCodeKey, recoverCode3RevengeOfTheSith.recoverCodeEncUserGroupKey)
+			const salt = generateRandomSalt()
+			const kdfType = this.pickKdfType(KdfType.Bcrypt)
+
+			const userPassphraseKey = await this.deriveUserPassphraseKey(kdfType, newPassword, salt)
+			const pwEncUserGroupKey = encryptKey(userPassphraseKey, groupKey)
+			const newPasswordVerifier = createAuthVerifier(userPassphraseKey)
+			const postData = createChangePasswordData()
+			postData.salt = salt
+			postData.kdfVersion = kdfType
+			postData.pwEncUserGroupKey = pwEncUserGroupKey
+			postData.verifier = newPasswordVerifier
+			postData.recoverCodeVerifier = recoverCodeVerifier
+
+			const extraHeaders = {
+				accessToken: sessionData2ElectricBoogaloo.accessToken,
+			}
+			await this.serviceExecutor.post(ChangePasswordService, postData, { extraHeaders })
+		} finally {
+			this.deleteSession(sessionData2ElectricBoogaloo.accessToken)
+		}
+	}
+
+	decryptUserPassword(userId: string, deviceToken: string, encryptedPassword: string): Promise<string> {
+		const getData = createAutoLoginDataGet()
+		getData.userId = userId
+		getData.deviceToken = deviceToken
+		return this.serviceExecutor.get(AutoLoginService, getData).then((returnData) => {
+			const key = uint8ArrayToKey(returnData.deviceKey)
+			return utf8Uint8ArrayToString(aes128Decrypt(key, base64ToUint8Array(encryptedPassword)))
+		})
 	}
 
 	/** Deletes second factors using recoverCode as second factor. */

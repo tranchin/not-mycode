@@ -6,7 +6,7 @@ import { lang } from "../misc/LanguageViewModel"
 import { keyManager, Shortcut } from "../misc/KeyManager"
 import { client } from "../misc/ClientDetector"
 import { showProgressDialog } from "../gui/dialogs/ProgressDialog"
-import { KdfType, Keys } from "../api/common/TutanotaConstants"
+import { asKdfType, KdfType, Keys } from "../api/common/TutanotaConstants"
 import { progressIcon } from "../gui/base/Icon"
 import { Button, ButtonType } from "../gui/base/Button.js"
 import { Autocomplete, TextField, TextFieldType as TextFieldType } from "../gui/base/TextField.js"
@@ -28,10 +28,6 @@ import { LoginScreenHeader } from "../gui/LoginScreenHeader.js"
 assertMainOrNode()
 
 type UrlData = { userId: Id; salt: Uint8Array; kdfType: KdfType }
-
-function isKdfType(kdfType: string): kdfType is KdfType {
-	return Object.values(KdfType).includes(kdfType as KdfType)
-}
 
 export class ExternalLoginViewModel {
 	password: string = ""
@@ -97,7 +93,7 @@ export class ExternalLoginViewModel {
 	}
 
 	private async resumeSession(credentials: Credentials): Promise<void> {
-		const result = await locator.logins.resumeSession({ credentials, databaseKey: null }, this.urlData.salt, null)
+		const result = await locator.logins.resumeSession({ credentials, databaseKey: null }, { salt: this.urlData.salt, kdfType: this.urlData.kdfType }, null)
 		if (result.type === "error") {
 			switch (result.reason) {
 				case ResumeSessionErrorReason.OfflineNotAvailableForFree:
@@ -147,11 +143,7 @@ export class ExternalLoginViewModel {
 			const saltOffset = userIdOffset + GENERATED_MIN_ID.length
 			const kdfOffset = saltOffset + 22
 
-			const kdfType = id.length === kdfOffset ? KdfType.Bcrypt : id.substring(kdfOffset, kdfOffset + 1)
-			if (!isKdfType(kdfType)) {
-				// noinspection ExceptionCaughtLocallyJS
-				throw new Error("bad kdf type")
-			}
+			const kdfType = id.length === kdfOffset ? KdfType.Bcrypt : asKdfType(id.substring(kdfOffset, kdfOffset + 1))
 
 			this._urlData = {
 				userId: id.substring(userIdOffset, saltOffset),

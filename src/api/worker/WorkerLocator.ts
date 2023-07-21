@@ -251,6 +251,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 			locator.cachingEntityClient,
 			locator.serviceExecutor,
 			mainInterface.operationProgressTracker,
+			locator.login,
 		)
 	})
 	locator.customer = lazyMemoized(async () => {

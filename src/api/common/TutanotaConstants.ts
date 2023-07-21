@@ -246,6 +246,8 @@ export const Const = {
 	MEMORY_WARNING_FACTOR: 0.9,
 	// Sets the current date for testing date dependent services. Only available in test environments.
 	CURRENT_DATE: null,
+	// force usage of Argon2id when creating passwords
+	USE_NEW_KDF_TYPE: false,
 	CURRENCY_SYMBOL_EUR: "€",
 } as const
 
@@ -1063,4 +1065,11 @@ export const UsageTestParticipationModeToName = reverse(UsageTestParticipationMo
 export enum TerminationPeriodOptions {
 	EndOfCurrentPeriod = "0",
 	FutureDate = "1",
+}
+
+export function asKdfType(maybe: string): KdfType {
+	if (Object.values(KdfType).includes(maybe as KdfType)) {
+		return maybe as KdfType
+	}
+	throw new Error("bad kdf type")
 }

@@ -60,6 +60,17 @@ export async function showChangeOwnPasswordDialog(allowCancel: boolean = true) {
 					}),
 				)
 				.catch((e) => {
+					console.log(e)
+					console.log(e)
+					console.log(e)
+					console.log(e)
+					console.log(e)
+					console.log(e)
+					console.log(e)
+					console.log(e)
+					console.log(e)
+					console.log(e)
+					console.log(e)
 					Dialog.message("passwordResetFailed_msg")
 				})
 		}

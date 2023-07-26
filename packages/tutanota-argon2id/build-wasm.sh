@@ -71,4 +71,4 @@ e emcc \
 # - This was added to Firefox 79 in 2020
 # - This was added to Safari 15 (macOS 10.15 Catalina or newer) in 2021
 #
-# memcpy() seems to break with an 'unreachable' error on large copies, except if -Oz is passed for some undocumented reason
+# Without it, memcpy() seems to break with an 'unreachable' error on large copies, except if -Oz is passed for some undocumented reason

@@ -1,5 +1,4 @@
-// @ts-ignore[untyped-import]
-import { argon2id } from "@tutao/tutanota-argon2id"
+import { argon2idHashRaw } from "@tutao/tutanota-argon2id"
 import { Aes256Key } from "../encryption/Aes.js"
 import { sha256Hash } from "./Sha256.js"
 import { stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
@@ -18,6 +17,6 @@ const KEY_LENGTH = 32
  * @return resolved with the key
  */
 export async function generateKeyFromPassphrase(pass: string, salt: Uint8Array): Promise<Aes256Key> {
-	let hash: Uint8Array = await argon2id(ITERATIONS, MEMORY_IN_KiB, PARALLELISM, sha256Hash(stringToUtf8Uint8Array(pass)), salt, KEY_LENGTH)
+	let hash: Uint8Array = await argon2idHashRaw(ITERATIONS, MEMORY_IN_KiB, PARALLELISM, sha256Hash(stringToUtf8Uint8Array(pass)), salt, KEY_LENGTH)
 	return uint8ArrayToBitArray(hash)
 }

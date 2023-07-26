@@ -150,7 +150,7 @@ o.spec("crypto compatibility", function () {
 			o(uint8ArrayToHex(bitArrayToUint8Array(key))).equals(td.keyHex)
 		})
 	})
-	o.only("argon2id", async function () {
+	o("argon2id", async function () {
 		testData.argon2idTests.forEach(async (td) => {
 			let key = await generateKeyFromPassphraseArgon2id(td.password, hexToUint8Array(td.saltHex))
 			o(uint8ArrayToHex(bitArrayToUint8Array(key))).equals(td.keyHex)

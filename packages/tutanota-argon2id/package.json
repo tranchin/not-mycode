@@ -4,9 +4,10 @@
 	"description": "WebAssembly implementation of Argon2id",
 	"main": "lib/index.js",
 	"type": "module",
+	"types": "lib/index.js",
 	"files": [
 		"lib/index.js",
-		"lib/wasm/argon2.wasm"
+		"lib/wasm"
 	],
 	"scripts": {
 		"test": "echo \"no test\""

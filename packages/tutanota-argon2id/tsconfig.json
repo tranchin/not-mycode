@@ -1,0 +1,11 @@
+{
+	"extends": "../../tsconfig_common.json",
+	"files": ["lib/index.js"],
+	"compilerOptions": {
+		"outDir": "dist",
+		"composite": true,
+		"incremental": true,
+		"rootDir": "lib",
+		"tsBuildInfoFile": "dist/tsbuildinfo"
+	}
+}

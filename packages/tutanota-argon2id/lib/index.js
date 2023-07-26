@@ -3,11 +3,14 @@ let argon2Module = undefined
 async function loadArgon2Module() {
 	if (!argon2Module) {
 		if (typeof process !== "undefined") {
+			const { join, dirname } = await import("node:path")
 			const { readFile } = await import("node:fs/promises")
-			const wasmBuffer = await readFile("./wasm/argon2.wasm")
-			argon2Module = await WebAssembly.instantiate(wasmBuffer)
+			const { fileURLToPath } = await import("node:url")
+			const wasmPath = join(dirname(fileURLToPath(import.meta.url)), "wasm", "argon2.wasm")
+			const wasmBuffer = await readFile(wasmPath)
+			argon2Module = WebAssembly.instantiate(wasmBuffer)
 		} else {
-			argon2Module = await WebAssembly.instantiateStreaming(fetch("./wasm/argon2.wasm"))
+			argon2Module = await WebAssembly.instantiateStreaming(fetch(wasmPath))
 		}
 	}
 	return argon2Module.instance.exports
@@ -15,15 +18,16 @@ async function loadArgon2Module() {
 
 /**
  * Calculate an Argon2id hash
- * @param timeCost number of iterations
- * @param memoryCost memory cost in KiB (x1024 bytes)
- * @param parallelism degree of parallelism
- * @param password password to hash
- * @param salt salt to hash with
- * @param hashLength desired hash length in bytes
- * @returns {Uint8Array}
+ * @param timeCost {number} number of iterations
+ * @param memoryCost {number} memory cost in KiB (x1024 bytes)
+ * @param parallelism {number} degree of parallelism
+ * @param password {Uint8Array} password to hash
+ * @param salt {Uint8Array} salt to hash with
+ * @param hashLength {number} desired hash length in bytes
+ * @returns {Promise<Uint8Array>} generated hash
+ * @throws {Error} if parameters are invalid or a memory allocation failure occurs
  */
-async function argon2id(timeCost, memoryCost, parallelism, password, salt, hashLength) {
+async function argon2idHashRaw(timeCost, memoryCost, parallelism, password, salt, hashLength) {
 	// Load argon2 if not loaded
 	let argon2 = await loadArgon2Module()
 
@@ -33,7 +37,7 @@ async function argon2id(timeCost, memoryCost, parallelism, password, salt, hashL
 	const pwdBuf = new Uint8Array(argon2.memory.buffer, argon2.malloc(password.length), password.length)
 
 	try {
-		// Check if allocations were successful (note that free(NULL) is safe if we hit the `finally` block)
+		// Check if allocations were successful (note that free(NULL) is a no-op if we hit the `finally` block)
 		if (hashBuf.byteOffset === 0 || saltBuf.byteOffset === 0 || pwdBuf.byteOffset === 0) {
 			throw new Error("argon2id malloc failure")
 		}
@@ -73,4 +77,4 @@ async function argon2id(timeCost, memoryCost, parallelism, password, salt, hashL
 	}
 }
 
-export { argon2id }
+export { argon2idHashRaw }

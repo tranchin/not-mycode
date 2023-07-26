@@ -24,7 +24,7 @@ import { UserFacade } from "../../../../../src/api/worker/facades/UserFacade"
 import { SaltService, SessionService } from "../../../../../src/api/entities/sys/Services"
 import { Credentials } from "../../../../../src/misc/credentials/Credentials"
 import { defer, DeferredObject, uint8ArrayToBase64 } from "@tutao/tutanota-utils"
-import { AccountType } from "../../../../../src/api/common/TutanotaConstants"
+import { AccountType, KdfType } from "../../../../../src/api/common/TutanotaConstants"
 import { AccessExpiredError, ConnectionError, NotAuthenticatedError } from "../../../../../src/api/common/error/RestError"
 import { assertThrows, verify } from "@tutao/tutanota-test-utils"
 import { SessionType } from "../../../../../src/api/common/SessionType"
@@ -261,7 +261,18 @@ o.spec("LoginFacadeTest", function () {
 						anything(),
 					),
 				).thenReject(new NotAuthenticatedError("not your cheese"))
-				await assertThrows(NotAuthenticatedError, () => facade.resumeSession(credentials, SALT, dbKey, timeRangeDays))
+
+				await assertThrows(NotAuthenticatedError, () =>
+					facade.resumeSession(
+						credentials,
+						{
+							salt: SALT,
+							kdfType: KdfType.Bcrypt,
+						},
+						dbKey,
+						timeRangeDays,
+					),
+				)
 				verify(cacheStorageInitializerMock.deInitialize())
 			})
 		})
@@ -327,7 +338,7 @@ o.spec("LoginFacadeTest", function () {
 					throw new ConnectionError("Oopsie 1")
 				})
 
-				const result = await facade.resumeSession(credentials, user.salt, dbKey, timeRangeDays).finally(() => {
+				const result = await facade.resumeSession(credentials, { salt: user.salt!, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays).finally(() => {
 					calls.push("return")
 				})
 
@@ -346,7 +357,7 @@ o.spec("LoginFacadeTest", function () {
 				const deferred = defer()
 				when(loginListener.onFullLoginSuccess(matchers.anything(), matchers.anything())).thenDo(() => deferred.resolve(null))
 
-				const result = await facade.resumeSession(credentials, user.salt, dbKey, timeRangeDays)
+				const result = await facade.resumeSession(credentials, { salt: user.salt!, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays)
 
 				o(result.type).equals("success")
 
@@ -371,7 +382,7 @@ o.spec("LoginFacadeTest", function () {
 				const deferred = defer()
 				when(loginListener.onPartialLoginSuccess()).thenDo(() => deferred.resolve(null))
 
-				const result = await facade.resumeSession(credentials, user.salt, dbKey, timeRangeDays)
+				const result = await facade.resumeSession(credentials, { salt: user.salt!, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays)
 
 				await deferred.promise
 
@@ -411,7 +422,7 @@ o.spec("LoginFacadeTest", function () {
 					return JSON.stringify({ user: userId, accessKey: keyToBase64(accessKey) })
 				})
 
-				await facade.resumeSession(credentials, user.salt, dbKey, timeRangeDays).finally(() => {
+				await facade.resumeSession(credentials, { salt: user.salt!, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays).finally(() => {
 					calls.push("return")
 				})
 				o(calls).deepEquals(["sessionService", "setUser", "return"])
@@ -423,7 +434,9 @@ o.spec("LoginFacadeTest", function () {
 					throw new ConnectionError("Oopsie 3")
 				})
 
-				await assertThrows(ConnectionError, () => facade.resumeSession(credentials, user.salt, dbKey, timeRangeDays))
+				await assertThrows(ConnectionError, () =>
+					facade.resumeSession(credentials, { salt: user.salt!, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays),
+				)
 				o(calls).deepEquals(["sessionService"])
 			}
 		})
@@ -485,7 +498,7 @@ o.spec("LoginFacadeTest", function () {
 					JSON.stringify({ user: userId, accessKey: keyToBase64(accessKey) }),
 				)
 
-				await facade.resumeSession(credentials, user.salt, dbKey, timeRangeDays)
+				await facade.resumeSession(credentials, { salt: user.salt!, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays)
 
 				await fullLoginDeferred.promise
 
@@ -508,7 +521,7 @@ o.spec("LoginFacadeTest", function () {
 					// the type definitions for testdouble are lacking, but we can do this
 					.thenReturn(Promise.reject(connectionError), Promise.resolve(JSON.stringify({ user: userId, accessKey: keyToBase64(accessKey) })))
 
-				await facade.resumeSession(credentials, user.salt, dbKey, timeRangeDays)
+				await facade.resumeSession(credentials, { salt: user.salt!, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays)
 
 				verify(userFacade.setAccessToken("accessToken"))
 				verify(userFacade.unlockUserGroupKey(anything()), { times: 0 })
@@ -568,7 +581,7 @@ o.spec("LoginFacadeTest", function () {
 			})
 
 			o("when the salt is not outdated, login works", async function () {
-				const result = await facade.resumeSession(credentials, SALT, null, timeRangeDays)
+				const result = await facade.resumeSession(credentials, { salt: SALT, kdfType: KdfType.Bcrypt }, null, timeRangeDays)
 
 				o(result.type).equals("success")
 			})
@@ -576,7 +589,7 @@ o.spec("LoginFacadeTest", function () {
 			o("when the salt is outdated, AccessExpiredError is thrown", async function () {
 				user.externalAuthInfo!.latestSaltHash = new Uint8Array([1, 2, 3])
 
-				await assertThrows(AccessExpiredError, () => facade.resumeSession(credentials, SALT, null, timeRangeDays))
+				await assertThrows(AccessExpiredError, () => facade.resumeSession(credentials, { salt: SALT, kdfType: KdfType.Bcrypt }, null, timeRangeDays))
 				verify(restClientMock.request(matchers.contains("sys/session"), HttpMethod.DELETE, anything()), { times: 0 })
 			})
 
@@ -584,7 +597,7 @@ o.spec("LoginFacadeTest", function () {
 				user.verifier = new Uint8Array([1, 2, 3])
 				when(restClientMock.request(matchers.contains("sys/session"), HttpMethod.DELETE, anything())).thenResolve(null)
 
-				await assertThrows(NotAuthenticatedError, () => facade.resumeSession(credentials, SALT, null, timeRangeDays))
+				await assertThrows(NotAuthenticatedError, () => facade.resumeSession(credentials, { salt: SALT, kdfType: KdfType.Bcrypt }, null, timeRangeDays))
 				verify(restClientMock.request(matchers.contains("sys/session"), HttpMethod.DELETE, anything()))
 			})
 		})

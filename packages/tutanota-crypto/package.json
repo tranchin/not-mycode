@@ -21,8 +21,7 @@
 		"tsconfig.json"
 	],
 	"dependencies": {
-		"@types/argon2-browser": "1.18.1",
-		"argon2-browser": "1.18.0"
+		"@tutao/tutanota-argon2id": "file:../tutanota-argon2id"
 	},
 	"devDependencies": {
 		"typescript": "5.0.4",

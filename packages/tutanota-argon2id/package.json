@@ -1,0 +1,15 @@
+{
+	"name": "@tutao/tutanota-argon2id",
+	"version": "3.115.2",
+	"description": "WebAssembly implementation of Argon2id",
+	"main": "lib/index.js",
+	"type": "module",
+	"files": [
+		"lib/index.js",
+		"lib/wasm/argon2.wasm"
+	],
+	"scripts": {
+		"test": "echo \"no test\""
+	},
+	"license": "GPL-3.0"
+}

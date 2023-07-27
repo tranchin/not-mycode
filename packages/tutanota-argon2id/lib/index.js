@@ -1,20 +1,4 @@
-let argon2Module = undefined
-
-async function loadArgon2Module() {
-	if (!argon2Module) {
-		if (typeof process !== "undefined") {
-			const { join, dirname } = await import("node:path")
-			const { readFile } = await import("node:fs/promises")
-			const { fileURLToPath } = await import("node:url")
-			const wasmPath = join(dirname(fileURLToPath(import.meta.url)), "wasm", "argon2.wasm")
-			const wasmBuffer = await readFile(wasmPath)
-			argon2Module = WebAssembly.instantiate(wasmBuffer)
-		} else {
-			argon2Module = await WebAssembly.instantiateStreaming(fetch(wasmPath))
-		}
-	}
-	return argon2Module.instance.exports
-}
+import { loadArgon2Module } from "./loader.js"
 
 /**
  * Calculate an Argon2id hash

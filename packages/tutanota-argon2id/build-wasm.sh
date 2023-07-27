@@ -45,7 +45,6 @@ TOTAL_MEMORY=32MB
 e emcc \
 	"${ARGON2_DIR}/src/argon2.c" \
 	"${ARGON2_DIR}/src/core.c" \
-	"${ARGON2_DIR}/src/encoding.c" \
 	"${ARGON2_DIR}/src/ref.c" \
 	"${ARGON2_DIR}/src/blake2/blake2b.c" \
 	-I "${ARGON2_DIR}/include" \
@@ -63,12 +62,16 @@ e emcc \
 # --no-entry creates a WebAssembly module without a main function
 # -s TOTAL_MEMORY=$TOTAL_MEMORY allocates memory for the VM
 # -s EXPORTED_FUNCTIONS exports C functions (note that C functions are emitted with a _ prefix; this is just how C works)
+# -I adds an include directory - needed for argon2 to compile
 
 # Another argument that might be worth considering is -mbulk-memory
 #
-# -mbulk-memory enables native WebAssembly bulk memory operations and slightly reduces the size of the binary even further
+# -mbulk-memory enables native WebAssembly bulk memory operations and slightly reduces the size of the binary even
+# further, but it is not supported on all WebAssembly implementations
+#
 # - This was added to Chromium 75 in 2019
 # - This was added to Firefox 79 in 2020
 # - This was added to Safari 15 (macOS 10.15 Catalina or newer) in 2021
 #
-# Without it, memcpy() seems to break with an 'unreachable' error on large copies, except if -Oz is passed for some undocumented reason
+# Without it, memcpy() seems to break with an 'unreachable' error on large copies, except if -Oz is passed for some
+# undocumented reason

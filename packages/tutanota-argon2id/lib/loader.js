@@ -15,7 +15,7 @@ export async function loadArgon2Module() {
 				throw new Error("Trying to import as node which is not available")
 			}
 		} else {
-			argon2Module = await WebAssembly.instantiateStreaming(await fetch("/client/build/wasm/argon2.wasm")) // TODO: figure this out
+			argon2Module = await WebAssembly.instantiateStreaming(await fetch("wasm/argon2.wasm"))
 		}
 	}
 	return argon2Module.instance.exports

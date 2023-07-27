@@ -1,6 +1,6 @@
 {
 	"extends": "../../tsconfig_common.json",
-	"files": ["lib/index.js"],
+	"files": ["lib/index.js", "lib/loader.js"],
 	"compilerOptions": {
 		"outDir": "dist",
 		"composite": true,

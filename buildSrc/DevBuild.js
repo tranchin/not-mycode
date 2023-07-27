@@ -195,10 +195,10 @@ export async function prepareAssets(stage, host, version) {
 		fs.copy(path.join(root, "/src/braintree.html"), path.join(root, "build/braintree.html")),
 	])
 
-	const wasmDir = path.join(root, "build", "wasm")
+	const wasmDir = path.join(root, "/build/wasm")
 	await Promise.all([
 		await fs.emptyDir(wasmDir),
-		fs.copy(path.join(root, "packages", "tutanota-argon2id", "lib", "wasm", "argon2.wasm"), path.join(wasmDir, "argon2.wasm")),
+		fs.copy(path.join(root, "/packages/tutanota-argon2id/lib/wasm/argon2.wasm"), path.join(wasmDir, "argon2.wasm")),
 	])
 
 	// write empty file

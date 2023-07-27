@@ -59,6 +59,10 @@ export async function buildWebapp({ version, stage, host, measure, minify, proje
 	await fs.copy(path.join(projectDir, "/resources/wordlibrary.json"), path.join(projectDir, "build/dist/wordlibrary.json"))
 	await fs.copy(path.join(projectDir, "/src/braintree.html"), path.join(projectDir, "/build/dist/braintree.html"))
 
+	const wasmDir = path.join(projectDir, "/build/dist/wasm")
+	await fs.emptyDir(wasmDir)
+	await fs.copy(path.join(projectDir, "/packages/tutanota-argon2id/lib/wasm/argon2.wasm"), path.join(wasmDir, "argon2.wasm"))
+
 	console.log("started bundling", measure())
 	const bundle = await rollup({
 		input: ["src/app.ts", "src/api/worker/worker.ts"],

@@ -247,7 +247,7 @@ export const Const = {
 	// Sets the current date for testing date dependent services. Only available in test environments.
 	CURRENT_DATE: null,
 	// force usage of Argon2id when creating passwords
-	USE_NEW_KDF_TYPE: true,
+	USE_NEW_KDF_TYPE: false,
 	CURRENCY_SYMBOL_EUR: "€",
 } as const
 

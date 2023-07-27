@@ -52,6 +52,9 @@ function makeUser({ id, passphrase, salt }) {
 			symEncGKey: groupKey,
 			groupInfo: ["groupInfoListId", "groupInfoElId"],
 		}),
+		externalAuthInfo: createUserExternalAuthInfo({
+			latestSaltHash: SALT,
+		}),
 	})
 }
 
@@ -422,9 +425,11 @@ o.spec("LoginFacadeTest", function () {
 					return JSON.stringify({ user: userId, accessKey: keyToBase64(accessKey) })
 				})
 
-				await facade.resumeSession(credentials, { salt: user.salt!, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays).finally(() => {
-					calls.push("return")
-				})
+				await facade
+					.resumeSession(credentials, user.salt == null ? null : { salt: user.salt, kdfType: KdfType.Bcrypt }, dbKey, timeRangeDays)
+					.finally(() => {
+						calls.push("return")
+					})
 				o(calls).deepEquals(["sessionService", "setUser", "return"])
 			}
 

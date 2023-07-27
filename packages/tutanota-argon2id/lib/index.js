@@ -1,6 +1,13 @@
 import { loadArgon2Module } from "./loader.js"
 
 /**
+ * @param array {Uint8Array}
+ */
+function isNull(array) {
+	return array.byteOffset === 0
+}
+
+/**
  * Calculate an Argon2id hash
  * @param timeCost {number} number of iterations
  * @param memoryCost {number} memory cost in KiB (x1024 bytes)
@@ -22,7 +29,7 @@ async function argon2idHashRaw(timeCost, memoryCost, parallelism, password, salt
 
 	try {
 		// Check if allocations were successful (note that free(NULL) is a no-op if we hit the `finally` block)
-		if (hashBuf.byteOffset === 0 || saltBuf.byteOffset === 0 || pwdBuf.byteOffset === 0) {
+		if (isNull(hashBuf.byteOffset) || isNull(saltBuf.byteOffset) || isNull(pwdBuf)) {
 			throw new Error("argon2id malloc failure")
 		}
 
@@ -54,6 +61,11 @@ async function argon2idHashRaw(timeCost, memoryCost, parallelism, password, salt
 		finalHash.set(hashBuf)
 		return finalHash
 	} finally {
+		// We should clear this, as the VM will otherwise remain in memory when we want to use it again, and we don't want a lingering password here.
+		if (!isNull(pwdBuf)) {
+			pwdBuf.fill(0x00)
+		}
+
 		// Free allocations (prevent memory leakage as we may re-use this argon)
 		argon2.free(pwdBuf.byteOffset)
 		argon2.free(saltBuf.byteOffset)

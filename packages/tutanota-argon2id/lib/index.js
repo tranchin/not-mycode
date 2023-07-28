@@ -2,6 +2,7 @@ import { loadArgon2Module } from "./loader.js"
 
 /**
  * @param array {Uint8Array}
+ * @return {boolean} true if the array has an offset of 0 (NULL), false otherwise
  */
 function isNull(array) {
 	return array.byteOffset === 0

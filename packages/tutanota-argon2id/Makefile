@@ -1,60 +1,31 @@
-#!/bin/bash
-
-# Shell script to build the argon2 WebAssembly
-
-OUTPUT_DIR=lib/wasm
-ARGON2_DIR=phc-winner-argon2
-
-# Print and then execute, exiting if a non-zero status code is returned
-function e() {
-	echo "$ $@"
-	"${@}"
-	if [[ $? != 0 ]]; then
-		ERROR_CODE=$?
-		echo "Failed to build argon2 WebAssembly. Command failed with error code $ERROR_CODE"
-		exit $ERROR_CODE
-	fi
-}
-
-if [[ "$#" != "0" ]]; then
-	if [[ "$1" == "help" || "$1" == "--help" || "$1" == "-h" ]]; then
-		echo "Usage: $0 [clean | help]"
-		exit
-	elif [[ "$1" == "clean" ]]; then
-		e rm -rf "${OUTPUT_DIR}" "${ARGON2_DIR}"
-		exit
-	else
-		echo "Unknown argument $1" 1>&2
-		"${0}" help
-		exit
-	fi
-fi
-
-if [[ ! -d "${ARGON2_DIR}" ]]; then
-	e git clone https://github.com/tutao/phc-winner-argon2 "${ARGON2_DIR}"
-else
-	e git -C "${ARGON2_DIR}" pull
-fi
-
-if [[ ! -d "${OUTPUT_DIR}" ]]; then
-	e mkdir "${OUTPUT_DIR}"
-fi
+# Makefile for building argon2.wasm (NOTE: this is not for building the package itself - use npm for this!)
 
 # If you run out of memory (ARGON2_MEMORY_ALLOCATION_ERROR) and it's not being caused by a memory leak, try increasing this.
 TOTAL_MEMORY=32MB
-e emcc \
-	"${ARGON2_DIR}/src/argon2.c" \
-	"${ARGON2_DIR}/src/core.c" \
-	"${ARGON2_DIR}/src/ref.c" \
-	"${ARGON2_DIR}/src/blake2/blake2b.c" \
-	-I "${ARGON2_DIR}/include" \
-	-DARGON2_NO_THREADS \
-	-flto \
-	-Oz \
-	--no-entry \
-	-s TOTAL_MEMORY=$TOTAL_MEMORY \
-	-s EXPORTED_FUNCTIONS="['_argon2id_hash_raw', '_malloc', '_free']" \
-	-o "${OUTPUT_DIR}/argon2.wasm"
+
+CC=emcc
+WASM=lib/wasm/argon2.wasm
+
+all: ${WASM}
+clean:
+	rm -rf ${WASM}
+phc-winner-argon2:
+	git clone https://github.com/tutao/phc-winner-argon2 phc-winner-argon2
+${WASM}: phc-winner-argon2
+	git -C phc-winner-argon2 pull
+	${CC} \
+    	phc-winner-argon2/src/argon2.c \
+    	phc-winner-argon2/src/core.c \
+    	phc-winner-argon2/src/ref.c \
+    	phc-winner-argon2/src/blake2/blake2b.c \
+    	-I phc-winner-argon2/include \
+    	-DARGON2_NO_THREADS \
+    	-flto \
+    	-Oz \
+    	--no-entry \
+    	-s TOTAL_MEMORY=${TOTAL_MEMORY} \
+    	-s EXPORTED_FUNCTIONS="['_argon2id_hash_raw', '_malloc', '_free']" \
+    	-o ${WASM}
 
 # -DARGON2_NO_THREADS sets the "ARGON2_NO_THREADS" constant which disables threads
 # -flto enables link-time-optimization, providing a slight performance and size improvement

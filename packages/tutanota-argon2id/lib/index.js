@@ -1,4 +1,4 @@
-import { loadArgon2Module } from "./loader.js"
+import { loadArgon2Module, getArgon2Module } from "./loader.js"
 
 /**
  * @param array {Uint8Array}
@@ -21,7 +21,7 @@ function isNull(array) {
  */
 async function argon2idHashRaw(timeCost, memoryCost, parallelism, password, salt, hashLength) {
 	// Load argon2 if not loaded
-	let argon2 = await loadArgon2Module()
+	let argon2 = (await getArgon2Module()).exports
 
 	// Perform allocations (we have to allocate memory in the argon2 module's heap to pass values, as it can't access memory outside of it)
 	const hashBuf = new Uint8Array(argon2.memory.buffer, argon2.malloc(hashLength), hashLength)
@@ -74,4 +74,4 @@ async function argon2idHashRaw(timeCost, memoryCost, parallelism, password, salt
 	}
 }
 
-export { argon2idHashRaw }
+export { argon2idHashRaw, loadArgon2Module }

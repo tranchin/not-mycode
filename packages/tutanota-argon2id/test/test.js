@@ -1,4 +1,4 @@
-import { loadArgon2Module } from "../lib/loader.js"
+import { getArgon2Module } from "../lib/loader.js"
 import { argon2idHashRaw } from "../lib/index.js"
 
 function arrayHasPrefix(array, prefix, offset) {
@@ -31,7 +31,7 @@ function findFirstOccurrence(haystack, needle) {
 }
 
 // Calculate our hash. We get the argon2 module here because it's a singleton and we want to check it.
-const module = await loadArgon2Module()
+const module = await getArgon2Module()
 const password = new TextEncoder("UTF-8").encode("password1234")
 const salt = new TextEncoder("UTF-8").encode("this is my salt")
 const hash = await argon2idHashRaw(2, 19 * 1024, 1, password, salt, 32)
@@ -41,7 +41,7 @@ const hash = await argon2idHashRaw(2, 19 * 1024, 1, password, salt, 32)
  */
 function testPasswordLeakage() {
 	// Find if the password has leaked somewhere in the buffer.
-	const fullBuffer = new Uint8Array(module.memory.buffer)
+	const fullBuffer = new Uint8Array(module.exports.memory.buffer)
 	const firstOccurrence = findFirstOccurrence(fullBuffer, password)
 	if (firstOccurrence) {
 		throw new Error(`Password leaked @ 0x${firstOccurrence.toString(16).toUpperCase()}`)

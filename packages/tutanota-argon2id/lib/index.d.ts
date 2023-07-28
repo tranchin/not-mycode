@@ -9,4 +9,8 @@ async function argon2idHashRaw(
 	hashLength: number,
 ): Promise<Uint8Array>
 
-export { argon2idHashRaw }
+async function loadArgon2Module()
+
+async function setArgon2Module(module: WebAssembly.Exports)
+
+export { argon2idHashRaw, loadArgon2Module }

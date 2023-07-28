@@ -11,7 +11,7 @@
 		"lib/wasm"
 	],
 	"scripts": {
-		"test": "echo \"no test\""
+		"test": "node test/test.js"
 	},
 	"license": "GPL-3.0"
 }

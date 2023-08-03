@@ -505,6 +505,14 @@ export class PinchZoom {
 		sessionTranslation: CoordinatePair,
 		scaling: number,
 	): CoordinatePair {
+		// console.log("targetCoordinates", targetCoordinates)
+		// console.log("currentOriginalPosition", currentOriginalPosition)
+		// console.log("sessionTranslation", sessionTranslation)
+		// console.log("scaling", scaling)
+		// console.log("transformOrigin", JSON.stringify({
+		// 	x: (currentOriginalPosition.x + sessionTranslation.x - targetCoordinates.x) / (scaling - 1),
+		// 	y: (currentOriginalPosition.y + sessionTranslation.y - targetCoordinates.y) / (scaling - 1),
+		// }))
 		return {
 			x: (currentOriginalPosition.x + sessionTranslation.x - targetCoordinates.x) / (scaling - 1), // FIXME numerical unstable (causes weird behaviour while zooming out at scale 1)
 			y: (currentOriginalPosition.y + sessionTranslation.y - targetCoordinates.y) / (scaling - 1),
@@ -514,10 +522,10 @@ export class PinchZoom {
 	private lastPinchCenter = { x: 0, y: 0 }
 
 	private startPinchSession(ev: TouchEvent) {
-		this.lastMultiple = {
-			pointer1: { x: ev.touches[0].clientX, y: ev.touches[0].clientY },
-			pointer2: { x: ev.touches[1].clientX, y: ev.touches[1].clientY },
-		}
+		// this.lastMultiple = {
+		// 	pointer1: { x: ev.touches[0].clientX, y: ev.touches[0].clientY },
+		// 	pointer2: { x: ev.touches[1].clientX, y: ev.touches[1].clientY },
+		// }
 
 		this.lastPinchCenter = this.pinchCenter
 		this.pinchCenter = this.centerOfPoints({ x: ev.touches[0].clientX, y: ev.touches[0].clientY }, { x: ev.touches[1].clientX, y: ev.touches[1].clientY })
@@ -536,13 +544,15 @@ export class PinchZoom {
 		// new pinch gesture?
 		let transformOrigin = this.getTransformOrigin(this.zoomableRect)
 		let pinchSessionTranslation = this.pinchSessionTranslation
-		if (!(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))) {
-			const startedPinchSession = this.startPinchSession(ev)
-			transformOrigin = startedPinchSession.newTransformOrigin
-			pinchSessionTranslation = startedPinchSession.sessionTranslation
+
+		const newTouches = !(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))
+
+		if (newTouches) {
+			this.lastMultiple = {
+				pointer1: { x: ev.touches[0].clientX, y: ev.touches[0].clientY },
+				pointer2: { x: ev.touches[1].clientX, y: ev.touches[1].clientY },
+			}
 		}
-		//update current touches
-		this.pinchTouchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
 
 		// Calculate the scaling (1 = no scaling, 0 = maximum pinched in, >1 pinching out
 		const scaling =
@@ -551,6 +561,15 @@ export class PinchZoom {
 
 		this.lastMultiple.pointer1 = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
 		this.lastMultiple.pointer2 = { x: ev.touches[1].clientX, y: ev.touches[1].clientY }
+
+		if (newTouches || (this.current.z >= 1 && scaling < 1) || (this.current.z < 1 && scaling >= 1)) {
+			// also start a new session if scaling factor passes 1 because we need a new session Translation
+			const startedPinchSession = this.startPinchSession(ev)
+			transformOrigin = startedPinchSession.newTransformOrigin
+			pinchSessionTranslation = startedPinchSession.sessionTranslation
+		}
+		//update current touches
+		this.pinchTouchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
 
 		// let d2 = this.newScaledCoordinates(this.pinchCenter, scaling)
 		// this.setCurrentSafePosition(d.x + this.pinchZoomOrigin.x /* + this.last.x*/, d.y + this.pinchZoomOrigin.y /* + this.last.y*/, d.z + this.last.z) //FIXME
@@ -612,7 +631,7 @@ export class PinchZoom {
 			let currentRect = this.getCoords(this.zoomableRect)
 			let currentOriginalRect = this.getCurrentOriginalRect()
 			let newTransformOrigin = {
-				x: (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.current.z), //FIXME numerical instable
+				x: (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.current.z), //FIXME numerical unstable
 				y: (currentRect.y + delta.y - (currentOriginalRect.y + this.pinchSessionTranslation.y)) / (1 - this.current.z),
 			}
 
@@ -722,7 +741,7 @@ export class PinchZoom {
 		// console.log("newTransformOrigin", newTransformOrigin)
 		// console.log("translation", pinchSessionTranslation)
 		// console.log("scaling", scaling)
-		scaling = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, scaling)) // don't allow zooming out or zooming in more than 3x
+		scaling = this.makeSafeScalingValue(scaling)
 		// console.log("newScale", scaling)
 		const targetedOutcome = this.simulateTransformation(
 			currentOriginalPosition,
@@ -735,6 +754,7 @@ export class PinchZoom {
 		const targetedHeight = targetedOutcome.y2 - targetedOutcome.y
 		const targetedWidth = targetedOutcome.x2 - targetedOutcome.x
 		console.log("targeted outcome border", JSON.stringify(targetedOutcome))
+		// console.log("scaling", scaling)
 		let currentTransformOrigin = this.getTransformOrigin(this.zoomableRect)
 
 		// console.log("targeted", JSON.stringify(targetedOutcome))
@@ -748,7 +768,6 @@ export class PinchZoom {
 		const horizontalTransformationAllowed = horizontal1Allowed && horizontal2Allowed
 		const verticalTransformationAllowed = vertical1Allowed && vertical2Allowed
 
-		scaling = Math.max(scaling, 1.001) //FIXME remove
 		if (horizontalTransformationAllowed && verticalTransformationAllowed) {
 			//FIXME we should differentiate between each 4 sides - otherwise zooming out does not work, if only 1 border is touched
 			console.log("case1")
@@ -858,12 +877,36 @@ export class PinchZoom {
 			this.pinchSessionTranslation = pinchSessionTranslation
 			this.current.z = scaling
 		}
-		console.log("transform origin", JSON.stringify(this.getTransformOrigin(this.zoomableRect)))
+		// console.log("transform origin", JSON.stringify(this.getTransformOrigin(this.zoomableRect)))
 
 		return {
 			verticalTransformationAllowed,
 			horizontalTransformationAllowed,
 		}
+	}
+
+	/**
+	 * prevent the scaling value from being too close to 1 due to numerical instability
+	 * @param unsafeScaling
+	 * @private
+	 */
+	private makeSafeScalingValue(unsafeScaling: number): number {
+		let scaling = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, unsafeScaling)) // don't allow zooming out or zooming in more than 3x
+		let epsilon = 0.01
+		if (Math.abs(scaling - 1) < epsilon) {
+			// numerical unstable
+			if (this.zoomBoundaries.min === 1) {
+				scaling = 1 + epsilon
+			} else if (this.zoomBoundaries.min < 1) {
+				if (this.current.z < scaling) {
+					// try to guess the zoom direction
+					scaling = 1 + epsilon
+				} else if (this.current.z > scaling) {
+					scaling = 1 - epsilon
+				}
+			}
+		}
+		return scaling
 	}
 
 	private simulateTransformation(
@@ -873,12 +916,7 @@ export class PinchZoom {
 		relativeTransformOrigin: CoordinatePair,
 		translation: CoordinatePair,
 		scaling: number,
-	): {
-		x: number
-		y: number
-		x2: number
-		y2: number
-	} {
+	): { x: number; y: number; x2: number; y2: number } {
 		return {
 			x: currentOriginalPosition.x + relativeTransformOrigin.x - relativeTransformOrigin.x * scaling + translation.x,
 			y: currentOriginalPosition.y + relativeTransformOrigin.y - relativeTransformOrigin.y * scaling + translation.y,

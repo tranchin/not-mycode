@@ -342,7 +342,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				this.currentQuoteBehavior = attrs.defaultQuoteBehavior
 
 				if (client.isMobileDevice() && !this.pinchZoomable && this.shadowDomMailContent) {
-					console.log("create pinchzoom")
+					// this.pinchZoomable?.remove() // FIXME why type never?
 					this.pinchZoomable = new PinchZoom(this.shadowDomMailContent, vnode.dom as HTMLElement, true, (e, target) => {
 						this.handleAnchorClick(e, target, true)
 					})
@@ -422,6 +422,7 @@ export class MailViewer implements Component<MailViewerAttrs> {
 				// the PinchZoom class does not allow a changing zoomable rect size (mail body content). When we show previously unloaded images the size
 				// of the mail body changes. So we have to create a new PinchZoom object
 				console.log("creating new pinchzoom due to resize", entries[0].target, entries[0].target.getBoundingClientRect().bottom)
+				this.pinchZoomable?.remove()
 				this.pinchZoomable = new PinchZoom(wrapNode, parent as HTMLElement, true, (e, target) => {
 					this.handleAnchorClick(e, target, true)
 				})

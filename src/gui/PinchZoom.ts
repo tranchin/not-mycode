@@ -1,3 +1,5 @@
+import { Vnode } from "mithril"
+
 type CoordinatePair = {
 	x: number
 	y: number
@@ -16,34 +18,54 @@ type CoordinatePair = {
  *
  * TODO
  * * Test on iOS?
- * * Rename zoomable to zoomable?
  * * Cleanup code
  * * Documentation / comments
  * * Squash and rebase
+ * * Test notes
  */
 export class PinchZoom {
+	/// listener
+	private readonly onTouchEndListener: EventListener | null = null
+	private readonly onTouchStartListener: EventListener | null = null
+	private readonly onTouchCancelListener: EventListener | null = null
+	private readonly onTouchMoveListener: EventListener | null = null
+
+	private touchIDs: Set<number> = new Set<number>() //is used by pinch and drag separately
+	private EPSILON = 0.01
+
 	/// zooming
-	private pinchTouchIDs: Set<number> = new Set<number>() //FIXME do we need separate Sets or is one touchID set sufficient?
 	private lastPinchTouchPositions: { pointer1: CoordinatePair; pointer2: CoordinatePair } = { pointer1: { x: 0, y: 0 }, pointer2: { x: 0, y: 0 } }
 	private initialZoomablePosition = { x: 0, y: 0 }
 	private initialViewportPosition = { x: 0, y: 0 }
 	private pinchSessionTranslation: CoordinatePair = { x: 0, y: 0 }
 	private initialZoomableSize = { width: 0, height: 0 }
 	private zoomBoundaries = { min: 1, max: 3 }
+	// values of this variable should only be the result of the calculateSafeScaleValue function (except from the initial value the value must never be 1 due to division by 1-scale). Never set values directly!
 	private currentScale = 1
 
 	/// dragging
 	private lastDragTouchPosition: CoordinatePair = { x: 0, y: 0 }
-	private dragTouchIDs: Set<number> = new Set<number>()
 
 	/// double tap
 	// Two consecutive taps are recognized as double tap if they occur within this time span
 	private DOUBLE_TAP_TIME_MS = 350
+	// the radius in which we recognize a second tap
+	private DOUBLE_TAP_RADIUS = 40
 	private lastTap: {
 		x: number
 		y: number
 		time: number
 	} = { x: 0, y: 0, time: 0 }
+	private touchStart: {
+		x: number
+		y: number
+		time: number
+	} = { x: 0, y: 0, time: 0 }
+	private lastTouchStart: {
+		x: number
+		y: number
+	} = { x: 0, y: 0 }
+	private firstTapTime = 0
 	private lastTouchEndTime = 0
 
 	/**
@@ -52,20 +74,21 @@ export class PinchZoom {
 	 * @precondition zoomable must have been rendered already at least once.
 	 * @param zoomable The HTMLElement that shall be zoomed inside the viewport.
 	 * @param viewport The HTMLElement in which the zoomable is zoomed and dragged.
-	 * @param initiallyZoomToViewport If true and the width of the zoomable is bigger than the viewport width, the zoomable is zoomed out to match the viewport width.
+	 * @param initiallyZoomToViewportWidth If true and the width of the zoomable is bigger than the viewport width, the zoomable is zoomed out to match the viewport __width__ and not the height!
 	 * @param singleClickAction This function is called whenever a single click on the zoomable is detected, e.g. on a link. Since the PinchZoom class prevents all default actions these clicks need to be handled outside of this class.
 	 */
 	constructor(
 		private readonly zoomable: HTMLElement,
 		private readonly viewport: HTMLElement,
-		private readonly initiallyZoomToViewport: boolean,
+		private readonly initiallyZoomToViewportWidth: boolean,
 		private readonly singleClickAction: (e: Event, target: EventTarget | null) => void,
 	) {
+		console.log("create pinch zoom------------------------")
 		const initialZoomableCoords = this.getCoords(this.zoomable) // already needs to be rendered
 		// the content of the zoomable rect can be bigger than the rect itself due to overflow
 		this.initialZoomableSize = {
-			width: Math.max(this.zoomable.scrollWidth, initialZoomableCoords.x2 - initialZoomableCoords.x), //FIXME always using scrollWidth should be sufficient?
-			height: Math.max(this.zoomable.scrollHeight, initialZoomableCoords.y2 - initialZoomableCoords.y),
+			width: this.zoomable.scrollWidth,
+			height: this.zoomable.scrollHeight,
 		}
 		this.initialZoomablePosition = { x: initialZoomableCoords.x, y: initialZoomableCoords.y }
 
@@ -73,54 +96,78 @@ export class PinchZoom {
 		this.initialViewportPosition = { x: initialViewportCoords.x, y: initialViewportCoords.y }
 
 		// for the double tap
-		this.zoomable.addEventListener("touchend", (event) => {
-			const eventTarget = event.target // it is necessary to save the target because otherwise it changes and is not accurate anymore after the bubbling phase
+		this.onTouchEndListener = this.zoomable.ontouchend = (e) => {
+			this.removeTouches(e)
+			const eventTarget = e.target // it is necessary to save the target because otherwise it changes and is not accurate anymore after the bubbling phase
 			//FIXME remove listeners when removed from dom? -> ask willow or nils
-			this.removeTouches(event)
-			if (event.touches.length === 0 && event.changedTouches.length === 1) {
-				this.handleDoubleTap(
-					event,
+			if (e.touches.length === 0 && e.changedTouches.length === 1) {
+				this.handleDoubleTapNew(
+					e,
 					eventTarget,
 					(e, target) => singleClickAction(e, target),
-					() => {
+					(e) => {
 						let scale = 1
-						if (this.currentScale > this.zoomBoundaries.min) {
+						if (this.currentScale + this.EPSILON > this.zoomBoundaries.min) {
 							scale = this.zoomBoundaries.min // zoom out
 						} else {
 							scale = (this.zoomBoundaries.min + this.zoomBoundaries.max) / 2 // FIXME what would be reasonable? // zoom in -> try out what looks the best
 						}
+						console.log("clientY", e.changedTouches[0].clientY)
 						const translationAndOrigin = this.calculateSessionsTranslationAndTransformOrigin({
-							x: event.changedTouches[0].clientX,
-							y: event.changedTouches[0].clientY,
+							x: e.changedTouches[0].clientX,
+							y: e.changedTouches[0].clientY,
 						})
 
-						this.setCurrentSafePosition(
-							translationAndOrigin.newTransformOrigin,
-							translationAndOrigin.sessionTranslation,
-							this.getCurrentZoomablePositionWithoutTransformation(),
-							scale,
+						console.log("scale", scale)
+						console.log(
+							"safe pos",
+							this.setCurrentSafePosition(
+								translationAndOrigin.newTransformOrigin,
+								translationAndOrigin.sessionTranslation,
+								this.getCurrentZoomablePositionWithoutTransformation(),
+								scale,
+							),
 						)
 						this.update()
 					},
 				)
 			}
-		})
-		this.zoomable.ontouchstart = (e) => {
+		}
+		this.onTouchStartListener = this.zoomable.ontouchstart = (e) => {
 			const touch = e.touches[0]
+			this.touchStart = { x: touch.clientX, y: touch.clientY, time: Date.now() }
 			this.lastTap = { x: touch.clientX, y: touch.clientY, time: Date.now() }
 		}
-		this.zoomable.ontouchmove = (e) => {
+		this.onTouchMoveListener = this.zoomable.ontouchmove = (e) => {
 			this.touchmove_handler(e)
 		}
-		this.zoomable.ontouchcancel = (e) => {
+		this.onTouchCancelListener = this.zoomable.ontouchcancel = (e) => {
 			this.removeTouches(e)
 		}
 
 		this.zoomable.style.touchAction = "pan-y pan-x" // makes zooming smooth
 		this.viewport.style.overflow = "hidden" // disable default scroll behavior
 
-		if (this.initiallyZoomToViewport) {
+		if (this.initiallyZoomToViewportWidth) {
 			this.rescale()
+		}
+	}
+
+	/**
+	 * call this method before throwing away the reference to the pinch zoom object
+	 */
+	remove() {
+		if (this.onTouchEndListener) {
+			this.zoomable.removeEventListener("ontouchend", this.onTouchEndListener)
+		}
+		if (this.onTouchStartListener) {
+			this.zoomable.removeEventListener("ontouchstart", this.onTouchStartListener)
+		}
+		if (this.onTouchCancelListener) {
+			this.zoomable.removeEventListener("ontouchcancel", this.onTouchCancelListener)
+		}
+		if (this.onTouchMoveListener) {
+			this.zoomable.removeEventListener("ontouchmove", this.onTouchMoveListener)
 		}
 	}
 
@@ -138,11 +185,7 @@ export class PinchZoom {
 	}
 
 	private removeTouches(ev: TouchEvent) {
-		if (ev.touches.length > 0) {
-			this.pinchTouchIDs.clear()
-		} else {
-			this.dragTouchIDs.clear()
-		}
+		this.touchIDs.clear()
 	}
 
 	private pointDistance(point1: CoordinatePair, point2: CoordinatePair): number {
@@ -284,13 +327,13 @@ export class PinchZoom {
 	 */
 	private calculateTransformOriginFromTarget(
 		targetCoordinates: CoordinatePair,
-		currentOriginalPosition: CoordinatePair,
+		currentZoomablePositionWithoutTransformation: CoordinatePair,
 		sessionTranslation: CoordinatePair,
 		scale: number,
 	): CoordinatePair {
 		return {
-			x: (currentOriginalPosition.x + sessionTranslation.x - targetCoordinates.x) / (scale - 1), // scale is never 1 since it only should be changed by using method
-			y: (currentOriginalPosition.y + sessionTranslation.y - targetCoordinates.y) / (scale - 1),
+			x: (currentZoomablePositionWithoutTransformation.x + sessionTranslation.x - targetCoordinates.x) / (scale - 1), // scale is never 1 since it only should be changed by using method
+			y: (currentZoomablePositionWithoutTransformation.y + sessionTranslation.y - targetCoordinates.y) / (scale - 1),
 		}
 	}
 
@@ -308,7 +351,7 @@ export class PinchZoom {
 		let transformOrigin = this.getCurrentlyAppliedTransformOriginOfZoomable()
 		let pinchSessionTranslation = this.pinchSessionTranslation
 
-		const newTouches = !(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))
+		const newTouches = !(this.touchIDs.has(ev.touches[0].identifier) && this.touchIDs.has(ev.touches[1].identifier))
 
 		if (newTouches) {
 			this.lastPinchTouchPositions = {
@@ -334,7 +377,7 @@ export class PinchZoom {
 			pinchSessionTranslation = startedPinchSession.sessionTranslation
 		}
 		//update current touches
-		this.pinchTouchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
+		this.touchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
 
 		this.setCurrentSafePosition(
 			transformOrigin,
@@ -354,14 +397,14 @@ export class PinchZoom {
 			// ev.preventDefault()
 
 			let delta = { x: 0, y: 0 }
-			if (!this.dragTouchIDs.has(ev.touches[0].identifier)) {
+			if (!this.touchIDs.has(ev.touches[0].identifier)) {
 				// new dragging
-				this.dragTouchIDs = new Set<number>([ev.touches[0].identifier])
 				delta = { x: 0, y: 0 }
 			} else {
 				// still same dragging
 				delta = { x: ev.touches[0].clientX - this.lastDragTouchPosition.x, y: ev.touches[0].clientY - this.lastDragTouchPosition.y }
 			}
+			this.touchIDs = new Set<number>([ev.touches[0].identifier])
 			this.lastDragTouchPosition = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
 			let currentRect = this.getCoords(this.zoomable)
 			let currentOriginalRect = this.getCurrentZoomablePositionWithoutTransformation()
@@ -434,6 +477,53 @@ export class PinchZoom {
 		this.lastTouchEndTime = now
 	}
 
+	private handleDoubleTapNew(
+		event: TouchEvent,
+		target: EventTarget | null,
+		singleClickAction: (e: TouchEvent, target: EventTarget | null) => void,
+		doubleClickAction: (e: TouchEvent) => void,
+	) {
+		const now = Date.now()
+		const touch = event.changedTouches[0]
+
+		// If there are no touches or it's not cancellable event (e.g. scroll) or more than certain time has passed or finger moved too
+		// much then do nothing
+		if (
+			!touch ||
+			!event.cancelable ||
+			Date.now() - this.touchStart.time > this.DOUBLE_TAP_TIME_MS ||
+			Math.abs(touch.clientX - this.touchStart.x) > 40 ||
+			Math.abs(touch.clientY - this.touchStart.y) > 40
+		) {
+			console.log("was mache ich hier?")
+			console.log("date", Date.now() - this.touchStart.time > this.DOUBLE_TAP_TIME_MS)
+			console.log("x", Math.abs(touch.clientX - this.touchStart.x) > 40)
+			console.log("y", Math.abs(touch.clientY - this.touchStart.y) > 40)
+			return
+		}
+
+		event.preventDefault()
+
+		if (now - this.firstTapTime < this.DOUBLE_TAP_TIME_MS) {
+			// TODO check that within 40 pixels
+			this.firstTapTime = 0
+			console.log("double tap")
+			doubleClickAction(event)
+		} else {
+			setTimeout(() => {
+				if (
+					this.firstTapTime === now && // same touch, if a second tap was performed this condition is false
+					Math.abs(touch.clientX - this.touchStart.x) < this.DOUBLE_TAP_RADIUS && // otherwise single fast drag is recognized as a click
+					Math.abs(touch.clientY - this.touchStart.y) < this.DOUBLE_TAP_RADIUS
+				) {
+					singleClickAction(event, target)
+				}
+			}, this.DOUBLE_TAP_TIME_MS)
+		}
+		this.lastTouchStart = { x: this.touchStart.x, y: this.touchStart.y }
+		this.firstTapTime = now
+	}
+
 	/**
 	 * Applies the current session translation and scale to the zoomable, so it becomes visible.
 	 */
@@ -483,116 +573,21 @@ export class PinchZoom {
 		const horizontalTransformationAllowed = horizontal1Allowed && horizontal2Allowed
 		const verticalTransformationAllowed = vertical1Allowed && vertical2Allowed
 
-		//FIXME refactor code?
-		if (horizontalTransformationAllowed && verticalTransformationAllowed) {
-			console.log("case1")
-			this.zoomable.style.transformOrigin = `${newTransformOrigin.x}px ${newTransformOrigin.y}px`
-			this.pinchSessionTranslation = newPinchSessionTranslation
-			this.currentScale = newScale
-		} else if (horizontalTransformationAllowed) {
-			console.log("case2")
-			let adjustedTransformOrigin = newTransformOrigin
-			if (!vertical1Allowed) {
-				adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-					{
-						x: targetedOutcome.x,
-						y: borders.y,
-					},
-					currentZoomablePositionWithoutTransformation,
-					newPinchSessionTranslation,
-					newScale,
-				)
-			} else if (!vertical2Allowed) {
-				// should exclude each other because of minimum scale
-				adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-					{
-						x: targetedOutcome.x,
-						y: borders.y2 - targetedHeight,
-					},
-					currentZoomablePositionWithoutTransformation,
-					newPinchSessionTranslation,
-					newScale,
-				)
-			}
-			this.zoomable.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
-			// this.zoomable.style.transformOrigin = `${newTransformOrigin.x}px ${currentTransformOrigin.y}px`
-			this.pinchSessionTranslation = newPinchSessionTranslation
-			this.currentScale = newScale
-		} else if (verticalTransformationAllowed) {
-			console.log("case3")
-			let adjustedTransformOrigin = newTransformOrigin
-			if (!horizontal1Allowed) {
-				adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-					{
-						x: borders.x,
-						y: targetedOutcome.y,
-					},
-					currentZoomablePositionWithoutTransformation,
-					newPinchSessionTranslation,
-					newScale,
-				)
-			} else if (!horizontal2Allowed) {
-				// should exclude each other because of minimum scale
-				adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-					{
-						x: borders.x2 - targetedWidth,
-						y: targetedOutcome.y,
-					},
-					currentZoomablePositionWithoutTransformation,
-					newPinchSessionTranslation,
-					newScale,
-				)
-			}
-			this.zoomable.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
-			// this.zoomable.style.transformOrigin = `${currentTransformOrigin.x}px ${newTransformOrigin.y}px`
-			this.pinchSessionTranslation = newPinchSessionTranslation
-			this.currentScale = newScale
-		} else if (!horizontal1Allowed && !vertical1Allowed) {
-			console.log("case4")
-			let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-				{ x: borders.x, y: borders.y },
-				currentZoomablePositionWithoutTransformation,
-				newPinchSessionTranslation,
-				newScale,
-			)
-			this.zoomable.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
-			this.pinchSessionTranslation = newPinchSessionTranslation
-			this.currentScale = newScale
-		} else if (!horizontal1Allowed && !vertical2Allowed) {
-			console.log("case5")
-			let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-				{ x: borders.x, y: borders.y2 - targetedHeight },
-				currentZoomablePositionWithoutTransformation,
-				newPinchSessionTranslation,
-				newScale,
-			)
-			this.zoomable.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
-			this.pinchSessionTranslation = newPinchSessionTranslation
-			this.currentScale = newScale
-		} else if (!horizontal2Allowed && !vertical1Allowed) {
-			console.log("case6")
-			let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-				{ x: borders.x2 - targetedWidth, y: borders.y },
-				currentZoomablePositionWithoutTransformation,
-				newPinchSessionTranslation,
-				newScale,
-			)
-			this.zoomable.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
-			this.pinchSessionTranslation = newPinchSessionTranslation
-			this.currentScale = newScale
-		} else if (!horizontal2Allowed && !vertical2Allowed) {
-			console.log("case7")
-			let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-				{ x: borders.x2 - targetedWidth, y: borders.y2 - targetedHeight },
-				currentZoomablePositionWithoutTransformation,
-				newPinchSessionTranslation,
-				newScale,
-			)
-			this.zoomable.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
-			this.pinchSessionTranslation = newPinchSessionTranslation
-			this.currentScale = newScale
-		}
-		// console.log("transform origin", JSON.stringify(this.getTransformOrigin(this.zoomable)))
+		// find out which operation would be illegal and calculate the adjusted transformOrigin
+		const targetX = !horizontal1Allowed ? borders.x : !horizontal2Allowed ? borders.x2 - targetedWidth : targetedOutcome.x
+		const targetY = !vertical1Allowed ? borders.y : !vertical2Allowed ? borders.y2 - targetedHeight : targetedOutcome.y
+		const adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
+			{
+				x: targetX,
+				y: targetY,
+			},
+			currentZoomablePositionWithoutTransformation,
+			newPinchSessionTranslation,
+			newScale,
+		)
+		this.zoomable.style.transformOrigin = `${adjustedTransformOrigin.x}px ${adjustedTransformOrigin.y}px`
+		this.pinchSessionTranslation = newPinchSessionTranslation
+		this.currentScale = newScale
 
 		return {
 			verticalTransformationAllowed,
@@ -601,21 +596,24 @@ export class PinchZoom {
 	}
 
 	/**
-	 * prevent the scale value from being too close to 1 due to numerical instability
+	 * prevent the scale value from being too close to 1 due to numerical instability and division by 0
 	 */
 	private calculateSafeScaleValue(unsafeNewScale: number): number {
 		let newScale = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, unsafeNewScale)) // keep the zooming factor within the defined boundaries
-		let epsilon = 0.01
-		if (Math.abs(newScale - 1) < epsilon) {
-			// numerical unstable
+		if (Math.abs(newScale - 1) < this.EPSILON) {
+			// numerical unstable or division by 0
 			if (this.zoomBoundaries.min === 1) {
-				newScale = 1 + epsilon
+				// zoomable that is _not_ zoomed out initially
+				newScale = 1 + this.EPSILON
 			} else if (this.zoomBoundaries.min < 1) {
+				// zoomable that is zoomed out initially
+				// try to guess the zoom direction
 				if (this.currentScale < newScale) {
-					// try to guess the zoom direction
-					newScale = 1 + epsilon
+					// zooming in
+					newScale = 1 + this.EPSILON
 				} else if (this.currentScale > newScale) {
-					newScale = 1 - epsilon
+					// zooming out
+					newScale = 1 - this.EPSILON
 				}
 			}
 		}
@@ -630,15 +628,15 @@ export class PinchZoom {
 		currentOriginalPosition: CoordinatePair,
 		originalWidth: number,
 		originalHeight: number,
-		relativeTransformOrigin: CoordinatePair,
+		transformOrigin: CoordinatePair,
 		translation: CoordinatePair,
 		scale: number,
 	): { x: number; y: number; x2: number; y2: number } {
 		return {
-			x: currentOriginalPosition.x + relativeTransformOrigin.x - relativeTransformOrigin.x * scale + translation.x,
-			y: currentOriginalPosition.y + relativeTransformOrigin.y - relativeTransformOrigin.y * scale + translation.y,
-			x2: currentOriginalPosition.x + relativeTransformOrigin.x + (originalWidth - relativeTransformOrigin.x) * scale + translation.x,
-			y2: currentOriginalPosition.y + relativeTransformOrigin.y + (originalHeight - relativeTransformOrigin.y) * scale + translation.y,
+			x: currentOriginalPosition.x + transformOrigin.x - transformOrigin.x * scale + translation.x,
+			y: currentOriginalPosition.y + transformOrigin.y - transformOrigin.y * scale + translation.y,
+			x2: currentOriginalPosition.x + transformOrigin.x + (originalWidth - transformOrigin.x) * scale + translation.x,
+			y2: currentOriginalPosition.y + transformOrigin.y + (originalHeight - transformOrigin.y) * scale + translation.y,
 		}
 	}
 }

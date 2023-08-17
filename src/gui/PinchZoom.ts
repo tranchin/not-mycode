@@ -114,7 +114,7 @@ export class PinchZoom {
 							translationAndOrigin.sessionTranslation,
 							this.getCurrentZoomablePositionWithoutTransformation(),
 							scale,
-						).adjustedTransformOrigin
+						).newTransformOrigin
 						this.update(newTransformOrigin)
 					},
 				)
@@ -275,7 +275,7 @@ export class PinchZoom {
 				},
 				this.getCurrentZoomablePositionWithoutTransformation(),
 				scale,
-			).adjustedTransformOrigin
+			).newTransformOrigin
 			this.update(newTransformOrigin)
 		}
 	}
@@ -331,14 +331,14 @@ export class PinchZoom {
 		sessionTranslation: CoordinatePair,
 		scale: number,
 	): CoordinatePair {
-		if (Math.abs(scale - 1) < this.EPSILON) {
-			console.log("origin from target 0")
-			return {
-				//FIXME this is wrong
-				x: 0, // scale is never 1 since it only should be changed by using method
-				y: 0,
-			}
-		}
+		// if (Math.abs(scale - 1) === 0) {
+		// 	console.log("origin from target 0")
+		// 	return {
+		// 		//FIXME this is wrong
+		// 		x: 0, // scale is never 1 since it only should be changed by using method
+		// 		y: 0,
+		// 	}
+		// }
 		return {
 			x: (currentZoomablePositionWithoutTransformation.x + sessionTranslation.x - targetCoordinates.x) / (scale - 1), // scale is never 1 since it only should be changed by using method
 			y: (currentZoomablePositionWithoutTransformation.y + sessionTranslation.y - targetCoordinates.y) / (scale - 1),
@@ -394,7 +394,7 @@ export class PinchZoom {
 			pinchSessionTranslation,
 			this.getCurrentZoomablePositionWithoutTransformation(),
 			newAbsoluteScale,
-		).adjustedTransformOrigin
+		).newTransformOrigin
 		this.update(newTransformOrigin)
 	}
 
@@ -448,7 +448,7 @@ export class PinchZoom {
 				ev.preventDefault() // should prevent the default behavior of the parent elements (e.g. scrolling)
 			}
 
-			this.update(result.adjustedTransformOrigin)
+			this.update(result.newTransformOrigin)
 		}
 	}
 
@@ -544,15 +544,18 @@ export class PinchZoom {
 		// find out which operation would be illegal and calculate the adjusted transformOrigin
 		const targetX = !horizontal1Allowed ? borders.x : !horizontal2Allowed ? borders.x2 - targetedWidth : targetedOutcome.x
 		const targetY = !vertical1Allowed ? borders.y : !vertical2Allowed ? borders.y2 - targetedHeight : targetedOutcome.y
-		let adjustedTransformOrigin = this.calculateTransformOriginFromTarget(
-			{
-				x: targetX,
-				y: targetY,
-			},
-			currentZoomablePositionWithoutTransformation,
-			newPinchSessionTranslation,
-			newScale,
-		)
+		if (targetX !== targetedOutcome.x || targetY !== targetedOutcome.y) {
+			newTransformOrigin = this.calculateTransformOriginFromTarget(
+				{
+					x: targetX,
+					y: targetY,
+				},
+				currentZoomablePositionWithoutTransformation,
+				newPinchSessionTranslation,
+				newScale,
+			)
+			console.log("transform origin", JSON.stringify(newTransformOrigin))
+		}
 		this.pinchSessionTranslation = newPinchSessionTranslation
 		this.currentScale = newScale
 		// if (newScale <= this.zoomBoundaries.min + this.EPSILON) { // FIXME what should we do?
@@ -563,7 +566,7 @@ export class PinchZoom {
 		return {
 			verticalTransformationAllowed,
 			horizontalTransformationAllowed,
-			adjustedTransformOrigin,
+			newTransformOrigin,
 		}
 	}
 

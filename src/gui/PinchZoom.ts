@@ -381,6 +381,7 @@ export class PinchZoom {
 		}
 
 		if (newTouches || (this.currentScale >= 1 && newAbsoluteScale < 1) || (this.currentScale < 1 && newAbsoluteScale >= 1)) {
+			console.log("new pinch session", this.currentScale, scaleDifference)
 			// also start a new session if scale factor passes 1 because we need a new sessionTranslation
 			const startedPinchSession = this.startPinchSession(ev)
 			transformOrigin = startedPinchSession.newTransformOrigin
@@ -424,13 +425,13 @@ export class PinchZoom {
 				x: (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.currentScale), // zoom is never 1
 				y: (currentRect.y + delta.y - (currentOriginalRect.y + this.pinchSessionTranslation.y)) / (1 - this.currentScale),
 			}
-			if (Math.abs(this.currentScale - 1) < this.EPSILON) {
-				console.log("dragging 0")
-				newTransformOrigin = {
-					x: 0,
-					y: 0, //FIXME remove?
-				}
-			}
+			// if (Math.abs(this.currentScale - 1) < this.EPSILON) {
+			// 	console.log("dragging 0")
+			// 	newTransformOrigin = {
+			// 		x: 0,
+			// 		y: 0, //FIXME remove?
+			// 	}
+			// }
 
 			let result = this.setCurrentSafePosition(
 				newTransformOrigin,
@@ -575,23 +576,23 @@ export class PinchZoom {
 	 */
 	private calculateSafeScaleValue(unsafeNewScale: number): number {
 		let newScale = Math.max(this.zoomBoundaries.min, Math.min(this.zoomBoundaries.max, unsafeNewScale)) // keep the zooming factor within the defined boundaries
-		// if (Math.abs(newScale - 1) < this.EPSILON) {
-		// 	// numerical unstable or division by 0
-		// 	if (this.zoomBoundaries.min === 1) {
-		// 		// zoomable that is _not_ zoomed out initially
-		// 		newScale = 1 + this.EPSILON
-		// 	} else if (this.zoomBoundaries.min < 1) {
-		// 		// zoomable that is zoomed out initially
-		// 		// try to guess the zoom direction
-		// 		if (this.currentScale < newScale) {
-		// 			// zooming in
-		// 			newScale = 1 + this.EPSILON
-		// 		} else if (this.currentScale > newScale) {
-		// 			// zooming out
-		// 			newScale = 1 - this.EPSILON
-		// 		}
-		// 	}
-		// }
+		if (Math.abs(newScale - 1) < this.EPSILON) {
+			// numerical unstable or division by 0
+			if (this.zoomBoundaries.min === 1) {
+				// zoomable that is _not_ zoomed out initially
+				newScale = 1 + this.EPSILON
+			} else if (this.zoomBoundaries.min < 1) {
+				// zoomable that is zoomed out initially
+				// try to guess the zoom direction
+				if (this.currentScale < newScale) {
+					// zooming in
+					newScale = 1 + this.EPSILON
+				} else if (this.currentScale > newScale) {
+					// zooming out
+					newScale = 1 - this.EPSILON
+				}
+			}
+		}
 		return newScale
 	}
 

@@ -32,6 +32,7 @@ export class PinchZoom {
 	private EPSILON = 0.01
 
 	/// zooming
+	private resetPinchSession = false
 	private lastPinchTouchPositions: { pointer1: CoordinatePair; pointer2: CoordinatePair } = { pointer1: { x: 0, y: 0 }, pointer2: { x: 0, y: 0 } }
 	private initialZoomablePosition = { x: 0, y: 0 }
 	private initialViewportPosition = { x: 0, y: 0 }
@@ -40,6 +41,7 @@ export class PinchZoom {
 	private zoomBoundaries = { min: 1, max: 3 }
 	// values of this variable should only be the result of the calculateSafeScaleValue function (except from the initial value the value must never be 1 due to division by 1-scale). Never set values directly!
 	private currentScale = 1
+	private currentUnsafeScale = 1
 
 	/// dragging
 	private lastDragTouchPosition: CoordinatePair = { x: 0, y: 0 }
@@ -135,7 +137,7 @@ export class PinchZoom {
 		this.viewport.style.overflow = "hidden" // disable default scroll behavior
 
 		if (this.initiallyZoomToViewportWidth) {
-			this.rescale()
+			// this.rescale()
 		}
 	}
 
@@ -269,10 +271,7 @@ export class PinchZoom {
 			this.zoomBoundaries = { min: scale, max: this.zoomBoundaries.max } // allow value <1 for minimum scale
 			const newTransformOrigin = this.setCurrentSafePosition(
 				{ x: 0, y: 0 },
-				{
-					x: 0,
-					y: 0,
-				},
+				{ x: 0, y: 0 },
 				this.getCurrentZoomablePositionWithoutTransformation(),
 				scale,
 			).newTransformOrigin
@@ -340,7 +339,7 @@ export class PinchZoom {
 		// 	}
 		// }
 		return {
-			x: (currentZoomablePositionWithoutTransformation.x + sessionTranslation.x - targetCoordinates.x) / (scale - 1), // scale is never 1 since it only should be changed by using method
+			x: (currentZoomablePositionWithoutTransformation.x + sessionTranslation.x - targetCoordinates.x) / (scale - 1), // scale is never 1 since it only should be changed by using a method
 			y: (currentZoomablePositionWithoutTransformation.y + sessionTranslation.y - targetCoordinates.y) / (scale - 1),
 		}
 	}
@@ -380,15 +379,23 @@ export class PinchZoom {
 			pointer2: { x: ev.touches[1].clientX, y: ev.touches[1].clientY },
 		}
 
-		if (newTouches || (this.currentScale >= 1 && newAbsoluteScale < 1) || (this.currentScale < 1 && newAbsoluteScale >= 1)) {
+		if (
+			newTouches ||
+			(this.currentScale >= 1 && this.currentUnsafeScale < 1) ||
+			(this.currentScale < 1 && this.currentUnsafeScale >= 1) ||
+			this.resetPinchSession
+		) {
 			console.log("new pinch session", this.currentScale, scaleDifference)
 			// also start a new session if scale factor passes 1 because we need a new sessionTranslation
+			this.resetPinchSession = false
 			const startedPinchSession = this.startPinchSession(ev)
 			transformOrigin = startedPinchSession.newTransformOrigin
 			pinchSessionTranslation = startedPinchSession.sessionTranslation
 		}
 		//update current touches
 		this.touchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
+
+		this.currentUnsafeScale = newAbsoluteScale
 
 		const newTransformOrigin = this.setCurrentSafePosition(
 			transformOrigin,
@@ -514,14 +521,16 @@ export class PinchZoom {
 	) {
 		this.getOffsetFromInitialToCurrentViewportPosition()
 		let currentViewport = this.getCoords(this.viewport)
+		const tolerance = 1
 		let borders = {
-			x: currentViewport.x + 1, //FIXME tolerance -> try out whether still necessary - if so explain why this choice was made
-			y: currentViewport.y + 1,
-			x2: currentViewport.x2 - 1,
-			y2: currentViewport.y2 - 1,
+			x: currentViewport.x + tolerance, //FIXME tolerance -> try out whether still necessary - if so explain why this choice was made
+			y: currentViewport.y + tolerance,
+			x2: currentViewport.x2 - tolerance,
+			y2: currentViewport.y2 - tolerance,
 		}
 
 		newScale = this.calculateSafeScaleValue(newScale)
+		console.log("newScale", newScale)
 		const targetedOutcome = this.simulateTransformation(
 			currentZoomablePositionWithoutTransformation,
 			this.initialZoomableSize.width,
@@ -543,8 +552,8 @@ export class PinchZoom {
 		const verticalTransformationAllowed = vertical1Allowed && vertical2Allowed
 
 		// find out which operation would be illegal and calculate the adjusted transformOrigin
-		const targetX = !horizontal1Allowed ? borders.x : !horizontal2Allowed ? borders.x2 - targetedWidth : targetedOutcome.x
-		const targetY = !vertical1Allowed ? borders.y : !vertical2Allowed ? borders.y2 - targetedHeight : targetedOutcome.y
+		const targetX = newScale === 1 ? borders.x : !horizontal1Allowed ? borders.x : !horizontal2Allowed ? borders.x2 - targetedWidth : targetedOutcome.x
+		const targetY = newScale === 1 ? borders.y : !vertical1Allowed ? borders.y : !vertical2Allowed ? borders.y2 - targetedHeight : targetedOutcome.y
 		if (targetX !== targetedOutcome.x || targetY !== targetedOutcome.y) {
 			newTransformOrigin = this.calculateTransformOriginFromTarget(
 				{
@@ -580,7 +589,12 @@ export class PinchZoom {
 			// numerical unstable or division by 0
 			if (this.zoomBoundaries.min === 1) {
 				// zoomable that is _not_ zoomed out initially
-				newScale = 1 + this.EPSILON
+				if (this.currentScale >= 1 + this.EPSILON || newScale === 1) {
+					this.resetPinchSession = true
+					newScale = 1 // sepcial-case -> zooming out and allow to completely zoom out to scale 1
+				} else {
+					newScale = 1 + this.EPSILON
+				}
 			} else if (this.zoomBoundaries.min < 1) {
 				// zoomable that is zoomed out initially
 				// try to guess the zoom direction

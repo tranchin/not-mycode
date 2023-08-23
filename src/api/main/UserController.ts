@@ -345,21 +345,14 @@ export type UserControllerInitData = {
 	accessToken: Base64Url
 	sessionType: SessionType
 }
-// noinspection JSUnusedGlobalSymbols
+
 // dynamically imported
 export async function initUserController({ user, userGroupInfo, sessionId, accessToken, sessionType }: UserControllerInitData): Promise<UserController> {
+	const { loadUserSettingsGroupRoot } = await import("../../misc/UserUtils.js")
 	const entityClient = locator.entityClient
 	const [props, userSettingsGroupRoot] = await Promise.all([
 		entityClient.loadRoot(TutanotaPropertiesTypeRef, user.userGroup.group),
-		entityClient
-			.load(UserSettingsGroupRootTypeRef, user.userGroup.group)
-			.catch(
-				ofClass(NotFoundError, () =>
-					entityClient
-						.setup(null, createUserSettingsGroupRoot({ _ownerGroup: user.userGroup.group }))
-						.then(() => entityClient.load(UserSettingsGroupRootTypeRef, user.userGroup.group)),
-				),
-			),
+		loadUserSettingsGroupRoot(entityClient, user),
 	])
 	return new UserController(user, userGroupInfo, sessionId, props, accessToken, userSettingsGroupRoot, sessionType, entityClient, locator.serviceExecutor)
 }

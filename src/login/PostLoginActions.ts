@@ -27,7 +27,7 @@ import { getThemeCustomizations } from "../misc/WhitelabelCustomizations"
 import { CredentialEncryptionMode } from "../misc/credentials/CredentialEncryptionMode"
 import { SecondFactorHandler } from "../misc/2fa/SecondFactorHandler"
 import { SessionType } from "../api/common/SessionType"
-import { StorageBehavior } from "../misc/UsageTestModel.js"
+import { StorageBehavior } from "../misc/UsageTestFacade.js"
 import type { WebsocketConnectivityModel } from "../misc/WebsocketConnectivityModel.js"
 import { client } from "../misc/ClientDetector.js"
 

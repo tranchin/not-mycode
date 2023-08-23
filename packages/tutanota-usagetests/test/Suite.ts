@@ -1,12 +1,24 @@
 import o from "@tutao/otest"
-import { PingAdapter, Stage, UsageTest } from "../lib/index.js"
+import { UsageTestFacadeInterface, Stage, UsageTest } from "../lib/index.js"
 import { UsageTestController } from "../lib/model/UsageTestController.js"
 
-class MockPingAdapter implements PingAdapter {
+class MockPingAdapter implements UsageTestFacadeInterface {
 	pingsSent = 0
 
 	async sendPing(test: UsageTest, stage: Stage) {
 		this.pingsSent++
+	}
+
+	doLoadActiveUsageTests(): Promise<UsageTest[]> {
+		return Promise.resolve([])
+	}
+
+	setOptInDecision(decision: boolean): Promise<void> {
+		return Promise.resolve(undefined)
+	}
+
+	updateCustomerProperties(): Promise<void> {
+		return Promise.resolve(undefined)
 	}
 }
 

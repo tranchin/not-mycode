@@ -4,9 +4,9 @@ import {
 	EphemeralUsageTestStorage,
 	PersistedAssignmentData,
 	StorageBehavior,
-	UsageTestModel,
+	UsageTestFacade,
 	UsageTestStorage,
-} from "../../../src/misc/UsageTestModel.js"
+} from "../../../src/misc/UsageTestFacade.js"
 import {
 	createUsageTestAssignment,
 	createUsageTestAssignmentIn,
@@ -31,7 +31,7 @@ import { EventController } from "../../../src/api/main/EventController.js"
 const { anything } = matchers
 
 o.spec("UsageTestModel", function () {
-	let usageTestModel: UsageTestModel
+	let usageTestModel: UsageTestFacade
 	let serviceExecutor: IServiceExecutor
 	let entityClient: EntityClient
 	let persistentStorage: UsageTestStorage
@@ -88,7 +88,7 @@ o.spec("UsageTestModel", function () {
 
 		ephemeralStorage = new EphemeralUsageTestStorage()
 		persistentStorage = new EphemeralUsageTestStorage()
-		usageTestModel = new UsageTestModel(
+		usageTestModel = new UsageTestFacade(
 			{
 				[StorageBehavior.Persist]: persistentStorage,
 				[StorageBehavior.Ephemeral]: ephemeralStorage,

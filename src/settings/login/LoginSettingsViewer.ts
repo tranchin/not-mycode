@@ -29,7 +29,7 @@ import { showChangeOwnPasswordDialog } from "./ChangePasswordDialogs.js"
 import { IconButton, IconButtonAttrs } from "../../gui/base/IconButton.js"
 import { ButtonSize } from "../../gui/base/ButtonSize.js"
 import { DropDownSelector, DropDownSelectorAttrs } from "../../gui/base/DropDownSelector.js"
-import { UsageTestModel } from "../../misc/UsageTestModel.js"
+import { UsageTestFacade } from "../../misc/UsageTestFacade.js"
 import { UserSettingsGroupRootTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
 
 assertMainOrNode()
@@ -41,7 +41,7 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 	private _sessions: Session[] = []
 	private readonly _secondFactorsForm = new SecondFactorsEditForm(new LazyLoaded(() => Promise.resolve(locator.logins.getUserController().user)))
 	private readonly credentialsEncryptionModeHelpLabel: (() => string) | null
-	private readonly _usageTestModel: UsageTestModel
+	private readonly _usageTestModel: UsageTestFacade
 
 	constructor(private readonly credentialsProvider: CredentialsProvider) {
 		this.credentialsEncryptionModeHelpLabel =

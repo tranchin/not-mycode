@@ -6,7 +6,7 @@ import {
 	UsageTestAssignmentOut,
 	UsageTestAssignmentTypeRef,
 } from "../api/entities/usage/TypeRefs.js"
-import { PingAdapter, Stage, UsageTest, UsageTestController } from "@tutao/tutanota-usagetests"
+import { UsageTestFacadeInterface, Stage, UsageTest } from "@tutao/tutanota-usagetests"
 import { assertNotNull, filterInt, lazy, neverNull } from "@tutao/tutanota-utils"
 import { BadRequestError, NotFoundError, PreconditionFailedError } from "../api/common/error/RestError"
 import { UsageTestMetricType } from "../api/common/TutanotaConstants"
@@ -22,11 +22,10 @@ import { Dialog, DialogType } from "../gui/base/Dialog"
 import { DropDownSelector, SelectorItem } from "../gui/base/DropDownSelector"
 import m, { Children } from "mithril"
 import { isOfflineError } from "../api/common/utils/ErrorCheckUtils.js"
-import { LoginController } from "../api/main/LoginController.js"
 import { CustomerProperties, CustomerPropertiesTypeRef, CustomerTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { EntityClient } from "../api/common/EntityClient.js"
-import { EntityUpdateData, EventController, isUpdateForTypeRef } from "../api/main/EventController.js"
-import { createUserSettingsGroupRoot, UserSettingsGroupRootTypeRef } from "../api/entities/tutanota/TypeRefs.js"
+import { UserFacade } from "../api/worker/facades/UserFacade.js"
+import { loadUserSettingsGroupRoot } from "./UserUtils.js"
 
 const PRESELECTED_LIKERT_VALUE = null
 
@@ -155,7 +154,7 @@ export const enum StorageBehavior {
 	Ephemeral,
 }
 
-export class UsageTestModel implements PingAdapter {
+export class UsageTestFacade implements UsageTestFacadeInterface {
 	private storageBehavior = StorageBehavior.Ephemeral
 	private customerProperties?: CustomerProperties
 	private lastOptInDecision: boolean | null = null
@@ -166,45 +165,24 @@ export class UsageTestModel implements PingAdapter {
 		private readonly dateProvider: DateProvider,
 		private readonly serviceExecutor: IServiceExecutor,
 		private readonly entityClient: EntityClient,
-		private readonly loginController: LoginController,
-		private readonly eventController: EventController,
-		private readonly usageTestController: () => UsageTestController,
-	) {
-		eventController.addEntityListener((updates: ReadonlyArray<EntityUpdateData>) => {
-			return this.entityEventsReceived(updates)
-		})
-	}
-
-	async entityEventsReceived(updates: ReadonlyArray<EntityUpdateData>) {
-		for (const update of updates) {
-			if (isUpdateForTypeRef(CustomerPropertiesTypeRef, update)) {
-				await this.updateCustomerProperties()
-			} else if (isUpdateForTypeRef(UserSettingsGroupRootTypeRef, update)) {
-				const updatedOptInDecision = this.loginController.getUserController().userSettingsGroupRoot.usageDataOptedIn
-
-				if (this.lastOptInDecision === updatedOptInDecision) {
-					return
-				}
-
-				// Opt-in decision has changed, load tests
-				const tests = await this.loadActiveUsageTests()
-				this.usageTestController().setTests(tests)
-				this.lastOptInDecision = updatedOptInDecision
-			}
-		}
-	}
+		private readonly userFacade: UserFacade,
+	) {}
 
 	/**
-	 * only for usage from the console. may have unintended consequences when used too early or too late.
-	 * @param test the name of the test to change the variant on
-	 * @param variant the number of the variant to use from here on
+	 * Sets the user's usage data opt-in decision. True means they opt in.
+	 *
+	 * Immediately refetches the user's active usage tests if they opted in.
 	 */
-	private setVariant(test: string, variant: number) {
-		this.usageTestController().getTest(test).variant = variant
+	public async setOptInDecision(decision: boolean) {
+		const userSettingsGroupRoot = await loadUserSettingsGroupRoot(this.entityClient, neverNull(this.userFacade.getUser()))
+		userSettingsGroupRoot.usageDataOptedIn = decision
+		await this.entityClient.update(userSettingsGroupRoot)
+		this.lastOptInDecision = decision
 	}
 
-	private async updateCustomerProperties() {
-		const customer = await this.entityClient.load(CustomerTypeRef, neverNull(this.loginController.getUserController().user.customer))
+	async updateCustomerProperties(): Promise<void> {
+		const customerId = neverNull(this.userFacade.getUser()?.customer)
+		const customer = await this.entityClient.load(CustomerTypeRef, customerId)
 		this.customerProperties = await this.entityClient.load(CustomerPropertiesTypeRef, neverNull(customer.properties))
 	}
 
@@ -235,39 +213,23 @@ export class UsageTestModel implements PingAdapter {
 	 * Returns true if the opt-in dialog indicator should be shown, depending on the user's and the customer's decisions.
 	 * Defaults to false if init() has not been called.
 	 */
-	showOptInIndicator(): boolean {
-		if (!this.loginController.isUserLoggedIn() || this.isCustomerOptedOut()) {
+	async showOptInIndicator(): Promise<boolean> {
+		if (!this.userFacade.isPartiallyLoggedIn() || this.isCustomerOptedOut()) {
 			// shortcut if customer has opted out (or is not logged in)
 			return false
 		}
 
-		return this.loginController.getUserController().userSettingsGroupRoot.usageDataOptedIn === null
+		const userSettingsGroupRoot = await loadUserSettingsGroupRoot(this.entityClient, neverNull(this.userFacade.getUser()))
+		return userSettingsGroupRoot.usageDataOptedIn === null
 	}
 
-	/**
-	 * Sets the user's usage data opt-in decision. True means they opt in.
-	 *
-	 * Immediately refetches the user's active usage tests if they opted in.
-	 */
-	public async setOptInDecision(decision: boolean) {
-		const userSettingsGroupRoot = createUserSettingsGroupRoot(this.loginController.getUserController().userSettingsGroupRoot)
-		userSettingsGroupRoot.usageDataOptedIn = decision
-
-		await this.entityClient.update(userSettingsGroupRoot)
-		this.lastOptInDecision = decision
-
-		if (decision) {
-			const tests = await this.doLoadActiveUsageTests()
-			this.usageTestController().setTests(tests)
-		}
-	}
-
-	private getOptInDecision(): boolean {
-		if (!this.loginController.isUserLoggedIn()) {
+	private async getOptInDecision(): Promise<boolean> {
+		if (!this.userFacade.isPartiallyLoggedIn()) {
 			return false
 		}
 
-		const userOptIn = this.loginController.getUserController().userSettingsGroupRoot.usageDataOptedIn
+		const userSettingsGroupRoot = await loadUserSettingsGroupRoot(this.entityClient, neverNull(this.userFacade.getUser()))
+		const userOptIn = userSettingsGroupRoot.usageDataOptedIn
 
 		if (!userOptIn) {
 			// shortcut if userOptIn not set or equal to false
@@ -378,7 +340,7 @@ export class UsageTestModel implements PingAdapter {
 	private async doSendPing(stage: Stage, test: UsageTest) {
 		// Immediately stop sending pings if the user has opted out.
 		// Only applicable if the user opts out and then does not re-log.
-		if (this.storageBehavior === StorageBehavior.Persist && !this.getOptInDecision()) {
+		if (this.storageBehavior === StorageBehavior.Persist && !(await this.getOptInDecision())) {
 			return
 		}
 

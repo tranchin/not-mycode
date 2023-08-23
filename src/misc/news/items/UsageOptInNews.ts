@@ -6,17 +6,18 @@ import { InfoLink, lang } from "../../LanguageViewModel.js"
 import { Dialog } from "../../../gui/base/Dialog.js"
 import { Button, ButtonAttrs, ButtonType } from "../../../gui/base/Button.js"
 import { NewsModel } from "../NewsModel.js"
-import { UsageTestModel } from "../../UsageTestModel.js"
+import { UsageTestFacade } from "../../UsageTestFacade.js"
 import { MoreInfoLink } from "../MoreInfoLink.js"
+import { UsageTestController } from "@tutao/tutanota-usagetests"
 
 /**
  * News item that informs users about the usage data opt-in.
  */
 export class UsageOptInNews implements NewsListItem {
-	constructor(private readonly newsModel: NewsModel, private readonly usageTestModel: UsageTestModel) {}
+	constructor(private readonly newsModel: NewsModel, private readonly usageTestController: UsageTestController) {}
 
 	isShown(): Promise<boolean> {
-		return Promise.resolve(locator.usageTestModel.showOptInIndicator())
+		return locator.usageTestController.showOptInIndicator()
 	}
 
 	render(newsId: NewsId): Children {
@@ -43,7 +44,7 @@ export class UsageOptInNews implements NewsListItem {
 				label: "deactivate_action",
 				click: () => {
 					const decision = false
-					this.usageTestModel.setOptInDecision(decision).then(() => closeAction(decision))
+					this.usageTestController.setOptInDecision(decision).then(() => closeAction(decision))
 				},
 				type: ButtonType.Secondary,
 			},
@@ -51,7 +52,7 @@ export class UsageOptInNews implements NewsListItem {
 				label: "activate_action",
 				click: () => {
 					const decision = true
-					this.usageTestModel.setOptInDecision(decision).then(() => closeAction(decision))
+					this.usageTestController.setOptInDecision(decision).then(() => closeAction(decision))
 				},
 				type: ButtonType.Primary,
 			},

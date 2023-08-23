@@ -47,7 +47,7 @@ import { exposeRemote } from "../common/WorkerProxy"
 import { ExposedNativeInterface } from "../../native/common/NativeInterface"
 import { BrowserWebauthn } from "../../misc/2fa/webauthn/BrowserWebauthn.js"
 import { UsageTestController } from "@tutao/tutanota-usagetests"
-import { EphemeralUsageTestStorage, StorageBehavior, UsageTestModel } from "../../misc/UsageTestModel"
+import { EphemeralUsageTestStorage, StorageBehavior, UsageTestFacade } from "../../misc/UsageTestFacade.js"
 import { deviceConfig } from "../../misc/DeviceConfig"
 import { IServiceExecutor } from "../common/ServiceRequest.js"
 import type { BlobFacade } from "../worker/facades/lazy/BlobFacade.js"
@@ -135,7 +135,6 @@ class MainLocator {
 	contactFormFacade!: ContactFormFacade
 	deviceEncryptionFacade!: DeviceEncryptionFacade
 	usageTestController!: UsageTestController
-	usageTestModel!: UsageTestModel
 	newsModel!: NewsModel
 	serviceExecutor!: IServiceExecutor
 	cryptoFacade!: CryptoFacade
@@ -145,6 +144,7 @@ class MainLocator {
 	interWindowEventSender!: InterWindowEventFacadeSendDispatcher
 	cacheStorage!: ExposedCacheStorage
 	workerFacade!: WorkerFacade
+	usageTestFacade!: UsageTestFacade
 	loginListener!: PageContextLoginListener
 	random!: WorkerRandomizer
 	sqlCipherFacade!: SqlCipherFacade
@@ -539,6 +539,7 @@ class MainLocator {
 			eventBus,
 			entropyFacade,
 			workerFacade,
+			usageTestFacade,
 		} = this.worker.getWorkerInterface()
 		this.loginFacade = loginFacade
 		this.customerFacade = customerFacade
@@ -570,6 +571,7 @@ class MainLocator {
 		this.cacheStorage = cacheStorage
 		this.entropyFacade = entropyFacade
 		this.workerFacade = workerFacade
+		this.usageTestFacade = usageTestFacade
 		this.connectivityModel = new WebsocketConnectivityModel(eventBus)
 		this.mailModel = new MailModel(
 			notifications,
@@ -631,31 +633,11 @@ class MainLocator {
 		)
 		this.random = random
 
-		this.usageTestModel = new UsageTestModel(
-			{
-				[StorageBehavior.Persist]: deviceConfig,
-				[StorageBehavior.Ephemeral]: new EphemeralUsageTestStorage(),
-			},
-			{
-				now(): number {
-					return Date.now()
-				},
-				timeZone(): string {
-					throw new Error("Not implemented by this provider")
-				},
-			},
-			this.serviceExecutor,
-			this.entityClient,
-			this.logins,
-			this.eventController,
-			() => this.usageTestController,
-		)
-
 		this.newsModel = new NewsModel(this.serviceExecutor, deviceConfig, async (name: string) => {
 			switch (name) {
 				case "usageOptIn":
 					const { UsageOptInNews } = await import("../../misc/news/items/UsageOptInNews.js")
-					return new UsageOptInNews(this.newsModel, this.usageTestModel)
+					return new UsageOptInNews(this.newsModel, this.usageTestController)
 				case "recoveryCode":
 					const { RecoveryCodeNews } = await import("../../misc/news/items/RecoveryCodeNews.js")
 					return new RecoveryCodeNews(this.newsModel, this.logins.getUserController(), this.userManagementFacade)
@@ -686,7 +668,7 @@ class MainLocator {
 		const { ContactModelImpl } = await import("../../contacts/model/ContactModel")
 		this.contactModel = new ContactModelImpl(this.searchFacade, this.entityClient, this.logins)
 		this.minimizedMailModel = new MinimizedMailEditorViewModel()
-		this.usageTestController = new UsageTestController(this.usageTestModel)
+		this.usageTestController = new UsageTestController(this.usageTestFacade, this.eventController, this.logins)
 	}
 
 	readonly calendarModel: () => Promise<CalendarModel> = lazyMemoized(async () => {

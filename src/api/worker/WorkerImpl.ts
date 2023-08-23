@@ -41,6 +41,7 @@ import { ExposedEventController } from "../main/EventController.js"
 import { ExposedOperationProgressTracker } from "../main/OperationProgressTracker.js"
 import { WorkerFacade } from "./facades/WorkerFacade.js"
 import { InfoMessageHandler } from "../../gui/InfoMessageHandler.js"
+import { UsageTestFacade } from "../../misc/UsageTestFacade.js"
 
 assertWorkerOrNode()
 
@@ -82,6 +83,7 @@ export interface WorkerInterface {
 	readonly eventBus: ExposedEventBus
 	readonly entropyFacade: EntropyFacade
 	readonly workerFacade: WorkerFacade
+	readonly usageTestFacade: UsageTestFacade
 }
 
 /** Interface for the "main"/webpage context of the app, interface for the worker client. */
@@ -251,6 +253,10 @@ export class WorkerImpl implements NativeInterface {
 
 			async workerFacade() {
 				return locator.workerFacade
+			},
+
+			async usageTestFacade() {
+				return locator.usageTest
 			},
 		}
 	}

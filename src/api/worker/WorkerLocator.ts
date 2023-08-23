@@ -62,6 +62,8 @@ import { Challenge } from "../entities/sys/TypeRefs.js"
 import { LoginFailReason } from "../main/PageContextLoginListener.js"
 import { ConnectionError, ServiceUnavailableError } from "../common/error/RestError.js"
 import { SessionType } from "../common/SessionType.js"
+import { EphemeralUsageTestStorage, StorageBehavior, UsageTestFacade } from "../../misc/UsageTestFacade.js"
+import { deviceConfig } from "../../misc/DeviceConfig.js"
 
 assertWorkerOrNode()
 
@@ -110,6 +112,8 @@ export type WorkerLocatorType = {
 	deviceEncryptionFacade: DeviceEncryptionFacade
 	native: NativeInterface
 	workerFacade: WorkerFacade
+
+	usageTest: UsageTestFacade
 
 	// used to cache between resets
 	_browserData: BrowserData
@@ -376,6 +380,24 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		const { ContactFormFacade } = await import("./facades/lazy/ContactFormFacade.js")
 		return new ContactFormFacade(locator.restClient, locator.instanceMapper)
 	})
+
+	locator.usageTestFacade = new UsageTestFacade(
+		{
+			[StorageBehavior.Persist]: deviceConfig,
+			[StorageBehavior.Ephemeral]: new EphemeralUsageTestStorage(),
+		},
+		{
+			now(): number {
+				return Date.now()
+			},
+			timeZone(): string {
+				throw new Error("Not implemented by this provider")
+			},
+		},
+		locator.serviceExecutor,
+		locator.cachingEntityClient,
+		locator.user,
+	)
 }
 
 const RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS = 30000

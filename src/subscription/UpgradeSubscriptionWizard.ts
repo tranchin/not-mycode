@@ -21,7 +21,7 @@ import { UpgradeCongratulationsPage, UpgradeCongratulationsPageAttrs } from "./U
 import { SignupPage, SignupPageAttrs } from "./SignupPage"
 import { assertMainOrNode } from "../api/common/Env"
 import { locator } from "../api/main/MainLocator"
-import { StorageBehavior } from "../misc/UsageTestModel"
+import { StorageBehavior } from "../misc/UsageTestFacade.js"
 import { FeatureListProvider, SelectedSubscriptionOptions } from "./FeatureListProvider"
 import { UpgradeType } from "./SubscriptionUtils"
 import { UpgradeConfirmSubscriptionPage } from "./UpgradeConfirmSubscriptionPage.js"

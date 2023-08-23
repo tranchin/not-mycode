@@ -1,15 +1,61 @@
 import { ObsoleteUsageTest, UsageTest } from "./UsageTest.js"
-import { PingAdapter } from "../storage/PingAdapter.js"
+import { UsageTestFacadeInterface } from "../storage/UsageTestFacadeInterface.js"
+import { EntityUpdateData, EventController, isUpdateForTypeRef } from "../../../../src/api/main/EventController.js"
+import { CustomerPropertiesTypeRef, CustomerTypeRef } from "../../../../src/api/entities/sys/TypeRefs.js"
+import { createUserSettingsGroupRoot, UserSettingsGroupRootTypeRef } from "../../../../src/api/entities/tutanota/TypeRefs.js"
+import { neverNull } from "@tutao/tutanota-utils"
+import { LoginController } from "../../../../src/api/main/LoginController.js"
 
 /** Centralized place which holds all the {@link UsageTest}s. */
 export class UsageTestController {
 	private readonly tests: Map<string, UsageTest> = new Map<string, UsageTest>()
 	private readonly obsoleteUsageTest = new ObsoleteUsageTest("obsolete", "obsolete", 0)
 
-	constructor(private readonly pingAdapter: PingAdapter) {}
+	constructor(
+		private readonly usageTestFacade: UsageTestFacadeInterface,
+		private readonly eventController: EventController,
+		private readonly loginController: LoginController,
+	) {
+		eventController.addEntityListener((updates: ReadonlyArray<EntityUpdateData>) => {
+			return this.entityEventsReceived(updates)
+		})
+	}
+
+	/**
+	 * Sets the user's usage data opt-in decision. True means they opt in.
+	 *
+	 * Immediately refetches the user's active usage tests if they opted in.
+	 */
+	public async setOptInDecision(decision: boolean) {
+		await this.usageTestFacade.setOptInDecision(decision)
+
+		if (decision) {
+			const tests = await this.usageTestFacade.doLoadActiveUsageTests()
+			this.setTests(tests)
+		}
+	}
+
+	async entityEventsReceived(updates: ReadonlyArray<EntityUpdateData>) {
+		for (const update of updates) {
+			if (isUpdateForTypeRef(CustomerPropertiesTypeRef, update)) {
+				await this.usageTestFacade.updateCustomerProperties()
+			} else if (isUpdateForTypeRef(UserSettingsGroupRootTypeRef, update)) {
+				const updatedOptInDecision = this.loginController.getUserController().userSettingsGroupRoot.usageDataOptedIn
+
+				if (this.usageTestFacade. === updatedOptInDecision) {
+					return
+				}
+
+				// Opt-in decision has changed, load tests
+				const tests = await this.loadActiveUsageTests()
+				this.setTests(tests)
+				this.lastOptInDecision = updatedOptInDecision
+			}
+		}
+	}
 
 	addTest(test: UsageTest) {
-		test.pingAdapter = this.pingAdapter
+		test.pingAdapter = this.usageTestFacade
 		this.tests.set(test.testId, test)
 	}
 
@@ -55,5 +101,18 @@ export class UsageTestController {
 	 */
 	getObsoleteTest(): UsageTest {
 		return this.obsoleteUsageTest
+	}
+
+	/**
+	 * only for usage from the console. may have unintended consequences when used too early or too late.
+	 * @param test the name of the test to change the variant on
+	 * @param variant the number of the variant to use from here on
+	 */
+	private setVariant(test: string, variant: number) {
+		this.getTest(test).variant = variant
+	}
+
+	showOptInIndicator() {
+		return this.usageTestFacade.showOptInIndicator()
 	}
 }

@@ -216,7 +216,7 @@ o.spec("UsageTestModel", function () {
 				await ephemeralStorage.storeTestDeviceId(testDeviceId)
 
 				const usageTest: UsageTest = new UsageTest("testId", "testName", 1, true)
-				usageTest.pingAdapter = usageTestModel
+				usageTest.usageTestFacade = usageTestModel
 				const stage = new Stage(0, usageTest, 1, 1)
 				usageTest.addStage(stage)
 				const metric = {
@@ -246,7 +246,7 @@ o.spec("UsageTestModel", function () {
 				await ephemeralStorage.storeTestDeviceId(testDeviceId)
 
 				const usageTest: UsageTest = new UsageTest("testId", "testName", 1, true)
-				usageTest.pingAdapter = usageTestModel
+				usageTest.usageTestFacade = usageTestModel
 
 				for (let i = 0; i < 3; i++) {
 					const stage = new Stage(i, usageTest, 1, 1)

@@ -1,32 +1,14 @@
 import o from "@tutao/otest"
-import { UsageTestFacadeInterface, Stage, UsageTest } from "../lib/index.js"
+import { Stage, UsageTest } from "../lib/index.js"
 import { UsageTestController } from "../lib/model/UsageTestController.js"
-
-class MockPingAdapter implements UsageTestFacadeInterface {
-	pingsSent = 0
-
-	async sendPing(test: UsageTest, stage: Stage) {
-		this.pingsSent++
-	}
-
-	doLoadActiveUsageTests(): Promise<UsageTest[]> {
-		return Promise.resolve([])
-	}
-
-	setOptInDecision(decision: boolean): Promise<void> {
-		return Promise.resolve(undefined)
-	}
-
-	updateCustomerProperties(): Promise<void> {
-		return Promise.resolve(undefined)
-	}
-}
+import { matchers, object, when } from "testdouble"
+import { UsageTestFacade } from "../../../src/misc/UsageTestFacade.js"
 
 o.spec("Main", function () {
 	o("dom render variant", function () {
 		const testId = "t123"
 		const test = new UsageTest(testId, "test 123", 0, true)
-		test.pingAdapter = new MockPingAdapter()
+		test.usageTestFacade = makeUsageTestFacadeMock().usageTestFacade
 
 		const rendered = test.renderVariant({
 			[0]: () => 0,
@@ -38,15 +20,15 @@ o.spec("Main", function () {
 
 	o("complete stage and send ping", function () {
 		const testId = "t123"
-		const pingAdapter = new MockPingAdapter()
+		const usageTestFacadeWrapper = makeUsageTestFacadeMock()
 
 		const test = new UsageTest(testId, "test 123", 2, true)
-		test.pingAdapter = pingAdapter
+		test.usageTestFacade = usageTestFacadeWrapper.usageTestFacade
 
 		const stage0 = new Stage(0, test, 1, 1)
 		stage0.complete()
 
-		o(pingAdapter.pingsSent).equals(1)
+		o(usageTestFacadeWrapper.pingsSent).equals(1)
 	})
 
 	o("add tests to and retrieve from usage test controller", function () {
@@ -56,13 +38,13 @@ o.spec("Main", function () {
 		const testId2 = "t2"
 		const test2 = new UsageTest(testId2, "test 2", 1, true)
 
-		const adapter = new MockPingAdapter()
-		const usageTestController = new UsageTestController(adapter)
+		const usageTestFacade = makeUsageTestFacadeMock().usageTestFacade
+		const usageTestController = new UsageTestController(usageTestFacade)
 
 		usageTestController.addTests([test1, test2])
 
-		// Correctly injected ping adapter
-		o(usageTestController.getTest(testId1).pingAdapter).equals(adapter)
+		// Correctly injected usageTestFacade
+		o(usageTestController.getTest(testId1).usageTestFacade).equals(usageTestFacade)
 
 		o(usageTestController.getTest(testId2)).equals(test2)
 	})
@@ -75,7 +57,7 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 1, 1))
 		}
 
-		const adapter = new MockPingAdapter()
+		const adapter = makeUsageTestFacadeMock()
 		const usageTestController = new UsageTestController(adapter)
 
 		usageTestController.addTests([test1])
@@ -101,7 +83,7 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 1, 1))
 		}
 
-		const adapter = new MockPingAdapter()
+		const adapter = makeUsageTestFacadeMock()
 		const usageTestController = new UsageTestController(adapter)
 
 		usageTestController.addTests([test1])
@@ -130,7 +112,7 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 1, 1))
 		}
 
-		const adapter = new MockPingAdapter()
+		const adapter = makeUsageTestFacadeMock()
 		const usageTestController = new UsageTestController(adapter)
 
 		usageTestController.addTests([test1])
@@ -158,7 +140,7 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 1, i + 1))
 		}
 
-		const adapter = new MockPingAdapter()
+		const adapter = makeUsageTestFacadeMock()
 		const usageTestController = new UsageTestController(adapter)
 
 		usageTestController.addTests([test1])
@@ -191,7 +173,7 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 0, i + 1))
 		}
 
-		const adapter = new MockPingAdapter()
+		const adapter = makeUsageTestFacadeMock()
 		const usageTestController = new UsageTestController(adapter)
 
 		usageTestController.addTests([test1])
@@ -219,7 +201,7 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, i == 2 ? 0 : 1, i + 1))
 		}
 
-		const adapter = new MockPingAdapter()
+		const adapter = makeUsageTestFacadeMock()
 		const usageTestController = new UsageTestController(adapter)
 
 		usageTestController.addTests([test1])
@@ -238,6 +220,16 @@ o.spec("Main", function () {
 		o(adapter.pingsSent).equals(8)
 	})
 })
+
+function makeUsageTestFacadeMock(): { pingsSent: number; usageTestFacade: UsageTestFacade } {
+	let pingsSent = 0
+	const usageTestFacade = object<UsageTestFacade>()
+	when(usageTestFacade.sendPing(matchers.anything(), matchers.anything())).thenDo(() => pingsSent++)
+	return {
+		pingsSent,
+		usageTestFacade,
+	}
+}
 
 const result = await o.run()
 o.printReport(result)

@@ -6,7 +6,6 @@ import {
 	UsageTestAssignmentOut,
 	UsageTestAssignmentTypeRef,
 } from "../api/entities/usage/TypeRefs.js"
-import { UsageTestFacadeInterface, Stage, UsageTest } from "@tutao/tutanota-usagetests"
 import { assertNotNull, filterInt, lazy, neverNull } from "@tutao/tutanota-utils"
 import { BadRequestError, NotFoundError, PreconditionFailedError } from "../api/common/error/RestError"
 import { UsageTestMetricType } from "../api/common/TutanotaConstants"
@@ -26,6 +25,7 @@ import { CustomerProperties, CustomerPropertiesTypeRef, CustomerTypeRef } from "
 import { EntityClient } from "../api/common/EntityClient.js"
 import { UserFacade } from "../api/worker/facades/UserFacade.js"
 import { loadUserSettingsGroupRoot } from "./UserUtils.js"
+import { Stage, UsageTest } from "@tutao/tutanota-usagetests/lib/index.js"
 
 const PRESELECTED_LIKERT_VALUE = null
 
@@ -154,7 +154,7 @@ export const enum StorageBehavior {
 	Ephemeral,
 }
 
-export class UsageTestFacade implements UsageTestFacadeInterface {
+export class UsageTestFacade {
 	private storageBehavior = StorageBehavior.Ephemeral
 	private customerProperties?: CustomerProperties
 	private lastOptInDecision: boolean | null = null
@@ -223,7 +223,7 @@ export class UsageTestFacade implements UsageTestFacadeInterface {
 		return userSettingsGroupRoot.usageDataOptedIn === null
 	}
 
-	private async getOptInDecision(): Promise<boolean> {
+	async getOptInDecision(): Promise<boolean> {
 		if (!this.userFacade.isPartiallyLoggedIn()) {
 			return false
 		}
@@ -243,15 +243,15 @@ export class UsageTestFacade implements UsageTestFacadeInterface {
 	/**
 	 * If the storageBehavior is set to StorageBehavior.Persist, then init() must have been called before calling this method.
 	 */
-	async loadActiveUsageTests() {
-		if (this.storageBehavior === StorageBehavior.Persist && !this.getOptInDecision()) {
+	async loadActiveUsageTests(): Promise<UsageTest[]> {
+		if (this.storageBehavior === StorageBehavior.Persist && !(await this.getOptInDecision())) {
 			return []
 		}
 
 		return await this.doLoadActiveUsageTests()
 	}
 
-	private async doLoadActiveUsageTests() {
+	async doLoadActiveUsageTests(): Promise<UsageTest[]> {
 		const persistedData = await this.storage().getAssignments()
 		const modelVersion = await this.modelVersion()
 

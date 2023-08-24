@@ -1,10 +1,9 @@
 import { ObsoleteUsageTest, UsageTest } from "./UsageTest.js"
-import { UsageTestFacadeInterface } from "../storage/UsageTestFacadeInterface.js"
 import { EntityUpdateData, EventController, isUpdateForTypeRef } from "../../../../src/api/main/EventController.js"
-import { CustomerPropertiesTypeRef, CustomerTypeRef } from "../../../../src/api/entities/sys/TypeRefs.js"
-import { createUserSettingsGroupRoot, UserSettingsGroupRootTypeRef } from "../../../../src/api/entities/tutanota/TypeRefs.js"
-import { neverNull } from "@tutao/tutanota-utils"
+import { CustomerPropertiesTypeRef } from "../../../../src/api/entities/sys/TypeRefs.js"
+import { UserSettingsGroupRootTypeRef } from "../../../../src/api/entities/tutanota/TypeRefs.js"
 import { LoginController } from "../../../../src/api/main/LoginController.js"
+import { UsageTestFacade } from "../../../../src/misc/UsageTestFacade.js"
 
 /** Centralized place which holds all the {@link UsageTest}s. */
 export class UsageTestController {
@@ -12,7 +11,7 @@ export class UsageTestController {
 	private readonly obsoleteUsageTest = new ObsoleteUsageTest("obsolete", "obsolete", 0)
 
 	constructor(
-		private readonly usageTestFacade: UsageTestFacadeInterface,
+		private readonly usageTestFacade: UsageTestFacade,
 		private readonly eventController: EventController,
 		private readonly loginController: LoginController,
 	) {
@@ -30,7 +29,7 @@ export class UsageTestController {
 		await this.usageTestFacade.setOptInDecision(decision)
 
 		if (decision) {
-			const tests = await this.usageTestFacade.doLoadActiveUsageTests()
+			const tests: UsageTest[] = await this.usageTestFacade.doLoadActiveUsageTests()
 			this.setTests(tests)
 		}
 	}
@@ -42,20 +41,22 @@ export class UsageTestController {
 			} else if (isUpdateForTypeRef(UserSettingsGroupRootTypeRef, update)) {
 				const updatedOptInDecision = this.loginController.getUserController().userSettingsGroupRoot.usageDataOptedIn
 
-				if (this.usageTestFacade. === updatedOptInDecision) {
+				if ((await this.usageTestFacade.getOptInDecision()) === updatedOptInDecision) {
 					return
 				}
 
 				// Opt-in decision has changed, load tests
-				const tests = await this.loadActiveUsageTests()
+				const tests: UsageTest[] = await this.usageTestFacade.loadActiveUsageTests()
 				this.setTests(tests)
-				this.lastOptInDecision = updatedOptInDecision
+				if (updatedOptInDecision != null) {
+					await this.usageTestFacade.setOptInDecision(updatedOptInDecision)
+				}
 			}
 		}
 	}
 
 	addTest(test: UsageTest) {
-		test.pingAdapter = this.usageTestFacade
+		test.usageTestFacade = this.usageTestFacade
 		this.tests.set(test.testId, test)
 	}
 

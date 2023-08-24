@@ -1,10 +1,13 @@
 import o from "@tutao/otest"
-import { Stage, UsageTest } from "../lib/index.js"
-import { UsageTestController } from "../lib/model/UsageTestController.js"
+import { Stage, UsageTest, UsageTestController } from "@tutao/tutanota-usagetests/lib/index.js"
 import { matchers, object, when } from "testdouble"
-import { UsageTestFacade } from "../../../src/misc/UsageTestFacade.js"
+import { EventController } from "../../../../../src/api/main/EventController.js"
+import { LoginController } from "../../../../../src/api/main/LoginController.js"
+import { UsageTestFacade } from "../../../../../src/api/worker/facades/UsageTestFacade.js"
 
 o.spec("Main", function () {
+	const eventController = object<EventController>()
+	const logins = object<LoginController>()
 	o("dom render variant", function () {
 		const testId = "t123"
 		const test = new UsageTest(testId, "test 123", 0, true)
@@ -18,7 +21,7 @@ o.spec("Main", function () {
 		o(rendered).equals(0)
 	})
 
-	o("complete stage and send ping", function () {
+	o("complete stage and send ping", async function () {
 		const testId = "t123"
 		const usageTestFacadeWrapper = makeUsageTestFacadeMock()
 
@@ -26,7 +29,7 @@ o.spec("Main", function () {
 		test.usageTestFacade = usageTestFacadeWrapper.usageTestFacade
 
 		const stage0 = new Stage(0, test, 1, 1)
-		stage0.complete()
+		await stage0.complete()
 
 		o(usageTestFacadeWrapper.pingsSent).equals(1)
 	})
@@ -39,7 +42,7 @@ o.spec("Main", function () {
 		const test2 = new UsageTest(testId2, "test 2", 1, true)
 
 		const usageTestFacade = makeUsageTestFacadeMock().usageTestFacade
-		const usageTestController = new UsageTestController(usageTestFacade)
+		const usageTestController = new UsageTestController(usageTestFacade, eventController, logins)
 
 		usageTestController.addTests([test1, test2])
 
@@ -57,8 +60,8 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 1, 1))
 		}
 
-		const adapter = makeUsageTestFacadeMock()
-		const usageTestController = new UsageTestController(adapter)
+		const usageTestFacadeMock = makeUsageTestFacadeMock()
+		const usageTestController = new UsageTestController(usageTestFacadeMock.usageTestFacade, eventController, logins)
 
 		usageTestController.addTests([test1])
 
@@ -72,7 +75,7 @@ o.spec("Main", function () {
 		await test1.getStage(1).complete() // 3
 		await test1.getStage(2).complete() // 3
 
-		o(adapter.pingsSent).equals(3)
+		o(usageTestFacadeMock.pingsSent).equals(3)
 	})
 
 	o("test may be restarted upon reaching the last stage", async function () {
@@ -83,8 +86,8 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 1, 1))
 		}
 
-		const adapter = makeUsageTestFacadeMock()
-		const usageTestController = new UsageTestController(adapter)
+		const usageTestFacadeMock = makeUsageTestFacadeMock()
+		const usageTestController = new UsageTestController(usageTestFacadeMock.usageTestFacade, eventController, logins)
 
 		usageTestController.addTests([test1])
 
@@ -100,7 +103,7 @@ o.spec("Main", function () {
 		await test1.getStage(0).complete() // 4
 		await test1.getStage(1).complete() // 5
 
-		o(adapter.pingsSent).equals(5)
+		o(usageTestFacadeMock.pingsSent).equals(5)
 	})
 
 	o("test may be restarted before reaching the last stage if allowEarlyRestarts=true", async function () {
@@ -112,8 +115,8 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 1, 1))
 		}
 
-		const adapter = makeUsageTestFacadeMock()
-		const usageTestController = new UsageTestController(adapter)
+		const usageTestFacadeMock = makeUsageTestFacadeMock()
+		const usageTestController = new UsageTestController(usageTestFacadeMock.usageTestFacade, eventController, logins)
 
 		usageTestController.addTests([test1])
 
@@ -129,7 +132,7 @@ o.spec("Main", function () {
 		await test1.getStage(0).complete() // 7
 		await test1.getStage(1).complete() // 8
 
-		o(adapter.pingsSent).equals(8)
+		o(usageTestFacadeMock.pingsSent).equals(8)
 	})
 
 	o("stages may be repeated if configured as such", async function () {
@@ -140,8 +143,8 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 1, i + 1))
 		}
 
-		const adapter = makeUsageTestFacadeMock()
-		const usageTestController = new UsageTestController(adapter)
+		const usageTestFacadeMock = makeUsageTestFacadeMock()
+		const usageTestController = new UsageTestController(usageTestFacadeMock.usageTestFacade, eventController, logins)
 
 		usageTestController.addTests([test1])
 
@@ -162,7 +165,7 @@ o.spec("Main", function () {
 		await test1.getStage(2).complete() // 11
 		await test1.getStage(2).complete() // 11
 
-		o(adapter.pingsSent).equals(11)
+		o(usageTestFacadeMock.pingsSent).equals(11)
 	})
 
 	o("stages may be skipped if configured as such", async function () {
@@ -173,8 +176,8 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, 0, i + 1))
 		}
 
-		const adapter = makeUsageTestFacadeMock()
-		const usageTestController = new UsageTestController(adapter)
+		const usageTestFacadeMock = makeUsageTestFacadeMock()
+		const usageTestController = new UsageTestController(usageTestFacadeMock.usageTestFacade, eventController, logins)
 
 		usageTestController.addTests([test1])
 
@@ -189,7 +192,7 @@ o.spec("Main", function () {
 		await test1.getStage(2).complete() // 8
 		await test1.getStage(2).complete() // 8
 
-		o(adapter.pingsSent).equals(8)
+		o(usageTestFacadeMock.pingsSent).equals(8)
 	})
 
 	o("stages may be skipped if configured as such, 2", async function () {
@@ -201,8 +204,8 @@ o.spec("Main", function () {
 			test1.addStage(new Stage(i, test1, i == 2 ? 0 : 1, i + 1))
 		}
 
-		const adapter = makeUsageTestFacadeMock()
-		const usageTestController = new UsageTestController(adapter)
+		const usageTestFacadeMock = makeUsageTestFacadeMock()
+		const usageTestController = new UsageTestController(usageTestFacadeMock.usageTestFacade, eventController, logins)
 
 		usageTestController.addTests([test1])
 
@@ -217,7 +220,7 @@ o.spec("Main", function () {
 		await test1.getStage(1).complete() // 7
 		await test1.getStage(3).complete() // 8
 
-		o(adapter.pingsSent).equals(8)
+		o(usageTestFacadeMock.pingsSent).equals(8)
 	})
 })
 

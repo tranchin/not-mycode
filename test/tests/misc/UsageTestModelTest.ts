@@ -6,7 +6,7 @@ import {
 	StorageBehavior,
 	UsageTestFacade,
 	UsageTestStorage,
-} from "../../../src/misc/UsageTestFacade.js"
+} from "../../../src/api/worker/facades/UsageTestFacade.js"
 import {
 	createUsageTestAssignment,
 	createUsageTestAssignmentIn,

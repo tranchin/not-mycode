@@ -6,7 +6,7 @@ import type { CredentialsStorage, PersistentCredentials } from "./credentials/Cr
 import { ProgrammingError } from "../api/common/error/ProgrammingError"
 import type { CredentialEncryptionMode } from "./credentials/CredentialEncryptionMode"
 import { assertMainOrNodeBoot } from "../api/common/Env"
-import { PersistedAssignmentData, UsageTestStorage } from "./UsageTestFacade.js"
+import { PersistedAssignmentData, UsageTestStorage } from "../api/worker/facades/UsageTestFacade.js"
 import { client } from "./ClientDetector"
 import { NewsItemStorage } from "./news/NewsModel.js"
 import { CalendarViewType } from "../calendar/view/CalendarGuiUtils.js"

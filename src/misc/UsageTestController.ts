@@ -1,9 +1,9 @@
-import { ObsoleteUsageTest, UsageTest } from "./UsageTest.js"
-import { EntityUpdateData, EventController, isUpdateForTypeRef } from "../../../../src/api/main/EventController.js"
-import { CustomerPropertiesTypeRef } from "../../../../src/api/entities/sys/TypeRefs.js"
-import { UserSettingsGroupRootTypeRef } from "../../../../src/api/entities/tutanota/TypeRefs.js"
-import { LoginController } from "../../../../src/api/main/LoginController.js"
-import { UsageTestFacade } from "../../../../src/misc/UsageTestFacade.js"
+import { ObsoleteUsageTest, UsageTest } from "@tutao/tutanota-usagetests/lib/model/UsageTest.js"
+import { EntityUpdateData, EventController, isUpdateForTypeRef } from "../api/main/EventController.js"
+import { CustomerPropertiesTypeRef } from "../api/entities/sys/TypeRefs.js"
+import { UserSettingsGroupRootTypeRef } from "../api/entities/tutanota/TypeRefs.js"
+import { LoginController } from "../api/main/LoginController.js"
+import { UsageTestFacade } from "../api/worker/facades/UsageTestFacade.js"
 
 /** Centralized place which holds all the {@link UsageTest}s. */
 export class UsageTestController {

@@ -12,8 +12,7 @@
 	},
 	"scripts": {
 		"prepublishOnly": "npm run build",
-		"build": "tsc -b",
-		"test": "tsc -b test && node build/test/Suite.js"
+		"build": "tsc -b"
 	},
 	"author": "now",
 	"type": "module",
@@ -25,8 +24,6 @@
 	],
 	"devDependencies": {
 		"@types/node-forge": "1.0.0",
-		"typescript": "5.0.3",
-		"@tutao/tutanota-test-utils": "3.117.0",
-		"@tutao/otest": "3.117.0"
+		"typescript": "5.0.3"
 	}
 }

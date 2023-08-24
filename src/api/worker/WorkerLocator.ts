@@ -47,9 +47,7 @@ import { modelInfos } from "../common/EntityFunctions.js"
 import { FileFacadeSendDispatcher } from "../../native/common/generatedipc/FileFacadeSendDispatcher.js"
 import { NativePushFacadeSendDispatcher } from "../../native/common/generatedipc/NativePushFacadeSendDispatcher.js"
 import { NativeCryptoFacadeSendDispatcher } from "../../native/common/generatedipc/NativeCryptoFacadeSendDispatcher"
-import { random } from "@tutao/tutanota-crypto"
 import { ExportFacadeSendDispatcher } from "../../native/common/generatedipc/ExportFacadeSendDispatcher.js"
-import { assertNotNull, delay, lazyAsync, lazyMemoized, ofClass } from "@tutao/tutanota-utils"
 import { InterWindowEventFacadeSendDispatcher } from "../../native/common/generatedipc/InterWindowEventFacadeSendDispatcher.js"
 import { SqlCipherFacadeSendDispatcher } from "../../native/common/generatedipc/SqlCipherFacadeSendDispatcher.js"
 import { EntropyFacade } from "./facades/EntropyFacade.js"
@@ -62,8 +60,10 @@ import { Challenge } from "../entities/sys/TypeRefs.js"
 import { LoginFailReason } from "../main/PageContextLoginListener.js"
 import { ConnectionError, ServiceUnavailableError } from "../common/error/RestError.js"
 import { SessionType } from "../common/SessionType.js"
-import { EphemeralUsageTestStorage, StorageBehavior, UsageTestFacade } from "../../misc/UsageTestFacade.js"
+import { EphemeralUsageTestStorage, StorageBehavior, UsageTestFacade } from "./facades/UsageTestFacade.js"
 import { deviceConfig } from "../../misc/DeviceConfig.js"
+import { assertNotNull, delay, lazyAsync, lazyMemoized, ofClass } from "@tutao/tutanota-utils"
+import { random } from "@tutao/tutanota-crypto"
 
 assertWorkerOrNode()
 
@@ -381,7 +381,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		return new ContactFormFacade(locator.restClient, locator.instanceMapper)
 	})
 
-	locator.usageTestFacade = new UsageTestFacade(
+	locator.usageTest = new UsageTestFacade(
 		{
 			[StorageBehavior.Persist]: deviceConfig,
 			[StorageBehavior.Ephemeral]: new EphemeralUsageTestStorage(),

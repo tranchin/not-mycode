@@ -5,27 +5,27 @@ import {
 	UsageTestAssignment,
 	UsageTestAssignmentOut,
 	UsageTestAssignmentTypeRef,
-} from "../api/entities/usage/TypeRefs.js"
-import { assertNotNull, filterInt, lazy, neverNull } from "@tutao/tutanota-utils"
-import { BadRequestError, NotFoundError, PreconditionFailedError } from "../api/common/error/RestError"
-import { UsageTestMetricType } from "../api/common/TutanotaConstants"
-import { SuspensionError } from "../api/common/error/SuspensionError"
-import { SuspensionBehavior } from "../api/worker/rest/RestClient"
-import { DateProvider } from "../api/common/DateProvider.js"
-import { IServiceExecutor } from "../api/common/ServiceRequest"
-import { UsageTestAssignmentService, UsageTestParticipationService } from "../api/entities/usage/Services.js"
-import { resolveTypeReference } from "../api/common/EntityFunctions"
-import { lang, TranslationKey } from "./LanguageViewModel"
+} from "../../entities/usage/TypeRefs.js"
+import { BadRequestError, NotFoundError, PreconditionFailedError } from "../../common/error/RestError.js"
+import { UsageTestMetricType } from "../../common/TutanotaConstants.js"
+import { SuspensionError } from "../../common/error/SuspensionError.js"
+import { SuspensionBehavior } from "../rest/RestClient.js"
+import { DateProvider } from "../../common/DateProvider.js"
+import { IServiceExecutor } from "../../common/ServiceRequest.js"
+import { UsageTestAssignmentService, UsageTestParticipationService } from "../../entities/usage/Services.js"
+import { resolveTypeReference } from "../../common/EntityFunctions.js"
+import { lang, TranslationKey } from "../../../misc/LanguageViewModel.js"
 import stream from "mithril/stream"
-import { Dialog, DialogType } from "../gui/base/Dialog"
-import { DropDownSelector, SelectorItem } from "../gui/base/DropDownSelector"
+import { Dialog, DialogType } from "../../../gui/base/Dialog.js"
+import { DropDownSelector, SelectorItem } from "../../../gui/base/DropDownSelector.js"
 import m, { Children } from "mithril"
-import { isOfflineError } from "../api/common/utils/ErrorCheckUtils.js"
-import { CustomerProperties, CustomerPropertiesTypeRef, CustomerTypeRef } from "../api/entities/sys/TypeRefs.js"
-import { EntityClient } from "../api/common/EntityClient.js"
-import { UserFacade } from "../api/worker/facades/UserFacade.js"
-import { loadUserSettingsGroupRoot } from "./UserUtils.js"
+import { isOfflineError } from "../../common/utils/ErrorCheckUtils.js"
+import { Customer, CustomerProperties, CustomerPropertiesTypeRef, CustomerTypeRef } from "../../entities/sys/TypeRefs.js"
+import { EntityClient } from "../../common/EntityClient.js"
+import { UserFacade } from "./UserFacade.js"
+import { loadUserSettingsGroupRoot } from "../../../misc/UserUtils.js"
 import { Stage, UsageTest } from "@tutao/tutanota-usagetests/lib/index.js"
+import { assertNotNull, filterInt, lazy, neverNull } from "@tutao/tutanota-utils"
 
 const PRESELECTED_LIKERT_VALUE = null
 
@@ -182,7 +182,7 @@ export class UsageTestFacade {
 
 	async updateCustomerProperties(): Promise<void> {
 		const customerId = neverNull(this.userFacade.getUser()?.customer)
-		const customer = await this.entityClient.load(CustomerTypeRef, customerId)
+		const customer: Customer = await this.entityClient.load(CustomerTypeRef, customerId)
 		this.customerProperties = await this.entityClient.load(CustomerPropertiesTypeRef, neverNull(customer.properties))
 	}
 

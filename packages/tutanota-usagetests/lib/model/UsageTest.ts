@@ -1,5 +1,5 @@
 import { ObsoleteStage, Stage } from "./Stage.js"
-import { UsageTestFacade } from "../../../../src/misc/UsageTestFacade.js"
+import { UsageTestFacade } from "../../../../src/api/worker/facades/UsageTestFacade.js"
 
 const NO_PARTICIPATION_VARIANT = 0
 const ASSIGNMENT_STAGE = -1

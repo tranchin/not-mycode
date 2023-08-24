@@ -29,7 +29,7 @@ import { showChangeOwnPasswordDialog } from "./ChangePasswordDialogs.js"
 import { IconButton, IconButtonAttrs } from "../../gui/base/IconButton.js"
 import { ButtonSize } from "../../gui/base/ButtonSize.js"
 import { DropDownSelector, DropDownSelectorAttrs } from "../../gui/base/DropDownSelector.js"
-import { UsageTestFacade } from "../../misc/UsageTestFacade.js"
+import { UsageTestFacade } from "../../api/worker/facades/UsageTestFacade.js"
 import { UserSettingsGroupRootTypeRef } from "../../api/entities/tutanota/TypeRefs.js"
 
 assertMainOrNode()

@@ -41,7 +41,7 @@ import { ExposedEventController } from "../main/EventController.js"
 import { ExposedOperationProgressTracker } from "../main/OperationProgressTracker.js"
 import { WorkerFacade } from "./facades/WorkerFacade.js"
 import { InfoMessageHandler } from "../../gui/InfoMessageHandler.js"
-import { UsageTestFacade } from "../../misc/UsageTestFacade.js"
+import { UsageTestFacade } from "./facades/UsageTestFacade.js"
 
 assertWorkerOrNode()
 

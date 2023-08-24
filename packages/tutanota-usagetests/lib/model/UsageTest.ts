@@ -1,5 +1,5 @@
 import { ObsoleteStage, Stage } from "./Stage.js"
-import { UsageTestFacade } from "../../../../src/api/worker/facades/UsageTestFacade.js"
+import { PingAdapter } from "../storage/PingAdapter.js"
 
 const NO_PARTICIPATION_VARIANT = 0
 const ASSIGNMENT_STAGE = -1
@@ -11,7 +11,7 @@ export type VariantsIndex<ReturnT> = {
 /** Holds all variants and can render current variant. Combines a test's config and the user's assignment. */
 export class UsageTest {
 	private readonly stages: Map<number, Stage> = new Map<number, Stage>()
-	usageTestFacade?: UsageTestFacade
+	pingAdapter?: PingAdapter
 	public lastCompletedStage = 0
 	// storage for data that is aggregated across stages and sent at some point
 	public meta: Record<string, any> = {}
@@ -79,7 +79,7 @@ export class UsageTest {
 	 * Should not be used directly. Use stage.complete() instead.
 	 */
 	async completeStage(stage: Stage, forceRestart = false): Promise<boolean> {
-		if (!this.usageTestFacade) {
+		if (!this.pingAdapter) {
 			throw new Error("no ping adapter has been registered")
 		} else if (this.variant === NO_PARTICIPATION_VARIANT || !this.active) {
 			return false
@@ -125,7 +125,7 @@ export class UsageTest {
 			this.lastPingDate = currentDate
 		}
 
-		await this.usageTestFacade.sendPing(this, stage)
+		await this.pingAdapter.sendPing(this, stage)
 
 		this.started = true
 		return true

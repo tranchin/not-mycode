@@ -25,9 +25,9 @@ import { locator } from "../api/main/MainLocator"
 import { getPaymentWebRoot } from "../api/common/Env"
 import { Credentials } from "../misc/credentials/Credentials"
 import { SessionType } from "../api/common/SessionType.js"
-import { UsageTest } from "@tutao/tutanota-usagetests"
 import { PaymentInterval } from "./PriceUtils.js"
 import { PaymentCredit2Stages } from "./PaymentCredit2Stages.js"
+import { UsageTest } from "@tutao/tutanota-usagetests"
 
 /**
  * Wizard page for editing invoice and payment data.

@@ -124,10 +124,10 @@ export async function loadSignupWizard(
 	registrationDataId: string | null,
 	referralCode: string | null,
 ): Promise<void> {
-	const usageTestModel = locator.usageTestModel
+	const usageTestFacade = locator.usageTestFacade
 
-	usageTestModel.setStorageBehavior(StorageBehavior.Ephemeral)
-	locator.usageTestController.setTests(await usageTestModel.loadActiveUsageTests())
+	usageTestFacade.setStorageBehavior(StorageBehavior.Ephemeral)
+	locator.usageTestController.setTests(await usageTestFacade.loadActiveUsageTests())
 
 	const priceDataProvider = await PriceAndConfigProvider.getInitializedInstance(registrationDataId, locator.serviceExecutor, referralCode)
 	const prices = priceDataProvider.getRawPricingData()

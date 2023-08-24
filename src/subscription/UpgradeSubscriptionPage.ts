@@ -14,10 +14,10 @@ import { DefaultAnimationTime } from "../gui/animation/Animations"
 import { Keys, PlanType } from "../api/common/TutanotaConstants"
 import { Checkbox } from "../gui/base/Checkbox.js"
 import { locator } from "../api/main/MainLocator"
-import { UsageTest } from "@tutao/tutanota-usagetests"
 import { UpgradePriceType } from "./FeatureListProvider"
 import { asPaymentInterval, PaymentInterval } from "./PriceUtils.js"
 import { lazy } from "@tutao/tutanota-utils"
+import { UsageTest } from "@tutao/tutanota-usagetests"
 
 /** Subscription type passed from the website */
 export const PlanTypeParameter = Object.freeze({

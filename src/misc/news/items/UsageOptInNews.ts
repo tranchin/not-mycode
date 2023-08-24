@@ -6,9 +6,8 @@ import { InfoLink, lang } from "../../LanguageViewModel.js"
 import { Dialog } from "../../../gui/base/Dialog.js"
 import { Button, ButtonAttrs, ButtonType } from "../../../gui/base/Button.js"
 import { NewsModel } from "../NewsModel.js"
-import { UsageTestFacade } from "../../../api/worker/facades/UsageTestFacade.js"
 import { MoreInfoLink } from "../MoreInfoLink.js"
-import { UsageTestController } from "@tutao/tutanota-usagetests"
+import { UsageTestController } from "../../UsageTestController.js"
 
 /**
  * News item that informs users about the usage data opt-in.

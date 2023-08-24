@@ -41,12 +41,12 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 	private _sessions: Session[] = []
 	private readonly _secondFactorsForm = new SecondFactorsEditForm(new LazyLoaded(() => Promise.resolve(locator.logins.getUserController().user)))
 	private readonly credentialsEncryptionModeHelpLabel: (() => string) | null
-	private readonly _usageTestModel: UsageTestFacade
+	private readonly usageTestFacade: UsageTestFacade
 
 	constructor(private readonly credentialsProvider: CredentialsProvider) {
 		this.credentialsEncryptionModeHelpLabel =
 			this.credentialsProvider.getCredentialsEncryptionMode() === null ? () => lang.get("deviceEncryptionSaveCredentialsHelpText_msg") : null
-		this._usageTestModel = locator.usageTestModel
+		this.usageTestFacade = locator.usageTestFacade
 
 		this._updateSessions()
 	}
@@ -123,7 +123,7 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 			],
 			selectedValue: locator.logins.getUserController().userSettingsGroupRoot.usageDataOptedIn,
 			selectionChangedHandler: (v) => {
-				this._usageTestModel.setOptInDecision(assertNotNull(v))
+				this.usageTestFacade.setOptInDecision(assertNotNull(v))
 			},
 			helpLabel: () => {
 				return ifAllowedTutanotaLinks(locator.logins, InfoLink.Usage, (link) => [
@@ -175,7 +175,7 @@ export class LoginSettingsViewer implements UpdatableSettingsViewer {
 					),
 					m(".small", lang.get("sessionsWillBeDeleted_msg")),
 					m(".small", lang.get("sessionsInfo_msg")),
-					this._usageTestModel.isCustomerOptedOut()
+					this.usageTestFacade.isCustomerOptedOut()
 						? null
 						: m("", [m(".h4.mt-l", lang.get("usageData_label")), m(DropDownSelector, usageDataOptInAttrs)]),
 				]),

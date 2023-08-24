@@ -1,9 +1,10 @@
-import { ObsoleteUsageTest, UsageTest } from "@tutao/tutanota-usagetests/lib/model/UsageTest.js"
 import { EntityUpdateData, EventController, isUpdateForTypeRef } from "../api/main/EventController.js"
 import { CustomerPropertiesTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { UserSettingsGroupRootTypeRef } from "../api/entities/tutanota/TypeRefs.js"
 import { LoginController } from "../api/main/LoginController.js"
 import { UsageTestFacade } from "../api/worker/facades/UsageTestFacade.js"
+import { UsageTest } from "@tutao/tutanota-usagetests"
+import { ObsoleteUsageTest } from "@tutao/tutanota-usagetests/dist/model/UsageTest.js"
 
 /** Centralized place which holds all the {@link UsageTest}s. */
 export class UsageTestController {
@@ -56,7 +57,7 @@ export class UsageTestController {
 	}
 
 	addTest(test: UsageTest) {
-		test.usageTestFacade = this.usageTestFacade
+		test.pingAdapter = this.usageTestFacade
 		this.tests.set(test.testId, test)
 	}
 

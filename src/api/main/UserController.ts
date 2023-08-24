@@ -1,11 +1,10 @@
 import { AccountType, FeatureType, GroupType, LegacyPlans, OperationType, PlanType } from "../common/TutanotaConstants"
 import type { Base64Url } from "@tutao/tutanota-utils"
-import { downcast, first, mapAndFilterNull, neverNull, ofClass } from "@tutao/tutanota-utils"
+import { downcast, first, mapAndFilterNull, neverNull } from "@tutao/tutanota-utils"
 import { MediaType } from "../common/EntityFunctions"
 import { assertMainOrNode, getApiOrigin, isDesktop } from "../common/Env"
 import type { EntityUpdateData } from "./EventController"
 import { isUpdateForTypeRef } from "./EventController"
-import { NotFoundError } from "../common/error/RestError"
 import { locator } from "./MainLocator"
 import { isSameId } from "../common/utils/EntityUtils"
 import { getWhitelabelCustomizations } from "../../misc/WhitelabelCustomizations"
@@ -29,13 +28,7 @@ import {
 	WhitelabelConfig,
 	WhitelabelConfigTypeRef,
 } from "../entities/sys/TypeRefs"
-import {
-	createUserSettingsGroupRoot,
-	TutanotaProperties,
-	TutanotaPropertiesTypeRef,
-	UserSettingsGroupRoot,
-	UserSettingsGroupRootTypeRef,
-} from "../entities/tutanota/TypeRefs"
+import { TutanotaProperties, TutanotaPropertiesTypeRef, UserSettingsGroupRoot, UserSettingsGroupRootTypeRef } from "../entities/tutanota/TypeRefs"
 import { typeModels as sysTypeModels } from "../entities/sys/TypeModels"
 import { SessionType } from "../common/SessionType"
 import { isCustomizationEnabledForCustomer } from "../common/utils/Utils.js"

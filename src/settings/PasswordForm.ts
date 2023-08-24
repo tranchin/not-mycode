@@ -13,11 +13,11 @@ import { showPasswordGeneratorDialog } from "../misc/passwords/PasswordGenerator
 import { theme } from "../gui/theme"
 import { Icons } from "../gui/base/icons/Icons"
 import { px, size } from "../gui/size.js"
-import { UsageTest } from "@tutao/tutanota-usagetests"
 import Stream from "mithril/stream"
 import { locator } from "../api/main/MainLocator.js"
 import { ButtonSize } from "../gui/base/ButtonSize.js"
 import { ToggleButton } from "../gui/base/buttons/ToggleButton.js"
+import { UsageTest } from "@tutao/tutanota-usagetests"
 
 assertMainOrNode()
 

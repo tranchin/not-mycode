@@ -95,8 +95,8 @@ import { SearchRouter } from "../../search/view/SearchRouter.js"
 import { MailOpenedListener } from "../../mail/view/MailViewModel.js"
 import { InboxRuleHandler } from "../../mail/model/InboxRuleHandler.js"
 import { Router, ScopedRouter, ThrottledRouter } from "../../gui/ScopedRouter.js"
-import { UsageTestController } from "@tutao/tutanota-usagetests/lib/index.js"
 import { defer, DeferredObject, lazy, lazyAsync, lazyMemoized, noOp } from "@tutao/tutanota-utils"
+import { UsageTestController } from "../../misc/UsageTestController.js"
 
 assertMainOrNode()
 

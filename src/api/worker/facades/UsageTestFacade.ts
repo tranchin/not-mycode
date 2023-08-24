@@ -24,8 +24,8 @@ import { Customer, CustomerProperties, CustomerPropertiesTypeRef, CustomerTypeRe
 import { EntityClient } from "../../common/EntityClient.js"
 import { UserFacade } from "./UserFacade.js"
 import { loadUserSettingsGroupRoot } from "../../../misc/UserUtils.js"
-import { Stage, UsageTest } from "@tutao/tutanota-usagetests/lib/index.js"
 import { assertNotNull, filterInt, lazy, neverNull } from "@tutao/tutanota-utils"
+import { PingAdapter, Stage, UsageTest } from "@tutao/tutanota-usagetests"
 
 const PRESELECTED_LIKERT_VALUE = null
 
@@ -154,7 +154,7 @@ export const enum StorageBehavior {
 	Ephemeral,
 }
 
-export class UsageTestFacade {
+export class UsageTestFacade implements PingAdapter {
 	private storageBehavior = StorageBehavior.Ephemeral
 	private customerProperties?: CustomerProperties
 	private lastOptInDecision: boolean | null = null

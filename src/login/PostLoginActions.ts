@@ -132,13 +132,13 @@ export class PostLoginActions implements PostLoginAction {
 
 		this.enforcePasswordChange()
 
-		const usageTestModel = locator.usageTestModel
-		await usageTestModel.init()
+		const usageTestFacade = locator.usageTestFacade
+		await usageTestFacade.init()
 
-		usageTestModel.setStorageBehavior(StorageBehavior.Persist)
+		usageTestFacade.setStorageBehavior(StorageBehavior.Persist)
 		// Load only up-to-date (not older than 1h) assignments here and make a request for that.
 		// There should not be a lot of re-rendering at this point since assignments for new tests are usually fetched right after a client version update.
-		locator.usageTestController.setTests(await usageTestModel.loadActiveUsageTests())
+		locator.usageTestController.setTests(await usageTestFacade.loadActiveUsageTests())
 
 		// Needs to be called after UsageTestModel.init() if the UsageOptInNews is live! (its isShown() requires an initialized UsageTestModel)
 		await locator.newsModel.loadNewsIds()

@@ -28,9 +28,8 @@ export class PinchZoom {
 	private readonly onTouchCancelListener: EventListener | null = null
 	private readonly onTouchMoveListener: EventListener | null = null
 
-	private touchIDs: Set<number> = new Set<number>() //is used by pinch and drag separately
-
 	/// zooming
+	private pinchTouchIDs: Set<number> = new Set<number>()
 	private lastPinchTouchPositions: { pointer1: CoordinatePair; pointer2: CoordinatePair } = { pointer1: { x: 0, y: 0 }, pointer2: { x: 0, y: 0 } }
 	private initialZoomablePosition = { x: 0, y: 0 }
 	private initialViewportPosition = { x: 0, y: 0 }
@@ -41,18 +40,19 @@ export class PinchZoom {
 	private currentScale = 1
 
 	/// dragging
-	private lastDragTouchPosition: CoordinatePair = { x: 0, y: 0 }
+	// null if there was no previous touch position related to dragging
+	private lastDragTouchPosition: CoordinatePair | null = null
 
 	/// double tap
 	// Two consecutive taps are recognized as double tap if they occur within this time span
 	private DOUBLE_TAP_TIME_MS = 350
 	// the radius in which we recognize a second tap or single click (and not drag)
 	private SAME_POSITION_RADIUS = 40
-	private touchStart: {
+	private currentDoubleTapTouchStart: {
 		x: number
 		y: number
 	} = { x: 0, y: 0 }
-	private lastTouchStart: {
+	private lastDoubleTapTouchStart: {
 		x: number
 		y: number
 	} = { x: 0, y: 0 }
@@ -119,7 +119,14 @@ export class PinchZoom {
 		}
 		this.onTouchStartListener = this.zoomable.ontouchstart = (e) => {
 			const touch = e.touches[0]
-			this.touchStart = { x: touch.clientX, y: touch.clientY }
+
+			this.currentDoubleTapTouchStart = { x: touch.clientX, y: touch.clientY }
+
+			if (e.touches.length === 1) {
+				this.lastDragTouchPosition = { x: touch.clientX, y: touch.clientY }
+			} else {
+				this.lastDragTouchPosition = null
+			}
 		}
 		this.onTouchMoveListener = this.zoomable.ontouchmove = (e) => {
 			this.touchmove_handler(e)
@@ -168,7 +175,7 @@ export class PinchZoom {
 	}
 
 	private removeTouches(ev: TouchEvent) {
-		this.touchIDs.clear()
+		this.pinchTouchIDs.clear()
 	}
 
 	private pointDistance(point1: CoordinatePair, point2: CoordinatePair): number {
@@ -333,7 +340,7 @@ export class PinchZoom {
 		let transformOrigin = this.getCurrentlyAppliedTransformOriginOfZoomable()
 		let pinchSessionTranslation = this.pinchSessionTranslation
 
-		const newTouches = !(this.touchIDs.has(ev.touches[0].identifier) && this.touchIDs.has(ev.touches[1].identifier))
+		const newTouches = !(this.pinchTouchIDs.has(ev.touches[0].identifier) && this.pinchTouchIDs.has(ev.touches[1].identifier))
 
 		if (newTouches) {
 			this.lastPinchTouchPositions = {
@@ -361,7 +368,7 @@ export class PinchZoom {
 		pinchSessionTranslation = startedPinchSession.sessionTranslation
 
 		//update current touches
-		this.touchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
+		this.pinchTouchIDs = new Set<number>([ev.touches[0].identifier, ev.touches[1].identifier])
 
 		const newTransformOrigin = this.setCurrentSafePosition(
 			transformOrigin,
@@ -372,24 +379,11 @@ export class PinchZoom {
 		this.update(newTransformOrigin)
 	}
 
-	/// dragging
-
 	private dragHandling(ev: TouchEvent) {
-		if (this.currentScale > this.zoomBoundaries.min) {
-			// zoomed in, otherwise there is no need for custom dragging
-			// ev.stopPropagation() // maybe not if is not movable FIXME -> IOS?
-			// ev.preventDefault()
-
-			let delta = { x: 0, y: 0 }
-			if (!this.touchIDs.has(ev.touches[0].identifier)) {
-				// new dragging
-				delta = { x: 0, y: 0 }
-			} else {
-				// still same dragging
-				delta = { x: ev.touches[0].clientX - this.lastDragTouchPosition.x, y: ev.touches[0].clientY - this.lastDragTouchPosition.y }
-			}
-			this.touchIDs = new Set<number>([ev.touches[0].identifier])
+		if (this.currentScale > this.zoomBoundaries.min && this.lastDragTouchPosition) {
+			let delta = { x: ev.touches[0].clientX - this.lastDragTouchPosition.x, y: ev.touches[0].clientY - this.lastDragTouchPosition.y }
 			this.lastDragTouchPosition = { x: ev.touches[0].clientX, y: ev.touches[0].clientY }
+
 			let currentRect = this.getCoords(this.zoomable)
 			let currentOriginalRect = this.getCurrentZoomablePositionWithoutTransformation()
 			//FIXME explain?
@@ -439,8 +433,8 @@ export class PinchZoom {
 
 		if (
 			now - this.firstTapTime < this.DOUBLE_TAP_TIME_MS &&
-			Math.abs(touch.clientX - this.lastTouchStart.x) < this.SAME_POSITION_RADIUS && // make sure that the double tap stays within the right radius
-			Math.abs(touch.clientY - this.lastTouchStart.y) < this.SAME_POSITION_RADIUS
+			Math.abs(touch.clientX - this.lastDoubleTapTouchStart.x) < this.SAME_POSITION_RADIUS && // make sure that the double tap stays within the right radius
+			Math.abs(touch.clientY - this.lastDoubleTapTouchStart.y) < this.SAME_POSITION_RADIUS
 		) {
 			this.firstTapTime = 0
 			doubleClickAction(event)
@@ -448,15 +442,15 @@ export class PinchZoom {
 			setTimeout(() => {
 				if (
 					this.firstTapTime === now && // same touch, if a second tap was performed this condition is false
-					Math.abs(touch.clientX - this.touchStart.x) < this.SAME_POSITION_RADIUS && // otherwise single fast drag is recognized as a click
-					Math.abs(touch.clientY - this.touchStart.y) < this.SAME_POSITION_RADIUS
+					Math.abs(touch.clientX - this.currentDoubleTapTouchStart.x) < this.SAME_POSITION_RADIUS && // otherwise single fast drag is recognized as a click
+					Math.abs(touch.clientY - this.currentDoubleTapTouchStart.y) < this.SAME_POSITION_RADIUS
 				) {
 					// at this point we are sure that there is no second tap for a double tap
 					singleClickAction(event, target)
 				}
 			}, this.DOUBLE_TAP_TIME_MS)
 		}
-		this.lastTouchStart = this.touchStart
+		this.lastDoubleTapTouchStart = this.currentDoubleTapTouchStart
 		this.firstTapTime = now
 	}
 

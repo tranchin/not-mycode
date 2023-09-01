@@ -285,7 +285,8 @@ export class PinchZoom {
 	}
 
 	/**
-	 * Dependent on the new position of the fingers the sessionTranslation is calculated so that the transformOrigin is in the center of the touch points //FIXME improve comment
+	 * Calculate the nw sessionTranslation and transformOrigin dependent on the new finger position for flawless zooming behavior.
+	 * Dependent on the new position of the fingers the sessionTranslation is calculated so that the transformOrigin is in the center of the touch points
 	 * The session translation is the offset by which the original/initial zoomable is moved inside the viewport in a non-scaled state, so that when scaling to the current scale factor (this.currentScale) at the
 	 * calculated transform origin we get the current position and size of the zoomable inside the viewport.
 	 * The transform origin is the position relative to the original/initial zoomable position (non-scaled) at which we need to zoom in so that we get the current  position and size of the zoomable inside the viewport (with applied session translation).
@@ -298,21 +299,29 @@ export class PinchZoom {
 		let currentZoomable = this.getCoords(this.zoomable)
 		let scrollOffset = this.getOffsetFromInitialToCurrentViewportPosition()
 
-		//FIXME explain?
+		// We want to use the new absoluteZoomPosition as the new transformOrigin. This is needed for expected zooming behavior.
+		// Since we know the current position and the new desired transformOrigin we can calculate the new zoomable position from which the
+		// transformation would be correct.
+		// intuitive formula
+		// currentZoomable = absoluteTransformOrigin - (relativeTransformOrigin * this.currentScale)	| substitute unknown values
+		// currentZoomable = absoluteZoomPosition - ((absoluteZoomPosition - newPosition) * this.currentScale)	| solve for newPosition
+		//
+		// newPosition = (currentZoomable.x + absoluteZoomPosition.x * (this.currentScale - 1)) / this.currentScale
 		let transformedInitialZoomable = {
 			x: (currentZoomable.x + absoluteZoomPosition.x * (this.currentScale - 1)) / this.currentScale,
 			y: (currentZoomable.y + absoluteZoomPosition.y * (this.currentScale - 1)) / this.currentScale,
 		}
 
-		// the vector to get to the desired new position
+		// the vector to get to the desired new position from the original position
+		// newPosition - originalPosition
 		let sessionTranslation = {
 			x: transformedInitialZoomable.x - this.initialZoomablePosition.x + scrollOffset.x,
 			y: transformedInitialZoomable.y - this.initialZoomablePosition.y + scrollOffset.y,
 		}
 
 		// transform origin
+		// is relative to the new transformed zoomable
 		let transformOrigin = {
-			// is relative to the new transformed zoomable
 			x: absoluteZoomPosition.x - transformedInitialZoomable.x,
 			y: absoluteZoomPosition.y - transformedInitialZoomable.y,
 		}
@@ -386,7 +395,12 @@ export class PinchZoom {
 
 			let currentRect = this.getCoords(this.zoomable)
 			let currentOriginalRect = this.getCurrentZoomablePositionWithoutTransformation()
-			//FIXME explain?
+
+			// intuitive formula:
+			// newPosition = transformOriginAbsolutePosition - relativeTransformOrigin * scaling	| substitute unknown values
+			// currentRect.x + delta.x = (currentOriginalRect + this.pinchSessionTranslation + newTransformOrigin) - (newTransformOrigin * this.currentScale)	| solve for newTransformOrigin
+			//
+			// newTransformOrigin = (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.currentScale)
 			let newTransformOrigin = {
 				x: (currentRect.x + delta.x - (currentOriginalRect.x + this.pinchSessionTranslation.x)) / (1 - this.currentScale), // zoom is never 1
 				y: (currentRect.y + delta.y - (currentOriginalRect.y + this.pinchSessionTranslation.y)) / (1 - this.currentScale),

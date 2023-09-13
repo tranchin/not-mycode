@@ -51,8 +51,13 @@ constructor(
 		)
 		private const val AES_MODE_PADDING = "AES/CBC/PKCS5Padding"
 		const val AES_MODE_NO_PADDING = "AES/CBC/NoPadding"
-		const val AES_KEY_LENGTH = 128
-		const val AES_KEY_LENGTH_BYTES = AES_KEY_LENGTH / 8
+
+		const val AES128_KEY_LENGTH = 128
+		const val AES128_KEY_LENGTH_BYTES = AES128_KEY_LENGTH / 8
+
+		const val AES256_KEY_LENGTH = 256
+		const val AES256_KEY_LENGTH_BYTES = AES256_KEY_LENGTH / 8
+
 		const val HMAC_256 = "HmacSHA256"
 
 		/**
@@ -62,20 +67,30 @@ constructor(
 		 * @return The key.
 		 */
 		fun bytesToKey(key: ByteArray): SecretKeySpec {
-			require(key.size == AES_KEY_LENGTH_BYTES) { "Invalid key length ${key.size}" }
+			require(key.size == AES128_KEY_LENGTH_BYTES || key.size == AES256_KEY_LENGTH_BYTES) { "Invalid key length ${key.size}" }
 			return SecretKeySpec(key, "AES")
 		}
 
 		@Throws(NoSuchAlgorithmException::class)
 		private fun getSubKeys(key: SecretKeySpec, mac: Boolean): SubKeys {
 			return if (mac) {
-				val digest = MessageDigest.getInstance("SHA-256")
+				val digest = when (key.encoded.size) {
+					AES128_KEY_LENGTH_BYTES -> MessageDigest.getInstance("SHA-256")
+					AES256_KEY_LENGTH_BYTES -> MessageDigest.getInstance("SHA-512")
+					else -> {
+						throw java.lang.IllegalArgumentException("bad key size")
+					}
+				}
 				val hash = digest.digest(key.encoded)
+				val hashLen = hash.size
 				SubKeys(
-						cKey = SecretKeySpec(hash.copyOfRange(0, 16), "AES"),
-						mKey = hash.copyOfRange(16, 32)
+						cKey = SecretKeySpec(hash.copyOfRange(0, hashLen / 2), "AES"),
+						mKey = hash.copyOfRange(hashLen / 2, hashLen)
 				)
 			} else {
+				if (key.encoded.size == AES256_KEY_LENGTH_BYTES) {
+					throw java.lang.IllegalArgumentException("must use mac with AES-256")
+				}
 				SubKeys(
 						cKey = key,
 						mKey = null
@@ -186,15 +201,18 @@ constructor(
 		val outputFile = File(tempDir.encrypt, getFileInfo(context, parsedFileUri).name)
 		val inputStream = CountingInputStream(context.contentResolver.openInputStream(parsedFileUri))
 		val out: OutputStream = FileOutputStream(outputFile)
-		aesEncrypt(key.data, inputStream, out, iv.data, useMac = true)
+		aesEncrypt(key.data, inputStream, out, iv.data, useMac = true, usePadding = true)
 		return EncryptedFileInfo(outputFile.toUri(), inputStream.byteCount.toInt())
 	}
 
 	@Throws(CryptoError::class, IOException::class)
-	fun aesEncrypt(key: ByteArray, input: InputStream, out: OutputStream, iv: ByteArray, useMac: Boolean) {
+	fun aesEncrypt(key: ByteArray, input: InputStream, out: OutputStream, iv: ByteArray, useMac: Boolean = true, usePadding: Boolean = true) {
 		var encrypted: InputStream? = null
 		try {
-			val cipher = Cipher.getInstance(AES_MODE_PADDING)
+			val cipher = when (usePadding) {
+				true -> Cipher.getInstance(AES_MODE_PADDING)
+				false -> Cipher.getInstance(AES_MODE_NO_PADDING)
+			}
 			val params = IvParameterSpec(iv)
 			val subKeys = getSubKeys(bytesToKey(key), useMac)
 			cipher.init(Cipher.ENCRYPT_MODE, subKeys.cKey, params)
@@ -240,6 +258,23 @@ constructor(
 
 	@Throws(CryptoError::class)
 	fun encryptKey(encryptionKey: Key?, keyToEncryptWithoutIv: ByteArray?): ByteArray {
+		return when (encryptionKey!!.encoded.size) {
+			AES128_KEY_LENGTH_BYTES -> aes128EncryptKey(encryptionKey, keyToEncryptWithoutIv!!)
+			AES256_KEY_LENGTH_BYTES -> aes256EncryptKey(encryptionKey, keyToEncryptWithoutIv!!)
+			else -> throw java.lang.IllegalArgumentException("bad key length")
+		}
+	}
+
+	private fun aes256EncryptKey(encryptionKey: Key, keyToEncryptWithoutIv: ByteArray): ByteArray {
+		val iv = ByteArray(AES_BLOCK_SIZE_BYTES)
+		randomizer.nextBytes(iv)
+		val keyToEncryptStream = ByteArrayInputStream(keyToEncryptWithoutIv)
+		val output = ByteArrayOutputStream()
+		this.aesEncrypt(encryptionKey.encoded, keyToEncryptStream, output, iv, true, false)
+		return output.toByteArray()
+	}
+
+	private fun aes128EncryptKey(encryptionKey: Key, keyToEncryptWithoutIv: ByteArray): ByteArray {
 		return try {
 			val cipher = Cipher.getInstance(AES_MODE_NO_PADDING)
 			val params = IvParameterSpec(FIXED_IV)
@@ -307,7 +342,7 @@ constructor(
 				}
 				inputWithoutMac = ByteArrayInputStream(cipherTextWithoutMac)
 			}
-			val iv = ByteArray(AES_KEY_LENGTH_BYTES)
+			val iv = ByteArray(AES_BLOCK_SIZE_BYTES)
 			IOUtils.read(inputWithoutMac, iv)
 			val cipher = Cipher.getInstance(AES_MODE_PADDING)
 			val params = IvParameterSpec(iv)

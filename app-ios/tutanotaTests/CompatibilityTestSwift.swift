@@ -30,4 +30,32 @@ class CompatibilityTestSwift: XCTestCase {
       XCTAssertEqual(expectedHash, result)
     }
   }
+  
+  func testAes128() throws {
+    try doAes(testKey: "aes128Tests", withMAC: false, aesDecryptFunction: aes128DecryptWithoutMAC)
+  }
+  
+  func testAes128Mac() throws {
+    try doAes(testKey: "aes128MacTests", withMAC: true, aesDecryptFunction: aesDecrypt(fileData:withKey:))
+  }
+  
+  func testAes256() throws {
+    try doAes(testKey: "aes256Tests", withMAC: true, aesDecryptFunction: aesDecrypt(fileData:withKey:))
+  }
+  
+  private func doAes(testKey: String, withMAC: Bool, aesDecryptFunction: (_ fileData: Data, _ key: Data) throws -> Data) throws {
+    let tests = (testData![testKey] as? [[String: Any]])!
+    for test in tests {
+      let iv = TUTEncodingConverter.base64(toBytes: test["ivBase64"]! as! String)
+      let plainText = TUTEncodingConverter.base64(toBytes: test["plainTextBase64"]! as! String)
+      let cipherText = TUTEncodingConverter.base64(toBytes: test["cipherTextBase64"]! as! String)
+      let key = TUTEncodingConverter.hex(toBytes: test["hexKey"]! as! String)
+      
+      let encrypted = try aesEncrypt(data: plainText, withKey: key, withIV: iv, withMAC: withMAC)
+      XCTAssertEqual(cipherText, encrypted)
+      
+      let decrypted = try aesDecryptFunction(encrypted, key)
+      XCTAssertEqual(plainText, decrypted)
+    }
+  }
 }

@@ -12,15 +12,13 @@ import { NotAuthorizedError, NotFoundError } from "../api/common/error/RestError
 import { getRestriction } from "./model/SearchUtils"
 import { locator } from "../api/main/MainLocator"
 import { Dialog } from "../gui/base/Dialog"
-import type { WhitelabelChild } from "../api/entities/sys/TypeRefs.js"
-import { GroupInfoTypeRef, WhitelabelChildTypeRef } from "../api/entities/sys/TypeRefs.js"
 import { FULL_INDEXED_TIMESTAMP, Keys } from "../api/common/TutanotaConstants"
 import { assertMainOrNode, isApp } from "../api/common/Env"
 import { styles } from "../gui/styles"
 import { client } from "../misc/ClientDetector"
 import { debounce, downcast, groupBy, isSameTypeRef, memoized, mod, ofClass, promiseMap, TypeRef } from "@tutao/tutanota-utils"
 import { BrowserType } from "../misc/ClientConstants"
-import { hasMoreResults } from "./model/SearchModel"
+import { hasMoreResults, SearchModel } from "./model/SearchModel"
 import { SearchBarOverlay } from "./SearchBarOverlay"
 import { IndexingNotSupportedError } from "../api/common/error/IndexingNotSupportedError"
 import type { SearchIndexStateInfo, SearchRestriction, SearchResult } from "../api/worker/search/SearchTypes"
@@ -45,7 +43,7 @@ export type SearchBarAttrs = {
 }
 
 const MAX_SEARCH_PREVIEW_RESULTS = 10
-export type Entry = Mail | Contact | WhitelabelChild | ShowMoreAction
+export type Entry = Mail | Contact | ShowMoreAction
 type Entries = Array<Entry>
 export type SearchBarState = {
 	query: string
@@ -60,11 +58,26 @@ export type SearchBarState = {
 // once SearchBar is rewritten this should be removed
 const searchRouter = new SearchRouter(locator.throttledRouter())
 
+// what does search bar need to do its thing: display current search state?
+// from outside:
+//  - query
+//  - indexing state
+//  - current result
+// plus some state:
+//  - loading/loaded results
+//  - currently selected item
+//
+
+class SearchBarModel {
+	private state: Stream<SearchBarState> = stream({ query: "", searchResult: null, indexState: this.searchModel.indexState(), entities: [], selected: null })
+
+	constructor(private readonly searchModel: SearchModel) {}
+}
+
 export class SearchBar implements Component<SearchBarAttrs> {
 	focused: boolean = false
 	private state: Stream<SearchBarState>
 	busy: boolean = false
-	private lastSelectedWhitelabelChildrenInfoResult: Stream<WhitelabelChild> = stream()
 	private closeOverlayFunction: (() => Promise<void>) | null = null
 	private overlayContentComponent: Component
 	private confirmDialogShown: boolean = false
@@ -343,7 +356,7 @@ export class SearchBar implements Component<SearchBarAttrs> {
 			.then((a) => a.flat())
 	}
 
-	private selectResult(result: (Mail | null) | Contact | WhitelabelChild | ShowMoreAction) {
+	private selectResult(result: (Mail | null) | Contact | ShowMoreAction) {
 		const { query } = this.state()
 
 		if (result != null) {
@@ -358,8 +371,6 @@ export class SearchBar implements Component<SearchBarAttrs> {
 				this.updateSearchUrl(query, downcast(result))
 			} else if (isSameTypeRef(ContactTypeRef, type)) {
 				this.updateSearchUrl(query, downcast(result))
-			} else if (isSameTypeRef(WhitelabelChildTypeRef, type)) {
-				this.lastSelectedWhitelabelChildrenInfoResult(downcast(result))
 			}
 		}
 	}
@@ -517,8 +528,7 @@ export class SearchBar implements Component<SearchBarAttrs> {
 						resultCount: result.results.length,
 						shownCount: overlayEntries.length,
 						indexTimestamp: result.currentIndexTimestamp,
-						allowShowMore:
-							!isSameTypeRef(result.restriction.type, GroupInfoTypeRef) && !isSameTypeRef(result.restriction.type, WhitelabelChildTypeRef),
+						allowShowMore: true,
 					}
 					overlayEntries.push(moreEntry)
 				}

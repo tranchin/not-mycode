@@ -27,7 +27,6 @@ export class SearchModel {
 	_searchFacade: SearchFacade
 	_lastQuery: SearchQuery | null
 	_lastSearchPromise: Promise<SearchResult | void>
-	_groupInfoRestrictionListId: Id | null
 
 	constructor(searchFacade: SearchFacade) {
 		this._searchFacade = searchFacade
@@ -47,7 +46,6 @@ export class SearchModel {
 		})
 		this._lastQuery = null
 		this._lastSearchPromise = Promise.resolve(undefined)
-		this._groupInfoRestrictionListId = null
 	}
 
 	async search(searchQuery: SearchQuery): Promise<SearchResult | void> {
@@ -124,15 +122,6 @@ export class SearchModel {
 		}
 
 		return !isSameSearchRestriction(restriction, result.restriction)
-	}
-
-	// TODO: remove this and take the list id from the url as soon as the list id is included in user and group settings
-	setGroupInfoRestrictionListId(listId: Id) {
-		this._groupInfoRestrictionListId = listId
-	}
-
-	getGroupInfoRestrictionListId(): Id | null {
-		return this._groupInfoRestrictionListId
 	}
 }
 

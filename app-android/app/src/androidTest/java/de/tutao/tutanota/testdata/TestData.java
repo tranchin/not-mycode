@@ -3,6 +3,7 @@ package de.tutao.tutanota.testdata;
 import java.util.LinkedList;
 import java.util.List;
 
+
 /**
  * Don't convert to records as this is copied to app-android!
  */

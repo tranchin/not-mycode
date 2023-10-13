@@ -188,11 +188,9 @@ export async function makeCalendarEventModel(
 	const cleanInitialValues = cleanupInitialValuesForEditing(initialValues)
 
 	const user = logins.getUserController().user
-	const [alarms, calendars] = await Promise.all([
-		resolveAlarmsForEvent(initialValues.alarmInfos ?? [], calendarModel, user),
-		calendarModel.loadCalendarInfos(new NoopProgressMonitor()),
-	])
+	const calendars = await calendarModel.loadCalendarInfos(new NoopProgressMonitor())
 	const selectedCalendar = getPreselectedCalendar(calendars, initialValues)
+	const alarms = await resolveAlarmsForEvent(initialValues.alarmInfos ?? [], calendarModel, user, selectedCalendar, operation)
 	const getPasswordStrength = (password: string, recipientInfo: PartialRecipient) =>
 		getPasswordStrengthForUser(password, recipientInfo, mailboxDetail, logins)
 
@@ -544,9 +542,20 @@ export function assignEventIdentity(values: CalendarEventValues, identity: Requi
 	})
 }
 
-async function resolveAlarmsForEvent(alarms: CalendarEvent["alarmInfos"], calendarModel: CalendarModel, user: User): Promise<Array<AlarmInterval>> {
-	const alarmInfos = await calendarModel.loadAlarms(alarms, user)
-	return alarmInfos.map(({ alarmInfo }) => parseAlarmInterval(alarmInfo.trigger))
+//  visibleForTesting
+export async function resolveAlarmsForEvent(
+	alarms: CalendarEvent["alarmInfos"],
+	calendarModel: CalendarModel,
+	user: User,
+	calendarInfo: CalendarInfo,
+	calendarOperation: CalendarOperation,
+): Promise<Array<AlarmInterval>> {
+	if (calendarOperation === CalendarOperation.Create) {
+		return calendarInfo.groupRoot.defaultReminder ? [parseAlarmInterval(calendarInfo.groupRoot.defaultReminder)] : []
+	} else {
+		const alarmInfos = await calendarModel.loadAlarms(alarms, user)
+		return alarmInfos.map(({ alarmInfo }) => parseAlarmInterval(alarmInfo.trigger))
+	}
 }
 
 function cleanupInitialValuesForEditing(initialValues: Partial<CalendarEvent>): CalendarEvent {

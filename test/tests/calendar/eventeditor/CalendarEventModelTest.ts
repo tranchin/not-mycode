@@ -10,9 +10,10 @@ import {
 	eventHasChanged,
 	EventSaveResult,
 	makeCalendarEventModel,
+	resolveAlarmsForEvent,
 } from "../../../../src/calendar/date/eventeditor/CalendarEventModel.js"
 import { CalendarNotificationSender } from "../../../../src/calendar/date/CalendarNotificationSender.js"
-import { CalendarModel } from "../../../../src/calendar/model/CalendarModel.js"
+import { CalendarInfo, CalendarModel } from "../../../../src/calendar/model/CalendarModel.js"
 import {
 	createCalendarEvent,
 	createCalendarEventAttendee,
@@ -31,8 +32,10 @@ import {
 	createGroup,
 	createGroupInfo,
 	createRepeatRule,
+	createUser,
 	createUserAlarmInfo,
 	DateWrapper,
+	User,
 } from "../../../../src/api/entities/sys/TypeRefs.js"
 import { clone, identity, noOp } from "@tutao/tutanota-utils"
 import { RecipientsModel, ResolvableRecipient, ResolveMode } from "../../../../src/api/main/RecipientsModel.js"
@@ -40,6 +43,7 @@ import { LoginController } from "../../../../src/api/main/LoginController.js"
 import { MailboxDetail } from "../../../../src/mail/model/MailModel.js"
 import { FolderSystem } from "../../../../src/api/common/mail/FolderSystem.js"
 import { SendMailModel } from "../../../../src/mail/editor/SendMailModel.js"
+import { AlarmIntervalUnit } from "../../../../src/calendar/date/CalendarUtils.js"
 
 o.spec("CalendarEventModelTest", function () {
 	let userController: UserController
@@ -289,6 +293,39 @@ o.spec("CalendarEventModelTest", function () {
 
 		o("equal if the dates are the same", function () {
 			o(areExcludedDatesEqual([dw("2023-03-06T13:56")], [dw("2023-03-06T13:56")])).equals(true)
+		})
+	})
+
+	o.spec("resolveAlarmsForEvent", function () {
+		let calendarModel: CalendarModel
+		let user: User
+		let calendarInfo: CalendarInfo
+		o.beforeEach(function () {
+			calendarModel = object()
+			user = createUser()
+			calendarInfo = clone(calendars.get("ownCalendar")!)
+		})
+
+		o("when creating new event the default alarm is added from the calendar", async function () {
+			calendarInfo.groupRoot.defaultReminder = "5M"
+			o(await resolveAlarmsForEvent([], calendarModel, user, calendarInfo, CalendarOperation.Create)).deepEquals([
+				{ unit: AlarmIntervalUnit.MINUTE, value: 5 },
+			])
+		})
+
+		o("when editing existing event the existing alarms are loaded", async function () {
+			const alarmInfos: IdTuple[] = [
+				["list1", "alarm1"],
+				["list2", "alarm2"],
+			]
+			when(calendarModel.loadAlarms(alarmInfos, user)).thenResolve([
+				createUserAlarmInfo({ alarmInfo: createAlarmInfo({ trigger: "10M" }) }),
+				createUserAlarmInfo({ alarmInfo: createAlarmInfo({ trigger: "1W" }) }),
+			])
+			o(await resolveAlarmsForEvent(alarmInfos, calendarModel, user, calendarInfo, CalendarOperation.EditThis)).deepEquals([
+				{ unit: AlarmIntervalUnit.MINUTE, value: 10 },
+				{ unit: AlarmIntervalUnit.WEEK, value: 1 },
+			])
 		})
 	})
 })

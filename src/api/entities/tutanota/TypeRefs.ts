@@ -183,6 +183,7 @@ export type CalendarGroupRoot = {
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
 	_permissions: Id;
+	defaultReminder: null | string;
 
 	index:  null | CalendarEventIndexRef;
 	longEvents: Id;

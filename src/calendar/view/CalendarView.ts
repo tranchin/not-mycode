@@ -7,11 +7,11 @@ import type { Shortcut } from "../../misc/KeyManager"
 import { keyManager } from "../../misc/KeyManager"
 import { Icons } from "../../gui/base/icons/Icons"
 import { downcast, getStartOfDay, memoized, ofClass } from "@tutao/tutanota-utils"
-import type { CalendarEvent, CalendarEventAttendee, GroupSettings, UserSettingsGroupRoot } from "../../api/entities/tutanota/TypeRefs.js"
-import { createGroupSettings } from "../../api/entities/tutanota/TypeRefs.js"
+import type { CalendarEvent, CalendarEventAttendee, CalendarGroupRoot, GroupSettings, UserSettingsGroupRoot } from "../../api/entities/tutanota/TypeRefs.js"
+import { createCalendarGroupRoot, createGroupSettings } from "../../api/entities/tutanota/TypeRefs.js"
 import { defaultCalendarColor, FeatureType, GroupType, Keys, reverse, ShareCapability, TimeFormat } from "../../api/common/TutanotaConstants"
 import { locator } from "../../api/main/MainLocator"
-import { getEventType, getTimeZone, shouldDefaultToAmPmTimeFormat } from "../date/CalendarUtils"
+import { getEventType, getTimeZone, parseAlarmInterval, serializeAlarmInterval, shouldDefaultToAmPmTimeFormat } from "../date/CalendarUtils"
 import { Button, ButtonColor, ButtonType } from "../../gui/base/Button.js"
 import { NavButton, NavButtonColor } from "../../gui/base/NavButton.js"
 import { CalendarMonthView } from "./CalendarMonthView"
@@ -524,6 +524,7 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 			{
 				name: "",
 				color: Math.random().toString(16).slice(-6),
+				defaultAlarm: null,
 			},
 			"add_action",
 			false,
@@ -600,7 +601,8 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 						label: "edit_action",
 						icon: Icons.Edit,
 						size: ButtonSize.Compact,
-						click: () => this._onPressedEditCalendar(groupInfo, colorValue, existingGroupSettings, userSettingsGroupRoot, sharedCalendar),
+						click: () =>
+							this._onPressedEditCalendar(groupInfo, colorValue, existingGroupSettings, userSettingsGroupRoot, sharedCalendar, groupRoot),
 					},
 					{
 						label: "sharing_label",
@@ -678,11 +680,13 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 		existingGroupSettings: GroupSettings | null,
 		userSettingsGroupRoot: UserSettingsGroupRoot,
 		shared: boolean,
+		existingGroupRoot: CalendarGroupRoot,
 	) {
 		showEditCalendarDialog(
 			{
 				name: getSharedGroupName(groupInfo, locator.logins.getUserController(), shared),
 				color: colorValue.substring(1),
+				defaultAlarm: existingGroupRoot.defaultReminder ? parseAlarmInterval(existingGroupRoot.defaultReminder) : null,
 			},
 			"edit_action",
 			shared,
@@ -706,6 +710,11 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 				}
 
 				locator.entityClient.update(userSettingsGroupRoot)
+
+				const newGroupRoot = createCalendarGroupRoot(existingGroupRoot)
+				newGroupRoot.defaultReminder = properties.defaultAlarm ? serializeAlarmInterval(properties.defaultAlarm) : null
+				locator.entityClient.update(newGroupRoot)
+
 				dialog.close()
 			},
 			"save_action",

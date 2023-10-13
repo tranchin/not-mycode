@@ -180,6 +180,16 @@
 					"info": "RemoveAssociation NewDraftAttachment/fileData."
 				}
 			]
+		},
+		{
+			"version": 65,
+			"changes": [
+				{
+					"name": "AddValue",
+					"sourceType": "CalendarGroupRoot",
+					"info": "AddValue CalendarGroupRoot/defaultReminder/1342."
+				}
+			]
 		}
 	]
 }

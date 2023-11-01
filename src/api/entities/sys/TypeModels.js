@@ -8640,8 +8640,8 @@ export const typeModels = {
         "app": "sys",
         "version": "91"
     },
-    "PublicKeyData": {
-        "name": "PublicKeyData",
+    "PublicKeyGetIn": {
+        "name": "PublicKeyGetIn",
         "since": 1,
         "type": "DATA_TRANSFER_TYPE",
         "id": 409,
@@ -8672,8 +8672,8 @@ export const typeModels = {
         "app": "sys",
         "version": "91"
     },
-    "PublicKeyReturn": {
-        "name": "PublicKeyReturn",
+    "PublicKeyGetOut": {
+        "name": "PublicKeyGetOut",
         "since": 1,
         "type": "DATA_TRANSFER_TYPE",
         "id": 412,
@@ -8724,6 +8724,47 @@ export const typeModels = {
                 "since": 1,
                 "type": "Bytes",
                 "cardinality": "ZeroOrOne",
+                "encrypted": false
+            }
+        },
+        "associations": {},
+        "app": "sys",
+        "version": "91"
+    },
+    "PublicKeyPutIn": {
+        "name": "PublicKeyPutIn",
+        "since": 91,
+        "type": "DATA_TRANSFER_TYPE",
+        "id": 2143,
+        "rootId": "A3N5cwAIXw",
+        "versioned": false,
+        "encrypted": false,
+        "values": {
+            "_format": {
+                "final": false,
+                "name": "_format",
+                "id": 2144,
+                "since": 91,
+                "type": "Number",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "pubEccKey": {
+                "final": true,
+                "name": "pubEccKey",
+                "id": 2145,
+                "since": 91,
+                "type": "Bytes",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "symEncPrivEccKey": {
+                "final": true,
+                "name": "symEncPrivEccKey",
+                "id": 2146,
+                "since": 91,
+                "type": "Bytes",
+                "cardinality": "One",
                 "encrypted": false
             }
         },

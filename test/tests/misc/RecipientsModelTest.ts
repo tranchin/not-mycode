@@ -8,7 +8,7 @@ import { func, instance, object, when } from "testdouble"
 import {
 	createGroupInfo,
 	createGroupMembership,
-	createPublicKeyReturn,
+	createPublicKeyGetOut,
 	createUser,
 	GroupInfoTypeRef,
 	GroupMembershipTypeRef,
@@ -123,7 +123,7 @@ o.spec("RecipientsModel", function () {
 	o("correctly resolves type for non tutanota addresses", async function () {
 		const internalAddress = "internal@email.com"
 		const externalAddress = "external@email.com"
-		when(mailFacadeMock.getRecipientKeyData(internalAddress)).thenResolve(createTestEntity(PublicKeyReturnTypeRef))
+		when(mailFacadeMock.getRecipientKeyData(internalAddress)).thenResolve(createTestEntity(PublicKeyGetOutTypeRef))
 		when(mailFacadeMock.getRecipientKeyData(externalAddress)).thenResolve(null)
 
 		const internal = await model.resolve({ address: internalAddress }, ResolveMode.Eager).resolved()

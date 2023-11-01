@@ -58,8 +58,6 @@ import {
 	aesEncrypt,
 	bitArrayToUint8Array,
 	decryptKey,
-	eccPrivateKeyToHex,
-	eccPublicKeyToHex,
 	ENABLE_MAC,
 	encryptKey,
 	encryptRsaKey,
@@ -760,18 +758,18 @@ o.spec("CryptoFacade", function () {
 
 		const recipientKeyPair = createKeyPair({
 			_id: "recipientKeyPairId",
-			pubEccKey: hexToUint8Array(eccPublicKeyToHex(recipientKeyPairs.eccKeyPair.publicKey)),
-			pubKyberKey: hexToUint8Array(kyberPublicKeyToHex(recipientKeyPairs.kyberKeyPair.publicKey)),
+			pubEccKey: recipientKeyPairs.eccKeyPair.publicKey,
+			pubKyberKey: kyberPublicKeyToBytes(recipientKeyPairs.kyberKeyPair.publicKey),
 		})
 
 		const senderKeyPairs = await pqFacade.generateKeyPairs()
 
 		const senderKeyPair = createKeyPair({
 			_id: "senderKeyPairId",
-			pubEccKey: hexToUint8Array(eccPublicKeyToHex(senderKeyPairs.eccKeyPair.publicKey)),
-			symEncPrivEccKey: aesEncrypt(senderGroupKey, hexToUint8Array(eccPrivateKeyToHex(senderKeyPairs.eccKeyPair.privateKey))),
-			pubKyberKey: hexToUint8Array(kyberPublicKeyToHex(senderKeyPairs.kyberKeyPair.publicKey)),
-			symEncPrivKyberKey: aesEncrypt(senderGroupKey, hexToUint8Array(kyberPrivateKeyToHex(senderKeyPairs.kyberKeyPair.privateKey))),
+			pubEccKey: senderKeyPairs.eccKeyPair.publicKey,
+			symEncPrivEccKey: aesEncrypt(senderGroupKey, senderKeyPairs.eccKeyPair.privateKey),
+			pubKyberKey: kyberPublicKeyToBytes(senderKeyPairs.kyberKeyPair.publicKey),
+			symEncPrivKyberKey: aesEncrypt(senderGroupKey, kyberPrivateKeyToBytes(senderKeyPairs.kyberKeyPair.privateKey)),
 		})
 
 		const senderUserGroup = createGroup({
@@ -844,8 +842,8 @@ o.spec("CryptoFacade", function () {
 
 		const recipientKeyPair = createKeyPair({
 			_id: "recipientKeyPairId",
-			pubEccKey: hexToUint8Array(eccPublicKeyToHex(recipientKeyPairs.eccKeyPair.publicKey)),
-			pubKyberKey: hexToUint8Array(kyberPublicKeyToHex(recipientKeyPairs.kyberKeyPair.publicKey)),
+			pubEccKey: recipientKeyPairs.eccKeyPair.publicKey,
+			pubKyberKey: kyberPublicKeyToBytes(recipientKeyPairs.kyberKeyPair.publicKey),
 		})
 
 		const senderKeyPairs = await rsa.generateKey()
@@ -940,10 +938,10 @@ o.spec("CryptoFacade", function () {
 
 		const senderKeyPair = createKeyPair({
 			_id: "senderKeyPairId",
-			pubEccKey: hexToUint8Array(eccPublicKeyToHex(senderKeyPairs.eccKeyPair.publicKey)),
-			symEncPrivEccKey: aesEncrypt(senderGroupKey, hexToUint8Array(eccPrivateKeyToHex(senderKeyPairs.eccKeyPair.privateKey))),
-			pubKyberKey: hexToUint8Array(kyberPublicKeyToHex(senderKeyPairs.kyberKeyPair.publicKey)),
-			symEncPrivKyberKey: aesEncrypt(senderGroupKey, hexToUint8Array(kyberPrivateKeyToHex(senderKeyPairs.kyberKeyPair.privateKey))),
+			pubEccKey: senderKeyPairs.eccKeyPair.publicKey,
+			symEncPrivEccKey: aesEncrypt(senderGroupKey, senderKeyPairs.eccKeyPair.privateKey),
+			pubKyberKey: kyberPublicKeyToBytes(senderKeyPairs.kyberKeyPair.publicKey),
+			symEncPrivKyberKey: aesEncrypt(senderGroupKey, kyberPrivateKeyToBytes(senderKeyPairs.kyberKeyPair.privateKey)),
 		})
 
 		const senderUserGroup = createGroup({

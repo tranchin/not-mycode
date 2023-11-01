@@ -83,7 +83,6 @@ import { InstanceMapper } from "./InstanceMapper.js"
 import { OwnerEncSessionKeysUpdateQueue } from "./OwnerEncSessionKeysUpdateQueue.js"
 import { PQFacade } from "../facades/PQFacade.js"
 import { decodePQMessage, encodePQMessage } from "../facades/PQMessage.js"
-import { is } from "cborg/lib/is.js"
 
 assertWorkerOrNode()
 

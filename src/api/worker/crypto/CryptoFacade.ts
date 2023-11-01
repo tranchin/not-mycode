@@ -13,12 +13,14 @@ import {
 } from "@tutao/tutanota-utils"
 import { BucketPermissionType, GroupType, PermissionType } from "../../common/TutanotaConstants"
 import { HttpMethod, resolveTypeReference } from "../../common/EntityFunctions"
-import type { BucketKey, BucketPermission, GroupMembership, InstanceSessionKey, Permission, PublicKeyReturn } from "../../entities/sys/TypeRefs.js"
+import type { BucketKey, BucketPermission, GroupMembership, InstanceSessionKey, Permission, PublicKeyGetOut } from "../../entities/sys/TypeRefs.js"
 import {
 	BucketKeyTypeRef,
 	BucketPermissionTypeRef,
 	createInstanceSessionKey,
-	createPublicKeyData,
+	createPublicKeyGetIn,
+	createPublicKeyGetOut,
+	createPublicKeyPutIn,
 	createUpdatePermissionKeyData,
 	GroupInfoTypeRef,
 	GroupTypeRef,
@@ -60,6 +62,7 @@ import {
 	uint8ArrayToBitArray,
 	generateEccKeyPair,
 	hexToEccPublicKey,
+	EccKeyPair,
 } from "@tutao/tutanota-crypto"
 import { RecipientNotResolvedError } from "../../common/error/RecipientNotResolvedError"
 import type { RsaImplementation } from "./RsaImplementation"
@@ -70,7 +73,7 @@ import { UserFacade } from "../facades/UserFacade"
 import { elementIdPart } from "../../common/utils/EntityUtils.js"
 import { InstanceMapper } from "./InstanceMapper.js"
 import { OwnerEncSessionKeysUpdateQueue } from "./OwnerEncSessionKeysUpdateQueue.js"
-import { decryptKeyPair } from "@tutao/tutanota-crypto/dist/encryption/KeyEncryption.js"
+import { decryptKeyPair, encryptEccKey } from "@tutao/tutanota-crypto/dist/encryption/KeyEncryption.js"
 import { PQFacade } from "../facades/PQFacade.js"
 import { decodePQMessage, encodePQMessage } from "../facades/PQMessage.js"
 
@@ -490,30 +493,31 @@ export class CryptoFacade {
 
 	encryptBucketKeyForInternalRecipient(
 		senderUserGroupId: Id,
-		bucketKey: Aes128Key,
+		bucketKey: Aes128Key | Aes256Key,
 		recipientMailAddress: string,
 		notFoundRecipients: Array<string>,
 	): Promise<InternalRecipientKeyData | void> {
-		let keyData = createPublicKeyData()
+		let keyData = createPublicKeyGetIn()
 		keyData.mailAddress = recipientMailAddress
 		return this.serviceExecutor
 			.get(PublicKeyService, keyData)
-			.then(async (publicKeyData) => {
+			.then(async (publicKeyGetOut) => {
 				let encrypted: Uint8Array
 				if (notFoundRecipients.length === 0) {
-					const pub = this.getPublicKey(publicKeyData)
+					const recipientPubKey = this.getPublicKey(publicKeyGetOut)
 					let uint8ArrayBucketKey = bitArrayToUint8Array(bucketKey)
-					if (pub instanceof PQPublicKeys) {
+					if (recipientPubKey instanceof PQPublicKeys) {
 						const senderKeyPair = await this.loadKeypair(senderUserGroupId)
-						const senderIdentityKeyPair = senderKeyPair instanceof PQKeyPairs ? senderKeyPair.eccKeyPair : generateEccKeyPair()
-						encrypted = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, generateEccKeyPair(), pub, uint8ArrayBucketKey))
+						const senderIdentityKeyPair = await this.getOrMakeSenderIdentityKeyPair(senderKeyPair)
+						const ephemeralKeyPair = generateEccKeyPair()
+						encrypted = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, recipientPubKey, uint8ArrayBucketKey))
 					} else {
-						encrypted = await this.rsa.encrypt(pub, uint8ArrayBucketKey)
+						encrypted = await this.rsa.encrypt(recipientPubKey, uint8ArrayBucketKey)
 					}
 					let data = createInternalRecipientKeyData()
 					data.mailAddress = recipientMailAddress
 					data.pubEncBucketKey = encrypted
-					data.pubKeyVersion = publicKeyData.pubKeyVersion
+					data.pubKeyVersion = publicKeyGetOut.pubKeyVersion
 					return data
 				}
 			})
@@ -527,6 +531,18 @@ export class CryptoFacade {
 					throw new RecipientNotResolvedError("")
 				}),
 			)
+	}
+
+	private async getOrMakeSenderIdentityKeyPair(senderKeyPair: RsaKeyPair | PQKeyPairs): Promise<EccKeyPair> {
+		if (senderKeyPair instanceof PQKeyPairs) {
+			return senderKeyPair.eccKeyPair
+		} else {
+			const newIdentityKeyPair = generateEccKeyPair()
+			const symEncPrivEccKey = encryptEccKey(this.userFacade.getUserGroupKey(), newIdentityKeyPair.privateKey)
+			const data = createPublicKeyPutIn({ pubEccKey: newIdentityKeyPair.publicKey, symEncPrivEccKey })
+			await this.serviceExecutor.put(PublicKeyService, data)
+			return newIdentityKeyPair
+		}
 	}
 
 	/**
@@ -596,7 +612,7 @@ export class CryptoFacade {
 		}
 	}
 
-	public getPublicKey(keyPair: PublicKeyReturn): RsaPublicKey | PQPublicKeys {
+	public getPublicKey(keyPair: PublicKeyGetOut): RsaPublicKey | PQPublicKeys {
 		if (keyPair.pubRsaKey) {
 			return hexToRsaPublicKey(uint8ArrayToHex(keyPair.pubRsaKey))
 		} else if (keyPair.pubKyberKey && keyPair.pubEccKey) {

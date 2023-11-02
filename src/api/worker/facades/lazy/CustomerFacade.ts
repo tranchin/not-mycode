@@ -45,7 +45,7 @@ import type { Country } from "../../../common/CountryList.js"
 import { getByAbbreviation } from "../../../common/CountryList.js"
 import { LockedError } from "../../../common/error/RestError.js"
 import type { RsaKeyPair } from "@tutao/tutanota-crypto"
-import { aes128RandomKey, bitArrayToUint8Array, encryptKey, hexToRsaPublicKey, sha256Hash, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
+import { aes128RandomKey, bitArrayToUint8Array, encryptKey, generateEccKeyPair, PQPublicKeys, sha256Hash, uint8ArrayToBitArray } from "@tutao/tutanota-crypto"
 import type { RsaImplementation } from "../../crypto/RsaImplementation.js"
 import { EntityClient } from "../../../common/EntityClient.js"
 import { DataFile } from "../../../common/DataFile.js"
@@ -56,6 +56,8 @@ import { UserFacade } from "../UserFacade.js"
 import { PaymentInterval } from "../../../../subscription/PriceUtils.js"
 import { ExposedOperationProgressTracker, OperationId } from "../../../main/OperationProgressTracker.js"
 import { formatNameAndAddress } from "../../../common/utils/CommonFormatter.js"
+import { encodePQMessage } from "../PQMessage.js"
+import { PQFacade } from "../PQFacade.js"
 
 assertWorkerOrNode()
 
@@ -78,6 +80,7 @@ export class CustomerFacade {
 		private readonly bookingFacade: BookingFacade,
 		private readonly cryptoFacade: CryptoFacade,
 		private readonly operationProgressTracker: ExposedOperationProgressTracker,
+		private readonly pq: PQFacade,
 	) {
 		this.contactFormUserGroupData = null
 	}
@@ -116,10 +119,22 @@ export class CustomerFacade {
 		const customer = await this.entityClient.load(CustomerTypeRef, customerId)
 		const customerInfo = await this.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
 		let existingBrandingDomain = getWhitelabelDomain(customerInfo, domainName)
-		const keyData = await this.serviceExecutor.get(SystemKeysService, null)
-		let systemAdminPubKey = hexToRsaPublicKey(uint8ArrayToHex(keyData.systemAdminPubKey))
 		let sessionKey = aes128RandomKey()
-		const systemAdminPubEncAccountingInfoSessionKey = await this.rsa.encrypt(systemAdminPubKey, bitArrayToUint8Array(sessionKey))
+
+		const keyData = await this.serviceExecutor.get(SystemKeysService, null)
+		const pubRsaKey = keyData.systemAdminPubRsaKey
+		const pubEccKey = keyData.systemAdminPubEccKey
+		const pubKyberKey = keyData.systemAdminPubKyberKey
+		const systemAdminPubKey = this.cryptoFacade.getPublicKey({ pubEccKey, pubKyberKey, pubRsaKey })
+		let systemAdminPubEncAccountingInfoSessionKey
+		if (systemAdminPubKey instanceof PQPublicKeys) {
+			const senderKeyPair = await this.cryptoFacade.loadKeypair(this.userFacade.getUserGroupId())
+			const senderIdentityKeyPair = await this.cryptoFacade.getOrMakeSenderIdentityKeyPair(senderKeyPair)
+			const ephemeralKeyPair = generateEccKeyPair()
+			systemAdminPubEncAccountingInfoSessionKey = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, systemAdminPubKey, bitArrayToUint8Array(sessionKey)))
+		} else {
+			systemAdminPubEncAccountingInfoSessionKey = await this.rsa.encrypt(systemAdminPubKey, bitArrayToUint8Array(sessionKey))
+		}
 
 		const data = createBrandingDomainData({
 			domain: domainName,
@@ -250,8 +265,6 @@ export class CustomerFacade {
 		currentLanguage: string,
 		kdfType: KdfType,
 	): Promise<Hex> {
-		const keyData = await this.serviceExecutor.get(SystemKeysService, null)
-		const systemAdminPubKey = hexToRsaPublicKey(uint8ArrayToHex(keyData.systemAdminPubKey))
 		const userGroupKey = aes128RandomKey()
 		const adminGroupKey = aes128RandomKey()
 		const customerGroupKey = aes128RandomKey()
@@ -260,7 +273,21 @@ export class CustomerFacade {
 		const customerGroupInfoSessionKey = aes128RandomKey()
 		const accountingInfoSessionKey = aes128RandomKey()
 		const customerServerPropertiesSessionKey = aes128RandomKey()
-		const systemAdminPubEncAccountingInfoSessionKey = await this.rsa.encrypt(systemAdminPubKey, bitArrayToUint8Array(accountingInfoSessionKey))
+
+		const keyData = await this.serviceExecutor.get(SystemKeysService, null)
+		const pubRsaKey = keyData.systemAdminPubRsaKey
+		const pubEccKey = keyData.systemAdminPubEccKey
+		const pubKyberKey = keyData.systemAdminPubKyberKey
+		const systemAdminPubKey = this.cryptoFacade.getPublicKey({ pubEccKey, pubKyberKey, pubRsaKey })
+		let systemAdminPubEncAccountingInfoSessionKey
+		if (systemAdminPubKey instanceof PQPublicKeys) {
+			const senderIdentityKeyPair = generateEccKeyPair() // TODO use real users keypair after switching to pq here
+			const ephemeralKeyPair = generateEccKeyPair()
+			systemAdminPubEncAccountingInfoSessionKey = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, systemAdminPubKey, bitArrayToUint8Array(accountingInfoSessionKey)))
+		} else {
+			systemAdminPubEncAccountingInfoSessionKey = await this.rsa.encrypt(systemAdminPubKey, bitArrayToUint8Array(accountingInfoSessionKey))
+		}
+
 		const userGroupData = this.groupManagement.generateInternalGroupData(
 			keyPairs[0],
 			userGroupKey,
@@ -321,14 +348,14 @@ export class CustomerFacade {
 		let userGroupKey = aes128RandomKey()
 		let userGroupInfoSessionKey = aes128RandomKey()
 		this.contactFormUserGroupData = this.rsa
-			.generateKey()
-			.then((keyPair) => this.groupManagement.generateInternalGroupData(keyPair, userGroupKey, userGroupInfoSessionKey, null, userGroupKey, userGroupKey))
-			.then((userGroupData) => {
-				return {
-					userGroupKey,
-					userGroupData,
-				}
-			})
+											.generateKey()
+											.then((keyPair) => this.groupManagement.generateInternalGroupData(keyPair, userGroupKey, userGroupInfoSessionKey, null, userGroupKey, userGroupKey))
+											.then((userGroupData) => {
+												return {
+													userGroupKey,
+													userGroupData,
+												}
+											})
 		return Promise.resolve()
 	}
 

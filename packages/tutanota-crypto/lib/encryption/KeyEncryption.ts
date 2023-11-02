@@ -6,7 +6,7 @@ import { hexToRsaPrivateKey, hexToRsaPublicKey, rsaPrivateKeyToHex } from "./Rsa
 import type { RsaEccKeyPair, RsaKeyPair, RsaPrivateKey } from "./RsaKeyPair.js"
 import { PQKeyPairs } from "./PQKeyPairs.js"
 import { bytesToKyberPrivateKey, bytesToKyberPublicKey } from "./Liboqs/KyberKeyPair.js"
-import { EccPrivateKey} from "./Ecc.js"
+import { EccPrivateKey } from "./Ecc.js"
 
 export type EncryptedKeyPairs = {
 	pubEccKey: null | Uint8Array
@@ -52,7 +52,7 @@ export function encryptRsaKey(encryptionKey: Aes128Key | Aes256Key, privateKey: 
 	return aesEncrypt(encryptionKey, hexToUint8Array(rsaPrivateKeyToHex(privateKey)), iv, true, false)
 }
 
-export fuction encryptEccKey(encryptionKey: Aes128Key | Aes256Key, privateKey: EccPrivateKey): Uint8Array {
+export function encryptEccKey(encryptionKey: Aes128Key | Aes256Key, privateKey: EccPrivateKey): Uint8Array {
 	return aesEncrypt(encryptionKey, privateKey, undefined, true, true) // passing IV as undefined here is fine, as it will generate a new one for each encryption
 }
 

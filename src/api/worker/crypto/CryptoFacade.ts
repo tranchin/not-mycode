@@ -13,13 +13,12 @@ import {
 } from "@tutao/tutanota-utils"
 import { BucketPermissionType, GroupType, PermissionType } from "../../common/TutanotaConstants"
 import { HttpMethod, resolveTypeReference } from "../../common/EntityFunctions"
-import type { BucketKey, BucketPermission, GroupMembership, InstanceSessionKey, Permission, PublicKeyGetOut } from "../../entities/sys/TypeRefs.js"
+import type { BucketKey, BucketPermission, GroupMembership, InstanceSessionKey, Permission } from "../../entities/sys/TypeRefs.js"
 import {
 	BucketKeyTypeRef,
 	BucketPermissionTypeRef,
 	createInstanceSessionKey,
 	createPublicKeyGetIn,
-	createPublicKeyGetOut,
 	createPublicKeyPutIn,
 	createUpdatePermissionKeyData,
 	GroupInfoTypeRef,
@@ -51,8 +50,10 @@ import {
 	bitArrayToUint8Array,
 	bytesToKyberPublicKey,
 	decryptKey,
+	EccKeyPair,
 	ENABLE_MAC,
 	encryptKey,
+	generateEccKeyPair,
 	hexToRsaPublicKey,
 	IV_BYTE_LENGTH,
 	PQKeyPairs,
@@ -61,8 +62,6 @@ import {
 	RsaKeyPair,
 	RsaPublicKey,
 	uint8ArrayToBitArray,
-	generateEccKeyPair,
-	EccKeyPair,
 } from "@tutao/tutanota-crypto"
 import { RecipientNotResolvedError } from "../../common/error/RecipientNotResolvedError"
 import type { RsaImplementation } from "./RsaImplementation"
@@ -383,7 +382,7 @@ export class CryptoFacade {
 		return decryptKey(bucketKey, neverNull(pubOrExtPermission.bucketEncSessionKey))
 	}
 
-	private async loadKeypair(keyPairGroupId: Id): Promise<RsaKeyPair | PQKeyPairs> {
+	async loadKeypair(keyPairGroupId: Id): Promise<RsaKeyPair | PQKeyPairs> {
 		const group = await this.entityClient.load(GroupTypeRef, keyPairGroupId)
 		try {
 			return decryptKeyPair(this.userFacade.getGroupKey(group._id), group.keys[0])
@@ -521,9 +520,9 @@ export class CryptoFacade {
 							   encrypted = await this.rsa.encrypt(recipientPubKey, uint8ArrayBucketKey)
 						   }
 						   let data = createInternalRecipientKeyData({
-							   mailAddress: recipientMailAddress,
-							   pubEncBucketKey: encrypted,
-							   pubKeyVersion: publicKeyGetOut.pubKeyVersion
+						   mailAddress: recipientMailAddress,
+						   pubEncBucketKey: encrypted,
+						   pubKeyVersion: publicKeyGetOut.pubKeyVersion
 						   })
 					   }
 				   })
@@ -539,7 +538,7 @@ export class CryptoFacade {
 				   )
 	}
 
-	private async getOrMakeSenderIdentityKeyPair(senderKeyPair: RsaKeyPair | PQKeyPairs): Promise<EccKeyPair> {
+	async getOrMakeSenderIdentityKeyPair(senderKeyPair: RsaKeyPair | PQKeyPairs): Promise<EccKeyPair> {
 		if (senderKeyPair instanceof PQKeyPairs) {
 			return senderKeyPair.eccKeyPair
 		} else {
@@ -618,7 +617,7 @@ export class CryptoFacade {
 		}
 	}
 
-	public getPublicKey(keyPair: PublicKeyGetOut): RsaPublicKey | PQPublicKeys {
+	public getPublicKey(keyPair: { pubRsaKey: null | Uint8Array, pubEccKey: null | Uint8Array, pubKyberKey: null | Uint8Array }): RsaPublicKey | PQPublicKeys {
 		if (keyPair.pubRsaKey) {
 			return hexToRsaPublicKey(uint8ArrayToHex(keyPair.pubRsaKey))
 		} else if (keyPair.pubKyberKey && keyPair.pubEccKey) {

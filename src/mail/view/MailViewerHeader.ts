@@ -603,6 +603,19 @@ export class MailViewerHeader implements Component<MailViewerHeaderAttrs> {
 					},
 				],
 			})
+		} else if (viewModel.mail.encryptionAuthStatus === EncryptionAuthStatus.PQ_AUTHENTICATION_FAILED) {
+			return m(InfoBanner, {
+				message: () => "PQ Authentication has failed!",
+				icon: Icons.Warning,
+				helpLink: canSeeTutaLinks(viewModel.logins) ? InfoLink.MailAuth : null,
+				type: BannerType.Warning,
+				buttons: [
+					{
+						label: "close_alt",
+						click: () => viewModel.setWarningDismissed(true),
+					},
+				],
+			})
 		}
 	}
 

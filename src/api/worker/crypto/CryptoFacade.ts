@@ -78,7 +78,6 @@ import { OwnerEncSessionKeysUpdateQueue } from "./OwnerEncSessionKeysUpdateQueue
 import { decryptKeyPair, encryptEccKey } from "@tutao/tutanota-crypto/dist/encryption/KeyEncryption.js"
 import { PQFacade } from "../facades/PQFacade.js"
 import { decodePQMessage, encodePQMessage } from "../facades/PQMessage.js"
-import { Type } from "cborg/lib/token.js"
 
 assertWorkerOrNode()
 
@@ -585,10 +584,17 @@ export class CryptoFacade {
 		let keyData = createPublicKeyGetIn()
 		// TODO use the correct version
 		keyData.mailAddress = mailSenderAddress
-		const publicKeyGetOut = await this.serviceExecutor.get(PublicKeyService, keyData)
-		return publicKeyGetOut.pubEccKey != null && arrayEquals(publicKeyGetOut.pubEccKey, senderIdentityPubKey)
-			? EncryptionAuthStatus.PQ_AUTHENTICATION_SUCCEEDED
-			: EncryptionAuthStatus.PQ_AUTHENTICATION_FAILED
+
+		try {
+			const publicKeyGetOut = await this.serviceExecutor.get(PublicKeyService, keyData)
+			return publicKeyGetOut.pubEccKey != null && arrayEquals(publicKeyGetOut.pubEccKey, senderIdentityPubKey)
+				? EncryptionAuthStatus.PQ_AUTHENTICATION_SUCCEEDED
+				: EncryptionAuthStatus.PQ_AUTHENTICATION_FAILED
+		} catch (e) {
+			// if (e instanceof NotFoundError) {
+			return EncryptionAuthStatus.PQ_AUTHENTICATION_FAILED
+			// }
+		}
 	}
 
 	/**

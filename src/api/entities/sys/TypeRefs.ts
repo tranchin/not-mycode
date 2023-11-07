@@ -1442,6 +1442,7 @@ export type InstanceSessionKey = {
 	_type: TypeRef<InstanceSessionKey>;
 
 	_id: Id;
+	encryptionAuthStatus: null | Uint8Array;
 	instanceId: Id;
 	instanceList: Id;
 	symEncSessionKey: Uint8Array;

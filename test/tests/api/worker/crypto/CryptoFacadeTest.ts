@@ -58,10 +58,12 @@ import {
 	aesEncrypt,
 	bitArrayToUint8Array,
 	decryptKey,
+	EccKeyPair,
 	ENABLE_MAC,
 	encryptKey,
 	encryptRsaKey,
 	generateEccKeyPair,
+	generateKeyPairKyber,
 	hexToRsaPrivateKey,
 	hexToRsaPublicKey,
 	IV_BYTE_LENGTH,
@@ -1200,6 +1202,15 @@ o.spec("CryptoFacade", function () {
 		const testData = await preparePqPubEncBucketKeyResolveSessionKeyTest()
 		Object.assign(testData.mailLiteral, { body: "bodyId" })
 
+		when(serviceExecutor.get(PublicKeyService, matchers.anything())).thenResolve(
+			createPublicKeyGetOut({
+				pubEccKey: testData.senderIdentityKeyPair.publicKey,
+				pubKeyVersion: "0",
+				pubKyberKey: null,
+				pubRsaKey: null,
+			}),
+		)
+
 		const sessionKey = neverNull(await crypto.resolveSessionKey(testData.MailTypeModel, testData.mailLiteral))
 
 		o(sessionKey).deepEquals(testData.sk)
@@ -1209,6 +1220,15 @@ o.spec("CryptoFacade", function () {
 		o.timeout(500) // in CI or with debugging it can take a while
 		const testData = await preparePqPubEncBucketKeyResolveSessionKeyTest()
 		Object.assign(testData.mailLiteral, { mailDetailsDraft: ["draftDetailsListId", "draftDetailsId"] })
+
+		when(serviceExecutor.get(PublicKeyService, matchers.anything())).thenResolve(
+			createPublicKeyGetOut({
+				pubEccKey: testData.senderIdentityKeyPair.publicKey,
+				pubKeyVersion: "0",
+				pubKyberKey: null,
+				pubRsaKey: null,
+			}),
+		)
 
 		const sessionKey = neverNull(await crypto.resolveSessionKey(testData.MailTypeModel, testData.mailLiteral))
 
@@ -1223,6 +1243,15 @@ o.spec("CryptoFacade", function () {
 			Object.assign(testData.mailLiteral, {
 				mailDetailsDraft: ["draftDetailsListId", "draftDetailsId"],
 			})
+
+			when(serviceExecutor.get(PublicKeyService, matchers.anything())).thenResolve(
+				createPublicKeyGetOut({
+					pubEccKey: testData.senderIdentityKeyPair.publicKey,
+					pubKeyVersion: "0",
+					pubKyberKey: null,
+					pubRsaKey: null,
+				}),
+			)
 
 			const mailInstance = await instanceMapper.decryptAndMapToInstance<Mail>(testData.MailTypeModel, testData.mailLiteral, testData.sk)
 
@@ -1243,6 +1272,15 @@ o.spec("CryptoFacade", function () {
 		const testData = await preparePqPubEncBucketKeyResolveSessionKeyTest()
 		Object.assign(testData.mailLiteral, { mailDetails: ["mailDetailsArchiveId", "mailDetailsId"] })
 
+		when(serviceExecutor.get(PublicKeyService, matchers.anything())).thenResolve(
+			createPublicKeyGetOut({
+				pubEccKey: testData.senderIdentityKeyPair.publicKey,
+				pubKeyVersion: "0",
+				pubKyberKey: null,
+				pubRsaKey: null,
+			}),
+		)
+
 		const sessionKey = neverNull(await crypto.resolveSessionKey(testData.MailTypeModel, testData.mailLiteral))
 
 		o(sessionKey).deepEquals(testData.sk)
@@ -1256,6 +1294,15 @@ o.spec("CryptoFacade", function () {
 			const file2SessionKey = aes128RandomKey()
 			const testData = await preparePqPubEncBucketKeyResolveSessionKeyTest([file1SessionKey, file2SessionKey])
 			Object.assign(testData.mailLiteral, { mailDetails: ["mailDetailsArchiveId", "mailDetailsId"] })
+
+			when(serviceExecutor.get(PublicKeyService, matchers.anything())).thenResolve(
+				createPublicKeyGetOut({
+					pubEccKey: testData.senderIdentityKeyPair.publicKey,
+					pubKeyVersion: "0",
+					pubKyberKey: null,
+					pubRsaKey: null,
+				}),
+			)
 
 			const mailSessionKey = neverNull(await crypto.resolveSessionKey(testData.MailTypeModel, testData.mailLiteral))
 			o(mailSessionKey).deepEquals(testData.sk)
@@ -1486,6 +1533,7 @@ o.spec("CryptoFacade", function () {
 		bk: Aes128Key
 		mailGroupKey: Aes128Key
 		MailTypeModel: TypeModel
+		senderIdentityKeyPair: EccKeyPair
 	}> {
 		let subject = "this is our subject"
 		let confidential = true
@@ -1577,6 +1625,7 @@ o.spec("CryptoFacade", function () {
 			bk,
 			mailGroupKey: mailGk,
 			MailTypeModel,
+			senderIdentityKeyPair,
 		}
 	}
 

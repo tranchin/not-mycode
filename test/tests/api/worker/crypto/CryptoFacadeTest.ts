@@ -68,6 +68,7 @@ import {
 	encryptKey,
 	encryptRsaKey,
 	generateEccKeyPair,
+	generateKeyPairKyber,
 	hexToRsaPrivateKey,
 	hexToRsaPublicKey,
 	IV_BYTE_LENGTH,

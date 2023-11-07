@@ -887,6 +887,9 @@ styles.registerStyle("main", () => {
 		".column-gap": {
 			"column-gap": px(size.hpad),
 		},
+		".gap-vpad": {
+			gap: px(size.vpad),
+		},
 		".flex": {
 			display: "flex",
 		},

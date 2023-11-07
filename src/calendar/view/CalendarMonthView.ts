@@ -230,7 +230,7 @@ export class CalendarMonthView implements Component<CalendarMonthAttrs>, ClassCo
 						attrs.onDateSelected(new Date(day.date), CalendarViewType.MONTH)
 						attrs.onNewEvent(newDate)
 					} else {
-						attrs.onDateSelected(new Date(day.date), CalendarViewType.DAY)
+						attrs.onDateSelected(new Date(day.date), CalendarViewType.AGENDA)
 					}
 
 					e.preventDefault()

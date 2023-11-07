@@ -35,7 +35,7 @@ import { GroupInvitationFolderRow } from "../../sharing/view/GroupInvitationFold
 import { SidebarSection } from "../../gui/SidebarSection"
 import type { HtmlSanitizer } from "../../misc/HtmlSanitizer"
 import { ProgrammingError } from "../../api/common/error/ProgrammingError"
-import { calendarNavConfiguration, CalendarViewType } from "./CalendarGuiUtils"
+import { calendarNavConfiguration, CalendarViewType, getIconForViewType } from "./CalendarGuiUtils"
 import { CalendarViewModel, MouseOrPointerEvent } from "./CalendarViewModel"
 import { showNewCalendarEventEditDialog } from "./eventeditor/CalendarEventEditDialog.js"
 import { CalendarEventPopup } from "./eventpopup/CalendarEventPopup.js"
@@ -101,25 +101,7 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 									click: () => this._createNewEventDialog(),
 							  },
 						content: [
-							m(
-								SidebarSection,
-								{
-									name: "view_label",
-									button:
-										this.currentViewType !== CalendarViewType.AGENDA
-											? m(Button, {
-													label: "today_label",
-													click: () => {
-														this._setUrl(m.route.param("view"), new Date())
-														this.viewSlider.focus(this.contentColumn)
-													},
-													colors: ButtonColor.Nav,
-													type: ButtonType.Primary,
-											  })
-											: null,
-								},
-								this._renderCalendarViewButtons(),
-							),
+							this.renderViewTypeSection(),
 							m(
 								SidebarSection,
 								{
@@ -256,6 +238,7 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 								desktopToolbar: () => this.renderDesktopToolbar(),
 								mobileHeader: () => this.renderMobileHeader(vnode.attrs.header),
 								columnLayout: m(CalendarAgendaView, {
+									selectedDate: this.viewModel.selectedDate(),
 									eventsForDays: this.viewModel.eventsForDays,
 									amPmFormat: shouldDefaultToAmPmTimeFormat(),
 									onEventClicked: (event, domEvent) => this._onEventSelected(event, domEvent, this.htmlSanitizer),
@@ -301,8 +284,34 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 		}
 	}
 
+	private renderViewTypeSection(): Children {
+		if (styles.isSingleColumnLayout()) {
+			return null
+		} else {
+			return m(
+				SidebarSection,
+				{
+					name: "view_label",
+					button:
+						this.currentViewType !== CalendarViewType.AGENDA
+							? m(Button, {
+									label: "today_label",
+									click: () => {
+										this._setUrl(m.route.param("view"), new Date())
+										this.viewSlider.focus(this.contentColumn)
+									},
+									colors: ButtonColor.Nav,
+									type: ButtonType.Primary,
+							  })
+							: null,
+				},
+				this._renderCalendarViewButtons(),
+			)
+		}
+	}
+
 	private renderDesktopToolbar(): Children {
-		const navConfig = calendarNavConfiguration(this.currentViewType, this.viewModel.selectedDate(), this.viewModel.weekStart, (viewType, next) =>
+		const navConfig = calendarNavConfiguration(this.currentViewType, this.viewModel.selectedDate(), this.viewModel.weekStart, "range", (viewType, next) =>
 			this._viewPeriod(viewType, next),
 		)
 		return m(CalendarDesktopToolbar, { navConfig })
@@ -313,11 +322,12 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 			...header,
 			viewType: this.currentViewType,
 			viewSlider: this.viewSlider,
-			navConfiguration: calendarNavConfiguration(this.currentViewType, this.viewModel.selectedDate(), this.viewModel.weekStart, (viewType, next) =>
+			navConfiguration: calendarNavConfiguration(this.currentViewType, this.viewModel.selectedDate(), this.viewModel.weekStart, "day", (viewType, next) =>
 				this._viewPeriod(viewType, next),
 			),
 			onCreateEvent: () => this._createNewEventDialog(),
-			onBack: () => this.handleBackButton(),
+			onToday: () => this._setUrl(m.route.param("view"), new Date()),
+			onViewTypeSelected: (viewType) => this._setUrl(viewType, this.viewModel.selectedDate()),
 		})
 	}
 
@@ -430,53 +440,45 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 	}
 
 	_renderCalendarViewButtons(): Children {
-		const calendarViewValues: Array<{ name: string; value: CalendarViewType; icon: Icons; href: string }> = [
+		const calendarViewValues: Array<{ name: string; viewType: CalendarViewType }> = [
 			{
 				name: lang.get("month_label"),
-				value: CalendarViewType.MONTH,
-				icon: Icons.Table,
-				href: "/calendar/month",
+				viewType: CalendarViewType.MONTH,
 			},
 			{
 				name: lang.get("agenda_label"),
-				value: CalendarViewType.AGENDA,
-				icon: Icons.ListUnordered,
-				href: "/calendar/agenda",
+				viewType: CalendarViewType.AGENDA,
 			},
 		]
 
 		if (styles.isDesktopLayout()) {
 			calendarViewValues.unshift({
 				name: lang.get("week_label"),
-				value: CalendarViewType.WEEK,
-				icon: Icons.TableColumns,
-				href: "/calendar/week",
+				viewType: CalendarViewType.WEEK,
 			})
 		}
 
 		if (client.isDesktopDevice()) {
 			calendarViewValues.unshift({
 				name: lang.get("day_label"),
-				value: CalendarViewType.DAY,
-				icon: Icons.TableSingle,
-				href: "/calendar/day",
+				viewType: CalendarViewType.DAY,
 			})
 		}
 
-		return calendarViewValues.map((viewType) =>
+		return calendarViewValues.map((viewData) =>
 			m(
 				".folder-row.flex.flex-row", // undo the padding of NavButton and prevent .folder-row > a from selecting NavButton
 				m(
 					".flex-grow.mlr-button",
 					m(NavButton, {
-						label: () => viewType.name,
-						icon: () => viewType.icon,
-						href: m.route.get(),
-						isSelectedPrefix: viewType.href,
+						label: () => viewData.name,
+						icon: () => getIconForViewType(viewData.viewType),
+						href: "#",
+						isSelectedPrefix: this.currentViewType == viewData.viewType,
 						colors: NavButtonColor.Nav,
 						// Close side menu
 						click: () => {
-							this._setUrl(viewType.value, this.viewModel.selectedDate())
+							this._setUrl(viewData.viewType, this.viewModel.selectedDate())
 
 							this.viewSlider.focus(this.contentColumn)
 						},

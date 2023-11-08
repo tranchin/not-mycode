@@ -10,7 +10,7 @@ import { buildPackages } from "../buildSrc/packageBuilderFunctions.js"
 import watPlugin from "esbuild-plugin-wat"
 import { domainConfigs } from "../buildSrc/DomainConfigs.js"
 
-export async function runTestBuild({ clean, fast = false }) {
+export async function runTestBuild({ clean, browser = false, fast = false }) {
 	if (clean) {
 		await runStep("Clean", async () => {
 			await fs.emptyDir("build")
@@ -29,6 +29,7 @@ export async function runTestBuild({ clean, fast = false }) {
 
 	const version = getTutanotaAppVersion()
 	const localEnv = env.create({ staticUrl: "http://localhost:9000", version, mode: "Test", dist: false, domainConfigs })
+	const platform = browser ? "browser" : "node"
 
 	await runStep("Assets", async () => {
 		const pjPath = path.join("..", "package.json")
@@ -38,6 +39,7 @@ export async function runTestBuild({ clean, fast = false }) {
 		await fs.copyFile(path.join("..", "packages/tutanota-crypto/lib/encryption/Liboqs/liboqs.wasm"), inBuildDir("liboqs.wasm"))
 		await createUnitTestHtml(localEnv)
 	})
+
 	await runStep("Esbuild", async () => {
 		await esbuild({
 			// this is here because the test build targets esm and esbuild
@@ -81,8 +83,7 @@ export async function runTestBuild({ clean, fast = false }) {
 				"body-parser",
 				"jsdom",
 			],
-			// even though tests might be running in browser we set it to node so that it ignores all builtins
-			platform: "node",
+			platform,
 			plugins: [
 				preludeEnvPlugin(localEnv),
 				libDeps(".."),

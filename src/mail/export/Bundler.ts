@@ -7,7 +7,7 @@ import type { HtmlSanitizer } from "../../misc/HtmlSanitizer"
 import { promiseMap } from "@tutao/tutanota-utils"
 import { DataFile } from "../../api/common/DataFile"
 import { FileController } from "../../file/FileController"
-import { loadMailDetails, loadMailHeaders } from "../model/MailUtils.js"
+import { getDisplayedSender, loadMailDetails, loadMailHeaders, MailAddressAndName } from "../model/MailUtils.js"
 
 /**
  * Used to pass all downloaded mail stuff to the desktop side to be exported as a file
@@ -53,13 +53,13 @@ export async function makeMailBundle(mail: Mail, entityClient: EntityClient, fil
 	})
 
 	const headers = await loadMailHeaders(entityClient, mailWrapper)
-	const recipientMapper = ({ address, name }: MailAddress | EncryptedMailAddress) => ({ address, name })
+	const recipientMapper = ({ address, name }: MailAddressAndName) => ({ address, name })
 
 	return {
 		mailId: getLetId(mail),
 		subject: mail.subject,
 		body,
-		sender: recipientMapper(mail.sender),
+		sender: recipientMapper(getDisplayedSender(mail)),
 		to: mailWrapper.getToRecipients().map(recipientMapper),
 		cc: mailWrapper.getCcRecipients().map(recipientMapper),
 		bcc: mailWrapper.getBccRecipients().map(recipientMapper),

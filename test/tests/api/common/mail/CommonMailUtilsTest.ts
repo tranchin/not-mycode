@@ -1,19 +1,14 @@
 import o from "@tutao/otest"
-import { createEncryptedMailAddress, createMail, createMailAddress, Mail } from "../../../../../src/api/entities/tutanota/TypeRefs.js"
+import { createEncryptedMailAddress, Mail, MailAddressTypeRef, MailTypeRef } from "../../../../../src/api/entities/tutanota/TypeRefs.js"
 import { MailAuthenticationStatus, MailState } from "../../../../../src/api/common/TutanotaConstants.js"
 import { downcast } from "@tutao/tutanota-utils"
 import { getDisplayedSender, isTutanotaTeamAddress, MailAddressAndName } from "../../../../../src/api/common/mail/CommonMailUtils.js"
+import { createTestEntity } from "../../../TestUtils.js"
 
 o.spec("MailUtilsTest", function () {
 	function createSystemMail(realSender: MailAddressAndName): Mail {
-		return createMail({
-			sender: createMailAddress({
-				address: "system@tutanota.de",
-				name: "System",
-				_id: "",
-				_ownerGroup: "",
-				contact: null,
-			}),
+		return createTestEntity(MailTypeRef, {
+			sender: createTestEntity(MailAddressTypeRef, { address: "system@tutanota.de", name: "System" }),
 			replyTos: [createEncryptedMailAddress(realSender)],
 			state: MailState.RECEIVED,
 			authStatus: MailAuthenticationStatus.AUTHENTICATED,

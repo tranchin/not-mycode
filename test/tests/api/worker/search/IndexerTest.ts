@@ -17,7 +17,7 @@ import type { QueuedBatch } from "../../../../../src/api/worker/EventQueue.js"
 import { EntityRestClient } from "../../../../../src/api/worker/rest/EntityRestClient.js"
 import { MembershipRemovedError } from "../../../../../src/api/common/error/MembershipRemovedError.js"
 import { GENERATED_MAX_ID, generatedIdToTimestamp, getElementId, timestampToGeneratedId } from "../../../../../src/api/common/utils/EntityUtils.js"
-import { daysToMillis, defer, downcast, TypeRef } from "@tutao/tutanota-utils"
+import { daysToMillis, defer, downcast, freshVersioned, TypeRef } from "@tutao/tutanota-utils"
 import { aes256RandomKey, aesEncrypt, decryptKey, encryptKey, fixedIv, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
 import { DefaultEntityRestCache } from "../../../../../src/api/worker/rest/DefaultEntityRestCache.js"
 import o from "@tutao/otest"
@@ -30,6 +30,7 @@ import { InfoMessageHandler } from "../../../../../src/gui/InfoMessageHandler.js
 import { GroupDataOS, Metadata, MetaDataOS } from "../../../../../src/api/worker/search/IndexTables.js"
 import { MailFacade } from "../../../../../src/api/worker/facades/lazy/MailFacade.js"
 import { MailIndexer } from "../../../../../src/api/worker/search/MailIndexer.js"
+import { UserFacade } from "../../../../../src/api/worker/facades/UserFacade.js"
 
 const SERVER_TIME = new Date("1994-06-08").getTime()
 let contactList = createTestEntity(ContactListTypeRef)
@@ -49,6 +50,8 @@ o.spec("Indexer test", () => {
 	const entityRestCache: DefaultEntityRestCache = downcast({})
 
 	const mailFacade: MailFacade = downcast({})
+	const userFacade = object<UserFacade>()
+	const entityClient = object<EntityClient>()
 
 	o("init new db", async function () {
 		let metadata = {}
@@ -103,13 +106,15 @@ o.spec("Indexer test", () => {
 		let user = createTestEntity(UserTypeRef)
 		user.userGroup = createTestEntity(GroupMembershipTypeRef)
 		user.userGroup.group = "user-group-id"
-		let userGroupKey = aes256RandomKey()
+		let userGroupKey = freshVersioned(aes256RandomKey())
 
-		await indexer.init({ user, userGroupKey })
+		when(userFacade.getUserGroupKey()).thenResolve(userGroupKey)
+
+		await indexer.init({ user, userFacade, entityClient })
 		o(indexer._loadGroupData.args).deepEquals([user])
 		o(indexer._initGroupData.args[0]).deepEquals(groupBatches)
 		o(metadata[Metadata.mailIndexingEnabled]).equals(false)
-		o(decryptKey(userGroupKey, metadata[Metadata.userEncDbKey])).deepEquals(indexer.db.key)
+		o(decryptKey(userGroupKey.object, metadata[Metadata.userEncDbKey])).deepEquals(indexer.db.key)
 		o(indexer._entity.loadRoot.args).deepEquals([ContactListTypeRef, user.userGroup.group])
 		o(indexer._contact.indexFullContactList.callCount).equals(1)
 		o(indexer._contact.indexFullContactList.args).deepEquals([contactList])
@@ -119,16 +124,20 @@ o.spec("Indexer test", () => {
 	})
 
 	o("init existing db", async function () {
-		let userGroupKey = aes256RandomKey()
+		let userGroupKey = freshVersioned(aes256RandomKey())
 		let dbKey = aes256RandomKey()
 		let encDbIv = aesEncrypt(dbKey, fixedIv, random.generateRandomData(IV_BYTE_LENGTH), true)
-		let userEncDbKey = encryptKey(userGroupKey, dbKey)
+		let userEncDbKey = encryptKey(userGroupKey.object, dbKey)
+		const userGroupKeyVersion = 0
 		let transaction = {
 			get: (os, key) => {
 				if (os == MetaDataOS && key == Metadata.userEncDbKey) return Promise.resolve(userEncDbKey)
 				if (os == MetaDataOS && key == Metadata.mailIndexingEnabled) return Promise.resolve(true)
 				if (os == MetaDataOS && key == Metadata.excludedListIds) return Promise.resolve(["excluded-list-id"])
 				if (os == MetaDataOS && key == Metadata.encDbIv) return Promise.resolve(encDbIv)
+				if (os == MetaDataOS && key == Metadata.userGroupKeyVersion) {
+					return Promise.resolve(userGroupKeyVersion)
+				}
 				return Promise.resolve(null)
 			},
 			getAll: (os) => {
@@ -171,7 +180,11 @@ o.spec("Indexer test", () => {
 		let user = createTestEntity(UserTypeRef)
 		user.userGroup = createTestEntity(GroupMembershipTypeRef)
 		user.userGroup.group = "user-group-id"
-		await indexer.init({ user, userGroupKey })
+
+		when(userFacade.getUserGroupId()).thenReturn(user.userGroup.group)
+		when(userFacade.loadSymGroupKey(user.userGroup.group, userGroupKeyVersion, entityClient)).thenResolve(userGroupKey.object)
+
+		await indexer.init({ user, userFacade, entityClient })
 		o(indexer.db.key).deepEquals(dbKey)
 		o(indexer._loadGroupDiff.args).deepEquals([user])
 		o(indexer._updateGroups.args).deepEquals([user, groupDiff])
@@ -183,13 +196,17 @@ o.spec("Indexer test", () => {
 	})
 
 	o("init existing db out of sync", async () => {
-		let userGroupKey = aes256RandomKey()
+		let userGroupKey = freshVersioned(aes256RandomKey())
 		let dbKey = aes256RandomKey()
-		let userEncDbKey = encryptKey(userGroupKey, dbKey)
+		let userEncDbKey = encryptKey(userGroupKey.object, dbKey)
+		const userGroupKeyVersion = 0
 		let encDbIv = aesEncrypt(dbKey, fixedIv, random.generateRandomData(IV_BYTE_LENGTH), true)
 		let transaction = {
 			get: async (os, key) => {
 				if (os == MetaDataOS && key == Metadata.userEncDbKey) return userEncDbKey
+				if (os == MetaDataOS && key == Metadata.userGroupKeyVersion) {
+					return userGroupKeyVersion
+				}
 				if (os == MetaDataOS && key == Metadata.mailIndexingEnabled) return true
 				if (os == MetaDataOS && key == Metadata.excludedListIds) return ["excluded-list-id"]
 				if (os == MetaDataOS && key == Metadata.encDbIv) return encDbIv
@@ -236,7 +253,11 @@ o.spec("Indexer test", () => {
 		let user = createTestEntity(UserTypeRef)
 		user.userGroup = createTestEntity(GroupMembershipTypeRef)
 		user.userGroup.group = "user-group-id"
-		await indexer.init({ user, userGroupKey })
+
+		when(userFacade.getUserGroupId()).thenReturn(user.userGroup.group)
+		when(userFacade.loadSymGroupKey(user.userGroup.group, userGroupKeyVersion, entityClient)).thenResolve(userGroupKey.object)
+
+		await indexer.init({ user, userFacade, entityClient })
 		o(indexer.db.key).deepEquals(dbKey)
 		o(indexer._loadGroupDiff.args).deepEquals([user])
 		o(indexer._updateGroups.args).deepEquals([user, groupDiff])
@@ -1217,14 +1238,15 @@ o.spec("Indexer test", () => {
 
 		o("When init() is called and contacts have already been indexed they are not indexed again", async function () {
 			when(indexer._contact.getIndexTimestamp(contactList)).thenResolve(FULL_INDEXED_TIMESTAMP)
-
-			await indexer.init({ user, userGroupKey })
+			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
+			await indexer.init({ user, userFacade, entityClient })
 			verify(indexer._contact.indexFullContactList(contactList), { times: 0 })
 		})
 
 		o("When init() is called and contacts have not been indexed before, they are indexed", async function () {
 			when(indexer._contact.getIndexTimestamp(contactList)).thenResolve(NOTHING_INDEXED_TIMESTAMP)
-			await indexer.init({ user, userGroupKey })
+			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
+			await indexer.init({ user, userFacade, entityClient })
 			verify(indexer._contact.indexFullContactList(contactList))
 		})
 
@@ -1238,7 +1260,8 @@ o.spec("Indexer test", () => {
 			indexer._mail.enableMailIndexing = func<MailIndexer["enableMailIndexing"]>()
 			when(indexer._mail.enableMailIndexing(matchers.anything())).thenResolve(undefined)
 
-			await indexer.init({ user, userGroupKey, cacheInfo })
+			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
+			await indexer.init({ user, userFacade, entityClient, cacheInfo })
 			verify(indexer._entity.loadAll(ContactTypeRef, contactList.contacts))
 		})
 
@@ -1251,7 +1274,8 @@ o.spec("Indexer test", () => {
 			indexer._mail.enableMailIndexing = func<MailIndexer["enableMailIndexing"]>()
 			when(indexer._mail.enableMailIndexing(matchers.anything())).thenResolve(undefined)
 
-			await indexer.init({ user, userGroupKey, cacheInfo })
+			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
+			await indexer.init({ user, userFacade, entityClient, cacheInfo })
 
 			verify(indexer._contact.indexFullContactList(contactList))
 			verify(indexer._entity.loadAll(ContactTypeRef, contactList.contacts), { times: 0 })

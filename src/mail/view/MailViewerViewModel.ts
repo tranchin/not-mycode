@@ -72,7 +72,6 @@ import { MailFacade } from "../../api/worker/facades/lazy/MailFacade.js"
 import { EntityUpdateData, isUpdateForTypeRef } from "../../api/common/utils/EntityUpdateUtils.js"
 import { isOfflineError } from "../../api/common/utils/ErrorUtils.js"
 import { CryptoFacade } from "../../api/worker/crypto/CryptoFacade.js"
-import { ExposedCacheStorage } from "../../api/worker/rest/DefaultEntityRestCache.js"
 
 export const enum ContentBlockingStatus {
 	Block = "0",
@@ -770,6 +769,11 @@ export class MailViewerViewModel {
 		})
 	}
 
+	private getDisplayedSenderMailAddress(): MailAddress {
+		const sender = this.getDisplayedSender()
+		return createMailAddress({ name: sender.name, address: sender.address, contact: null })
+	}
+
 	/** @throws UserError */
 	async forward(): Promise<void> {
 		const sendAllowed = await checkApprovalStatus(this.logins, false)
@@ -844,7 +848,7 @@ export class MailViewerViewModel {
 				return
 			}
 
-			const mailAddressAndName = this.getDisplayedSender()
+			const mailAddressAndName = this.getDisplayedSenderMailAddress()
 			const sender = createMailAddress({
 				name: mailAddressAndName.name,
 				address: mailAddressAndName.address,

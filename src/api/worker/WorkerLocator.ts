@@ -66,6 +66,7 @@ import { DomainConfigProvider } from "../common/DomainConfigProvider.js"
 import { KyberFacade, NativeKyberFacade, WASMKyberFacade } from "./facades/KyberFacade.js"
 import { PQFacade } from "./facades/PQFacade.js"
 import { PdfWriter } from "./pdf/PdfWriter.js"
+import { PQMessageCodec } from "./facades/PQMessage.js"
 
 assertWorkerOrNode()
 
@@ -195,7 +196,8 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		locator.kyberFacade = new WASMKyberFacade()
 	}
 
-	locator.pqFacade = new PQFacade(locator.kyberFacade)
+	const pqMessageCodec = new PQMessageCodec()
+	locator.pqFacade = new PQFacade(locator.kyberFacade, pqMessageCodec)
 
 	locator.crypto = new CryptoFacade(
 		locator.user,
@@ -207,6 +209,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		new OwnerEncSessionKeysUpdateQueue(locator.user, locator.serviceExecutor),
 		locator.pqFacade,
 		cache,
+		pqMessageCodec,
 	)
 
 	const loginListener: LoginListener = {
@@ -219,7 +222,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 				// index new items in background
 				console.log("initIndexer after log in")
 
-				initIndexer(worker, cacheInfo)
+				initIndexer(worker, cacheInfo, locator.user, locator.cachingEntityClient)
 			}
 
 			return mainInterface.loginListener.onFullLoginSuccess(sessionType, cacheInfo)
@@ -401,12 +404,13 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 
 const RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS = 30000
 
-async function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo): Promise<void> {
+async function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo, userFacade: UserFacade, entityClient: EntityClient): Promise<void> {
 	const indexer = await locator.indexer()
 	try {
 		await indexer.init({
 			user: assertNotNull(locator.user.getUser()),
-			userGroupKey: locator.user.getUserGroupKey(),
+			userFacade,
+			entityClient,
 			cacheInfo,
 		})
 	} catch (e) {
@@ -414,12 +418,12 @@ async function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo): Promise<vo
 			console.log("Retry init indexer in 30 seconds after ServiceUnavailableError")
 			await delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS)
 			console.log("_initIndexer after ServiceUnavailableError")
-			return initIndexer(worker, cacheInfo)
+			return initIndexer(worker, cacheInfo, userFacade, entityClient)
 		} else if (e instanceof ConnectionError) {
 			console.log("Retry init indexer in 30 seconds after ConnectionError")
 			await delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS)
 			console.log("_initIndexer after ConnectionError")
-			return initIndexer(worker, cacheInfo)
+			return initIndexer(worker, cacheInfo, userFacade, entityClient)
 		} else {
 			// not awaiting
 			worker.sendError(e)

@@ -2,10 +2,12 @@ import { b64UserIdHash, DbFacade } from "../../search/DbFacade.js"
 import { assertNotNull, concat, downcast, LazyLoaded, stringToUtf8Uint8Array, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
 import type { User } from "../../../entities/sys/TypeRefs.js"
 import { ExternalImageRule } from "../../../common/TutanotaConstants.js"
-import { aes256RandomKey, aesDecrypt, aesEncrypt, decryptKey, encryptKey, IV_BYTE_LENGTH, random, unauthenticatedAesDecrypt } from "@tutao/tutanota-crypto"
+import { aes256RandomKey, aesEncrypt, AesKey, decryptKey, IV_BYTE_LENGTH, random, unauthenticatedAesDecrypt } from "@tutao/tutanota-crypto"
 import { UserFacade } from "../UserFacade.js"
 import { Metadata, ObjectStoreName } from "../../search/IndexTables.js"
 import { DbError } from "../../../common/error/DbError.js"
+import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
+import { encryptKeyWithVersionedKey } from "../../crypto/CryptoFacade.js"
 
 const VERSION: number = 2
 const DB_KEY_PREFIX: string = "ConfigStorage"
@@ -41,7 +43,8 @@ export class ConfigurationDatabase {
 
 	constructor(
 		userFacade: UserFacade,
-		dbLoadFn: (arg0: User, arg1: Aes128Key) => Promise<ConfigDb> = (user: User, userGroupKey: Aes128Key) => this.loadConfigDb(user, userGroupKey),
+		dbLoadFn: (arg0: User, arg1: Versioned<AesKey>) => Promise<ConfigDb> = (user: User, userGroupKey: Versioned<AesKey>) =>
+			this.loadConfigDb(user, userGroupKey),
 	) {
 		this.db = new LazyLoaded(() => {
 			const user = assertNotNull(userFacade.getLoggedInUser())
@@ -78,7 +81,7 @@ export class ConfigurationDatabase {
 		return rule
 	}
 
-	async loadConfigDb(user: User, userGroupKey: Aes128Key): Promise<ConfigDb> {
+	async loadConfigDb(user: User, userGroupKey: Versioned<AesKey>): Promise<ConfigDb> {
 		const id = this.getDbId(user._id)
 		const db = new DbFacade(VERSION, async (event, db, dbFacade) => {
 			if (event.oldVersion === 0) {
@@ -87,7 +90,7 @@ export class ConfigurationDatabase {
 					keyPath: "address",
 				})
 			}
-			const metaData = (await loadEncryptionMetadata(dbFacade, id, userGroupKey)) || (await initializeDb(dbFacade, id, userGroupKey))
+			const metaData = (await loadEncryptionMetadata(dbFacade, id, userGroupKey.object)) || (await initializeDb(dbFacade, id, userGroupKey))
 
 			if (event.oldVersion === 1) {
 				// migrate from plain, mac-and-static-iv aes256 to aes256 with mac
@@ -102,7 +105,7 @@ export class ConfigurationDatabase {
 				}
 			}
 		})
-		const metaData = (await loadEncryptionMetadata(db, id, userGroupKey)) || (await initializeDb(db, id, userGroupKey))
+		const metaData = (await loadEncryptionMetadata(db, id, userGroupKey.object)) || (await initializeDb(db, id, userGroupKey))
 		return {
 			db,
 			metaData,
@@ -128,7 +131,7 @@ export class ConfigurationDatabase {
  * Load the encryption key and iv from the db
  * @return { key, iv } or null if one or both don't exist
  */
-async function loadEncryptionMetadata(db: DbFacade, id: string, userGroupKey: Aes128Key): Promise<EncryptionMetadata | null> {
+async function loadEncryptionMetadata(db: DbFacade, id: string, userGroupKey: AesKey): Promise<EncryptionMetadata | null> {
 	await db.open(id)
 	const transaction = await db.createTransaction(true, [MetaDataOS])
 	const encDbKey = await transaction.get(MetaDataOS, Metadata.userEncDbKey)
@@ -150,12 +153,14 @@ async function loadEncryptionMetadata(db: DbFacade, id: string, userGroupKey: Ae
  * @caution This will clear any existing data in the database, because they key and IV will be regenerated
  * @return the newly generated key and iv for the database contents
  */
-async function initializeDb(db: DbFacade, id: string, userGroupKey: Aes128Key): Promise<EncryptionMetadata> {
+async function initializeDb(db: DbFacade, id: string, userGroupKey: Versioned<AesKey>): Promise<EncryptionMetadata> {
 	await db.deleteDatabase(id).then(() => db.open(id))
 	const key = aes256RandomKey()
 	const iv = random.generateRandomData(IV_BYTE_LENGTH)
 	const transaction = await db.createTransaction(false, [MetaDataOS, ExternalImageListOS])
-	await transaction.put(MetaDataOS, Metadata.userEncDbKey, encryptKey(userGroupKey, key))
+	const groupEncSessionKey = encryptKeyWithVersionedKey(userGroupKey, key)
+	await transaction.put(MetaDataOS, Metadata.userEncDbKey, groupEncSessionKey.key)
+	await transaction.put(MetaDataOS, Metadata.userGroupKeyVersion, groupEncSessionKey.encryptingKeyVersion)
 	await transaction.put(MetaDataOS, Metadata.encDbIv, aesEncrypt(key, iv))
 	return {
 		key,

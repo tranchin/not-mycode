@@ -6,7 +6,7 @@ import { getWhitelabelDomain } from "../../api/common/utils/Utils"
 import { clear, mapAndFilterNull, neverNull, ofClass, remove } from "@tutao/tutanota-utils"
 import { assertMainOrNode } from "../../api/common/Env"
 import type { GroupInfo } from "../../api/entities/sys/TypeRefs.js"
-import { CustomerInfoTypeRef, CustomerTypeRef, GroupInfoTypeRef, GroupTypeRef, UserTypeRef } from "../../api/entities/sys/TypeRefs.js"
+import { GroupInfoTypeRef, GroupTypeRef, UserTypeRef } from "../../api/entities/sys/TypeRefs.js"
 import type { TableAttrs, TableLineAttrs } from "../../gui/base/Table.js"
 import { ColumnWidth, Table } from "../../gui/base/Table.js"
 import type { ContactForm, ContactFormLanguage } from "../../api/entities/tutanota/TypeRefs.js"
@@ -69,7 +69,7 @@ export class ContactFormEditor {
 	 */
 	constructor(c: ContactForm | null, createNew: boolean, allUserGroupInfos: GroupInfo[], allSharedMailboxGroupInfos: GroupInfo[], brandingDomain: string) {
 		this._createNew = createNew
-		this._contactForm = c ? c : createContactForm()
+		this._contactForm = c ? c : createContactForm({})
 		this._createNew = createNew
 		this._allUserGroupInfos = allUserGroupInfos
 		this._allSharedMailboxGroupInfos = allSharedMailboxGroupInfos
@@ -125,8 +125,9 @@ export class ContactFormEditor {
 		this._languages = this._contactForm.languages.map((l) => Object.assign({}, l))
 
 		if (this._languages.length === 0) {
-			let l = createContactFormLanguage()
-			l.code = lang.code === "de_sie" ? "de" : lang.code
+			let l = createContactFormLanguage({
+				code: lang.code === "de_sie" ? "de" : lang.code,
+			})
 
 			this._languages.push(l)
 		}
@@ -376,8 +377,9 @@ export class ContactFormEditor {
 						let newLanguageCode = additionalLanguages[0].value
 						setTimeout(() => {
 							const addLanguageOkAction = (dialog: Dialog) => {
-								const newLang = createContactFormLanguage()
-								newLang.code = newLanguageCode
+								const newLang = createContactFormLanguage({
+									code: newLanguageCode,
+								})
 								this._languages.push(newLang)
 								this._language(newLang)
 								dialog.close()

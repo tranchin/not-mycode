@@ -110,13 +110,13 @@ export class ContactFormViewer implements UpdatableSettingsDetailsViewer {
 	}
 
 	private copy() {
-		const newForm = createContactForm()
 		// copy the instances as deep as necessary to make sure that the instances are not used in two different entities and changes affect both entities
-		newForm.targetGroupInfo = this.contactForm.targetGroupInfo
-		newForm.participantGroupInfos = this.contactForm.participantGroupInfos.slice()
-		newForm.path = "" // do not copy the path
-
-		newForm.languages = this.contactForm.languages.map((l) => Object.assign({}, l))
+		const newForm = createContactForm({
+			targetGroupInfo: this.contactForm.targetGroupInfo,
+			participantGroupInfos: this.contactForm.participantGroupInfos.slice(),
+			path: "", // do not copy the path
+			languages: this.contactForm.languages.map((l) => Object.assign({}, l)),
+		})
 		ContactFormEditor.show(newForm, true)
 	}
 

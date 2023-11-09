@@ -949,17 +949,21 @@ export class MailViewerViewModel {
 		if (!this.canAssignMails()) {
 			throw new ProgrammingError("Cannot assign mails")
 		}
-		const recipient = createMailAddress()
-		recipient.address = neverNull(userGroupInfo.mailAddress)
-		recipient.name = userGroupInfo.name
+		const recipient = createMailAddress({
+			address: neverNull(userGroupInfo.mailAddress),
+			name: userGroupInfo.name,
+		})
 		let newReplyTos
 
 		if (this.getReplyTos().length > 0) {
 			newReplyTos = this.getReplyTos()
 		} else {
-			newReplyTos = [createEncryptedMailAddress()]
-			newReplyTos[0].address = this.getSender().address
-			newReplyTos[0].name = this.getSender().name
+			newReplyTos = [
+				createEncryptedMailAddress({
+					address: this.getSender().address,
+					name: this.getSender().name,
+				}),
+			]
 		}
 
 		const args = await this.createResponseMailArgsForForwarding([recipient], newReplyTos, false)

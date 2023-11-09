@@ -348,11 +348,12 @@ export class CustomerFacade {
 		const contactFormUserGroupData = await this.getContactFormUserGroupData()
 		let { userGroupKey, userGroupData } = contactFormUserGroupData
 		await this.operationProgressTracker.onProgress(operationId, 35)
-		let data = createContactFormAccountData()
-		data.userData = await this.userManagement.generateContactFormUserAccountData(userGroupKey, password)
+		let data = createContactFormAccountData({
+			userData: await this.userManagement.generateContactFormUserAccountData(userGroupKey, password),
+			userGroupData: userGroupData,
+			contactForm: contactFormId,
+		})
 		await this.operationProgressTracker.onProgress(operationId, 95)
-		data.userGroupData = userGroupData
-		data.contactForm = contactFormId
 		const result = this.serviceExecutor.post(ContactFormAccountService, data)
 		this.contactFormUserGroupData = null
 		return result
@@ -410,19 +411,18 @@ export class CustomerFacade {
 		let customerInfo = await this.entityClient.load(CustomerInfoTypeRef, customer.customerInfo)
 		let accountingInfo = await this.entityClient.load(AccountingInfoTypeRef, customerInfo.accountingInfo)
 		let accountingInfoSessionKey = await this.cryptoFacade.resolveSessionKeyForInstance(accountingInfo)
-		const service = createPaymentDataServicePutData()
-		service.paymentInterval = paymentInterval.toString()
-		service.invoiceName = ""
-		service.invoiceAddress = invoiceData.invoiceAddress
-		service.invoiceCountry = invoiceData.country ? invoiceData.country.a : ""
-		service.invoiceVatIdNo = invoiceData.vatNumber ? invoiceData.vatNumber : ""
-		service.paymentMethod = paymentData ? paymentData.paymentMethod : accountingInfo.paymentMethod ? accountingInfo.paymentMethod : ""
-		service.paymentMethodInfo = null
-		service.paymentToken = null
-		if (paymentData && paymentData.creditCardData) {
-			service.creditCard = paymentData.creditCardData
-		}
-		service.confirmedCountry = confirmedInvoiceCountry ? confirmedInvoiceCountry.a : null
+		const service = createPaymentDataServicePutData({
+			paymentInterval: paymentInterval.toString(),
+			invoiceName: "",
+			invoiceAddress: invoiceData.invoiceAddress,
+			invoiceCountry: invoiceData.country ? invoiceData.country.a : "",
+			invoiceVatIdNo: invoiceData.vatNumber ? invoiceData.vatNumber : "",
+			paymentMethod: paymentData ? paymentData.paymentMethod : accountingInfo.paymentMethod ? accountingInfo.paymentMethod : "",
+			paymentMethodInfo: null,
+			paymentToken: null,
+			creditCard: paymentData && paymentData.creditCardData ? paymentData.creditCardData : null,
+			confirmedCountry: confirmedInvoiceCountry ? confirmedInvoiceCountry.a : null,
+		})
 		return this.serviceExecutor.put(PaymentDataService, service, { sessionKey: accountingInfoSessionKey ?? undefined })
 	}
 

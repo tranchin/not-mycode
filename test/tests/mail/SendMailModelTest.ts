@@ -20,6 +20,10 @@ import {
 	createMailDetails,
 	createTutanotaProperties,
 	CustomerAccountCreateDataTypeRef,
+	MailAddressTypeRef,
+	MailboxGroupRootTypeRef,
+	MailboxPropertiesTypeRef,
+	MailBoxTypeRef,
 	MailTypeRef,
 	NotificationMailTypeRef,
 } from "../../../src/api/entities/tutanota/TypeRefs.js"
@@ -35,6 +39,7 @@ import {
 	createGroupMembership,
 	createUser,
 	CustomerTypeRef,
+	GroupTypeRef,
 	UserTypeRef,
 } from "../../../src/api/entities/sys/TypeRefs.js"
 import { ConversationType, GroupType, KdfType, MailMethod, OperationType } from "../../../src/api/common/TutanotaConstants.js"
@@ -53,6 +58,7 @@ import { NoZoneDateProvider } from "../../../src/api/common/utils/NoZoneDateProv
 import { MailWrapper } from "../../../src/api/common/MailWrapper.js"
 import { FolderSystem } from "../../../src/api/common/mail/FolderSystem.js"
 import { KdfPicker } from "../../../src/misc/KdfPicker.js"
+import { createTestEntity } from "../TestUtils.js"
 
 const { anything, argThat } = matchers
 
@@ -122,8 +128,8 @@ o.spec("SendMailModel", function () {
 		when(contactModel.searchForContact(anything())).thenResolve(null)
 
 		mailFacade = instance(MailFacade)
-		when(mailFacade.createDraft(anything())).thenDo(() => createMail())
-		when(mailFacade.updateDraft(anything())).thenDo(() => createMail())
+		when(mailFacade.createDraft(anything())).thenDo(() => createTestEntity(MailTypeRef))
+		when(mailFacade.updateDraft(anything())).thenDo(() => createTestEntity(MailTypeRef))
 		when(mailFacade.getRecipientKeyData(anything())).thenResolve(null)
 		when(mailFacade.getAttachmentIds(anything())).thenResolve([])
 
@@ -149,7 +155,7 @@ o.spec("SendMailModel", function () {
 		const userController = object<UserController>()
 		replace(userController, "user", user)
 		replace(userController, "props", tutanotaProperties)
-		when(userController.loadCustomer()).thenResolve(createCustomer())
+		when(userController.loadCustomer()).thenResolve(createTestEntity(CustomerTypeRef))
 
 		const loginController = object<LoginController>()
 		when(loginController.isInternalUserLoggedIn()).thenReturn(true)
@@ -158,13 +164,13 @@ o.spec("SendMailModel", function () {
 		const eventController = instance(EventController)
 
 		const mailboxDetails: MailboxDetail = {
-			mailbox: createMailBox(),
+			mailbox: createTestEntity(MailBoxTypeRef),
 			folders: new FolderSystem([]),
 			mailGroupInfo: createGroupInfo({
 				mailAddress: "mailgroup@addre.ss",
 			}),
-			mailGroup: createGroup(),
-			mailboxGroupRoot: createMailboxGroupRoot(),
+			mailGroup: createTestEntity(GroupTypeRef),
+			mailboxGroupRoot: createTestEntity(MailboxGroupRootTypeRef),
 		}
 
 		recipientsModel = instance(RecipientsModel)
@@ -181,7 +187,7 @@ o.spec("SendMailModel", function () {
 			)
 		})
 
-		const mailboxProperties = createMailboxProperties()
+		const mailboxProperties = createTestEntity(MailboxPropertiesTypeRef)
 
 		model = new SendMailModel(
 			mailFacade,
@@ -266,7 +272,7 @@ o.spec("SendMailModel", function () {
 		o("initWithDraft with blank data", async function () {
 			const draftMail = createMail({
 				confidential: false,
-				sender: createMailAddress(),
+				sender: createTestEntity(MailAddressTypeRef),
 				toRecipients: [],
 				ccRecipients: [],
 				bccRecipients: [],
@@ -300,7 +306,7 @@ o.spec("SendMailModel", function () {
 		o("initWithDraft with some data", async function () {
 			const draftMail = createMail({
 				confidential: true,
-				sender: createMailAddress(),
+				sender: createTestEntity(MailAddressTypeRef),
 				toRecipients: [
 					createMailAddress({
 						address: "",

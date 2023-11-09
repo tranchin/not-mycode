@@ -184,7 +184,7 @@ export class CalendarModel {
 		if (color != null) {
 			const { userSettingsGroupRoot } = this.logins.getUserController()
 
-			const newGroupSettings = Object.assign(createGroupSettings(), {
+			const newGroupSettings = createGroupSettings({
 				group: group._id,
 				color: color,
 			})

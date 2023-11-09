@@ -132,8 +132,12 @@ export class CustomerFacade {
 		let systemAdminPubEncAccountingInfoSessionKey
 		if (systemAdminPubKey instanceof PQPublicKeys) {
 			const userGroupId = this.userFacade.getUserGroupId()
-			const senderKeyPair = await this.cryptoFacade.loadKeypair(userGroupId)
-			const senderIdentityKeyPair = await this.cryptoFacade.getOrMakeSenderIdentityKeyPair(senderKeyPair, userGroupId)
+			const senderKeyPair = await this.userFacade.loadKeypair(
+				userGroupId,
+				Number(this.userFacade.getLoggedInUser().userGroup.groupKeyVersion),
+				this.entityClient,
+			)
+			const senderIdentityKeyPair = await this.cryptoFacade.getOrMakeSenderIdentityKeyPair(senderKeyPair)
 			const ephemeralKeyPair = generateEccKeyPair()
 			systemAdminPubEncAccountingInfoSessionKey = encodePQMessage(
 				await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, systemAdminPubKey, bitArrayToUint8Array(sessionKey)),
@@ -213,11 +217,13 @@ export class CustomerFacade {
 		} else {
 			// create properties
 			const sessionKey = aes128RandomKey()
-			const adminGroupKey = this.userFacade.getGroupKey(this.userFacade.getGroupId(GroupType.Admin))
+			const adminGroupId = this.userFacade.getGroupId(GroupType.Admin)
+			const adminGroupKey = this.userFacade.getGroupKey(adminGroupId)
 
-			const groupEncSessionKey = encryptKey(adminGroupKey, sessionKey)
+			const groupEncSessionKey = encryptKey(adminGroupKey.object, sessionKey)
 			const data = createCreateCustomerServerPropertiesData({
 				adminGroupEncSessionKey: groupEncSessionKey,
+				adminGroupKeyVersion: adminGroupKey.version.toString(),
 			})
 			const returnData = await this.serviceExecutor.post(CreateCustomerServerProperties, data)
 			cspId = returnData.id
@@ -273,9 +279,9 @@ export class CustomerFacade {
 		currentLanguage: string,
 		kdfType: KdfType,
 	): Promise<Hex> {
-		const userGroupKey = aes128RandomKey()
-		const adminGroupKey = aes128RandomKey()
-		const customerGroupKey = aes128RandomKey()
+		const userGroupKey = { object: aes128RandomKey(), version: 0 }
+		const adminGroupKey = { object: aes128RandomKey(), version: 0 }
+		const customerGroupKey = { object: aes128RandomKey(), version: 0 }
 		const userGroupInfoSessionKey = aes128RandomKey()
 		const adminGroupInfoSessionKey = aes128RandomKey()
 		const customerGroupInfoSessionKey = aes128RandomKey()
@@ -300,7 +306,7 @@ export class CustomerFacade {
 
 		const userGroupData = this.groupManagement.generateInternalGroupData(
 			keyPairs[0],
-			userGroupKey,
+			userGroupKey.object,
 			userGroupInfoSessionKey,
 			null,
 			adminGroupKey,
@@ -309,7 +315,7 @@ export class CustomerFacade {
 
 		const adminGroupData = this.groupManagement.generateInternalGroupData(
 			keyPairs[1],
-			adminGroupKey,
+			adminGroupKey.object,
 			adminGroupInfoSessionKey,
 			null,
 			adminGroupKey,
@@ -318,14 +324,14 @@ export class CustomerFacade {
 
 		const customerGroupData = this.groupManagement.generateInternalGroupData(
 			keyPairs[2],
-			customerGroupKey,
+			customerGroupKey.object,
 			customerGroupInfoSessionKey,
 			null,
 			adminGroupKey,
 			customerGroupKey,
 		)
 
-		const recoverData = this.userManagement.generateRecoveryCode(userGroupKey)
+		const recoverData = this.userManagement.generateRecoveryCode(userGroupKey.object)
 
 		const data = createCustomerAccountCreateData({
 			authToken,
@@ -342,32 +348,24 @@ export class CustomerFacade {
 				recoverData,
 				kdfType,
 			),
-			userEncAdminGroupKey: encryptKey(userGroupKey, adminGroupKey),
+			userEncAdminGroupKey: encryptKey(userGroupKey.object, adminGroupKey.object),
 			userGroupData,
 			adminGroupData,
 			customerGroupData,
-			adminEncAccountingInfoSessionKey: encryptKey(adminGroupKey, accountingInfoSessionKey),
+			adminEncAccountingInfoSessionKey: encryptKey(adminGroupKey.object, accountingInfoSessionKey),
 			systemAdminPubEncAccountingInfoSessionKey,
-			adminEncCustomerServerPropertiesSessionKey: encryptKey(adminGroupKey, customerServerPropertiesSessionKey),
+			adminEncCustomerServerPropertiesSessionKey: encryptKey(adminGroupKey.object, customerServerPropertiesSessionKey),
 			userEncAccountGroupKey: new Uint8Array(0),
+			accountGroupKeyVersion: "0",
+			adminKeyVersion: "0",
+			userKeyVersion: "0",
 		})
 		await this.serviceExecutor.post(CustomerAccountService, data)
 		return recoverData.hexCode
 	}
 
 	createContactFormUserGroupData(): Promise<void> {
-		let userGroupKey = aes128RandomKey()
-		let userGroupInfoSessionKey = aes128RandomKey()
-		this.contactFormUserGroupData = this.rsa
-			.generateKey()
-			.then((keyPair) => this.groupManagement.generateInternalGroupData(keyPair, userGroupKey, userGroupInfoSessionKey, null, userGroupKey, userGroupKey))
-			.then((userGroupData) => {
-				return {
-					userGroupKey,
-					userGroupData,
-				}
-			})
-		return Promise.resolve()
+		throw new Error("this is already removed now")
 	}
 
 	private async getContactFormUserGroupData(): Promise<ContactFormUserGroupData> {
@@ -400,14 +398,17 @@ export class CustomerFacade {
 	async switchFreeToPremiumGroup(): Promise<void> {
 		try {
 			const keyData = await this.serviceExecutor.get(SystemKeysService, null)
+			const loggedInUser = this.userFacade.getLoggedInUser()
 			const membershipAddData = createMembershipAddData({
-				user: this.userFacade.getLoggedInUser()._id,
+				user: loggedInUser._id,
 				group: neverNull(keyData.premiumGroup),
-				symEncGKey: encryptKey(this.userFacade.getUserGroupKey(), uint8ArrayToBitArray(keyData.premiumGroupKey)),
+				symEncGKey: encryptKey(this.userFacade.getUserGroupKey().object, uint8ArrayToBitArray(keyData.premiumGroupKey)),
+				groupKeyVersion: keyData.premiumGroupKeyVersion,
+				symKeyVersion: loggedInUser.userGroup.groupKeyVersion,
 			})
 			await this.serviceExecutor.post(MembershipService, membershipAddData)
 			const membershipRemoveData = createMembershipRemoveData({
-				user: this.userFacade.getLoggedInUser()._id,
+				user: loggedInUser._id,
 				group: neverNull(keyData.freeGroup),
 			})
 			await this.serviceExecutor.delete(MembershipService, membershipRemoveData)
@@ -421,14 +422,17 @@ export class CustomerFacade {
 	async switchPremiumToFreeGroup(): Promise<void> {
 		try {
 			const keyData = await this.serviceExecutor.get(SystemKeysService, null)
+			const loggedInUser = this.userFacade.getLoggedInUser()
 			const membershipAddData = createMembershipAddData({
-				user: this.userFacade.getLoggedInUser()._id,
+				user: loggedInUser._id,
 				group: neverNull(keyData.freeGroup),
-				symEncGKey: encryptKey(this.userFacade.getUserGroupKey(), uint8ArrayToBitArray(keyData.freeGroupKey)),
+				symEncGKey: encryptKey(this.userFacade.getUserGroupKey().object, uint8ArrayToBitArray(keyData.freeGroupKey)),
+				groupKeyVersion: keyData.freeGroupKeyVersion,
+				symKeyVersion: loggedInUser.userGroup.groupKeyVersion,
 			})
 			await this.serviceExecutor.post(MembershipService, membershipAddData)
 			const membershipRemoveData = createMembershipRemoveData({
-				user: this.userFacade.getLoggedInUser()._id,
+				user: loggedInUser._id,
 				group: neverNull(keyData.premiumGroup),
 			})
 			await this.serviceExecutor.delete(MembershipService, membershipRemoveData)

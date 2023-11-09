@@ -5,7 +5,7 @@ import { assert, concat } from "@tutao/tutanota-utils"
 export const PQMESSAGE_VERSION: number = 0
 
 export type PQMessage = {
-	version: number
+	protocolVersion: number
 	senderIdentityPubKey: EccPublicKey
 	ephemeralPubKey: EccPublicKey
 	encapsulation: PQBucketKeyEncapsulation
@@ -23,7 +23,7 @@ export function decodePQMessage(encoded: Uint8Array): PQMessage {
 
 	const pqMessageParts = bytesToByteArrays(encoded.subarray(1), 4)
 	return {
-		version: version,
+		protocolVersion: version,
 		senderIdentityPubKey: pqMessageParts[0],
 		ephemeralPubKey: pqMessageParts[1],
 		encapsulation: {
@@ -33,8 +33,8 @@ export function decodePQMessage(encoded: Uint8Array): PQMessage {
 	}
 }
 
-export function encodePQMessage({ version, senderIdentityPubKey, ephemeralPubKey, encapsulation }: PQMessage): Uint8Array {
-	assert(() => version === PQMESSAGE_VERSION, `can't encode unknown or unsupported PQMessage version ${version}`)
+export function encodePQMessage({ protocolVersion, senderIdentityPubKey, ephemeralPubKey, encapsulation }: PQMessage): Uint8Array {
+	assert(() => protocolVersion === PQMESSAGE_VERSION, `can't encode unknown or unsupported PQMessage version ${protocolVersion}`)
 	const encodedPqMessageParts = byteArraysToBytes([senderIdentityPubKey, ephemeralPubKey, encapsulation.kyberCipherText, encapsulation.kekEncBucketKey])
-	return concat(new Uint8Array([version]), encodedPqMessageParts)
+	return concat(new Uint8Array([protocolVersion]), encodedPqMessageParts)
 }

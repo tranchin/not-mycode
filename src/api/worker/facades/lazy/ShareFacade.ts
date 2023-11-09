@@ -44,13 +44,14 @@ export class ShareFacade {
 		const invitationSessionKey = aes128RandomKey()
 		const sharedGroupData = createSharedGroupData({
 			sessionEncInviterName: encryptString(invitationSessionKey, userGroupInfo.name),
-			sessionEncSharedGroupKey: encryptBytes(invitationSessionKey, bitArrayToUint8Array(sharedGroupKey)),
+			sessionEncSharedGroupKey: encryptBytes(invitationSessionKey, bitArrayToUint8Array(sharedGroupKey.object)),
 			sessionEncSharedGroupName: encryptString(invitationSessionKey, sharedGroupName),
 			bucketEncInvitationSessionKey: encryptKey(bucketKey, invitationSessionKey),
-			sharedGroupEncInviterGroupInfoKey: encryptKey(sharedGroupKey, neverNull(userGroupInfoSessionKey)),
-			sharedGroupEncSharedGroupInfoKey: encryptKey(sharedGroupKey, neverNull(sharedGroupInfoSessionKey)),
+			sharedGroupEncInviterGroupInfoKey: encryptKey(sharedGroupKey.object, neverNull(userGroupInfoSessionKey)),
+			sharedGroupEncSharedGroupInfoKey: encryptKey(sharedGroupKey.object, neverNull(sharedGroupInfoSessionKey)),
 			capability: shareCapability,
 			sharedGroup: sharedGroupInfo.group,
+			sharedGroupKeyVersion: sharedGroupKey.version.toString(),
 		})
 		const invitationData = createGroupInvitationPostData({
 			sharedGroupData,
@@ -76,10 +77,12 @@ export class ShareFacade {
 		const userGroupInfo = await this.entityClient.load(GroupInfoTypeRef, this.userFacade.getLoggedInUser().userGroup.groupInfo)
 		const userGroupInfoSessionKey = await this.cryptoFacade.resolveSessionKeyForInstance(userGroupInfo)
 		const sharedGroupKey = uint8ArrayToBitArray(invitation.sharedGroupKey)
+		const userGroupKey = this.userFacade.getUserGroupKey()
 		const serviceData = createGroupInvitationPutData({
 			receivedInvitation: invitation._id,
-			userGroupEncGroupKey: encryptKey(this.userFacade.getUserGroupKey(), sharedGroupKey),
+			userGroupEncGroupKey: encryptKey(userGroupKey.object, sharedGroupKey),
 			sharedGroupEncInviteeGroupInfoKey: encryptKey(sharedGroupKey, neverNull(userGroupInfoSessionKey)),
+			userGroupKeyVersion: userGroupKey.version.toString(),
 		})
 		await this.serviceExecutor.put(GroupInvitationService, serviceData)
 	}

@@ -212,7 +212,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 				// index new items in background
 				console.log("initIndexer after log in")
 
-				initIndexer(worker, cacheInfo)
+				initIndexer(worker, cacheInfo, locator.user, locator.cachingEntityClient)
 			}
 
 			return mainInterface.loginListener.onFullLoginSuccess(sessionType, cacheInfo)
@@ -394,12 +394,13 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 
 const RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS = 30000
 
-function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo): Promise<void> {
+function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo, userFacade: UserFacade, entityClient: EntityClient): Promise<void> {
 	return locator.indexer().then((indexer) => {
 		return indexer
 			.init({
 				user: assertNotNull(locator.user.getUser()),
-				userGroupKey: locator.user.getUserGroupKey(),
+				userFacade,
+				entityClient,
 				cacheInfo,
 			})
 			.catch(
@@ -407,7 +408,7 @@ function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo): Promise<void> {
 					console.log("Retry init indexer in 30 seconds after ServiceUnavailableError")
 					return delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS).then(() => {
 						console.log("_initIndexer after ServiceUnavailableError")
-						return initIndexer(worker, cacheInfo)
+						return initIndexer(worker, cacheInfo, userFacade, entityClient)
 					})
 				}),
 			)
@@ -416,7 +417,7 @@ function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo): Promise<void> {
 					console.log("Retry init indexer in 30 seconds after ConnectionError")
 					return delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS).then(() => {
 						console.log("_initIndexer after ConnectionError")
-						return initIndexer(worker, cacheInfo)
+						return initIndexer(worker, cacheInfo, userFacade, entityClient)
 					})
 				}),
 			)

@@ -58,8 +58,8 @@ import {
 	Aes128Key,
 	aes128RandomKey,
 	aes256DecryptLegacyRecoveryKey,
-	Aes256Key,
 	aesDecrypt,
+	AesKey,
 	base64ToKey,
 	createAuthVerifier,
 	createAuthVerifierAsBase64Url,
@@ -395,7 +395,7 @@ export class LoginFacade {
 	/**
 	 * Derive a key given a KDF type, passphrase, and salt
 	 */
-	async deriveUserPassphraseKey(kdfType: KdfType, passphrase: string, salt: Uint8Array): Promise<Aes128Key | Aes256Key> {
+	async deriveUserPassphraseKey(kdfType: KdfType, passphrase: string, salt: Uint8Array): Promise<AesKey> {
 		switch (kdfType) {
 			case KdfType.Bcrypt: {
 				return generateKeyFromPassphraseBcrypt(passphrase, salt, KeyLength.b128)
@@ -571,7 +571,7 @@ export class LoginFacade {
 		const sessionData = await this.loadSessionData(credentials.accessToken)
 		const encryptedPassword = base64ToUint8Array(assertNotNull(credentials.encryptedPassword, "encryptedPassword was null!"))
 		const passphrase = utf8Uint8ArrayToString(aesDecrypt(sessionData.accessKey, encryptedPassword))
-		let userPassphraseKey: Aes128Key | Aes256Key
+		let userPassphraseKey: AesKey
 
 		if (externalUserKeyDeriver) {
 			await this.checkOutdatedExternalSalt(credentials, sessionData, externalUserKeyDeriver.salt)
@@ -704,7 +704,7 @@ export class LoginFacade {
 		}
 	}
 
-	private async loadUserPassphraseKey(mailAddress: string, passphrase: string): Promise<Aes128Key | Aes256Key> {
+	private async loadUserPassphraseKey(mailAddress: string, passphrase: string): Promise<AesKey> {
 		mailAddress = mailAddress.toLowerCase().trim()
 		const saltRequest = createSaltData({ mailAddress })
 		const saltReturn = await this.serviceExecutor.get(SaltService, saltRequest)
@@ -781,7 +781,7 @@ export class LoginFacade {
 		return this.entityClient.loadRoot(TutanotaPropertiesTypeRef, this.userFacade.getUserGroupId()).then((tutanotaProperties) => {
 			if (tutanotaProperties.groupEncEntropy) {
 				try {
-					let entropy = aesDecrypt(this.userFacade.getUserGroupKey(), neverNull(tutanotaProperties.groupEncEntropy))
+					let entropy = aesDecrypt(this.userFacade.getUserGroupKey().object, neverNull(tutanotaProperties.groupEncEntropy))
 					random.addStaticEntropy(entropy)
 				} catch (error) {
 					if (error instanceof CryptoError) {
@@ -799,7 +799,7 @@ export class LoginFacade {
 
 		const salt = generateRandomSalt()
 		const newUserPassphraseKey = await this.deriveUserPassphraseKey(newKdfType, newPassword, salt)
-		const pwEncUserGroupKey = encryptKey(newUserPassphraseKey, this.userFacade.getUserGroupKey())
+		const pwEncUserGroupKey = encryptKey(newUserPassphraseKey, this.userFacade.getUserGroupKey().object)
 		const authVerifier = createAuthVerifier(newUserPassphraseKey)
 		const service = createChangePasswordData({
 			code: null,

@@ -185,6 +185,116 @@
 			"version": 65,
 			"changes": [
 				{
+					"name": "AddValue",
+					"sourceType": "File",
+					"info": "AddValue File/_ownerKeyVersion/1342."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "FileSystem",
+					"info": "AddValue FileSystem/_ownerKeyVersion/1343."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "MailBody",
+					"info": "AddValue MailBody/_ownerKeyVersion/1344."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Contact",
+					"info": "AddValue Contact/_ownerKeyVersion/1345."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Mail",
+					"info": "AddValue Mail/_ownerKeyVersion/1346."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "MailBox",
+					"info": "AddValue MailBox/_ownerKeyVersion/1347."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "ContactList",
+					"info": "AddValue ContactList/_ownerKeyVersion/1348."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "TutanotaProperties",
+					"info": "AddValue TutanotaProperties/_ownerKeyVersion/1349."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "MailFolder",
+					"info": "AddValue MailFolder/_ownerKeyVersion/1350."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "MailHeaders",
+					"info": "AddValue MailHeaders/_ownerKeyVersion/1351."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "CalendarEvent",
+					"info": "AddValue CalendarEvent/_ownerKeyVersion/1352."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "CalendarGroupRoot",
+					"info": "AddValue CalendarGroupRoot/_ownerKeyVersion/1353."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserSettingsGroupRoot",
+					"info": "AddValue UserSettingsGroupRoot/_ownerKeyVersion/1354."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "CalendarEventUpdate",
+					"info": "AddValue CalendarEventUpdate/_ownerKeyVersion/1356."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "EmailTemplate",
+					"info": "AddValue EmailTemplate/_ownerKeyVersion/1357."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "MailDetailsDraft",
+					"info": "AddValue MailDetailsDraft/_ownerKeyVersion/1358."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "MailDetailsBlob",
+					"info": "AddValue MailDetailsBlob/_ownerKeyVersion/1359."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "ContactListEntry",
+					"info": "AddValue ContactListEntry/_ownerKeyVersion/1360."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "ContactListGroupRoot",
+					"info": "AddValue ContactListGroupRoot/_ownerKeyVersion/1361."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "MailboxProperties",
+					"info": "AddValue MailboxProperties/_ownerKeyVersion/1362."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "TemplateGroupRoot",
+					"info": "AddValue TemplateGroupRoot/_ownerKeyVersion/1363."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "KnowledgeBaseEntry",
+					"info": "AddValue KnowledgeBaseEntry/_ownerKeyVersion/1364."
+				},
+				{
 					"name": "RenameAttribute",
 					"sourceType": "InternalGroupData",
 					"info": "RenameAttribute InternalGroupData: publicKey -> pubRsaKey."
@@ -207,27 +317,127 @@
 				{
 					"name": "AddValue",
 					"sourceType": "InternalGroupData",
-					"info": "AddValue InternalGroupData/pubEccKey/1342."
+					"info": "AddValue InternalGroupData/pubEccKey/1366."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "InternalGroupData",
-					"info": "AddValue InternalGroupData/groupEncPrivEccKey/1343."
+					"info": "AddValue InternalGroupData/groupEncPrivEccKey/1367."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "InternalGroupData",
-					"info": "AddValue InternalGroupData/pubKyberKey/1344."
+					"info": "AddValue InternalGroupData/pubKyberKey/1368."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "InternalGroupData",
-					"info": "AddValue InternalGroupData/groupEncPrivKyberKey/1345."
+					"info": "AddValue InternalGroupData/groupEncPrivKyberKey/1369."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "InternalGroupData",
+					"info": "AddValue InternalGroupData/adminKeyVersion/1370."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "InternalGroupData",
+					"info": "AddValue InternalGroupData/ownerKeyVersion/1371."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "SecureExternalRecipientKeyData",
+					"info": "AddValue SecureExternalRecipientKeyData/ownerKeyVersion/1372."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "SharedGroupData",
+					"info": "AddValue SharedGroupData/sharedGroupKeyVersion/1374."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAreaGroupData",
+					"info": "AddValue UserAreaGroupData/groupKeyVersion/1378."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAreaGroupData",
+					"info": "AddValue UserAreaGroupData/adminKeyVersion/1379."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAreaGroupData",
+					"info": "AddValue UserAreaGroupData/customerKeyVersion/1380."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAreaGroupData",
+					"info": "AddValue UserAreaGroupData/userKeyVersion/1381."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAccountUserData",
+					"info": "AddValue UserAccountUserData/userKeyVersion/1382."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAccountUserData",
+					"info": "AddValue UserAccountUserData/customerKeyVersion/1383."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAccountUserData",
+					"info": "AddValue UserAccountUserData/fileGroupKeyVersion/1384."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAccountUserData",
+					"info": "AddValue UserAccountUserData/contactGroupKeyVersion/1385."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "UserAccountUserData",
+					"info": "AddValue UserAccountUserData/mailGroupKeyVersion/1386."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "ContactFormUserData",
+					"info": "AddValue ContactFormUserData/userGroupKeyVersion/1395."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "ContactFormUserData",
+					"info": "AddValue ContactFormUserData/mailGroupKeyVersion/1396."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "ContactFormUserData",
+					"info": "AddValue ContactFormUserData/ownerKeyVersion/1397."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "DraftAttachment",
+					"info": "AddValue DraftAttachment/ownerKeyVersion/1398."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "Mail",
-					"info": "AddValue Mail/encryptionAuthStatus/1346."
+					"info": "AddValue Mail/encryptionAuthStatus/1399."
+				},
+				{
+					"name": "RenameAttribute",
+					"sourceType": "InternalRecipientKeyData",
+					"info": "RenameAttribute InternalRecipientKeyData: pubKeyVersion -> recipientKeyVersion."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "InternalRecipientKeyData",
+					"info": "AddValue InternalRecipientKeyData/senderKeyVersion/1400."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "CreateExternalUserGroupData",
+					"info": "AddValue CreateExternalUserGroupData/internalUserGroupKeyVersion/1402."
 				}
 			]
 		}

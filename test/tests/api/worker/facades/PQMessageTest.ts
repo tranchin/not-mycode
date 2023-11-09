@@ -7,7 +7,7 @@ o.spec("PQMessage test", function () {
 	o.spec("encodeDecodeRoundtrip", function () {
 		o("should lead to same result", async function () {
 			const pqMessage: PQMessage = {
-				version: PQMESSAGE_VERSION,
+				protocolVersion: PQMESSAGE_VERSION,
 				senderIdentityPubKey: stringToUtf8Uint8Array("id"),
 				ephemeralPubKey: stringToUtf8Uint8Array("eph"),
 				encapsulation: {
@@ -40,7 +40,7 @@ o.spec("PQMessage test", function () {
 		})
 		o("encode errors due to bad input", async function () {
 			const pqMessage: PQMessage = {
-				version: 256,
+				protocolVersion: 256,
 				senderIdentityPubKey: stringToUtf8Uint8Array("id"),
 				ephemeralPubKey: stringToUtf8Uint8Array("eph"),
 				encapsulation: {

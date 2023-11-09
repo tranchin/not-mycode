@@ -53,7 +53,7 @@ export class PQFacade {
 
 		const kekEncBucketKey = aesEncrypt(kek, bucketKey)
 		return {
-			version,
+			protocolVersion: version,
 			senderIdentityPubKey: senderIdentityKeyPair.publicKey,
 			ephemeralPubKey: ephemeralKeyPair.publicKey,
 			encapsulation: {
@@ -75,7 +75,7 @@ export class PQFacade {
 			kyberCipherText,
 			kyberSharedSecret,
 			eccSharedSecret,
-			message.version,
+			message.protocolVersion,
 		)
 
 		return aesDecrypt(kek, message.encapsulation.kekEncBucketKey)

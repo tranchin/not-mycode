@@ -44,7 +44,7 @@ import { InvalidDatabaseStateError } from "../../common/error/InvalidDatabaseSta
 import { LocalTimeDateProvider } from "../DateProvider"
 import { EntityClient } from "../../common/EntityClient"
 import { deleteObjectStores } from "../utils/DbUtils"
-import { aes256EncryptSearchIndexEntry, aes256RandomKey, aesDecrypt, decryptKey, encryptKey, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
+import { aes256EncryptSearchIndexEntry, aes256RandomKey, aesDecrypt, AesKey, decryptKey, encryptKey, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
 import { DefaultEntityRestCache } from "../rest/DefaultEntityRestCache.js"
 import { CacheInfo } from "../facades/LoginFacade.js"
 import { InfoMessageHandler } from "../../../gui/InfoMessageHandler.js"
@@ -59,17 +59,21 @@ import {
 	SearchTermSuggestionsOS,
 } from "./IndexTables.js"
 import { MailFacade } from "../facades/lazy/MailFacade.js"
+import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
+import { UserFacade } from "../facades/UserFacade.js"
 
 export type InitParams = {
 	user: User
-	groupKey: Aes128Key
+	userFacade: UserFacade
+	entityClient: EntityClient
 }
 
 const DB_VERSION: number = 3
 
 interface IndexerInitParams {
 	user: User
-	userGroupKey: Aes128Key
+	userFacade: UserFacade
+	entityClient: EntityClient
 	retryOnError?: boolean
 	cacheInfo?: CacheInfo
 }
@@ -166,10 +170,11 @@ export class Indexer {
 	/**
 	 * Opens a new DbFacade and initializes the metadata if it is not there yet
 	 */
-	async init({ user, userGroupKey, retryOnError, cacheInfo }: IndexerInitParams): Promise<void> {
+	async init({ user, userFacade, entityClient, retryOnError, cacheInfo }: IndexerInitParams): Promise<void> {
 		this._initParams = {
 			user,
-			groupKey: userGroupKey,
+			userFacade,
+			entityClient,
 		}
 
 		try {
@@ -179,12 +184,14 @@ export class Indexer {
 			await this.db.dbFacade.open(b64UserIdHash(user))
 			const transaction = await this.db.dbFacade.createTransaction(true, [MetaDataOS])
 			const userEncDbKey = await transaction.get(MetaDataOS, Metadata.userEncDbKey)
-
 			if (!userEncDbKey) {
+				const userGroupKey = await userFacade.getUserGroupKey()
 				// database was opened for the first time - create new tables
 				await this._createIndexTables(user, userGroupKey)
 			} else {
-				await this._loadIndexTables(transaction, user, userGroupKey, userEncDbKey)
+				const userGroupKeyVersion = await transaction.get(MetaDataOS, Metadata.userGroupKeyVersion)
+				const userGroupKey = await userFacade.loadSymGroupKey(userFacade.getUserGroupId(), userGroupKeyVersion, entityClient)
+				await this.loadIndexTables(transaction, user, userGroupKey, userEncDbKey)
 			}
 
 			await transaction.wait()
@@ -274,7 +281,11 @@ export class Indexer {
 		if (!this._core.isStoppedProcessing()) {
 			this._core.stopProcessing()
 			await this._mail.disableMailIndexing()
-			await this.init({ user: this._initParams.user, userGroupKey: this._initParams.groupKey })
+			await this.init({
+				user: this._initParams.user,
+				userFacade: this._initParams.userFacade,
+				entityClient: this._initParams.entityClient,
+			})
 		}
 	}
 
@@ -304,7 +315,8 @@ export class Indexer {
 			// do not try to init again on error
 			return this.init({
 				user: this._initParams.user,
-				userGroupKey: this._initParams.groupKey,
+				userFacade: this._initParams.userFacade,
+				entityClient: this._initParams.entityClient,
 				retryOnError: false,
 			}).then(() => {
 				if (mailIndexingWasEnabled) {
@@ -314,22 +326,23 @@ export class Indexer {
 		})
 	}
 
-	async _createIndexTables(user: User, userGroupKey: Aes128Key): Promise<void> {
+	async _createIndexTables(user: User, userGroupKey: Versioned<AesKey>): Promise<void> {
 		this.db.key = aes256RandomKey()
 		this.db.iv = random.generateRandomData(IV_BYTE_LENGTH)
 		const groupBatches = await this._loadGroupData(user)
 		const transaction = await this.db.dbFacade.createTransaction(false, [MetaDataOS, GroupDataOS])
-		await transaction.put(MetaDataOS, Metadata.userEncDbKey, encryptKey(userGroupKey, this.db.key))
+		await transaction.put(MetaDataOS, Metadata.userEncDbKey, encryptKey(userGroupKey.object, this.db.key))
 		await transaction.put(MetaDataOS, Metadata.mailIndexingEnabled, this._mail.mailIndexingEnabled)
 		await transaction.put(MetaDataOS, Metadata.excludedListIds, this._mail._excludedListIds)
 		await transaction.put(MetaDataOS, Metadata.encDbIv, aes256EncryptSearchIndexEntry(this.db.key, this.db.iv))
+		await transaction.put(MetaDataOS, Metadata.userGroupKeyVersion, userGroupKey.version)
 		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, this._entityRestClient.getRestClient().getServerTimestampMs())
 		await this._initGroupData(groupBatches, transaction)
 		await this._updateIndexedGroups()
 		await this._dbInitializedDeferredObject.resolve()
 	}
 
-	async _loadIndexTables(transaction: DbTransaction, user: User, userGroupKey: Aes128Key, userEncDbKey: Uint8Array): Promise<void> {
+	private async loadIndexTables(transaction: DbTransaction, user: User, userGroupKey: AesKey, userEncDbKey: Uint8Array): Promise<void> {
 		this.db.key = decryptKey(userGroupKey, userEncDbKey)
 		const encDbIv = await transaction.get(MetaDataOS, Metadata.encDbIv)
 		this.db.iv = aesDecrypt(this.db.key, neverNull(encDbIv), true)

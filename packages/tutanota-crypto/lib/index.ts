@@ -8,6 +8,7 @@ export {
 	IV_BYTE_LENGTH,
 	Aes128Key,
 	Aes256Key,
+	AesKey,
 	aes256EncryptSearchIndexEntry,
 } from "./encryption/Aes.js"
 export { EccPrivateKey, EccPublicKey, EccKeyPair, EccSharedSecrets, generateEccKeyPair, eccEncapsulate, eccDecapsulate } from "./encryption/Ecc.js"

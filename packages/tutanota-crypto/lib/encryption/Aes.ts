@@ -17,11 +17,12 @@ const MAC_LENGTH_BYTES = 32
 
 export type Aes256Key = BitArray
 export type Aes128Key = BitArray
+export type AesKey = Aes128Key | Aes256Key
 
 /**
  * @return the key length in bytes
  */
-export function getKeyLengthBytes(key: Aes128Key | Aes256Key): number {
+export function getKeyLengthBytes(key: AesKey): number {
 	// stored as an array of 32-bit (4 byte) integers
 	return key.length * 4
 }
@@ -43,7 +44,7 @@ export function generateIV(): Uint8Array {
  * @param useMac If true, use HMAC (note that this is required for AES-256)
  * @return The encrypted bytes
  */
-export function aesEncrypt(key: Aes128Key | Aes256Key, bytes: Uint8Array, iv: Uint8Array = generateIV(), usePadding: boolean = true, useMac: boolean = true) {
+export function aesEncrypt(key: AesKey, bytes: Uint8Array, iv: Uint8Array = generateIV(), usePadding: boolean = true, useMac: boolean = true) {
 	verifyKeySize(key, [KEY_LENGTH_BITS_AES_128, KEY_LENGTH_BITS_AES_256])
 
 	if (iv.length !== IV_BYTE_LENGTH) {
@@ -96,7 +97,7 @@ export function aes256EncryptSearchIndexEntry(key: Aes256Key, bytes: Uint8Array,
  * @param usePadding If true, padding is used, otherwise no padding is used and the encrypted data must have the key size.
  * @return The decrypted bytes.
  */
-export function aesDecrypt(key: Aes128Key | Aes256Key, encryptedBytes: Uint8Array, usePadding: boolean = true): Uint8Array {
+export function aesDecrypt(key: AesKey, encryptedBytes: Uint8Array, usePadding: boolean = true): Uint8Array {
 	verifyKeySize(key, [KEY_LENGTH_BITS_AES_128, KEY_LENGTH_BITS_AES_256])
 	const useMac = encryptedBytes.length % 2 === 1
 	const subKeys = getAesSubKeys(key, useMac)
@@ -133,7 +134,7 @@ export function aesDecrypt(key: Aes128Key | Aes256Key, encryptedBytes: Uint8Arra
 }
 
 // visibleForTesting
-export function verifyKeySize(key: Aes128Key | Aes256Key, bitLength: number[]) {
+export function verifyKeySize(key: AesKey, bitLength: number[]) {
 	if (!bitLength.includes(sjcl.bitArray.bitLength(key))) {
 		throw new CryptoError(`Illegal key length: ${sjcl.bitArray.bitLength(key)} (expected: ${bitLength})`)
 	}
@@ -145,11 +146,11 @@ export function aes128RandomKey(): Aes128Key {
 }
 
 export function getAesSubKeys(
-	key: Aes128Key | Aes256Key,
+	key: AesKey,
 	mac: boolean,
 ): {
-	mKey: Aes128Key | Aes256Key | null | undefined
-	cKey: Aes128Key | Aes256Key
+	mKey: AesKey | null | undefined
+	cKey: AesKey
 } {
 	if (mac) {
 		let hashedKey: Uint8Array

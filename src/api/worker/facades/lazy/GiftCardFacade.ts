@@ -38,7 +38,8 @@ export class GiftCardFacade {
 			throw new Error("missing admin membership")
 		}
 
-		const ownerKey = this.user.getGroupKey(getFirstOrThrow(adminGroupIds)) // adminGroupKey
+		const adminGroupId = getFirstOrThrow(adminGroupIds)
+		const ownerKey = this.user.getGroupKey(adminGroupId)
 
 		const sessionKey = aes128RandomKey()
 		const { giftCard } = await this.serviceExecutor.post(
@@ -47,7 +48,8 @@ export class GiftCardFacade {
 				message: message,
 				keyHash: sha256Hash(bitArrayToUint8Array(sessionKey)),
 				value,
-				ownerEncSessionKey: encryptKey(ownerKey, sessionKey),
+				ownerEncSessionKey: encryptKey(ownerKey.object, sessionKey),
+				ownerKeyVersion: ownerKey.version.toString(),
 			}),
 			{ sessionKey },
 		)

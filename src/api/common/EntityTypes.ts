@@ -48,7 +48,10 @@ export interface Instance extends Entity {
 
 export interface Entity {
 	_type: TypeRef<this>
-	// _ownerEncSessionKey?: ?Uint8Array,
+}
+
+export interface DataTransferEntity {
+	_format: NumberString
 }
 
 export interface ElementEntity extends Entity, Element {
@@ -66,5 +69,4 @@ export interface BlobElementEntity extends Entity, BlobElement {
 	_ownerGroup: null | Id
 }
 
-// FIXME ask willow about Entity
 export type SomeEntity = ElementEntity | ListElementEntity | BlobElementEntity

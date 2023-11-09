@@ -393,6 +393,7 @@ export async function initUserController({ user, userGroupInfo, sessionId, acces
 							timeFormat: "0",
 							groupSettings: [],
 							usageDataOptedIn: null,
+							_ownerKeyVersion: user.userGroup.groupKeyVersion,
 						}),
 					)
 					.then(() => entityClient.load(UserSettingsGroupRootTypeRef, user.userGroup.group)),

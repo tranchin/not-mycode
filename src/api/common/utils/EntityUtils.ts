@@ -65,6 +65,7 @@ export type Stripped<T extends Partial<SomeEntity>> = Omit<
 	| "_owner"
 	| "_ownerGroup"
 	| "_ownerEncSessionKey"
+	| "_ownerKeyVersion"
 	| "_permissions"
 	| "_errors"
 	| "_format"
@@ -84,6 +85,7 @@ export type StrippedEntity<T extends Entity> =
 			| "_id"
 			| "_ownerGroup"
 			| "_ownerEncSessionKey"
+			| "_ownerKeyVersion"
 			| "_permissions"
 			| "_errors"
 			| "_format"
@@ -403,7 +405,7 @@ export function removeTechnicalFields<E extends Partial<SomeEntity>>(entity: E) 
  * get a clone of a (partial) entity that does not contain any fields that would indicate that it was ever persisted anywhere.
  * @param entity the entity to strip
  */
-export function getStrippedClone<E extends SomeEntity>(entity: StrippedEntity<E>): Stripped<E> {
+export function getStrippedClone<E extends SomeEntity>(entity: StrippedEntity<E>): StrippedEntity<E> {
 	const cloned = clone(entity)
 	removeTechnicalFields(cloned)
 	removeIdentityFields(cloned)

@@ -1,5 +1,5 @@
 import type { RestClient } from "./RestClient"
-import type { CryptoFacade } from "../crypto/CryptoFacade"
+import type { CiphertextKey, CryptoFacade } from "../crypto/CryptoFacade"
 import { _verifyType, HttpMethod, MediaType, resolveTypeReference } from "../../common/EntityFunctions"
 import { SessionKeyNotFoundError } from "../../common/error/SessionKeyNotFoundError"
 import type { EntityUpdate } from "../../entities/sys/TypeRefs.js"
@@ -27,7 +27,8 @@ import { LoginIncompleteError } from "../../common/error/LoginIncompleteError.js
 import { BlobServerUrl } from "../../entities/storage/TypeRefs.js"
 import { BlobAccessTokenFacade } from "../facades/BlobAccessTokenFacade.js"
 import { isOfflineError } from "../../common/utils/ErrorCheckUtils.js"
-import { Aes256Key } from "@tutao/tutanota-crypto"
+import { AesKey } from "@tutao/tutanota-crypto"
+import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
 
 assertWorkerOrNode()
 
@@ -38,11 +39,11 @@ export function typeRefToPath(typeRef: TypeRef<any>): string {
 export interface EntityRestClientSetupOptions {
 	baseUrl?: string
 	/** Use this key to encrypt session key instead of trying to resolve the owner key based on the ownerGroup. */
-	ownerKey?: Aes128Key
+	ownerKey?: Versioned<AesKey>
 }
 
 export interface OwnerEncSessionKeyProvider {
-	(instanceElementId: Id): Promise<Uint8Array>
+	(instanceElementId: Id): Promise<CiphertextKey>
 }
 
 /**
@@ -53,7 +54,7 @@ export interface EntityRestInterface {
 	 * Reads a single element from the server (or cache). Entities are decrypted before they are returned.
 	 * @param ownerKey Use this key to decrypt session key instead of trying to resolve the owner key based on the ownerGroup.
 	 */
-	load<T extends SomeEntity>(typeRef: TypeRef<T>, id: PropertyType<T, "_id">, queryParameters?: Dict, extraHeaders?: Dict, ownerKey?: Aes128Key): Promise<T>
+	load<T extends SomeEntity>(typeRef: TypeRef<T>, id: PropertyType<T, "_id">, queryParameters?: Dict, extraHeaders?: Dict, ownerKey?: AesKey): Promise<T>
 
 	/**
 	 * Reads a range of elements from the server (or cache). Entities are decrypted before they are returned.
@@ -85,7 +86,7 @@ export interface EntityRestInterface {
 	 * Modifies a single element on the server. Entities are encrypted before they are sent.
 	 * @param ownerKey Use this key to decrypt session key instead of trying to resolve the owner key based on the ownerGroup.
 	 */
-	update<T extends SomeEntity>(instance: T, ownerKey?: Aes128Key): Promise<void>
+	update<T extends SomeEntity>(instance: T, ownerKey?: Versioned<AesKey>): Promise<void>
 
 	/**
 	 * Deletes a single element on the server.
@@ -127,7 +128,7 @@ export class EntityRestClient implements EntityRestInterface {
 		id: PropertyType<T, "_id">,
 		queryParameters?: Dict,
 		extraHeaders?: Dict,
-		ownerKey?: Aes128Key,
+		ownerKey?: AesKey,
 	): Promise<T> {
 		const { listId, elementId } = expandId(id)
 		const { path, queryParams, headers, typeModel } = await this._validateAndPrepareRestRequest(
@@ -267,9 +268,9 @@ export class EntityRestClient implements EntityRestInterface {
 	}
 
 	async _decryptMapAndMigrate<T>(instance: any, model: TypeModel, ownerEncSessionKeyProvider?: OwnerEncSessionKeyProvider): Promise<T> {
-		let sessionKey: Aes128Key | Aes256Key | null
+		let sessionKey: AesKey | null
 		if (ownerEncSessionKeyProvider) {
-			sessionKey = this._crypto.decryptSessionKey(instance, await ownerEncSessionKeyProvider(getElementId(instance)))
+			sessionKey = await this._crypto.decryptSessionKey(instance, await ownerEncSessionKeyProvider(getElementId(instance)))
 		} else {
 			try {
 				sessionKey = await this._crypto.resolveSessionKey(model, instance)
@@ -294,7 +295,7 @@ export class EntityRestClient implements EntityRestInterface {
 			null,
 			undefined,
 			extraHeaders,
-			options?.ownerKey,
+			options?.ownerKey?.object,
 		)
 
 		if (typeModel.type === Type.ListElement) {
@@ -382,7 +383,7 @@ export class EntityRestClient implements EntityRestInterface {
 		}
 	}
 
-	async update<T extends SomeEntity>(instance: T, ownerKey?: Aes128Key): Promise<void> {
+	async update<T extends SomeEntity>(instance: T, ownerKey?: Versioned<AesKey>): Promise<void> {
 		if (!instance._id) throw new Error("Id must be defined")
 		const { listId, elementId } = expandId(instance._id)
 		const { path, queryParams, headers, typeModel } = await this._validateAndPrepareRestRequest(
@@ -391,9 +392,11 @@ export class EntityRestClient implements EntityRestInterface {
 			elementId,
 			undefined,
 			undefined,
-			ownerKey,
+			ownerKey?.object,
 		)
-		const sessionKey = ownerKey ? this._crypto.resolveSessionKeyWithOwnerKey(instance, ownerKey) : await this._crypto.resolveSessionKey(typeModel, instance)
+		const sessionKey = ownerKey
+			? this._crypto.resolveSessionKeyWithOwnerKey(instance, ownerKey.object)
+			: await this._crypto.resolveSessionKey(typeModel, instance)
 		const encryptedEntity = await this.instanceMapper.encryptAndMapToLiteral(typeModel, instance, sessionKey)
 		await this.restClient.request(path, HttpMethod.PUT, {
 			queryParams,
@@ -418,7 +421,7 @@ export class EntityRestClient implements EntityRestInterface {
 		elementId: Id | null,
 		queryParams: Dict | undefined,
 		extraHeaders: Dict | undefined,
-		ownerKey: Aes128Key | undefined,
+		ownerKey: AesKey | undefined,
 	): Promise<{
 		path: string
 		queryParams: Dict | undefined

@@ -2,7 +2,6 @@ import o from "@tutao/otest"
 import type { Hex } from "@tutao/tutanota-utils"
 import { concat, hexToUint8Array, stringToUtf8Uint8Array, uint8ArrayToBase64, uint8ArrayToHex, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
 import {
-	Aes128Key,
 	aes128RandomKey,
 	Aes256Key,
 	aes256RandomKey,
@@ -34,7 +33,7 @@ o.spec("aes", function () {
 	// 	arrayRoundtrip(done, aes256EncryptFile, aes256DecryptFile, aes256RandomKey(), true)
 	// }))
 	async function arrayRoundtrip(encrypt, decrypt, key, useMac: boolean) {
-		function runArrayRoundtrip(key: Aes128Key | Aes256Key, plainText) {
+		function runArrayRoundtrip(key: AesKey, plainText) {
 			let encrypted = encrypt(key, plainText, random.generateRandomData(IV_BYTE_LENGTH), true, useMac)
 			return Promise.resolve(encrypted)
 				.then((encrypted) => {

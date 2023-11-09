@@ -5,7 +5,7 @@ import crypto from "node:crypto"
 import { InstanceMapper } from "../api/worker/crypto/InstanceMapper"
 import type { TypeModel } from "../api/common/EntityTypes"
 import type { Base64 } from "@tutao/tutanota-utils"
-import { Aes256Key, aes256RandomKey, aesDecrypt, aesEncrypt, base64ToKey, decryptKey, random, uint8ArrayToKey } from "@tutao/tutanota-crypto"
+import { Aes256Key, aes256RandomKey, aesDecrypt, aesEncrypt, AesKey, base64ToKey, decryptKey, random, uint8ArrayToKey } from "@tutao/tutanota-crypto"
 
 // the prng throws if it doesn't have enough entropy
 // it may be called very early, so we need to seed it
@@ -27,11 +27,11 @@ const seed = () => {
 seed()
 
 export interface CryptoFunctions {
-	aesEncrypt(key: Aes128Key | Aes256Key, bytes: Uint8Array, iv?: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array
+	aesEncrypt(key: AesKey, bytes: Uint8Array, iv?: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array
 
-	aesDecrypt(key: Aes128Key | Aes256Key, encryptedBytes: Uint8Array, usePadding: boolean): Uint8Array
+	aesDecrypt(key: AesKey, encryptedBytes: Uint8Array, usePadding: boolean): Uint8Array
 
-	decryptKey(encryptionKey: Aes128Key | Aes256Key, key: Uint8Array): Aes128Key | Aes256Key
+	decryptKey(encryptionKey: AesKey, key: Uint8Array): AesKey
 
 	bytesToKey(bytes: Uint8Array): BitArray
 
@@ -48,7 +48,7 @@ export interface CryptoFunctions {
 
 const mapper = new InstanceMapper()
 export const cryptoFns: CryptoFunctions = {
-	aesEncrypt(key: Aes128Key | Aes256Key, bytes: Uint8Array, iv?: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array {
+	aesEncrypt(key: AesKey, bytes: Uint8Array, iv?: Uint8Array, usePadding?: boolean, useMac?: boolean): Uint8Array {
 		return aesEncrypt(key, bytes, iv, usePadding, useMac)
 	},
 
@@ -56,7 +56,7 @@ export const cryptoFns: CryptoFunctions = {
 		return aesDecrypt(key, encryptedBytes, usePadding)
 	},
 
-	decryptKey(encryptionKey: Aes128Key | Aes256Key, key: Uint8Array): Aes128Key | Aes256Key {
+	decryptKey(encryptionKey: AesKey, key: Uint8Array): AesKey {
 		return decryptKey(encryptionKey, key)
 	},
 

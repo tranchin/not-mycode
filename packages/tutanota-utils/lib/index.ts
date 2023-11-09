@@ -151,8 +151,9 @@ export {
 	Require,
 	memoizedWithHiddenArgument,
 	BoundedExecutor,
+	freshVersioned,
 } from "./Utils.js"
-export type { Callback, DeferredObject, lazy, lazyAsync, Thunk, DeferredObjectWithHandler, MaybeLazy, TimeoutSetter, ErrorInfo } from "./Utils.js"
+export type { Callback, DeferredObject, lazy, lazyAsync, Thunk, DeferredObjectWithHandler, MaybeLazy, TimeoutSetter, ErrorInfo, Versioned } from "./Utils.js"
 
 export {
 	callWebAssemblyFunctionWithArguments,

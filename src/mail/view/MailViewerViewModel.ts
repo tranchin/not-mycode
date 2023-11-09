@@ -735,7 +735,7 @@ export class MailViewerViewModel {
 			addressesInMail.push(...mailWrapper.getToRecipients())
 			addressesInMail.push(...mailWrapper.getCcRecipients())
 			addressesInMail.push(...mailWrapper.getBccRecipients())
-			addressesInMail.push(createMailAddress(this.getDisplayedSender()))
+			addressesInMail.push(this.getDisplayedSenderMailAddress())
 			const foundAddress = addressesInMail.find((address) => contains(myMailAddresses, address.address.toLowerCase()))
 			if (foundAddress) {
 				return foundAddress.address.toLowerCase()
@@ -743,6 +743,11 @@ export class MailViewerViewModel {
 				return getDefaultSender(this.logins, mailboxDetails)
 			}
 		})
+	}
+
+	private getDisplayedSenderMailAddress(): MailAddress {
+		const sender = this.getDisplayedSender()
+		return createMailAddress({ name: sender.name, address: sender.address, contact: null })
 	}
 
 	/** @throws UserError */
@@ -819,7 +824,7 @@ export class MailViewerViewModel {
 				return
 			}
 
-			const sender = createMailAddress(this.getDisplayedSender())
+			const sender = createMailAddress(this.getDisplayedSenderMailAddress())
 			let prefix = "Re: "
 			const mailSubject = this.getSubject()
 			let subject = mailSubject ? (startsWith(mailSubject.toUpperCase(), prefix.toUpperCase()) ? mailSubject : prefix + mailSubject) : ""

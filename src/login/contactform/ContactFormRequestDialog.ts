@@ -298,7 +298,10 @@ export class ContactFormRequestDialog {
 							_ownerGroup: locator.logins.getUserController().userGroupInfo.group,
 							_owner: locator.logins.getUserController().userGroupInfo.group,
 							// legacy
-							_area: "0", // legacy
+							_area: "0", // legacy,
+							disabled: false,
+							lastNotificationDate: null,
+							lastUsageTime: new Date(),
 						})
 						await locator.entityClient.setup(neverNull(locator.logins.getUserController().user.pushIdentifierList).list, pushIdentifier)
 					}

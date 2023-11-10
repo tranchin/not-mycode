@@ -111,6 +111,7 @@ export class ContactFormViewer implements UpdatableSettingsDetailsViewer {
 
 	private copy() {
 		// copy the instances as deep as necessary to make sure that the instances are not used in two different entities and changes affect both entities
+		// @ts-ignore - will be removed anyway!
 		const newForm = createContactForm({
 			targetGroupInfo: this.contactForm.targetGroupInfo,
 			participantGroupInfos: this.contactForm.participantGroupInfos.slice(),

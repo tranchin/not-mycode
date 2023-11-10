@@ -69,6 +69,7 @@ export class ContactFormEditor {
 	 */
 	constructor(c: ContactForm | null, createNew: boolean, allUserGroupInfos: GroupInfo[], allSharedMailboxGroupInfos: GroupInfo[], brandingDomain: string) {
 		this._createNew = createNew
+		// @ts-ignore - going to be removed anyway
 		this._contactForm = c ? c : createContactForm({})
 		this._createNew = createNew
 		this._allUserGroupInfos = allUserGroupInfos
@@ -125,6 +126,7 @@ export class ContactFormEditor {
 		this._languages = this._contactForm.languages.map((l) => Object.assign({}, l))
 
 		if (this._languages.length === 0) {
+			// @ts-ignore - this will be removed anyway
 			let l = createContactFormLanguage({
 				code: lang.code === "de_sie" ? "de" : lang.code,
 			})
@@ -377,6 +379,7 @@ export class ContactFormEditor {
 						let newLanguageCode = additionalLanguages[0].value
 						setTimeout(() => {
 							const addLanguageOkAction = (dialog: Dialog) => {
+								// @ts-ignore - this will also be removed... forever!
 								const newLang = createContactFormLanguage({
 									code: newLanguageCode,
 								})

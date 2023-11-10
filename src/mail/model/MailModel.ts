@@ -524,7 +524,9 @@ export class MailModel {
 				.setup(
 					null,
 					createMailboxProperties({
-						_ownerGroup: mailboxGroupRoot._ownerGroup,
+						_ownerGroup: mailboxGroupRoot._ownerGroup ?? "",
+						reportMovedMails: "0",
+						mailAddressProperties: [],
 					}),
 				)
 				.catch(

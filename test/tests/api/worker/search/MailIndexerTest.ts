@@ -5,14 +5,7 @@ import { _createNewIndexUpdate, encryptIndexKeyBase64, typeRefToTypeInfo } from 
 import { FULL_INDEXED_TIMESTAMP, GroupType, MailState, NOTHING_INDEXED_TIMESTAMP, OperationType } from "../../../../../src/api/common/TutanotaConstants.js"
 import { IndexerCore } from "../../../../../src/api/worker/search/IndexerCore.js"
 import type { EntityUpdate } from "../../../../../src/api/entities/sys/TypeRefs.js"
-import {
-	createEntityUpdate,
-	createGroupMembership,
-	createUser,
-	EntityUpdateTypeRef,
-	GroupMembershipTypeRef,
-	UserTypeRef,
-} from "../../../../../src/api/entities/sys/TypeRefs.js"
+import { EntityUpdateTypeRef, GroupMembershipTypeRef, UserTypeRef } from "../../../../../src/api/entities/sys/TypeRefs.js"
 import { _getCurrentIndexTimestamp, INITIAL_MAIL_INDEX_INTERVAL_DAYS, MailIndexer } from "../../../../../src/api/worker/search/MailIndexer.js"
 import type { File as TutanotaFile, Mail, MailBox, MailDetailsBlob, MailFolder } from "../../../../../src/api/entities/tutanota/TypeRefs.js"
 import {

@@ -165,7 +165,7 @@ class OTest {
 
 					return testResult
 				} else {
-					// console.log("  ", fancy("SKIP", ansiSequences.yellowBg), fancy(test.name, ansiSequences.faint))
+					console.log("  ", fancy("SKIP", ansiSequences.yellowBg), fancy(test.name, ansiSequences.faint))
 					return { name: test.name, errors: [], timeout: null, skipped: true }
 				}
 			}),
@@ -298,8 +298,7 @@ export type CallableOTest = OTest & {
 	/** An alias for {@link OTest.test}. Discouraged. */
 	(name: string, definition: () => Promise<void> | void): void
 
-	/** An alias for {@link OTest.check}. Discouraged. */
-	<T>(actual: T): Assertion<T>
+	/** An alias for {@link OTest.check}. Discouraged. */ <T>(actual: T): Assertion<T>
 }
 
 const otest = new OTest()

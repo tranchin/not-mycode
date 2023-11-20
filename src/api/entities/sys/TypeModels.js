@@ -5816,7 +5816,7 @@ export const typeModels = {
             "encryptionAuthStatus": {
                 "final": true,
                 "name": "encryptionAuthStatus",
-                "id": 2149,
+                "id": 2150,
                 "since": 91,
                 "type": "Bytes",
                 "cardinality": "ZeroOrOne",
@@ -8767,6 +8767,15 @@ export const typeModels = {
                 "cardinality": "One",
                 "encrypted": false
             },
+            "senderUserGroupId": {
+                "final": true,
+                "name": "senderUserGroupId",
+                "id": 2147,
+                "since": 91,
+                "type": "CustomId",
+                "cardinality": "ZeroOrOne",
+                "encrypted": false
+            },
             "symEncPrivEccKey": {
                 "final": true,
                 "name": "symEncPrivEccKey",
@@ -10973,7 +10982,7 @@ export const typeModels = {
             "systemAdminPubEccKey": {
                 "final": false,
                 "name": "systemAdminPubEccKey",
-                "id": 2147,
+                "id": 2148,
                 "since": 91,
                 "type": "Bytes",
                 "cardinality": "ZeroOrOne",
@@ -10991,7 +11000,7 @@ export const typeModels = {
             "systemAdminPubKyberKey": {
                 "final": false,
                 "name": "systemAdminPubKyberKey",
-                "id": 2148,
+                "id": 2149,
                 "since": 91,
                 "type": "Bytes",
                 "cardinality": "ZeroOrOne",

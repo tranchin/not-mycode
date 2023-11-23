@@ -2182,8 +2182,9 @@ export type PublicKeyPutIn = {
 
 	_format: NumberString;
 	pubEccKey: Uint8Array;
-	senderUserGroupId: null | Id;
 	symEncPrivEccKey: Uint8Array;
+
+	keyGroup: Id;
 }
 export const PushIdentifierTypeRef: TypeRef<PushIdentifier> = new TypeRef("sys", "PushIdentifier")
 

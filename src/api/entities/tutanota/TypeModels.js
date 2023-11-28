@@ -1429,7 +1429,7 @@ export const typeModels = {
             "mailGroupKeyVersion": {
                 "final": false,
                 "name": "mailGroupKeyVersion",
-                "id": 1396,
+                "id": 1397,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -1447,7 +1447,7 @@ export const typeModels = {
             "ownerKeyVersion": {
                 "final": false,
                 "name": "ownerKeyVersion",
-                "id": 1397,
+                "id": 1398,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -1510,7 +1510,7 @@ export const typeModels = {
             "userGroupKeyVersion": {
                 "final": false,
                 "name": "userGroupKeyVersion",
-                "id": 1395,
+                "id": 1396,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -2053,7 +2053,7 @@ export const typeModels = {
             "internalUserGroupKeyVersion": {
                 "final": false,
                 "name": "internalUserGroupKeyVersion",
-                "id": 1402,
+                "id": 1411,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -2302,7 +2302,7 @@ export const typeModels = {
             "mailGroupKeyVersion": {
                 "final": false,
                 "name": "mailGroupKeyVersion",
-                "id": 1394,
+                "id": 1395,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -2345,7 +2345,7 @@ export const typeModels = {
             "accountGroupKeyVersion": {
                 "final": false,
                 "name": "accountGroupKeyVersion",
-                "id": 1376,
+                "id": 1377,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -2372,7 +2372,7 @@ export const typeModels = {
             "adminKeyVersion": {
                 "final": false,
                 "name": "adminKeyVersion",
-                "id": 1377,
+                "id": 1378,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -2444,7 +2444,7 @@ export const typeModels = {
             "userKeyVersion": {
                 "final": false,
                 "name": "userKeyVersion",
-                "id": 1375,
+                "id": 1376,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -2802,7 +2802,7 @@ export const typeModels = {
             "ownerKeyVersion": {
                 "final": true,
                 "name": "ownerKeyVersion",
-                "id": 1398,
+                "id": 1399,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -2873,7 +2873,7 @@ export const typeModels = {
             "ownerKeyVersion": {
                 "final": false,
                 "name": "ownerKeyVersion",
-                "id": 1388,
+                "id": 1389,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -2900,7 +2900,7 @@ export const typeModels = {
             "symKeyVersion": {
                 "final": false,
                 "name": "symKeyVersion",
-                "id": 1389,
+                "id": 1390,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -3390,7 +3390,7 @@ export const typeModels = {
             "symKeyVersion": {
                 "final": false,
                 "name": "symKeyVersion",
-                "id": 1390,
+                "id": 1391,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -3483,7 +3483,7 @@ export const typeModels = {
             "userKeyVersion": {
                 "final": false,
                 "name": "userKeyVersion",
-                "id": 1401,
+                "id": 1410,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -3533,7 +3533,7 @@ export const typeModels = {
             "externalMailGroupKeyVersion": {
                 "final": false,
                 "name": "externalMailGroupKeyVersion",
-                "id": 1393,
+                "id": 1394,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -3578,7 +3578,7 @@ export const typeModels = {
             "externalUserGroupKeyVersion": {
                 "final": false,
                 "name": "externalUserGroupKeyVersion",
-                "id": 1391,
+                "id": 1392,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -3605,7 +3605,7 @@ export const typeModels = {
             "internalMailGroupKeyVersion": {
                 "final": false,
                 "name": "internalMailGroupKeyVersion",
-                "id": 1392,
+                "id": 1393,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -4042,6 +4042,15 @@ export const typeModels = {
                 "id": 1014,
                 "since": 38,
                 "type": "Bytes",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "sharedGroupKeyVersion": {
+                "final": true,
+                "name": "sharedGroupKeyVersion",
+                "id": 1374,
+                "since": 65,
+                "type": "Number",
                 "cardinality": "One",
                 "encrypted": false
             },
@@ -4588,7 +4597,7 @@ export const typeModels = {
             "senderKeyVersion": {
                 "final": true,
                 "name": "senderKeyVersion",
-                "id": 1400,
+                "id": 1409,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -4873,7 +4882,7 @@ export const typeModels = {
             "encryptionAuthStatus": {
                 "final": true,
                 "name": "encryptionAuthStatus",
-                "id": 1399,
+                "id": 1400,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "ZeroOrOne",
@@ -7571,6 +7580,16 @@ export const typeModels = {
                 "cardinality": "Any",
                 "refType": "SecureExternalRecipientKeyData",
                 "dependency": null
+            },
+            "symEncInternalRecipientKeyData": {
+                "final": true,
+                "name": "symEncInternalRecipientKeyData",
+                "id": 1407,
+                "since": 65,
+                "type": "AGGREGATION",
+                "cardinality": "Any",
+                "refType": "SymEncInternalRecipientKeyData",
+                "dependency": null
             }
         },
         "app": "tutanota",
@@ -7731,7 +7750,7 @@ export const typeModels = {
             "sharedGroupKeyVersion": {
                 "final": true,
                 "name": "sharedGroupKeyVersion",
-                "id": 1374,
+                "id": 1375,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -7804,6 +7823,67 @@ export const typeModels = {
                 "type": "LIST_ASSOCIATION",
                 "cardinality": "One",
                 "refType": "File",
+                "dependency": null
+            }
+        },
+        "app": "tutanota",
+        "version": "65"
+    },
+    "SymEncInternalRecipientKeyData": {
+        "name": "SymEncInternalRecipientKeyData",
+        "since": 65,
+        "type": "AGGREGATED_TYPE",
+        "id": 1401,
+        "rootId": "CHR1dGFub3RhAAV5",
+        "versioned": false,
+        "encrypted": false,
+        "values": {
+            "_id": {
+                "final": true,
+                "name": "_id",
+                "id": 1402,
+                "since": 65,
+                "type": "CustomId",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "mailAddress": {
+                "final": true,
+                "name": "mailAddress",
+                "id": 1403,
+                "since": 65,
+                "type": "String",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "symEncBucketKey": {
+                "final": true,
+                "name": "symEncBucketKey",
+                "id": 1404,
+                "since": 65,
+                "type": "Bytes",
+                "cardinality": "One",
+                "encrypted": false
+            },
+            "symKeyVersion": {
+                "final": false,
+                "name": "symKeyVersion",
+                "id": 1405,
+                "since": 65,
+                "type": "Number",
+                "cardinality": "One",
+                "encrypted": false
+            }
+        },
+        "associations": {
+            "keyGroup": {
+                "final": true,
+                "name": "keyGroup",
+                "id": 1406,
+                "since": 65,
+                "type": "ELEMENT_ASSOCIATION",
+                "cardinality": "One",
+                "refType": "Group",
                 "dependency": null
             }
         },
@@ -8206,7 +8286,7 @@ export const typeModels = {
             "contactGroupKeyVersion": {
                 "final": false,
                 "name": "contactGroupKeyVersion",
-                "id": 1385,
+                "id": 1386,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -8242,7 +8322,7 @@ export const typeModels = {
             "customerKeyVersion": {
                 "final": false,
                 "name": "customerKeyVersion",
-                "id": 1383,
+                "id": 1384,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -8269,7 +8349,7 @@ export const typeModels = {
             "fileGroupKeyVersion": {
                 "final": false,
                 "name": "fileGroupKeyVersion",
-                "id": 1384,
+                "id": 1385,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -8305,7 +8385,7 @@ export const typeModels = {
             "mailGroupKeyVersion": {
                 "final": false,
                 "name": "mailGroupKeyVersion",
-                "id": 1386,
+                "id": 1387,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -8422,7 +8502,7 @@ export const typeModels = {
             "userKeyVersion": {
                 "final": false,
                 "name": "userKeyVersion",
-                "id": 1382,
+                "id": 1383,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -8472,7 +8552,7 @@ export const typeModels = {
             "adminKeyVersion": {
                 "final": false,
                 "name": "adminKeyVersion",
-                "id": 1379,
+                "id": 1380,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -8490,7 +8570,7 @@ export const typeModels = {
             "customerKeyVersion": {
                 "final": false,
                 "name": "customerKeyVersion",
-                "id": 1380,
+                "id": 1381,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -8517,7 +8597,7 @@ export const typeModels = {
             "groupKeyVersion": {
                 "final": false,
                 "name": "groupKeyVersion",
-                "id": 1378,
+                "id": 1379,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",
@@ -8535,7 +8615,7 @@ export const typeModels = {
             "userKeyVersion": {
                 "final": false,
                 "name": "userKeyVersion",
-                "id": 1381,
+                "id": 1382,
                 "since": 65,
                 "type": "Number",
                 "cardinality": "One",

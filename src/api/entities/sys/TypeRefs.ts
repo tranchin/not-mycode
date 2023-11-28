@@ -2309,6 +2309,7 @@ export type ReceivedGroupInvitation = {
 	inviterMailAddress: string;
 	inviterName: string;
 	sharedGroupKey: Uint8Array;
+	sharedGroupKeyVersion: NumberString;
 	sharedGroupName: string;
 
 	sentInvitation: IdTuple;

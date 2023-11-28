@@ -83,6 +83,7 @@ export class ShareFacade {
 			userGroupEncGroupKey: encryptKey(userGroupKey.object, sharedGroupKey),
 			sharedGroupEncInviteeGroupInfoKey: encryptKey(sharedGroupKey, neverNull(userGroupInfoSessionKey)),
 			userGroupKeyVersion: userGroupKey.version.toString(),
+			sharedGroupKeyVersion: invitation.sharedGroupKeyVersion,
 		})
 		await this.serviceExecutor.put(GroupInvitationService, serviceData)
 	}

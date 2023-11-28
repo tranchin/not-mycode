@@ -480,6 +480,7 @@ export class MailFacade {
 			bucketEncMailSessionKey: null,
 			senderNameUnencrypted: null,
 			secureExternalRecipientKeyData: [],
+			symEncInternalRecipientKeyData: [],
 		})
 
 		const attachments = await this.getAttachmentIds(draft)

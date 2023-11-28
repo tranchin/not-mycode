@@ -1,7 +1,10 @@
-import { create, StrippedEntity } from "../../common/utils/EntityUtils.js"
-import { TypeRef } from "@tutao/tutanota-utils"
-import { typeModels } from "./TypeModels.js"
-import { Blob, BlobReferenceTokenWrapper, BucketKey, DateWrapper } from '../sys/TypeRefs.js'
+import { create, Stripped, StrippedEntity } from "../../common/utils/EntityUtils.js"
+import {TypeRef} from "@tutao/tutanota-utils"
+import {typeModels} from "./TypeModels.js"
+import {DateWrapper} from '../sys/TypeRefs.js'
+import {Blob} from '../sys/TypeRefs.js'
+import {BucketKey} from '../sys/TypeRefs.js'
+import {BlobReferenceTokenWrapper} from '../sys/TypeRefs.js'
 
 export const AttachmentKeyDataTypeRef: TypeRef<AttachmentKeyData> = new TypeRef("tutanota", "AttachmentKeyData")
 
@@ -986,6 +989,7 @@ export type GroupInvitationPutData = {
 
 	_format: NumberString;
 	sharedGroupEncInviteeGroupInfoKey: Uint8Array;
+	sharedGroupKeyVersion: NumberString;
 	userGroupEncGroupKey: Uint8Array;
 	userGroupKeyVersion: NumberString;
 
@@ -1848,6 +1852,7 @@ export type SendDraftData = {
 	internalRecipientKeyData: InternalRecipientKeyData[];
 	mail: IdTuple;
 	secureExternalRecipientKeyData: SecureExternalRecipientKeyData[];
+	symEncInternalRecipientKeyData: SymEncInternalRecipientKeyData[];
 }
 export const SendDraftReturnTypeRef: TypeRef<SendDraftReturn> = new TypeRef("tutanota", "SendDraftReturn")
 
@@ -1910,6 +1915,22 @@ export type Subfiles = {
 	_id: Id;
 
 	files: Id;
+}
+export const SymEncInternalRecipientKeyDataTypeRef: TypeRef<SymEncInternalRecipientKeyData> = new TypeRef("tutanota", "SymEncInternalRecipientKeyData")
+
+export function createSymEncInternalRecipientKeyData(values: StrippedEntity<SymEncInternalRecipientKeyData>): SymEncInternalRecipientKeyData {
+	return Object.assign(create(typeModels.SymEncInternalRecipientKeyData, SymEncInternalRecipientKeyDataTypeRef), values)
+}
+
+export type SymEncInternalRecipientKeyData = {
+	_type: TypeRef<SymEncInternalRecipientKeyData>;
+
+	_id: Id;
+	mailAddress: string;
+	symEncBucketKey: Uint8Array;
+	symKeyVersion: NumberString;
+
+	keyGroup: Id;
 }
 export const TemplateGroupRootTypeRef: TypeRef<TemplateGroupRoot> = new TypeRef("tutanota", "TemplateGroupRoot")
 

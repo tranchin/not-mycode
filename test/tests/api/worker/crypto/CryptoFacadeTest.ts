@@ -906,6 +906,7 @@ o.spec("CryptoFacade", function () {
 		)
 		when(entityClient.load(GroupTypeRef, senderUserGroup._id)).thenResolve(senderUserGroup)
 		when(userFacade.getGroupKey(senderUserGroup._id)).thenReturn(senderGroupKey)
+		when(userFacade.getUserGroupId()).thenReturn(senderUserGroup._id)
 		when(userFacade.getUserGroupKey()).thenReturn(senderGroupKey)
 		when(userFacade.loadCurrentKeyPair("userGroupId", entityClient)).thenResolve(senderKeyPairs)
 

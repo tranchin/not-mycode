@@ -95,7 +95,6 @@ export function encryptString(sk: Aes128Key, value: string): Uint8Array {
 
 export class CryptoFacade {
 	async applyMigrations<T>(typeRef: TypeRef<T>, data: any): Promise<T> {
-		const userGroupKey = this.userFacade.getUserGroupKey()
 		if (isSameTypeRef(typeRef, GroupInfoTypeRef) && data._ownerGroup == null) {
 			let customerGroupMembership = this.userFacade.getLoggedInUser().memberships.find((g: GroupMembership) => g.groupType === GroupType.Customer) as any
 			let customerGroupKey = this.userFacade.getGroupKey(customerGroupMembership.group).object
@@ -109,6 +108,8 @@ export class CryptoFacade {
 				return data
 			})
 		} else if (isSameTypeRef(typeRef, TutanotaPropertiesTypeRef) && data._ownerEncSessionKey == null) {
+			const userGroupKey = this.userFacade.getUserGroupKey()
+
 			// EncryptTutanotaPropertiesService could be removed and replaced with an Migration that writes the key
 			data._ownerGroup = this.userFacade.getUserGroupId()
 			let groupEncSessionKey = encryptKey(userGroupKey.object, aes128RandomKey())
@@ -121,6 +122,8 @@ export class CryptoFacade {
 			const result = await this.serviceExecutor.post(EncryptTutanotaPropertiesService, migrationData)
 			return data
 		} else if (isSameTypeRef(typeRef, PushIdentifierTypeRef) && data._ownerEncSessionKey == null) {
+			const userGroupKey = this.userFacade.getUserGroupKey()
+
 			// set sessionKey for allowing encryption when old instance (< v43) is updated
 			return resolveTypeReference(typeRef)
 				.then((typeModel) => this.updateOwnerEncSessionKey(typeModel, data, userGroupKey, aes128RandomKey()))
@@ -437,7 +440,8 @@ export class CryptoFacade {
 			const sessionKey = aes128RandomKey()
 			const effectiveKeyToEncryptSessionKey = keyToEncryptSessionKey ?? this.userFacade.getGroupKey(entity._ownerGroup)
 			const encryptedSessionKey = encryptKeyWithVersionedKey(effectiveKeyToEncryptSessionKey, sessionKey)
-			entity._ownerEncSessionKey = encryptedSessionKey
+			entity._ownerEncSessionKey = encryptedSessionKey.key
+			entity._ownerKeyVersion = effectiveKeyToEncryptSessionKey.version.toString()
 			return sessionKey
 		} else {
 			return null
@@ -556,7 +560,7 @@ export class CryptoFacade {
 		let resolvedSessionKeyForInstance: AesKey | undefined = undefined
 		const instanceSessionKeys = await promiseMap(bucketKey.bucketEncSessionKeys, async (instanceSessionKey) => {
 			const decryptedSessionKey = decryptKey(decBucketKey, instanceSessionKey.symEncSessionKey)
-			const groupKey = await this.userFacade.loadSymGroupKey(instance._ownerGroup, instance._ownerKeyVersion, this.entityClient)
+			const groupKey = await this.userFacade.loadSymGroupKey(instance._ownerGroup, Number(instance._ownerKeyVersion ?? 0), this.entityClient)
 			const ownerEncSessionKey = encryptKey(groupKey, decryptedSessionKey)
 			const instanceSessionKeyWithOwnerEncSessionKey = createInstanceSessionKey(instanceSessionKey)
 			if (instanceElementId == instanceSessionKey.instanceId) {

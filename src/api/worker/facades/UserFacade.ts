@@ -170,11 +170,6 @@ export class UserFacade implements AuthDataProvider {
 		return Number(id)
 	}
 
-	// @VisibleForTesting
-	getCurrentGroupKeysMap() {
-		return this.currentGroupKeys
-	}
-
 	private getAndDecryptKeyPair(group: Group, groupKey: AesKey) {
 		if (group.currentKeys == null) {
 			throw new NotFoundError(`no key pair on group ${group._id}`)

@@ -1,6 +1,5 @@
 import { EccPublicKey } from "@tutao/tutanota-crypto"
-import { byteArraysToBytes, bytesToByteArrays } from "@tutao/tutanota-utils/dist/Encoding.js"
-import { assert, concat } from "@tutao/tutanota-utils"
+import { assert, byteArraysToBytes, bytesToByteArrays, concat } from "@tutao/tutanota-utils"
 
 export const PQMESSAGE_VERSION: number = 0
 

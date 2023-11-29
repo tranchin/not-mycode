@@ -85,6 +85,8 @@ export {
 	decodeQuotedPrintable,
 	decodeBase64,
 	stringToBase64,
+	byteArraysToBytes,
+	bytesToByteArrays,
 } from "./Encoding.js"
 export type { Base64, Base64Ext, Base64Url, Hex } from "./Encoding.js"
 export { LazyLoaded } from "./LazyLoaded.js"

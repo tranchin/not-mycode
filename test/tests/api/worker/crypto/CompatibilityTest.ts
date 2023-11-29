@@ -29,6 +29,8 @@ import {
 } from "@tutao/tutanota-crypto"
 import {
 	base64ToUint8Array,
+	byteArraysToBytes,
+	bytesToByteArrays,
 	hexToUint8Array,
 	neverNull,
 	stringToUtf8Uint8Array,
@@ -39,7 +41,6 @@ import {
 import testData from "./CompatibilityTestData.json"
 import { uncompress } from "../../../../../src/api/worker/Compression.js"
 import { matchers, object, when } from "testdouble"
-import { byteArraysToBytes, bytesToByteArrays } from "@tutao/tutanota-utils/dist/Encoding.js"
 import { PQFacade } from "../../../../../src/api/worker/facades/PQFacade.js"
 import { WASMKyberFacade } from "../../../../../src/api/worker/facades/KyberFacade.js"
 import { decodePQMessage } from "../../../../../src/api/worker/facades/PQMessage.js"

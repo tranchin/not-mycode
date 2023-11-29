@@ -361,32 +361,6 @@ export function stringToBase64(str: string): string {
 }
 
 /**
- * Encodes a number as big endian with the exact number of bytes needed (or no bytes if val is 0)
- * @param val number to encode
- */
-export function numberToByteArray(val: number): Uint8Array {
-	let array = []
-	while (val > 0) {
-		array.unshift(val & 0xff)
-		val >>= 8
-	}
-	return new Uint8Array(array)
-}
-
-/**
- * Decodes a big endian string of numbers into a number value
- * @param arr bytes to decode
- */
-export function byteArrayToNumber(arr: Uint8Array): number {
-	let val = 0
-	for (const b of arr) {
-		val <<= 8
-		val |= b
-	}
-	return val
-}
-
-/**
  * Encodes a variable number of byte arrays as a single byte array. Format:
  * short(length of byteArray[0]) | byteArray[0] | ... | short(length of byteArray[n]) | byteArray[n]
  *

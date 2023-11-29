@@ -10,6 +10,7 @@ import {
 } from "../../api/entities/tutanota/TypeRefs.js"
 import {
 	ConversationType,
+	EncryptionAuthStatus,
 	ExternalImageRule,
 	FeatureType,
 	MailAuthenticationStatus,
@@ -310,6 +311,10 @@ export class MailViewerViewModel {
 
 	isConfidential(): boolean {
 		return this.mail.confidential
+	}
+
+	isPqConfidential(): boolean {
+		return this.mail.encryptionAuthStatus === EncryptionAuthStatus.PQ_AUTHENTICATION_SUCCEEDED
 	}
 
 	isMailSuspicious(): boolean {

@@ -1,4 +1,4 @@
-import { getMailFolderType, MailFolderType, MailState, ReplyType } from "../../api/common/TutanotaConstants"
+import { EncryptionAuthStatus, getMailFolderType, MailFolderType, MailState, ReplyType } from "../../api/common/TutanotaConstants"
 import { FontIcons } from "../../gui/base/icons/FontIcons"
 import type { Mail } from "../../api/entities/tutanota/TypeRefs.js"
 import { formatTimeOrDateOrYesterday } from "../../misc/Formatter"
@@ -279,7 +279,11 @@ export class MailRow implements VirtualRow<Mail> {
 		}
 
 		if (mail.confidential) {
-			iconText += FontIcons.Confidential
+			if (mail.encryptionAuthStatus === EncryptionAuthStatus.PQ_AUTHENTICATION_SUCCEEDED) {
+				iconText += FontIcons.PQConfidential
+			} else {
+				iconText += FontIcons.Confidential
+			}
 		}
 
 		if (mail.attachments.length > 0) {

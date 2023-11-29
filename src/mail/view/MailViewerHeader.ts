@@ -124,7 +124,7 @@ export class MailViewerHeader implements Component<MailViewerHeaderAttrs> {
 					m(".flex.ml-between-s.items-center", [
 						viewModel.isConfidential()
 							? m(Icon, {
-									icon: Icons.Lock,
+									icon: viewModel.isPqConfidential() ? Icons.PQConfidential : Icons.Lock,
 									container: "div",
 									style: {
 										fill: theme.content_button,

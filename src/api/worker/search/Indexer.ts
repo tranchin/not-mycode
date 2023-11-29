@@ -333,7 +333,7 @@ export class Indexer {
 		const groupBatches = await this._loadGroupData(user)
 		const transaction = await this.db.dbFacade.createTransaction(false, [MetaDataOS, GroupDataOS])
 		const userEncDbKey = encryptKeyWithVersionedKey(userGroupKey, this.db.key)
-		await transaction.put(MetaDataOS, Metadata.userEncDbKey, userEncDbKey)
+		await transaction.put(MetaDataOS, Metadata.userEncDbKey, userEncDbKey.key)
 		await transaction.put(MetaDataOS, Metadata.mailIndexingEnabled, this._mail.mailIndexingEnabled)
 		await transaction.put(MetaDataOS, Metadata.excludedListIds, this._mail._excludedListIds)
 		await transaction.put(MetaDataOS, Metadata.encDbIv, aes256EncryptSearchIndexEntry(this.db.key, this.db.iv))

@@ -7,6 +7,7 @@ import {
 	aes256RandomKey,
 	aesDecrypt,
 	aesEncrypt,
+	AesKey,
 	getAesSubKeys,
 	IV_BYTE_LENGTH,
 	KEY_LENGTH_BITS_AES_256,

@@ -6,7 +6,6 @@ import {
 	isSameTypeRef,
 	isSameTypeRefByAttr,
 	neverNull,
-	noOp,
 	ofClass,
 	promiseMap,
 	stringToUtf8Uint8Array,
@@ -105,38 +104,35 @@ export class CryptoFacade {
 		private readonly pq: PQFacade,
 	) {}
 
-	applyMigrationsForInstance<T>(decryptedInstance: T): Promise<T> {
+	async applyMigrationsForInstance<T>(decryptedInstance: T): Promise<T> {
 		const instanceType = downcast<Entity>(decryptedInstance)._type
 
 		if (isSameTypeRef(instanceType, ContactTypeRef)) {
-			const contact: Contact = downcast(decryptedInstance)
+			const contact = downcast<Contact>(decryptedInstance)
 
-			if (!contact.birthdayIso && contact.oldBirthdayAggregate) {
-				contact.birthdayIso = birthdayToIsoDate(contact.oldBirthdayAggregate)
-				contact.oldBirthdayAggregate = null
-				contact.oldBirthdayDate = null
-				return this.entityClient
-					.update(contact)
-					.catch(ofClass(LockedError, noOp))
-					.then(() => decryptedInstance)
-			} else if (!contact.birthdayIso && contact.oldBirthdayDate) {
-				contact.birthdayIso = birthdayToIsoDate(oldBirthdayToBirthday(contact.oldBirthdayDate))
-				contact.oldBirthdayDate = null
-				return this.entityClient
-					.update(contact)
-					.catch(ofClass(LockedError, noOp))
-					.then(() => decryptedInstance)
-			} else if (contact.birthdayIso && (contact.oldBirthdayAggregate || contact.oldBirthdayDate)) {
-				contact.oldBirthdayAggregate = null
-				contact.oldBirthdayDate = null
-				return this.entityClient
-					.update(contact)
-					.catch(ofClass(LockedError, noOp))
-					.then(() => decryptedInstance)
+			try {
+				if (!contact.birthdayIso && contact.oldBirthdayAggregate) {
+					contact.birthdayIso = birthdayToIsoDate(contact.oldBirthdayAggregate)
+					contact.oldBirthdayAggregate = null
+					contact.oldBirthdayDate = null
+					await this.entityClient.update(contact)
+				} else if (!contact.birthdayIso && contact.oldBirthdayDate) {
+					contact.birthdayIso = birthdayToIsoDate(oldBirthdayToBirthday(contact.oldBirthdayDate))
+					contact.oldBirthdayDate = null
+					await this.entityClient.update(contact)
+				} else if (contact.birthdayIso && (contact.oldBirthdayAggregate || contact.oldBirthdayDate)) {
+					contact.oldBirthdayAggregate = null
+					contact.oldBirthdayDate = null
+					await this.entityClient.update(contact)
+				}
+			} catch (e) {
+				if (!(e instanceof LockedError)) {
+					throw e
+				}
 			}
 		}
 
-		return Promise.resolve(decryptedInstance)
+		return decryptedInstance
 	}
 
 	async resolveSessionKeyForInstance(instance: SomeEntity): Promise<Aes128Key | null> {
@@ -335,25 +331,25 @@ export class CryptoFacade {
 		try {
 			const publicKeyGetOut = await this.serviceExecutor.get(PublicKeyService, keyData)
 
-			let encrypted: Uint8Array
 			if (notFoundRecipients.length === 0) {
 				const recipientPubKey = this.getPublicKey(publicKeyGetOut)
-				let uint8ArrayBucketKey = bitArrayToUint8Array(bucketKey)
+				const uint8ArrayBucketKey = bitArrayToUint8Array(bucketKey)
+				let pubEncBucketKey: Uint8Array
 				let senderKeyVersion: NumberString
 				if (recipientPubKey instanceof PQPublicKeys) {
 					const senderKeyPair = await this.userFacade.loadCurrentKeyPair(senderUserGroupId, this.entityClient)
 					const senderIdentityKeyPair = await this.getOrMakeSenderIdentityKeyPair(senderKeyPair.object)
 					const ephemeralKeyPair = generateEccKeyPair()
 					senderKeyVersion = senderKeyPair.version.toString()
-					encrypted = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, recipientPubKey, uint8ArrayBucketKey))
+					pubEncBucketKey = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, recipientPubKey, uint8ArrayBucketKey))
 				} else {
-					encrypted = await this.rsa.encrypt(recipientPubKey, uint8ArrayBucketKey)
+					pubEncBucketKey = await this.rsa.encrypt(recipientPubKey, uint8ArrayBucketKey)
 					senderKeyVersion = "0"
 				}
 				return createInternalRecipientKeyData({
 					mailAddress: recipientMailAddress,
-					pubEncBucketKey: encrypted,
 					recipientKeyVersion: publicKeyGetOut.pubKeyVersion,
+					pubEncBucketKey,
 					senderKeyVersion,
 				})
 			}
@@ -389,6 +385,26 @@ export class CryptoFacade {
 			const data = createPublicKeyPutIn({ pubEccKey: newIdentityKeyPair.publicKey, symEncPrivEccKey, keyGroup })
 			await this.serviceExecutor.put(PublicKeyService, data)
 			return newIdentityKeyPair
+		}
+	}
+
+	async authenticateSender(mailSenderAddress: string, senderIdentityPubKey: Uint8Array, publicKeyVersion: number): Promise<EncryptionAuthStatus> {
+		const keyData = createPublicKeyGetIn({
+			mailAddress: mailSenderAddress,
+			version: publicKeyVersion.toString(),
+		})
+
+		try {
+			const publicKeyGetOut = await this.serviceExecutor.get(PublicKeyService, keyData)
+			return publicKeyGetOut.pubEccKey != null && arrayEquals(publicKeyGetOut.pubEccKey, senderIdentityPubKey)
+				? EncryptionAuthStatus.PQ_AUTHENTICATION_SUCCEEDED
+				: EncryptionAuthStatus.PQ_AUTHENTICATION_FAILED
+		} catch (e) {
+			if (e instanceof NotFoundError) {
+				return EncryptionAuthStatus.PQ_AUTHENTICATION_FAILED
+			} else {
+				throw e
+			}
 		}
 	}
 
@@ -671,24 +687,6 @@ export class CryptoFacade {
 			)
 		}
 		return sk
-	}
-
-	async authenticateSender(mailSenderAddress: string, senderIdentityPubKey: Uint8Array, publicKeyVersion: number): Promise<EncryptionAuthStatus> {
-		let keyData = createPublicKeyGetIn({
-			mailAddress: mailSenderAddress,
-			version: publicKeyVersion.toString(),
-		})
-
-		try {
-			const publicKeyGetOut = await this.serviceExecutor.get(PublicKeyService, keyData)
-			return publicKeyGetOut.pubEccKey != null && arrayEquals(publicKeyGetOut.pubEccKey, senderIdentityPubKey)
-				? EncryptionAuthStatus.PQ_AUTHENTICATION_SUCCEEDED
-				: EncryptionAuthStatus.PQ_AUTHENTICATION_FAILED
-		} catch (e) {
-			// if (e instanceof NotFoundError) {
-			return EncryptionAuthStatus.PQ_AUTHENTICATION_FAILED
-			// }
-		}
 	}
 
 	/**

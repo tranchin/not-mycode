@@ -1,30 +1,8 @@
 import o from "@tutao/otest"
-import {
-	arrayEquals,
-	base64ToUint8Array,
-	hexToUint8Array,
-	isSameTypeRef,
-	neverNull,
-	stringToUtf8Uint8Array,
-	uint8ArrayToBase64,
-	utf8Uint8ArrayToString,
-	Versioned,
-} from "@tutao/tutanota-utils"
+import { arrayEquals, hexToUint8Array, neverNull, stringToUtf8Uint8Array, uint8ArrayToBase64, utf8Uint8ArrayToString, Versioned } from "@tutao/tutanota-utils"
 import { CryptoFacade } from "../../../../../src/api/worker/crypto/CryptoFacade.js"
-import { ProgrammingError } from "../../../../../src/api/common/error/ProgrammingError.js"
-import { Cardinality, ValueType } from "../../../../../src/api/common/EntityConstants.js"
 import { BucketPermissionType, EncryptionAuthStatus, PermissionType } from "../../../../../src/api/common/TutanotaConstants.js"
-import {
-	BirthdayTypeRef,
-	ContactAddressTypeRef,
-	ContactTypeRef,
-	FileTypeRef,
-	Mail,
-	MailAddressTypeRef,
-	MailDetailsBlobTypeRef,
-	MailTypeRef,
-} from "../../../../../src/api/entities/tutanota/TypeRefs.js"
-import * as UserIdReturn from "../../../../../src/api/entities/sys/TypeRefs.js"
+import { BirthdayTypeRef, ContactTypeRef, FileTypeRef, Mail, MailDetailsBlobTypeRef, MailTypeRef } from "../../../../../src/api/entities/tutanota/TypeRefs.js"
 import {
 	BucketKey,
 	BucketKeyTypeRef,
@@ -44,7 +22,7 @@ import {
 	UserIdReturnTypeRef,
 	UserTypeRef,
 } from "../../../../../src/api/entities/sys/TypeRefs.js"
-import { assertThrows, spy } from "@tutao/tutanota-test-utils"
+import { spy } from "@tutao/tutanota-test-utils"
 import { RestClient } from "../../../../../src/api/worker/rest/RestClient.js"
 import { EntityClient } from "../../../../../src/api/common/EntityClient.js"
 import {
@@ -70,8 +48,8 @@ import {
 	rsaPublicKeyToHex,
 } from "@tutao/tutanota-crypto"
 import { RsaWeb } from "../../../../../src/api/worker/crypto/RsaImplementation.js"
-import { decryptValue, encryptValue, InstanceMapper } from "../../../../../src/api/worker/crypto/InstanceMapper.js"
-import type { ModelValue, TypeModel } from "../../../../../src/api/common/EntityTypes.js"
+import { InstanceMapper } from "../../../../../src/api/worker/crypto/InstanceMapper.js"
+import type { TypeModel } from "../../../../../src/api/common/EntityTypes.js"
 import { IServiceExecutor } from "../../../../../src/api/common/ServiceRequest.js"
 import { instance, matchers, object, verify, when } from "testdouble"
 import { PublicKeyService, UpdatePermissionKeyService } from "../../../../../src/api/entities/sys/Services.js"
@@ -120,448 +98,6 @@ o.spec("CryptoFacade", function () {
 		entityClient = object()
 		ownerEncSessionKeysUpdateQueue = object()
 		crypto = new CryptoFacade(userFacade, entityClient, restClient, rsa, serviceExecutor, instanceMapper, ownerEncSessionKeysUpdateQueue, pqFacade)
-	})
-
-	function createValueType(type, encrypted, cardinality): ModelValue & { name: string; since: number } {
-		return {
-			name: "test",
-			id: 426,
-			since: 6,
-			type: type,
-			cardinality: cardinality,
-			final: true,
-			encrypted: encrypted,
-		}
-	}
-
-	o.spec("decrypt value", function () {
-		o("decrypt string / number value without mac", function () {
-			let sk = aes128RandomKey()
-			let value = "this is a string value"
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
-			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.One), encryptedValue, sk)).equals(value)
-			value = "516546"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
-			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.One), encryptedValue, sk)).equals(value)
-		})
-		o("decrypt string / number value with mac", function () {
-			let sk = aes128RandomKey()
-			let value = "this is a string value"
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.One), encryptedValue, sk)).equals(value)
-			value = "516546"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.One), encryptedValue, sk)).equals(value)
-		})
-		o("decrypt boolean value without mac", function () {
-			let valueType: ModelValue = createValueType(ValueType.Boolean, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = "0"
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(false)
-			value = "1"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(true)
-			value = "32498"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(true)
-		})
-		o("decrypt boolean value with mac", function () {
-			let valueType: ModelValue = createValueType(ValueType.Boolean, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = "0"
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(false)
-			value = "1"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(true)
-			value = "32498"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(true)
-		})
-		o("decrypt date value without mac", function () {
-			let valueType: ModelValue = createValueType(ValueType.Date, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = new Date().getTime().toString()
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
-			o(decryptValue("test", valueType, encryptedValue, sk)).deepEquals(new Date(parseInt(value)))
-		})
-		o("decrypt date value with mac", function () {
-			let valueType: ModelValue = createValueType(ValueType.Date, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = new Date().getTime().toString()
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			o(decryptValue("test", valueType, encryptedValue, sk)).deepEquals(new Date(parseInt(value)))
-		})
-		o("decrypt bytes value without mac", function () {
-			let valueType: ModelValue = createValueType(ValueType.Bytes, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = random.generateRandomData(5)
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, false))
-			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
-			o(decryptedValue instanceof Uint8Array).equals(true)
-			o(Array.from(decryptedValue)).deepEquals(Array.from(value))
-		})
-		o("decrypt bytes value with mac", function () {
-			let valueType: ModelValue = createValueType(ValueType.Bytes, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = random.generateRandomData(5)
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
-			o(decryptedValue instanceof Uint8Array).equals(true)
-			o(Array.from(decryptedValue)).deepEquals(Array.from(value))
-		})
-		o("decrypt compressedString", function () {
-			let valueType: ModelValue = createValueType(ValueType.CompressedString, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = base64ToUint8Array("QHRlc3Q=")
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
-			o(typeof decryptedValue === "string").equals(true)
-			o(decryptedValue).equals("test")
-		})
-		o("decrypt compressedString w resize", function () {
-			let valueType: ModelValue = createValueType(ValueType.CompressedString, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = base64ToUint8Array("X3RleHQgBQD//1FQdGV4dCA=")
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
-			o(typeof decryptedValue === "string").equals(true)
-			o(decryptedValue).equals(
-				"text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text text ",
-			)
-		})
-		o("decrypt empty compressedString", function () {
-			let valueType: ModelValue = createValueType(ValueType.CompressedString, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, new Uint8Array([]), random.generateRandomData(IV_BYTE_LENGTH), true, true))
-			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
-			o(typeof decryptedValue === "string").equals(true)
-			o(decryptedValue).equals("")
-		})
-		o("do not decrypt null values", function () {
-			let sk = aes128RandomKey()
-			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-			o(decryptValue("test", createValueType(ValueType.Date, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-			o(decryptValue("test", createValueType(ValueType.Bytes, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-			o(decryptValue("test", createValueType(ValueType.Boolean, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-			o(decryptValue("test", createValueType(ValueType.Number, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-		})
-		o("throw error on ONE null values (String)", makeTestForErrorOnNull(ValueType.String))
-		o("throw error on ONE null values (Date)", makeTestForErrorOnNull(ValueType.Date))
-		o("throw error on ONE null values (Bytes)", makeTestForErrorOnNull(ValueType.Bytes))
-		o("throw error on ONE null values (Boolean)", makeTestForErrorOnNull(ValueType.Boolean))
-		o("throw error on ONE null values (Number)", makeTestForErrorOnNull(ValueType.Number))
-
-		function makeTestForErrorOnNull(type) {
-			return async () => {
-				let sk = aes128RandomKey()
-
-				const e = await assertThrows(ProgrammingError, () => decryptValue("test", createValueType(type, true, Cardinality.One), null, sk))
-				o(e.message).equals("Value test with cardinality ONE can not be null")
-			}
-		}
-
-		o("convert unencrypted Date to JS type", function () {
-			let value = new Date().getTime().toString()
-			o(decryptValue("test", createValueType(ValueType.Date, false, Cardinality.One), value, null)).deepEquals(new Date(parseInt(value)))
-		})
-		o("convert unencrypted Bytes to JS type", function () {
-			let valueBytes = random.generateRandomData(15)
-			let value = uint8ArrayToBase64(valueBytes)
-			o(Array.from(decryptValue("test", createValueType(ValueType.Bytes, false, Cardinality.One), value, null))).deepEquals(Array.from(valueBytes))
-		})
-		o("convert unencrypted Boolean to JS type", function () {
-			let value = "0"
-			o(decryptValue("test", createValueType(ValueType.Boolean, false, Cardinality.One), value, null)).equals(false)
-			value = "1"
-			o(decryptValue("test", createValueType(ValueType.Boolean, false, Cardinality.One), value, null)).equals(true)
-		})
-		o("convert unencrypted Number to JS type", function () {
-			let value = ""
-			o(decryptValue("test", createValueType(ValueType.Number, false, Cardinality.One), value, null)).equals("0")
-			value = "0"
-			o(decryptValue("test", createValueType(ValueType.Number, false, Cardinality.One), value, null)).equals("0")
-			value = "1"
-			o(decryptValue("test", createValueType(ValueType.Number, false, Cardinality.One), value, null)).equals("1")
-		})
-		o("convert unencrypted compressedString to JS type", function () {
-			let value = ""
-			o(decryptValue("test", createValueType(ValueType.CompressedString, false, Cardinality.One), value, null)).equals("")
-			value = "QHRlc3Q="
-			o(decryptValue("test", createValueType(ValueType.CompressedString, false, Cardinality.One), value, null)).equals("test")
-		})
-	})
-	o.spec("encryptValue", function () {
-		o("encrypt string / number value", function () {
-			const valueType = createValueType(ValueType.String, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = "this is a string value"
-			let encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
-			let expected = uint8ArrayToBase64(
-				aesEncrypt(
-					sk,
-					stringToUtf8Uint8Array(value),
-					base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16),
-					true,
-					ENABLE_MAC,
-				),
-			)
-			o(encryptedValue).equals(expected)
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(value)
-		})
-		o("encrypt boolean value", function () {
-			let valueType: ModelValue = createValueType(ValueType.Boolean, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = false
-			let encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
-			let expected = uint8ArrayToBase64(
-				aesEncrypt(
-					sk,
-					stringToUtf8Uint8Array(value ? "1" : "0"),
-					base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16),
-					true,
-					ENABLE_MAC,
-				),
-			)
-			o(encryptedValue).equals(expected)
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(false)
-			value = true
-			encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
-			expected = uint8ArrayToBase64(
-				aesEncrypt(
-					sk,
-					stringToUtf8Uint8Array(value ? "1" : "0"),
-					base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16),
-					true,
-					ENABLE_MAC,
-				),
-			)
-			o(encryptedValue).equals(expected)
-			o(decryptValue("test", valueType, encryptedValue, sk)).equals(true)
-		})
-		o("encrypt date value", function () {
-			let valueType: ModelValue = createValueType(ValueType.Date, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = new Date()
-			let encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
-			let expected = uint8ArrayToBase64(
-				aesEncrypt(
-					sk,
-					stringToUtf8Uint8Array(value.getTime().toString()),
-					base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16),
-					true,
-					ENABLE_MAC,
-				),
-			)
-			o(encryptedValue).equals(expected)
-			o(decryptValue("test", valueType, encryptedValue, sk)).deepEquals(value)
-		})
-		o("encrypt bytes value", function () {
-			let valueType: ModelValue = createValueType(ValueType.Bytes, true, Cardinality.One)
-			let sk = aes128RandomKey()
-			let value = random.generateRandomData(5)
-			let encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
-			let expected = uint8ArrayToBase64(
-				aesEncrypt(sk, value, base64ToUint8Array(encryptedValue).slice(ENABLE_MAC ? 1 : 0, ENABLE_MAC ? 17 : 16), true, ENABLE_MAC),
-			)
-			o(encryptedValue).equals(expected)
-			o(Array.from(decryptValue("test", valueType, encryptedValue, sk))).deepEquals(Array.from(value))
-		})
-		o("do not encrypt null values", function () {
-			let sk = aes128RandomKey()
-			o(encryptValue("test", createValueType(ValueType.String, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-			o(encryptValue("test", createValueType(ValueType.Date, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-			o(encryptValue("test", createValueType(ValueType.Bytes, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-			o(encryptValue("test", createValueType(ValueType.Boolean, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-			o(encryptValue("test", createValueType(ValueType.Number, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
-		})
-		o("accept null _id and _permissions value during encryption", function () {
-			let vt: ModelValue = {
-				id: 426,
-				type: ValueType.GeneratedId,
-				cardinality: Cardinality.One,
-				final: true,
-				encrypted: false,
-			}
-			o(encryptValue("_id", vt, null, null)).equals(null)
-			o(encryptValue("_permissions", vt, null, null)).equals(null)
-		})
-		o("throw error on ONE null values (enc String)", makeTestForErrorOnNull(ValueType.String))
-		o("throw error on ONE null values (enc Date)", makeTestForErrorOnNull(ValueType.Date))
-		o("throw error on ONE null values (enc Bytes)", makeTestForErrorOnNull(ValueType.Bytes))
-		o("throw error on ONE null values (enc Boolean)", makeTestForErrorOnNull(ValueType.Boolean))
-		o("throw error on ONE null values (enc Number)", makeTestForErrorOnNull(ValueType.Number))
-
-		function makeTestForErrorOnNull(type) {
-			return async () => {
-				let sk = aes128RandomKey()
-
-				const e = await assertThrows(ProgrammingError, async () => encryptValue("test", createValueType(type, true, Cardinality.One), null, sk))
-				o(e.message).equals("Value test with cardinality ONE can not be null")
-			}
-		}
-
-		o("convert unencrypted Date to DB type", function () {
-			let value = new Date()
-			o(encryptValue("test", createValueType(ValueType.Date, false, Cardinality.One), value, null)).equals(value.getTime().toString())
-		})
-
-		o("convert unencrypted Bytes to DB type", function () {
-			let valueBytes = random.generateRandomData(15)
-			o(encryptValue("test", createValueType(ValueType.Bytes, false, Cardinality.One), valueBytes, null)).equals(uint8ArrayToBase64(valueBytes))
-		})
-
-		o("convert unencrypted Boolean to DB type", function () {
-			let value = false
-			o(encryptValue("test", createValueType(ValueType.Boolean, false, Cardinality.One), value, null)).equals("0")
-			value = true
-			o(encryptValue("test", createValueType(ValueType.Boolean, false, Cardinality.One), value, null)).equals("1")
-		})
-
-		o("convert unencrypted Number to DB type", function () {
-			let value = "0"
-			o(encryptValue("test", createValueType(ValueType.Number, false, Cardinality.One), value, null)).equals("0")
-			value = "1"
-			o(encryptValue("test", createValueType(ValueType.Number, false, Cardinality.One), value, null)).equals("1")
-		})
-	})
-
-	function createMailLiteral(
-		gk: Versioned<AesKey>,
-		sk: AesKey,
-		subject: string,
-		confidential: boolean,
-		senderName: string,
-		recipientName: string,
-	): Record<string, any> {
-		return {
-			_format: "0",
-			_area: "0",
-			_owner: "ownerId",
-			_ownerGroup: "mailGroupId",
-			_ownerKeyVersion: gk.version,
-			_ownerEncSessionKey: encryptKey(gk.object, sk),
-			_id: ["mailListId", "mailId"],
-			_permissions: "permissionListId",
-			receivedDate: new Date(1470039025474).getTime().toString(),
-			sentDate: new Date(1470039021474).getTime().toString(),
-			state: "",
-			trashed: false,
-			unread: true,
-			subject: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(subject), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
-			replyType: "",
-			confidential: uint8ArrayToBase64(
-				aesEncrypt(sk, stringToUtf8Uint8Array(confidential ? "1" : "0"), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC),
-			),
-			sender: {
-				_id: "senderId",
-				address: "hello@tutao.de",
-				name: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(senderName), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
-			},
-			bccRecipients: [],
-			ccRecipients: [],
-			toRecipients: [
-				{
-					_id: "recipientId",
-					address: "support@yahoo.com",
-					name: uint8ArrayToBase64(
-						aesEncrypt(sk, stringToUtf8Uint8Array(recipientName), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC),
-					),
-				},
-			],
-			replyTos: [],
-			bucketKey: null,
-			attachmentCount: "0",
-			authStatus: "0",
-			listUnsubscribe: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(""), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
-			method: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(""), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
-			phishingStatus: "0",
-			recipientCount: "0",
-		}
-	}
-
-	o("decrypt instance", async function () {
-		o.timeout(1000)
-		let subject = "this is our subject"
-		let confidential = true
-		let senderName = "TutanotaTeam"
-		let recipientName = "Yahoo"
-		let gk = freshVersioned(aes128RandomKey())
-		let sk = aes128RandomKey()
-		let mail = createMailLiteral(gk, sk, subject, confidential, senderName, recipientName)
-		const MailTypeModel = await resolveTypeReference(MailTypeRef)
-		return instanceMapper.decryptAndMapToInstance<Mail>(MailTypeModel, mail, sk).then((decrypted) => {
-			o(isSameTypeRef(decrypted._type, MailTypeRef)).equals(true)
-			o(decrypted.receivedDate.getTime()).equals(1470039025474)
-			o(neverNull(decrypted.sentDate).getTime()).equals(1470039021474)
-			o(decrypted.confidential).equals(confidential)
-			o(decrypted.subject).equals(subject)
-			o(decrypted.replyType).equals("0")
-			// aggregates
-			o(isSameTypeRef(decrypted.sender._type, MailAddressTypeRef)).equals(true)
-			o(decrypted.sender.name).equals(senderName)
-			o(decrypted.sender.address).equals("hello@tutao.de")
-			o(decrypted.toRecipients[0].name).equals(recipientName)
-			o(decrypted.toRecipients[0].address).equals("support@yahoo.com")
-		})
-	})
-
-	o("encrypt instance", async function () {
-		let sk = aes128RandomKey()
-		let address = createTestEntity(ContactAddressTypeRef)
-		address.type = "0"
-		address.address = "Entenhausen"
-		address.customTypeName = "0"
-		let contact = createTestEntity(ContactTypeRef)
-		contact._area = "0"
-		contact._owner = "123"
-		contact.title = "Dr."
-		contact.firstName = "Max"
-		contact.lastName = "Meier"
-		contact.comment = "what?"
-		contact.company = "WIW"
-		contact.autoTransmitPassword = "stop bugging me!"
-		contact.addresses = [address]
-		const ContactTypeModel = await resolveTypeReference(ContactTypeRef)
-		const result: any = await instanceMapper.encryptAndMapToLiteral(ContactTypeModel, contact, sk)
-		o(result._format).equals("0")
-		o(result._ownerGroup).equals(null)
-		o(result._ownerEncSessionKey).equals(null)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.addresses[0].type)))).equals(contact.addresses[0].type)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.addresses[0].address)))).equals(contact.addresses[0].address)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.addresses[0].customTypeName)))).equals(contact.addresses[0].customTypeName)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.title)))).equals(contact.title)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.firstName)))).equals(contact.firstName)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.lastName)))).equals(contact.lastName)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.comment)))).equals(contact.comment)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.company)))).equals(contact.company)
-		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.autoTransmitPassword)))).equals(contact.autoTransmitPassword)
-	})
-
-	o("map unencrypted to instance", async function () {
-		let userIdLiteral = {
-			_format: "0",
-			userId: "KOBqO7a----0",
-		}
-		const UserIdReturnTypeModel = await resolveTypeReference(UserIdReturnTypeRef)
-		const userIdReturn: UserIdReturn.UserIdReturn = await instanceMapper.decryptAndMapToInstance(UserIdReturnTypeModel, userIdLiteral, null)
-		o(userIdReturn._format).equals("0")
-		o(userIdReturn.userId).equals("KOBqO7a----0")
-	})
-
-	o("map unencrypted to DB literal", async function () {
-		let userIdReturn = createTestEntity(UserIdReturnTypeRef)
-		userIdReturn._format = "0"
-		userIdReturn.userId = "KOBqO7a----0"
-		let userIdLiteral = {
-			_format: "0",
-			userId: "KOBqO7a----0",
-		}
-		const UserIdReturnTypeModel = await resolveTypeReference(UserIdReturnTypeRef)
-		return instanceMapper.encryptAndMapToLiteral(UserIdReturnTypeModel, userIdReturn, null).then((result) => {
-			o(result).deepEquals(userIdLiteral)
-		})
 	})
 
 	o("resolve session key: unencrypted instance", async function () {
@@ -1137,24 +673,11 @@ o.spec("CryptoFacade", function () {
 		o(actualAutStatus).deepEquals(EncryptionAuthStatus.AES_NO_AUTHENTICATION)
 	})
 
-	o("decryption errors should be written to _errors field", async function () {
-		let subject = "this is our subject"
-		let confidential = true
-		let senderName = "TutanotaTeam"
-		let recipientName = "Yahoo"
-		let gk = freshVersioned(aes128RandomKey())
-		let sk = aes128RandomKey()
-		let mail = createMailLiteral(gk, sk, subject, confidential, senderName, recipientName)
-		mail.subject = "asdf"
-		const MailTypeModel = await resolveTypeReference(MailTypeRef)
-		const instance: Mail = await instanceMapper.decryptAndMapToInstance(MailTypeModel, mail, sk)
-		o(typeof instance._errors["subject"]).equals("string")
-	})
-
 	o.spec("instance migrations", function () {
 		o.beforeEach(function () {
 			when(entityClient.update(matchers.anything())).thenResolve(undefined)
 		})
+
 		o("contact migration without birthday", async function () {
 			const contact = createTestEntity(ContactTypeRef)
 
@@ -1349,6 +872,10 @@ o.spec("CryptoFacade", function () {
 			}
 		},
 	)
+
+	o("resolve session key: resolveSessionKeyWithOwnerKey uses correct version", async function () {
+		throw Error("todo") // FIXME
+	})
 
 	// ------------
 
@@ -1896,3 +1423,55 @@ o.spec("CryptoFacade", function () {
 		}
 	}
 })
+
+export function createMailLiteral(
+	gk: Versioned<AesKey>,
+	sk: AesKey,
+	subject: string,
+	confidential: boolean,
+	senderName: string,
+	recipientName: string,
+): Record<string, any> {
+	return {
+		_format: "0",
+		_area: "0",
+		_owner: "ownerId",
+		_ownerGroup: "mailGroupId",
+		_ownerKeyVersion: gk.version,
+		_ownerEncSessionKey: encryptKey(gk.object, sk),
+		_id: ["mailListId", "mailId"],
+		_permissions: "permissionListId",
+		receivedDate: new Date(1470039025474).getTime().toString(),
+		sentDate: new Date(1470039021474).getTime().toString(),
+		state: "",
+		trashed: false,
+		unread: true,
+		subject: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(subject), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
+		replyType: "",
+		confidential: uint8ArrayToBase64(
+			aesEncrypt(sk, stringToUtf8Uint8Array(confidential ? "1" : "0"), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC),
+		),
+		sender: {
+			_id: "senderId",
+			address: "hello@tutao.de",
+			name: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(senderName), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
+		},
+		bccRecipients: [],
+		ccRecipients: [],
+		toRecipients: [
+			{
+				_id: "recipientId",
+				address: "support@yahoo.com",
+				name: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(recipientName), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
+			},
+		],
+		replyTos: [],
+		bucketKey: null,
+		attachmentCount: "0",
+		authStatus: "0",
+		listUnsubscribe: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(""), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
+		method: uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(""), random.generateRandomData(IV_BYTE_LENGTH), true, ENABLE_MAC)),
+		phishingStatus: "0",
+		recipientCount: "0",
+	}
+}

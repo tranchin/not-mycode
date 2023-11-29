@@ -2,11 +2,12 @@ import { b64UserIdHash, DbFacade } from "../../search/DbFacade.js"
 import { assertNotNull, concat, downcast, LazyLoaded, stringToUtf8Uint8Array, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
 import type { User } from "../../../entities/sys/TypeRefs.js"
 import { ExternalImageRule } from "../../../common/TutanotaConstants.js"
-import { aes256RandomKey, aesDecrypt, aesEncrypt, AesKey, decryptKey, encryptKey, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
+import { aes256RandomKey, aesDecrypt, aesEncrypt, AesKey, decryptKey, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
 import { UserFacade } from "../UserFacade.js"
 import { Metadata, ObjectStoreName } from "../../search/IndexTables.js"
 import { DbError } from "../../../common/error/DbError.js"
 import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
+import { encryptKeyWithVersionedKey } from "../../crypto/CryptoFacade.js"
 
 const VERSION: number = 2
 const DB_KEY_PREFIX: string = "ConfigStorage"
@@ -142,8 +143,9 @@ async function initializeDb(db: DbFacade, id: string, userGroupKey: Versioned<Ae
 	const key = aes256RandomKey()
 	const iv = random.generateRandomData(IV_BYTE_LENGTH)
 	const transaction = await db.createTransaction(false, [MetaDataOS, ExternalImageListOS])
-	await transaction.put(MetaDataOS, Metadata.userEncDbKey, encryptKey(userGroupKey.object, key))
-	await transaction.put(MetaDataOS, Metadata.userGroupKeyVersion, userGroupKey.version)
+	const groupEncSessionKey = encryptKeyWithVersionedKey(userGroupKey, key)
+	await transaction.put(MetaDataOS, Metadata.userEncDbKey, groupEncSessionKey.key)
+	await transaction.put(MetaDataOS, Metadata.userGroupKeyVersion, groupEncSessionKey.encryptingKeyVersion)
 	await transaction.put(MetaDataOS, Metadata.encDbIv, aesEncrypt(key, iv))
 	return {
 		key,

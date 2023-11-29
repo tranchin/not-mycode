@@ -44,7 +44,7 @@ import { InvalidDatabaseStateError } from "../../common/error/InvalidDatabaseSta
 import { LocalTimeDateProvider } from "../DateProvider"
 import { EntityClient } from "../../common/EntityClient"
 import { deleteObjectStores } from "../utils/DbUtils"
-import { aes256EncryptSearchIndexEntry, aes256RandomKey, aesDecrypt, AesKey, decryptKey, encryptKey, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
+import { aes256EncryptSearchIndexEntry, aes256RandomKey, aesDecrypt, AesKey, decryptKey, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
 import { DefaultEntityRestCache } from "../rest/DefaultEntityRestCache.js"
 import { CacheInfo } from "../facades/LoginFacade.js"
 import { InfoMessageHandler } from "../../../gui/InfoMessageHandler.js"
@@ -61,6 +61,7 @@ import {
 import { MailFacade } from "../facades/lazy/MailFacade.js"
 import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
 import { UserFacade } from "../facades/UserFacade.js"
+import { encryptKeyWithVersionedKey } from "../crypto/CryptoFacade.js"
 
 export type InitParams = {
 	user: User
@@ -331,11 +332,12 @@ export class Indexer {
 		this.db.iv = random.generateRandomData(IV_BYTE_LENGTH)
 		const groupBatches = await this._loadGroupData(user)
 		const transaction = await this.db.dbFacade.createTransaction(false, [MetaDataOS, GroupDataOS])
-		await transaction.put(MetaDataOS, Metadata.userEncDbKey, encryptKey(userGroupKey.object, this.db.key))
+		const userEncDbKey = encryptKeyWithVersionedKey(userGroupKey, this.db.key)
+		await transaction.put(MetaDataOS, Metadata.userEncDbKey, userEncDbKey)
 		await transaction.put(MetaDataOS, Metadata.mailIndexingEnabled, this._mail.mailIndexingEnabled)
 		await transaction.put(MetaDataOS, Metadata.excludedListIds, this._mail._excludedListIds)
 		await transaction.put(MetaDataOS, Metadata.encDbIv, aes256EncryptSearchIndexEntry(this.db.key, this.db.iv))
-		await transaction.put(MetaDataOS, Metadata.userGroupKeyVersion, userGroupKey.version)
+		await transaction.put(MetaDataOS, Metadata.userGroupKeyVersion, userEncDbKey.encryptingKeyVersion)
 		await transaction.put(MetaDataOS, Metadata.lastEventIndexTimeMs, this._entityRestClient.getRestClient().getServerTimestampMs())
 		await this._initGroupData(groupBatches, transaction)
 		await this._updateIndexedGroups()

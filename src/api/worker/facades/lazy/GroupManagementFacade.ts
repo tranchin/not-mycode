@@ -8,15 +8,15 @@ import {
 	createUserAreaGroupDeleteData,
 	createUserAreaGroupPostData,
 } from "../../../entities/tutanota/TypeRefs.js"
-import { assertNotNull, hexToUint8Array, neverNull } from "@tutao/tutanota-utils"
+import { assertNotNull, freshVersioned, hexToUint8Array, neverNull } from "@tutao/tutanota-utils"
 import type { Group, User } from "../../../entities/sys/TypeRefs.js"
 import { createMembershipAddData, createMembershipRemoveData, GroupTypeRef, UserTypeRef } from "../../../entities/sys/TypeRefs.js"
 import { CounterFacade } from "./CounterFacade.js"
 import { EntityClient } from "../../../common/EntityClient.js"
 import { assertWorkerOrNode } from "../../../common/Env.js"
-import { encryptString } from "../../crypto/CryptoFacade.js"
+import { encryptKeyWithVersionedKey, encryptString } from "../../crypto/CryptoFacade.js"
 import type { RsaImplementation } from "../../crypto/RsaImplementation.js"
-import { aes128RandomKey, aes256RandomKey, AesKey, decryptKey, encryptKey, encryptRsaKey, RsaKeyPair, rsaPublicKeyToHex } from "@tutao/tutanota-crypto"
+import { aes128RandomKey, aes256RandomKey, AesKey, decryptKey, encryptRsaKey, RsaKeyPair, rsaPublicKeyToHex } from "@tutao/tutanota-crypto"
 import { IServiceExecutor } from "../../../common/ServiceRequest.js"
 import {
 	CalendarService,
@@ -55,27 +55,30 @@ export class GroupManagementFacade {
 		}
 
 		let adminGroupKey = this.user.getGroupKey(adminGroupIds[0])
-
 		let customerGroupKey = this.user.getGroupKey(this.user.getGroupId(GroupType.Customer))
+		let mailGroupKey = freshVersioned(aes128RandomKey())
 
-		let mailGroupKey = aes128RandomKey()
 		let mailGroupInfoSessionKey = aes128RandomKey()
 		let mailboxSessionKey = aes128RandomKey()
+
 		const keyPair = await this.rsa.generateKey()
 		const mailGroupData = await this.generateInternalGroupData(
 			keyPair,
-			mailGroupKey,
+			mailGroupKey.object,
 			mailGroupInfoSessionKey,
 			adminGroupIds[0],
 			adminGroupKey,
 			customerGroupKey,
 		)
+
+		const mailEncMailboxSessionKey = encryptKeyWithVersionedKey(mailGroupKey, mailboxSessionKey)
+
 		const data = createCreateMailGroupData({
 			mailAddress,
 			encryptedName: encryptString(mailGroupInfoSessionKey, name),
-			mailEncMailboxSessionKey: encryptKey(mailGroupKey, mailboxSessionKey),
+			mailEncMailboxSessionKey: mailEncMailboxSessionKey.key,
 			groupData: mailGroupData,
-			mailGroupKeyVersion: "0",
+			mailGroupKeyVersion: mailEncMailboxSessionKey.encryptingKeyVersion.toString(),
 		})
 		await this.serviceExecutor.post(MailGroupService, data)
 	}
@@ -102,24 +105,28 @@ export class GroupManagementFacade {
 
 			const customerGroupId = this.user.getGroupId(GroupType.Customer)
 			const customerGroupKey = this.user.getGroupKey(customerGroupId)
-			const customerGroup = this.user.getMembership(customerGroupId)
-
 			const userGroupKey = this.user.getUserGroupKey()
+			const groupKey = freshVersioned(aes128RandomKey())
 
 			const groupRootSessionKey = aes128RandomKey()
 			const groupInfoSessionKey = aes128RandomKey()
-			const groupKey = aes128RandomKey()
+
+			const userEncGroupKey = encryptKeyWithVersionedKey(userGroupKey, groupKey.object)
+			const adminEncGroupKey = adminGroupKey ? encryptKeyWithVersionedKey(adminGroupKey, groupKey.object) : null
+			const customerEncGroupInfoSessionKey = encryptKeyWithVersionedKey(customerGroupKey, groupInfoSessionKey)
+			const groupEncGroupRootSessionKey = encryptKeyWithVersionedKey(groupKey, groupRootSessionKey)
+
 			return createUserAreaGroupData({
-				groupEncGroupRootSessionKey: encryptKey(groupKey, groupRootSessionKey),
-				customerEncGroupInfoSessionKey: encryptKey(customerGroupKey.object, groupInfoSessionKey),
-				userEncGroupKey: encryptKey(userGroupKey.object, groupKey),
+				groupEncGroupRootSessionKey: groupEncGroupRootSessionKey.key,
+				customerEncGroupInfoSessionKey: customerEncGroupInfoSessionKey.key,
+				userEncGroupKey: userEncGroupKey.key,
 				groupInfoEncName: encryptString(groupInfoSessionKey, name),
-				adminEncGroupKey: adminGroupKey ? encryptKey(adminGroupKey.object, groupKey) : null,
+				adminEncGroupKey: adminEncGroupKey?.key ?? null,
 				adminGroup: adminGroupId,
-				customerKeyVersion: customerGroup.groupKeyVersion,
-				userKeyVersion: userGroup.groupKeyVersion,
-				adminKeyVersion: adminGroupKey?.version.toString() ?? "0",
-				groupKeyVersion: "0",
+				customerKeyVersion: customerEncGroupInfoSessionKey.encryptingKeyVersion.toString(),
+				userKeyVersion: userGroupKey.version.toString(),
+				adminKeyVersion: adminEncGroupKey?.encryptingKeyVersion.toString() ?? "0",
+				groupKeyVersion: groupEncGroupRootSessionKey.encryptingKeyVersion.toString(),
 			})
 		})
 	}
@@ -174,6 +181,9 @@ export class GroupManagementFacade {
 		adminGroupKey: Versioned<AesKey>,
 		ownerGroupKey: Versioned<AesKey>,
 	): InternalGroupData {
+		const adminEncGroupKey = encryptKeyWithVersionedKey(adminGroupKey, groupKey)
+		const ownerEncGroupInfoSessionKey = encryptKeyWithVersionedKey(ownerGroupKey, groupInfoSessionKey)
+
 		return createInternalGroupData({
 			pubRsaKey: hexToUint8Array(rsaPublicKeyToHex(keyPair.publicKey)),
 			groupEncPrivRsaKey: encryptRsaKey(groupKey, keyPair.privateKey),
@@ -182,10 +192,10 @@ export class GroupManagementFacade {
 			pubKyberKey: null,
 			groupEncPrivKyberKey: null,
 			adminGroup: adminGroupId,
-			adminEncGroupKey: encryptKey(adminGroupKey.object, groupKey),
-			ownerEncGroupInfoSessionKey: encryptKey(ownerGroupKey.object, groupInfoSessionKey),
-			adminKeyVersion: adminGroupKey.version.toString(),
-			ownerKeyVersion: ownerGroupKey.version.toString(),
+			adminEncGroupKey: adminEncGroupKey.key,
+			ownerEncGroupInfoSessionKey: ownerEncGroupInfoSessionKey.key,
+			adminKeyVersion: adminEncGroupKey.encryptingKeyVersion.toString(),
+			ownerKeyVersion: ownerEncGroupInfoSessionKey.encryptingKeyVersion.toString(),
 		})
 	}
 
@@ -193,12 +203,13 @@ export class GroupManagementFacade {
 		const userGroupKey = await this.getGroupKeyViaAdminEncGKey(user.userGroup.group)
 		const groupKey = await this.getGroupKeyViaAdminEncGKey(groupId)
 		const membership = this.user.getMembership(groupId)
+		const symEncGKey = encryptKeyWithVersionedKey(userGroupKey, groupKey.object)
 		const data = createMembershipAddData({
 			user: user._id,
 			group: groupId,
-			symEncGKey: encryptKey(userGroupKey.object, groupKey.object),
+			symEncGKey: symEncGKey.key,
 			groupKeyVersion: membership.groupKeyVersion,
-			symKeyVersion: userGroupKey.version.toString(),
+			symKeyVersion: symEncGKey.encryptingKeyVersion.toString(),
 		})
 		await this.serviceExecutor.post(MembershipService, data)
 	}

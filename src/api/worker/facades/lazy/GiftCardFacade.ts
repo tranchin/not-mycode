@@ -11,11 +11,11 @@ import {
 } from "@tutao/tutanota-utils"
 import type { GiftCardRedeemGetReturn } from "../../../entities/sys/TypeRefs.js"
 import { createGiftCardCreateData, createGiftCardRedeemData, GiftCard } from "../../../entities/sys/TypeRefs.js"
-import { aes128RandomKey, base64ToKey, bitArrayToUint8Array, encryptKey, sha256Hash } from "@tutao/tutanota-crypto"
+import { aes128RandomKey, base64ToKey, bitArrayToUint8Array, sha256Hash } from "@tutao/tutanota-crypto"
 import { IServiceExecutor } from "../../../common/ServiceRequest.js"
 import { GiftCardRedeemService, GiftCardService } from "../../../entities/sys/Services.js"
 import { elementIdPart, GENERATED_MAX_ID } from "../../../common/utils/EntityUtils.js"
-import { CryptoFacade } from "../../crypto/CryptoFacade.js"
+import { CryptoFacade, encryptKeyWithVersionedKey } from "../../crypto/CryptoFacade.js"
 import { UserFacade } from "../UserFacade.js"
 import { ProgrammingError } from "../../../common/error/ProgrammingError.js"
 import { CustomerFacade } from "./CustomerFacade.js"
@@ -42,14 +42,16 @@ export class GiftCardFacade {
 		const ownerKey = this.user.getGroupKey(adminGroupId)
 
 		const sessionKey = aes128RandomKey()
+		const ownerEncSessionKey = encryptKeyWithVersionedKey(ownerKey, sessionKey)
+
 		const { giftCard } = await this.serviceExecutor.post(
 			GiftCardService,
 			createGiftCardCreateData({
 				message: message,
 				keyHash: sha256Hash(bitArrayToUint8Array(sessionKey)),
 				value,
-				ownerEncSessionKey: encryptKey(ownerKey.object, sessionKey),
-				ownerKeyVersion: ownerKey.version.toString(),
+				ownerEncSessionKey: ownerEncSessionKey.key,
+				ownerKeyVersion: ownerEncSessionKey.encryptingKeyVersion.toString(),
 			}),
 			{ sessionKey },
 		)

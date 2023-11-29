@@ -50,10 +50,6 @@ export interface Entity {
 	_type: TypeRef<this>
 }
 
-export interface DataTransferEntity {
-	_format: NumberString
-}
-
 export interface ElementEntity extends Entity, Element {
 	_ownerEncSessionKey?: null | Uint8Array
 	_ownerGroup: null | Id

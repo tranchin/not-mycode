@@ -9,7 +9,7 @@ import {
 	GroupTypeRef,
 	RecoverCodeTypeRef,
 } from "../../../entities/sys/TypeRefs.js"
-import { encryptBytes, encryptString } from "../../crypto/CryptoFacade.js"
+import { CiphertextKey, encryptBytes, encryptKeyWithVersionedKey, encryptString } from "../../crypto/CryptoFacade.js"
 import { assertNotNull, neverNull, uint8ArrayToHex } from "@tutao/tutanota-utils"
 import type { ContactFormUserData, UserAccountUserData } from "../../../entities/tutanota/TypeRefs.js"
 import { createUserAccountCreateData, createUserAccountUserData } from "../../../entities/tutanota/TypeRefs.js"
@@ -70,24 +70,26 @@ export class UserManagementFacade {
 	}
 
 	async changeAdminFlag(user: User, admin: boolean): Promise<void> {
-		let adminGroupId = this.userFacade.getGroupId(GroupType.Admin)
-
-		let adminGroupKey = this.userFacade.getGroupKey(adminGroupId)
+		const adminGroupId = this.userFacade.getGroupId(GroupType.Admin)
+		const adminGroupKey = this.userFacade.getGroupKey(adminGroupId)
 
 		const userGroup = await this.entityClient.load(GroupTypeRef, user.userGroup.group)
-		let userGroupKey = decryptKey(adminGroupKey.object, neverNull(userGroup.adminGroupEncGKey))
+		const userGroupKey = { object: decryptKey(adminGroupKey.object, neverNull(userGroup.adminGroupEncGKey)), version: Number(userGroup.groupKeyVersion) }
 
 		if (admin) {
 			await this.groupManagement.addUserToGroup(user, adminGroupId)
 
 			if (user.accountType !== AccountType.SYSTEM) {
 				const keyData = await this._getAccountKeyData()
+				const groupKey = decryptKey(this.userFacade.getUserGroupKey().object, keyData.symEncGKey)
+				const symEncGKey = encryptKeyWithVersionedKey(userGroupKey, groupKey)
+
 				// we can not use addUserToGroup here because the admin is not admin of the account group
 				const addAccountGroup = createMembershipAddData({
 					user: user._id,
 					group: keyData.group,
-					symEncGKey: encryptKey(userGroupKey, decryptKey(this.userFacade.getUserGroupKey().object, keyData.symEncGKey)),
-					symKeyVersion: userGroup.groupKeyVersion,
+					symEncGKey: symEncGKey.key,
+					symKeyVersion: symEncGKey.encryptingKeyVersion.toString(),
 					groupKeyVersion: keyData.groupKeyVersion,
 				})
 				await this.serviceExecutor.post(MembershipService, addAccountGroup)
@@ -124,11 +126,10 @@ export class UserManagementFacade {
 	}
 
 	async updateAdminship(groupId: Id, newAdminGroupId: Id): Promise<void> {
-		let adminGroupId = this.userFacade.getGroupId(GroupType.Admin)
+		const adminGroupId = this.userFacade.getGroupId(GroupType.Admin)
 		const newAdminGroup = await this.entityClient.load(GroupTypeRef, newAdminGroupId)
 		const group = await this.entityClient.load(GroupTypeRef, groupId)
 		const oldAdminGroup = await this.entityClient.load(GroupTypeRef, neverNull(group.admin))
-
 		const adminGroupKey = this.userFacade.getGroupKey(adminGroupId)
 
 		let groupKey
@@ -139,22 +140,24 @@ export class UserManagementFacade {
 			groupKey = decryptKey(localAdminGroupKey, neverNull(group.adminGroupEncGKey))
 		}
 
-		let newAdminGroupEncGKey
-		let encryptingKeyVersion: NumberString
+		let newAdminGroupEncGKey: CiphertextKey
 		if (newAdminGroup._id === adminGroupId) {
-			newAdminGroupEncGKey = encryptKey(adminGroupKey.object, groupKey)
-			encryptingKeyVersion = adminGroupKey.version.toString()
+			newAdminGroupEncGKey = encryptKeyWithVersionedKey(adminGroupKey, groupKey)
 		} else {
-			let localAdminGroupKey = decryptKey(adminGroupKey.object, neverNull(newAdminGroup.adminGroupEncGKey))
-			newAdminGroupEncGKey = encryptKey(localAdminGroupKey, groupKey)
-			encryptingKeyVersion = newAdminGroup.groupKeyVersion
+			const localAdminGroupKey: Versioned<AesKey> = {
+				object: decryptKey(adminGroupKey.object, neverNull(newAdminGroup.adminGroupEncGKey)),
+				version: Number(newAdminGroup.groupKeyVersion),
+			}
+			newAdminGroupEncGKey = encryptKeyWithVersionedKey(localAdminGroupKey, groupKey)
 		}
 
 		const data = createUpdateAdminshipData({
 			group: group._id,
 			newAdminGroup: newAdminGroup._id,
-			newAdminGroupEncGKey,
+			newAdminGroupEncGKey: newAdminGroupEncGKey.key,
+			// FIXME: newAdminGroupKeyVersion: newAdminGroupEncGKey.version.toString(),
 		})
+
 		await this.serviceExecutor.post(UpdateAdminshipService, data)
 	}
 
@@ -262,37 +265,59 @@ export class UserManagementFacade {
 		const contactGroupInfoSessionKey = aes128RandomKey()
 		const fileGroupInfoSessionKey = aes128RandomKey()
 		const tutanotaPropertiesSessionKey = aes128RandomKey()
+
+		const userEncCustomerGroupKey = encryptKeyWithVersionedKey(userGroupKey, customerGroupKey.object)
+		const userEncMailGroupKey = encryptKeyWithVersionedKey(userGroupKey, mailGroupKey.object)
+		const userEncContactGroupKey = encryptKeyWithVersionedKey(userGroupKey, contactGroupKey.object)
+		const userEncFileGroupKey = encryptKeyWithVersionedKey(userGroupKey, fileGroupKey.object)
+		const userEncTutanotaPropertiesSessionKey = encryptKeyWithVersionedKey(userGroupKey, tutanotaPropertiesSessionKey)
+		const userEncClientKey = encryptKeyWithVersionedKey(userGroupKey, clientKey)
 		const userEncEntropy = encryptBytes(userGroupKey.object, random.generateRandomData(32))
-		const userData = createUserAccountUserData({
+
+		const customerEncMailGroupInfoSessionKey = encryptKeyWithVersionedKey(customerGroupKey, mailGroupInfoSessionKey)
+		const customerEncContactGroupInfoSessionKey = encryptKeyWithVersionedKey(customerGroupKey, contactGroupInfoSessionKey)
+		const customerEncFileGroupInfoSessionKey = encryptKeyWithVersionedKey(customerGroupKey, fileGroupInfoSessionKey)
+
+		const contactEncContactListSessionKey = encryptKeyWithVersionedKey(contactGroupKey, contactListSessionKey)
+		const fileEncFileSystemSessionKey = encryptKeyWithVersionedKey(fileGroupKey, fileSystemSessionKey)
+		const mailEncMailBoxSessionKey = encryptKeyWithVersionedKey(mailGroupKey, mailboxSessionKey)
+
+		return createUserAccountUserData({
 			mailAddress: mailAddress,
 			encryptedName: encryptString(userGroupInfoSessionKey, userName),
 			salt: salt,
 			kdfVersion: kdfType,
+
 			verifier: createAuthVerifier(userPassphraseKey),
-			userEncClientKey: encryptKey(userGroupKey.object, clientKey),
 			pwEncUserGroupKey: encryptKey(userPassphraseKey, userGroupKey.object),
-			userEncCustomerGroupKey: encryptKey(userGroupKey.object, customerGroupKey.object),
-			userEncMailGroupKey: encryptKey(userGroupKey.object, mailGroupKey.object),
-			userEncContactGroupKey: encryptKey(userGroupKey.object, contactGroupKey.object),
-			userEncFileGroupKey: encryptKey(userGroupKey.object, fileGroupKey.object),
+
+			userEncCustomerGroupKey: userEncCustomerGroupKey.key,
+			userEncMailGroupKey: userEncMailGroupKey.key,
+			userEncContactGroupKey: userEncContactGroupKey.key,
+			userEncFileGroupKey: userEncFileGroupKey.key,
 			userEncEntropy: userEncEntropy,
-			userEncTutanotaPropertiesSessionKey: encryptKey(userGroupKey.object, tutanotaPropertiesSessionKey),
-			mailEncMailBoxSessionKey: encryptKey(mailGroupKey.object, mailboxSessionKey),
-			contactEncContactListSessionKey: encryptKey(contactGroupKey.object, contactListSessionKey),
-			fileEncFileSystemSessionKey: encryptKey(fileGroupKey.object, fileSystemSessionKey),
-			customerEncMailGroupInfoSessionKey: encryptKey(customerGroupKey.object, mailGroupInfoSessionKey),
-			customerEncContactGroupInfoSessionKey: encryptKey(customerGroupKey.object, contactGroupInfoSessionKey),
-			customerEncFileGroupInfoSessionKey: encryptKey(customerGroupKey.object, fileGroupInfoSessionKey),
-			userEncRecoverCode: recoverData.userEncRecoverCode,
+			userEncClientKey: userEncClientKey.key,
+			userEncTutanotaPropertiesSessionKey: userEncTutanotaPropertiesSessionKey.key,
+			userKeyVersion: userEncTutanotaPropertiesSessionKey.encryptingKeyVersion.toString(),
+
+			contactEncContactListSessionKey: contactEncContactListSessionKey.key,
+			contactGroupKeyVersion: contactEncContactListSessionKey.encryptingKeyVersion.toString(),
+
+			fileEncFileSystemSessionKey: fileEncFileSystemSessionKey.key,
+			fileGroupKeyVersion: fileEncFileSystemSessionKey.encryptingKeyVersion.toString(),
+
+			mailEncMailBoxSessionKey: mailEncMailBoxSessionKey.key,
+			mailGroupKeyVersion: mailEncMailBoxSessionKey.encryptingKeyVersion.toString(),
+
+			customerEncMailGroupInfoSessionKey: customerEncMailGroupInfoSessionKey.key,
+			customerEncContactGroupInfoSessionKey: customerEncContactGroupInfoSessionKey.key,
+			customerEncFileGroupInfoSessionKey: customerEncFileGroupInfoSessionKey.key,
+			customerKeyVersion: customerEncContactGroupInfoSessionKey.encryptingKeyVersion.toString(),
+
 			recoverCodeEncUserGroupKey: recoverData.recoverCodeEncUserGroupKey,
 			recoverCodeVerifier: recoverData.recoveryCodeVerifier,
-			contactGroupKeyVersion: contactGroupKey.version.toString(),
-			customerKeyVersion: customerGroupKey.version.toString(),
-			fileGroupKeyVersion: fileGroupKey.version.toString(),
-			mailGroupKeyVersion: mailGroupKey.version.toString(),
-			userKeyVersion: userGroupKey.version.toString(),
+			userEncRecoverCode: recoverData.userEncRecoverCode,
 		})
-		return userData
 	}
 
 	async generateContactFormUserAccountData(userGroupKey: Aes128Key, password: string): Promise<ContactFormUserData> {
@@ -300,6 +325,8 @@ export class UserManagementFacade {
 	}
 
 	// always pass the current user group key. if the key is rotated, the recovery code must be reencrypted.
+	// FIXME is this really what we decided? always reencrypting the recovery code? What exactly is our threat model here?
+	// If we don't reencrypt, we can store the user group key version to be able to find out who ever had access to it
 	generateRecoveryCode(userGroupKey: AesKey): RecoverData {
 		const recoveryCode = aes256RandomKey()
 		const userEncRecoverCode = encryptKey(userGroupKey, recoveryCode)

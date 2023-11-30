@@ -40,7 +40,7 @@ import { LockedError, NotFoundError, PayloadTooLargeError, TooManyRequestsError 
 import { SessionKeyNotFoundError } from "../../common/error/SessionKeyNotFoundError" // importing with {} from CJS modules is not supported for dist-builds currently (must be a systemjs builder bug)
 import { CryptoError } from "../../common/error/CryptoError"
 import { birthdayToIsoDate, oldBirthdayToBirthday } from "../../common/utils/BirthdayUtils"
-import type { Entity, SomeEntity, TypeModel } from "../../common/EntityTypes"
+import type { Entity, Instance, SomeEntity, TypeModel } from "../../common/EntityTypes"
 import { assertWorkerOrNode } from "../../common/Env"
 import type { EntityClient } from "../../common/EntityClient"
 import { RestClient } from "../rest/RestClient"
@@ -287,7 +287,7 @@ export class CryptoFacade {
 			// for symmetrically encrypted instances _ownerEncSessionKey is sent from the server.
 			// in this case it is not yet and we need to set it because the rest of the app expects it.
 			const groupKey = this.userFacade.getGroupKey(instance._ownerGroup)
-			this.setOwnerEncSessionKeyAndGroup(instance as UnmappedOwnerGroupInstance, encryptKeyWithVersionedKey(groupKey, resolvedSessionKeyForInstance))
+			this.setOwnerEncSessionKeyUnmapped(instance as UnmappedOwnerGroupInstance, encryptKeyWithVersionedKey(groupKey, resolvedSessionKeyForInstance))
 			return resolvedSessionKeyForInstance
 		} else {
 			throw new SessionKeyNotFoundError("no session key for instance " + instance._id)
@@ -372,6 +372,7 @@ export class CryptoFacade {
 	 * 						for which the KeyPair should be created.
 	 */
 	async getOrMakeSenderIdentityKeyPair(senderKeyPair: RsaEccKeyPair | RsaKeyPair | PQKeyPairs, keyGroupId?: Id): Promise<EccKeyPair> {
+		// FIXME: This whole function needs tested in tuta-crypt
 		if (senderKeyPair instanceof PQKeyPairs) {
 			return senderKeyPair.eccKeyPair
 		} else if (this.isRsaEccKeyPair(senderKeyPair)) {
@@ -409,7 +410,7 @@ export class CryptoFacade {
 
 	/**
 	 * Creates a new _ownerEncSessionKey and assigns it to the provided entity
-	 * the entity must already have an _ownerGroup
+	 * the entity must already have an _ownerGroup and must not have an _ownerEncSessionKey
 	 * @returns the generated key
 	 */
 	setNewOwnerEncSessionKey(model: TypeModel, entity: Record<string, any>, keyToEncryptSessionKey?: Versioned<AesKey>): AesKey | null {
@@ -425,8 +426,7 @@ export class CryptoFacade {
 			const sessionKey = aes128RandomKey()
 			const effectiveKeyToEncryptSessionKey = keyToEncryptSessionKey ?? this.userFacade.getGroupKey(entity._ownerGroup)
 			const encryptedSessionKey = encryptKeyWithVersionedKey(effectiveKeyToEncryptSessionKey, sessionKey)
-			entity._ownerEncSessionKey = encryptedSessionKey.key
-			entity._ownerKeyVersion = effectiveKeyToEncryptSessionKey.version.toString()
+			this.setOwnerEncSessionKey(entity as Instance, encryptedSessionKey)
 			return sessionKey
 		} else {
 			return null
@@ -447,7 +447,7 @@ export class CryptoFacade {
 
 		// EncryptTutanotaPropertiesService could be removed and replaced with a Migration that writes the key
 		const groupEncSessionKey = encryptKeyWithVersionedKey(userGroupKey, aes128RandomKey())
-		this.setOwnerEncSessionKeyAndGroup(data, groupEncSessionKey, this.userFacade.getUserGroupId())
+		this.setOwnerEncSessionKeyUnmapped(data, groupEncSessionKey, this.userFacade.getUserGroupId())
 		const migrationData = createEncryptTutanotaPropertiesData({
 			properties: data._id,
 			symKeyVersion: String(userGroupKey.version),
@@ -469,16 +469,21 @@ export class CryptoFacade {
 		const listKey = decryptKey(customerGroupKey.object, assertNotNull(customerGroupPermission.symEncSessionKey))
 		const groupInfoSk = decryptKey(listKey, base64ToUint8Array(data._listEncSessionKey))
 
-		this.setOwnerEncSessionKeyAndGroup(data, encryptKeyWithVersionedKey(customerGroupKey, groupInfoSk), customerGroupMembership.group)
+		this.setOwnerEncSessionKeyUnmapped(data, encryptKeyWithVersionedKey(customerGroupKey, groupInfoSk), customerGroupMembership.group)
 		return data
 	}
 
-	private setOwnerEncSessionKeyAndGroup(unmappedInstance: UnmappedOwnerGroupInstance, key: CiphertextKey, ownerGroup?: Id) {
+	private setOwnerEncSessionKeyUnmapped(unmappedInstance: UnmappedOwnerGroupInstance, key: CiphertextKey, ownerGroup?: Id) {
 		unmappedInstance._ownerEncSessionKey = uint8ArrayToBase64(key.key)
 		unmappedInstance._ownerKeyVersion = key.encryptingKeyVersion.toString()
 		if (ownerGroup) {
 			unmappedInstance._ownerGroup
 		}
+	}
+
+	private setOwnerEncSessionKey(instance: Instance, key: CiphertextKey) {
+		instance._ownerEncSessionKey = key.key
+		instance._ownerKeyVersion = key.encryptingKeyVersion.toString()
 	}
 
 	private isLiteralInstance(elementOrLiteral: Record<string, any>): boolean {
@@ -733,7 +738,7 @@ export class CryptoFacade {
 		ownerGroupKey: Versioned<Aes128Key>,
 		sessionKey: Aes128Key,
 	): Promise<void> {
-		this.setOwnerEncSessionKeyAndGroup(instance as UnmappedOwnerGroupInstance, encryptKeyWithVersionedKey(ownerGroupKey, sessionKey))
+		this.setOwnerEncSessionKeyUnmapped(instance as UnmappedOwnerGroupInstance, encryptKeyWithVersionedKey(ownerGroupKey, sessionKey))
 		// we have to call the rest client directly because instance is still the encrypted server-side version
 		const path = typeRefToPath(new TypeRef(typeModel.app, typeModel.name)) + "/" + (instance._id instanceof Array ? instance._id.join("/") : instance._id)
 		const headers = this.userFacade.createAuthHeaders()

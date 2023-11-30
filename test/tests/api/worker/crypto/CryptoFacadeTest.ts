@@ -316,6 +316,29 @@ o.spec("CryptoFacade", function () {
 		o(sessionKey).deepEquals(sk)
 	})
 
+	o.spec("setNewOwnerEncSessionKey", () => {
+		const typeModel = { encrypted: true } as TypeModel
+		let instance
+		let key
+		o.beforeEach(() => {
+			instance = {
+				_ownerGroup: "some group",
+				_ownerKeyVersion: null,
+				_ownerEncSessionKey: null,
+			}
+			key = { object: aes256RandomKey(), version: 7 }
+		})
+		o("with key passed in", () => {
+			const result = crypto.setNewOwnerEncSessionKey(typeModel, instance, key)
+			o(result).deepEquals(decryptKey(key.object, instance._ownerEncSessionKey))
+		})
+		o("with group key", () => {
+			when(userFacade.getGroupKey("some group")).thenReturn(key)
+			const result = crypto.setNewOwnerEncSessionKey(typeModel, instance)
+			o(result).deepEquals(decryptKey(key.object, instance._ownerEncSessionKey))
+		})
+	})
+
 	o.spec("encryptBucketKeyForInternalRecipient with existing PQKeys", () => {
 		o("sender and recipient", async () => {
 			const pqFacadeMock = instance(PQFacade)

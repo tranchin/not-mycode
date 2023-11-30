@@ -1,9 +1,10 @@
 import o from "@tutao/otest"
-import { decodePQMessage, encodePQMessage, PQMessage, PQMESSAGE_VERSION } from "../../../../../src/api/worker/facades/PQMessage.js"
+import { PQMessage, PQMESSAGE_VERSION, PQMessageCodec } from "../../../../../src/api/worker/facades/PQMessage.js"
 import { concat, stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
 import { assertThrows } from "@tutao/tutanota-test-utils"
 
 o.spec("PQMessage test", function () {
+	const codec = new PQMessageCodec()
 	o.spec("encodeDecodeRoundtrip", function () {
 		o("should lead to same result", async function () {
 			const pqMessage: PQMessage = {
@@ -16,7 +17,7 @@ o.spec("PQMessage test", function () {
 				},
 			}
 
-			var encodedPqMessage = encodePQMessage(pqMessage)
+			var encodedPqMessage = codec.encodePQMessage(pqMessage)
 
 			o(
 				concat(
@@ -32,11 +33,11 @@ o.spec("PQMessage test", function () {
 				),
 			).deepEquals(encodedPqMessage)
 
-			o(pqMessage).deepEquals(decodePQMessage(encodedPqMessage))
+			o(pqMessage).deepEquals(codec.decodePQMessage(encodedPqMessage))
 		})
 		o("decode errors due to bad input", async function () {
-			await assertThrows(Error, async () => decodePQMessage(new Uint8Array([])))
-			await assertThrows(Error, async () => decodePQMessage(new Uint8Array([123])))
+			await assertThrows(Error, async () => codec.decodePQMessage(new Uint8Array([])))
+			await assertThrows(Error, async () => codec.decodePQMessage(new Uint8Array([123])))
 		})
 		o("encode errors due to bad input", async function () {
 			const pqMessage: PQMessage = {
@@ -48,7 +49,7 @@ o.spec("PQMessage test", function () {
 					kekEncBucketKey: stringToUtf8Uint8Array("bucketKeyCipherText"),
 				},
 			}
-			await assertThrows(Error, async () => encodePQMessage(pqMessage))
+			await assertThrows(Error, async () => codec.encodePQMessage(pqMessage))
 		})
 	})
 })

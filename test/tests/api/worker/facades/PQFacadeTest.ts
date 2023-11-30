@@ -3,12 +3,13 @@ import { aes256RandomKey, bitArrayToUint8Array, generateEccKeyPair } from "@tuta
 import { PQFacade } from "../../../../../src/api/worker/facades/PQFacade.js"
 import { WASMKyberFacade } from "../../../../../src/api/worker/facades/KyberFacade.js"
 import { loadLibOQSWASM } from "../WASMTestUtils.js"
+import { PQMessageCodec } from "../../../../../src/api/worker/facades/PQMessage.js"
 
 o.spec("PQFacade test", function () {
 	o.spec("encapsulateDecapsulateRoundtrip", function () {
 		o("should lead to same result", async function () {
 			const kyberFacade = new WASMKyberFacade(await loadLibOQSWASM())
-			const pqFacade: PQFacade = new PQFacade(kyberFacade)
+			const pqFacade: PQFacade = new PQFacade(kyberFacade, new PQMessageCodec())
 
 			const senderIdentityKeyPair = generateEccKeyPair()
 			const ephemeralKeyPair = generateEccKeyPair()

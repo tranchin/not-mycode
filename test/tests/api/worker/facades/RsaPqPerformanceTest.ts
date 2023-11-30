@@ -11,7 +11,7 @@ import {
 } from "@tutao/tutanota-crypto"
 import { PQFacade } from "../../../../../src/api/worker/facades/PQFacade.js"
 import { WASMKyberFacade } from "../../../../../src/api/worker/facades/KyberFacade.js"
-import { decodePQMessage, encodePQMessage } from "../../../../../src/api/worker/facades/PQMessage.js"
+import { PQMessageCodec } from "../../../../../src/api/worker/facades/PQMessage.js"
 import { loadLibOQSWASM } from "../WASMTestUtils.js"
 
 const privateKey = hexToRsaPrivateKey(
@@ -33,7 +33,7 @@ o.spec("RsaPqPerformanceTest", function () {
 
 		o("pq", async function () {
 			const kyberFacade = new WASMKyberFacade(await loadLibOQSWASM())
-			const pqFacade: PQFacade = new PQFacade(kyberFacade)
+			const pqFacade: PQFacade = new PQFacade(kyberFacade, new PQMessageCodec())
 			const bucketKey = bitArrayToUint8Array(aes256RandomKey())
 
 			const senderIdentityKeyPair = generateEccKeyPair()
@@ -43,14 +43,14 @@ o.spec("RsaPqPerformanceTest", function () {
 			let pubEncBucketKey
 			for (let i = 0; i < iterations; i++) {
 				const ephemeralKeyPair = generateEccKeyPair()
-				pubEncBucketKey = encodePQMessage(await pqFacade.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, recipientKeys.toPublicKeys(), bucketKey))
+				pubEncBucketKey = await pqFacade.encapsulateEncoded(senderIdentityKeyPair, ephemeralKeyPair, recipientKeys.toPublicKeys(), bucketKey)
 			}
 			let end = window.performance.now()
 			console.log(formatNumber((end - start) / iterations) + "ms per pq encryption")
 
 			let decryptedBucketKey
 			for (let i = 0; i < iterations; i++) {
-				decryptedBucketKey = await pqFacade.decapsulate(decodePQMessage(pubEncBucketKey), recipientKeys)
+				decryptedBucketKey = await pqFacade.decapsulateEncoded(pubEncBucketKey, recipientKeys)
 			}
 			end = window.performance.now()
 			console.log(formatNumber((end - start) / iterations) + "ms per pq decryption")

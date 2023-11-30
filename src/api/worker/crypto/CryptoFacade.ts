@@ -79,8 +79,8 @@ import { elementIdPart } from "../../common/utils/EntityUtils.js"
 import { InstanceMapper } from "./InstanceMapper.js"
 import { OwnerEncSessionKeysUpdateQueue } from "./OwnerEncSessionKeysUpdateQueue.js"
 import { PQFacade } from "../facades/PQFacade.js"
-import { decodePQMessage, encodePQMessage } from "../facades/PQMessage.js"
 import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
+import { PQMessageCodec } from "../facades/PQMessage.js"
 
 assertWorkerOrNode()
 
@@ -102,6 +102,7 @@ export class CryptoFacade {
 		private readonly instanceMapper: InstanceMapper,
 		private readonly ownerEncSessionKeysUpdateQueue: OwnerEncSessionKeysUpdateQueue,
 		private readonly pq: PQFacade,
+		private readonly pqMessageCodec: PQMessageCodec,
 	) {}
 
 	async applyMigrationsForInstance<T>(decryptedInstance: T): Promise<T> {
@@ -148,9 +149,9 @@ export class CryptoFacade {
 
 	/** Resolve a session key an {@param instance} using an already known {@param ownerKey}. */
 	resolveSessionKeyWithOwnerKey(instance: Record<string, any>, ownerKey: AesKey): Aes128Key {
-		let key = instance._ownerEncSessionKey
+		let key: Uint8Array | string = instance._ownerEncSessionKey
 		if (typeof key === "string") {
-			key = base64ToUint8Array(instance._ownerEncSessionKey)
+			key = base64ToUint8Array(key)
 		}
 
 		return decryptKey(ownerKey, key)
@@ -297,17 +298,15 @@ export class CryptoFacade {
 	 * Returns the session key for the provided service response:
 	 * * null, if the instance is unencrypted
 	 * * the decrypted _ownerPublicEncSessionKey, if it is available
-	 * @param typeModel
 	 * @param instance The unencrypted (client-side) or encrypted (server-side) instance
-	 *
 	 */
-	async resolveServiceSessionKey(typeModel: TypeModel, instance: Record<string, any>): Promise<AesKey | null> {
+	async resolveServiceSessionKey(instance: Record<string, any>): Promise<AesKey | null> {
 		if (instance._ownerPublicEncSessionKey) {
 			const keypair = await this.userFacade.loadKeypair(instance._ownerGroup, Number(assertNotNull(instance._ownerKeyVersion)), this.entityClient)
 
 			let decryptedBytes: Uint8Array
 			if (keypair instanceof PQKeyPairs) {
-				decryptedBytes = await this.pq.decapsulate(decodePQMessage(base64ToUint8Array(instance._ownerPublicEncSessionKey)), keypair)
+				decryptedBytes = await this.pq.decapsulateEncoded(base64ToUint8Array(instance._ownerPublicEncSessionKey), keypair)
 			} else {
 				const privateKey = this.getPrivateKey(keypair)
 				decryptedBytes = await this.rsa.decrypt(privateKey, base64ToUint8Array(instance._ownerPublicEncSessionKey))
@@ -315,7 +314,7 @@ export class CryptoFacade {
 			return uint8ArrayToBitArray(decryptedBytes)
 		}
 
-		return Promise.resolve(null)
+		return null
 	}
 
 	async encryptBucketKeyForInternalRecipient(
@@ -341,7 +340,7 @@ export class CryptoFacade {
 					const senderIdentityKeyPair = await this.getOrMakeSenderIdentityKeyPair(senderKeyPair.object)
 					const ephemeralKeyPair = generateEccKeyPair()
 					senderKeyVersion = senderKeyPair.version.toString()
-					pubEncBucketKey = encodePQMessage(await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, recipientPubKey, uint8ArrayBucketKey))
+					pubEncBucketKey = await this.pq.encapsulateEncoded(senderIdentityKeyPair, ephemeralKeyPair, recipientPubKey, uint8ArrayBucketKey)
 				} else {
 					pubEncBucketKey = await this.rsa.encrypt(recipientPubKey, uint8ArrayBucketKey)
 					senderKeyVersion = "0"
@@ -633,7 +632,7 @@ export class CryptoFacade {
 	}> {
 		const keyPair = await this.userFacade.loadKeypair(keyPairGroupId, recipientKeyVersion, this.entityClient)
 		if (keyPair instanceof PQKeyPairs) {
-			const pqMessage = decodePQMessage(pubEncBucketKey)
+			const pqMessage = this.pqMessageCodec.decodePQMessage(pubEncBucketKey)
 			const decryptedBucketKey = await this.pq.decapsulate(pqMessage, keyPair)
 			return {
 				decryptedBucketKey: uint8ArrayToBitArray(decryptedBucketKey),

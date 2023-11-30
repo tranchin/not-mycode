@@ -16,18 +16,24 @@ import {
 } from "@tutao/tutanota-crypto"
 import { concat, stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
 import { KEY_LENGTH_BYTES_AES_256 } from "@tutao/tutanota-crypto/dist/encryption/Aes.js"
-import { PQMessage, PQMESSAGE_VERSION } from "./PQMessage.js"
+import { PQMessage, PQMESSAGE_VERSION, PQMessageCodec } from "./PQMessage.js"
 import { hkdf } from "@tutao/tutanota-crypto/dist/hashes/HKDF.js"
 
 export class PQFacade {
-	private kyberFacade: KyberFacade
-
-	constructor(kyberFacade: KyberFacade) {
-		this.kyberFacade = kyberFacade
-	}
+	constructor(private readonly kyberFacade: KyberFacade, private readonly pqMessageCodec: PQMessageCodec) {}
 
 	public async generateKeyPairs(): Promise<PQKeyPairs> {
 		return new PQKeyPairs(generateEccKeyPair(), await this.kyberFacade.generateKeypair())
+	}
+
+	public async encapsulateEncoded(
+		senderIdentityKeyPair: EccKeyPair,
+		ephemeralKeyPair: EccKeyPair,
+		recipientPublicKeys: PQPublicKeys,
+		bucketKey: Uint8Array,
+	): Promise<Uint8Array> {
+		const encapsulated = await this.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, recipientPublicKeys, bucketKey)
+		return this.pqMessageCodec.encodePQMessage(encapsulated)
 	}
 
 	public async encapsulate(
@@ -61,6 +67,11 @@ export class PQFacade {
 				kekEncBucketKey: kekEncBucketKey,
 			},
 		}
+	}
+
+	public async decapsulateEncoded(encodedPQMessage: Uint8Array, recipientKeys: PQKeyPairs): Promise<Uint8Array> {
+		const decoded = this.pqMessageCodec.decodePQMessage(encodedPQMessage)
+		return this.decapsulate(decoded, recipientKeys)
 	}
 
 	public async decapsulate(message: PQMessage, recipientKeys: PQKeyPairs): Promise<Uint8Array> {

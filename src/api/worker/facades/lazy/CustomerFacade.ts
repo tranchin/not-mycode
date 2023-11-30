@@ -56,7 +56,6 @@ import { UserFacade } from "../UserFacade.js"
 import { PaymentInterval } from "../../../../subscription/PriceUtils.js"
 import { ExposedOperationProgressTracker, OperationId } from "../../../main/OperationProgressTracker.js"
 import { formatNameAndAddress } from "../../../common/utils/CommonFormatter.js"
-import { encodePQMessage } from "../PQMessage.js"
 import { PQFacade } from "../PQFacade.js"
 
 assertWorkerOrNode()
@@ -138,8 +137,11 @@ export class CustomerFacade {
 			)
 			const senderIdentityKeyPair = await this.cryptoFacade.getOrMakeSenderIdentityKeyPair(senderKeyPair)
 			const ephemeralKeyPair = generateEccKeyPair()
-			systemAdminPubEncAccountingInfoSessionKey = encodePQMessage(
-				await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, systemAdminPubKey, bitArrayToUint8Array(sessionKey)),
+			systemAdminPubEncAccountingInfoSessionKey = await this.pq.encapsulateEncoded(
+				senderIdentityKeyPair,
+				ephemeralKeyPair,
+				systemAdminPubKey,
+				bitArrayToUint8Array(sessionKey),
 			)
 		} else {
 			systemAdminPubEncAccountingInfoSessionKey = await this.rsa.encrypt(systemAdminPubKey, bitArrayToUint8Array(sessionKey))
@@ -296,8 +298,11 @@ export class CustomerFacade {
 		if (systemAdminPubKey instanceof PQPublicKeys) {
 			const senderIdentityKeyPair = generateEccKeyPair() // TODO use real users keypair after switching to pq here
 			const ephemeralKeyPair = generateEccKeyPair()
-			systemAdminPubEncAccountingInfoSessionKey = encodePQMessage(
-				await this.pq.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, systemAdminPubKey, bitArrayToUint8Array(accountingInfoSessionKey)),
+			systemAdminPubEncAccountingInfoSessionKey = await this.pq.encapsulateEncoded(
+				senderIdentityKeyPair,
+				ephemeralKeyPair,
+				systemAdminPubKey,
+				bitArrayToUint8Array(accountingInfoSessionKey),
 			)
 		} else {
 			systemAdminPubEncAccountingInfoSessionKey = await this.rsa.encrypt(systemAdminPubKey, bitArrayToUint8Array(accountingInfoSessionKey))

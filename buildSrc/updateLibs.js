@@ -30,6 +30,7 @@ const clientDependencies = [
 	{ src: "../node_modules/linkifyjs/dist/linkify-html.module.js", target: "linkify-html.js" },
 	"../node_modules/luxon/build/es6/luxon.js",
 	{ src: "../node_modules/cborg/esm/cborg.js", target: "cborg.js", rollup: true },
+	{ src: "../node_modules/@noble/curves/esm/ed25519.js", target: "ed25519.js", rollup: rollDesktopDep },
 	{ src: "../node_modules/electron-updater/out/main.js", target: "electron-updater.mjs", rollup: rollDesktopDep },
 	{ src: "../node_modules/better-sqlite3/lib/index.js", target: "better-sqlite3.mjs", rollup: rollDesktopDep },
 	{ src: "../node_modules/keytar/lib/keytar.js", target: "keytar.mjs", rollup: rollDesktopDep },

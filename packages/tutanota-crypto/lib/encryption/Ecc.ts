@@ -1,4 +1,4 @@
-import { x25519 } from "@noble/curves/ed25519"
+import { x25519 } from "../internal/ed25519.js"
 import { random } from "../random/Randomizer.js"
 
 export type EccPrivateKey = Uint8Array
@@ -81,7 +81,7 @@ function generateSharedSecret(localPrivateKey: EccPrivateKey, remotePublicKey: E
 	const sharedSecret = x25519.getSharedSecret(localPrivateKey, remotePublicKey)
 
 	// if every byte somehow happens to be 0, we can't use this as a secret; this is astronomically unlikely to happen by chance
-	if (sharedSecret.every((val) => val === 0)) {
+	if (sharedSecret.every((val: number) => val === 0)) {
 		throw new Error("can't get shared secret: bad key inputs")
 	}
 

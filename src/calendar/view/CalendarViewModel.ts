@@ -55,6 +55,7 @@ import { DeviceConfig } from "../../misc/DeviceConfig"
 import type { EventDragHandlerCallbacks } from "./EventDragHandler"
 import { ProgrammingError } from "../../api/common/error/ProgrammingError.js"
 import { CalendarEventPreviewViewModel } from "./eventpopup/CalendarEventPreviewViewModel.js"
+import { Time } from "../date/Time.js"
 
 export type EventsOnDays = {
 	days: Array<Date>
@@ -83,6 +84,7 @@ export type CalendarEventPreviewModelFactory = (
 export class CalendarViewModel implements EventDragHandlerCallbacks {
 	// Should not be changed directly but only through the URL
 	readonly selectedDate: Stream<Date>
+	readonly selectedTime: Stream<Time | undefined>
 
 	/** Mmap from group/groupRoot ID to the calendar info */
 	_calendarInfos: LazyLoaded<ReadonlyMap<Id, CalendarInfo>>
@@ -131,6 +133,7 @@ export class CalendarViewModel implements EventDragHandlerCallbacks {
 		this._deviceConfig = deviceConfig
 		this._hiddenCalendars = new Set(this._deviceConfig.getHiddenCalendars(userId))
 		this.selectedDate = stream(getStartOfDay(new Date()))
+		this.selectedTime = stream(undefined)
 		this._redrawStream = stream()
 		this._draggedEvent = null
 		this._calendarInvitations = calendarInvitations

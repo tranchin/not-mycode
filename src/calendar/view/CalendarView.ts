@@ -6,7 +6,7 @@ import { ViewSlider } from "../../gui/nav/ViewSlider.js"
 import type { Shortcut } from "../../misc/KeyManager"
 import { keyManager } from "../../misc/KeyManager"
 import { Icons } from "../../gui/base/icons/Icons"
-import { assertNotNull, downcast, getStartOfDay, memoized, ofClass } from "@tutao/tutanota-utils"
+import { assertNotNull, downcast, getStartOfDay, isSameDayOfDate, memoized, ofClass } from "@tutao/tutanota-utils"
 import type { CalendarEvent, GroupSettings, UserSettingsGroupRoot } from "../../api/entities/tutanota/TypeRefs.js"
 import { createGroupSettings } from "../../api/entities/tutanota/TypeRefs.js"
 import { defaultCalendarColor, GroupType, Keys, reverse, ShareCapability, TimeFormat, WeekStart } from "../../api/common/TutanotaConstants"
@@ -57,6 +57,7 @@ import { CalendarDesktopToolbar } from "./CalendarDesktopToolbar.js"
 import { CalendarOperation } from "../date/eventeditor/CalendarEventModel.js"
 import { DaySelectorPopup } from "../date/DaySelectorPopup.js"
 import { DaySelectorSidebar } from "../date/DaySelectorSidebar.js"
+import { Time } from "../date/Time.js"
 
 export type GroupColors = Map<Id, string>
 
@@ -757,6 +758,15 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 				}
 			}
 
+			if (args.time) {
+				const argsTime = args.time as string
+				const timeUnits: string[] = argsTime.split("-")
+				const time = Time.parseFromString(argsTime.replaceAll("-", ":"))
+				if (time !== null) {
+					this.viewModel.selectedTime(time)
+				}
+			}
+
 			deviceConfig.setDefaultCalendarView(locator.logins.getUserController().user._id, this.currentViewType)
 		}
 	}
@@ -766,17 +776,33 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 	}
 
 	_setUrl(view: string, date: Date, replace: boolean = false) {
+		const isToday = isSameDayOfDate(date, new Date())
 		const dateString = DateTime.fromJSDate(date).toISODate()
-		m.route.set(
-			"/calendar/:view/:date",
-			{
-				view,
-				date: dateString,
-			},
-			{
-				replace,
-			},
-		)
+		if (isToday) {
+			const timeString = `${date.getHours()}-${date.getMinutes()}`
+			m.route.set(
+				"/calendar/:view/:date/:time",
+				{
+					view,
+					date: dateString,
+					time: timeString,
+				},
+				{
+					replace,
+				},
+			)
+		} else {
+			m.route.set(
+				"/calendar/:view/:date",
+				{
+					view,
+					date: dateString,
+				},
+				{
+					replace,
+				},
+			)
+		}
 	}
 
 	async _onEventSelected(selectedEvent: CalendarEvent, domEvent: MouseOrPointerEvent, htmlSanitizerPromise: Promise<HtmlSanitizer>) {

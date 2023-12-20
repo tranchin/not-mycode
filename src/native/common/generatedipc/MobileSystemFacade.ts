@@ -1,6 +1,7 @@
 /* generated file, don't edit. */
 
 import { NativeContact } from "./NativeContact.js"
+
 /**
  * Common operations implemented by each mobile platform.
  */

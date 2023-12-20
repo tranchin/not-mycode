@@ -49,16 +49,7 @@ export {
 	aes256DecryptLegacyRecoveryKey,
 } from "./encryption/KeyEncryption.js"
 export { Randomizer, random } from "./random/Randomizer.js"
-export {
-	encode,
-	generateRsaKey,
-	hexToRsaPublicKey,
-	rsaDecrypt,
-	hexToRsaPrivateKey,
-	rsaPrivateKeyToHex,
-	rsaPublicKeyToHex,
-	rsaEncrypt,
-} from "./encryption/Rsa.js"
+export { encode, hexToRsaPublicKey, rsaDecrypt, hexToRsaPrivateKey, rsaPrivateKeyToHex, rsaPublicKeyToHex, rsaEncrypt } from "./encryption/Rsa.js"
 export { RsaKeyPair, RsaEccKeyPair, RsaPrivateKey, RsaPublicKey } from "./encryption/RsaKeyPair.js"
 export {
 	KeyPairType,

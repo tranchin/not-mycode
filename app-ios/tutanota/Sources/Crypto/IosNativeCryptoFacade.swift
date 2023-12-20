@@ -39,11 +39,6 @@ actor IosNativeCryptoFacade: NativeCryptoFacade {
     return plaintextPath
   }
 
-  func generateRsaKey(_ seed: DataWrapper) async throws -> RsaKeyPair {
-    let tutKeyPair = try self.crypto.generateRsaKey(withSeed: seed.data)
-    return RsaKeyPair(tutKeyPair)
-  }
-
   func rsaEncrypt(
     _ publicKey: RsaPublicKey,
     _ data: DataWrapper,
@@ -65,7 +60,7 @@ actor IosNativeCryptoFacade: NativeCryptoFacade {
         data: data.data
       ).wrap()
     }
-  
+
   func argon2idHashRaw(
     _ password: DataWrapper,
     _ salt: DataWrapper,
@@ -83,15 +78,15 @@ actor IosNativeCryptoFacade: NativeCryptoFacade {
       withMemoryCost: UInt(memoryCost)
     ).wrap()
   }
-  
+
   func generateKyberKeypair(_ seed: DataWrapper) async throws -> KyberKeyPair {
     return tutanota.generateKyberKeypair(withSeed: seed.data)
   }
-  
+
   func kyberEncapsulate(_ publicKey: KyberPublicKey, _ seed: DataWrapper) async throws -> KyberEncapsulation {
     return try tutanota.kyberEncapsulate(publicKey: publicKey, withSeed: seed.data)
   }
-  
+
   func kyberDecapsulate(_ privateKey: KyberPrivateKey, _ ciphertext: DataWrapper) async throws -> DataWrapper {
     return try tutanota.kyberDecapsulate(ciphertext: ciphertext.data, withPrivateKey: privateKey)
   }

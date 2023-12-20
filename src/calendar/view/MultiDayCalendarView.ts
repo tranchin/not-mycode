@@ -1,5 +1,5 @@
 import m, { Children, Component, Vnode, VnodeDOM } from "mithril"
-import { getStartOfDay, incrementDate, isToday, lastThrow, neverNull, ofClass } from "@tutao/tutanota-utils"
+import { getStartOfDay, incrementDate, isToday, lastThrow, neverNull, ofClass, remove } from "@tutao/tutanota-utils"
 import { formatShortTime, formatTime } from "../../misc/Formatter"
 import {
 	CALENDAR_EVENT_HEIGHT,
@@ -41,6 +41,7 @@ import { isAllDayEvent } from "../../api/common/utils/CommonCalendarUtils"
 import { locator } from "../../api/main/MainLocator.js"
 import { DateTime } from "luxon"
 import { DaySelector } from "../date/DaySelector.js"
+import { Time } from "../date/Time.js"
 
 export type Attrs = {
 	selectedDate: Date
@@ -57,6 +58,7 @@ export type Attrs = {
 	dragHandlerCallbacks: EventDragHandlerCallbacks
 	eventsForDays: ReadonlyMap<number, Array<CalendarEvent>>
 	isDaySelectorExpanded: boolean
+	selectedTime?: Time
 }
 
 export class MultiDayCalendarView implements Component<Attrs> {
@@ -100,6 +102,7 @@ export class MultiDayCalendarView implements Component<Attrs> {
 		)
 		const currentPageEvents = this.getEventsForWeek(attrs.startOfTheWeek, attrs.selectedDate, attrs.getEventsOnDays, attrs.daysInPeriod, startOfThisPeriod)
 		const nextPageEvents = this.getEventsForWeek(attrs.startOfTheWeek, attrs.selectedDate, attrs.getEventsOnDays, attrs.daysInPeriod, startOfNextPeriod)
+
 		const weekEvents = this.getEventsForWeek(attrs.startOfTheWeek, attrs.selectedDate, attrs.getEventsOnDays, 7)
 
 		return m(".flex.col.fill-absolute", [
@@ -240,7 +243,14 @@ export class MultiDayCalendarView implements Component<Attrs> {
 					".flex.scroll-no-overlay.content-bg",
 					{
 						oncreate: (vnode) => {
-							vnode.dom.scrollTop = this._scrollPosition
+							if (attrs.selectedTime) {
+								this.scrollPosition = size.calendar_hour_height * attrs.selectedTime.hour
+							}
+							vnode.dom.scrollTop = this.scrollPosition
+
+							for (const dom of this._domElements) {
+								dom.scrollTop = this._scrollPosition
+							}
 
 							this._domElements.push(vnode.dom as HTMLElement)
 						},
@@ -254,6 +264,10 @@ export class MultiDayCalendarView implements Component<Attrs> {
 
 								this._scrollPosition = (event.target as HTMLElement).scrollTop
 							}
+						},
+						onremove: (vnode) => {
+							remove(this.domElements, vnode.dom as HTMLElement)
+							this.domElements
 						},
 					},
 					[

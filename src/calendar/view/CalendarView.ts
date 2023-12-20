@@ -223,6 +223,7 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 									dragHandlerCallbacks: this.viewModel,
 									isDaySelectorExpanded: this.isDaySelectorExpanded,
 									eventsForDays: this.viewModel.eventsForDays,
+									selectedTime: this.viewModel.selectedTime(),
 								}),
 							})
 
@@ -250,6 +251,7 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 									dragHandlerCallbacks: this.viewModel,
 									isDaySelectorExpanded: this.isDaySelectorExpanded,
 									eventsForDays: this.viewModel.eventsForDays,
+									selectedTime: this.viewModel.selectedTime(),
 								}),
 							})
 
@@ -739,6 +741,18 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 		} else {
 			// @ts-ignore
 			this.currentViewType = CalendarViewTypeByValue[args.view] ? args.view : CalendarViewType.MONTH
+
+			if (args.time) {
+				const argsTime = args.time as string
+				const timeUnits: string[] = argsTime.split("-")
+				const time = Time.parseFromString(argsTime.replaceAll("-", ":"))
+				if (time !== null) {
+					this.viewModel.selectedTime(time)
+				}
+			} else {
+				this.viewModel.selectedTime(undefined)
+			}
+
 			const urlDateParam = args.date
 
 			if (urlDateParam) {
@@ -758,15 +772,6 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 				}
 			}
 
-			if (args.time) {
-				const argsTime = args.time as string
-				const timeUnits: string[] = argsTime.split("-")
-				const time = Time.parseFromString(argsTime.replaceAll("-", ":"))
-				if (time !== null) {
-					this.viewModel.selectedTime(time)
-				}
-			}
-
 			deviceConfig.setDefaultCalendarView(locator.logins.getUserController().user._id, this.currentViewType)
 		}
 	}
@@ -776,10 +781,10 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 	}
 
 	_setUrl(view: string, date: Date, replace: boolean = false) {
-		const isToday = isSameDayOfDate(date, new Date())
+		const today = new Date()
 		const dateString = DateTime.fromJSDate(date).toISODate()
-		if (isToday) {
-			const timeString = `${date.getHours()}-${date.getMinutes()}`
+		if (isSameDayOfDate(date, today)) {
+			const timeString = `${today.getHours()}-${today.getMinutes()}`
 			m.route.set(
 				"/calendar/:view/:date/:time",
 				{

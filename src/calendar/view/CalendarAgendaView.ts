@@ -16,9 +16,11 @@ import { DaySelector } from "../date/DaySelector.js"
 import { CalendarEventPreviewViewModel } from "./eventpopup/CalendarEventPreviewViewModel.js"
 import { EventDetailsView } from "./EventDetailsView.js"
 import { getElementId, getListId } from "../../api/common/utils/EntityUtils.js"
+import { Time } from "../date/Time.js"
 
 export type CalendarAgendaViewAttrs = {
 	selectedDate: Date
+	selectedTime?: Time
 	/**
 	 * maps start of day timestamp to events on that day
 	 */
@@ -37,6 +39,8 @@ export type CalendarAgendaViewAttrs = {
 }
 
 export class CalendarAgendaView implements Component<CalendarAgendaViewAttrs> {
+	private scrollPosition: number = 0
+
 	view({ attrs }: Vnode<CalendarAgendaViewAttrs>): Children {
 		const selectedDate = attrs.selectedDate
 
@@ -185,28 +189,40 @@ export class CalendarAgendaView implements Component<CalendarAgendaViewAttrs> {
 
 	private renderEventsForDay(events: readonly CalendarEvent[], zone: string, attrs: CalendarAgendaViewAttrs) {
 		const { selectedDate: day, groupColors: colors, onEventClicked: click, eventPreviewModel: modelPromise } = attrs
-		return events.length === 0
-			? m(".mb-s", lang.get("noEntries_msg"))
-			: m(
-					".flex.col",
-					{
-						style: {
-							gap: "3px",
-						},
-					},
-					events.map((event) => {
-						return m(CalendarAgendaItemView, {
-							key: getListId(event) + getElementId(event) + event.startTime.toISOString(),
-							event: event,
-							color: getEventColor(event, colors),
-							selected: event === attrs.eventPreviewModel?.calendarEvent,
-							click: (domEvent) => {
-								attrs.onEventClicked(event, domEvent)
+		const agendaItemHeight = 62
+		const agendaGap = 3
+		const currentTime = new Date()
+		let newScrollPosition = 0
+		const returnChildren =
+			events.length === 0
+				? m(".mb-s", lang.get("noEntries_msg"))
+				: m(
+						".flex.col",
+						{
+							style: {
+								gap: px(agendaGap),
 							},
-							zone,
-							day: day,
-						})
-					}),
-			  )
+						},
+						events.map((event) => {
+							if (event.startTime < currentTime) {
+								newScrollPosition += agendaItemHeight + agendaGap
+							}
+							return m(CalendarAgendaItemView, {
+								key: getListId(event) + getElementId(event) + event.startTime.toISOString(),
+								event: event,
+								color: getEventColor(event, colors),
+								selected: event === attrs.eventPreviewModel?.calendarEvent,
+								click: (domEvent) => {
+									attrs.onEventClicked(event, domEvent)
+								},
+								zone,
+								day: day,
+								height: agendaItemHeight,
+							})
+						}),
+				  )
+		// one agenda item height needs to be removed to show the correct item
+		this.scrollPosition = newScrollPosition - (agendaItemHeight + agendaGap)
+		return returnChildren
 	}
 }

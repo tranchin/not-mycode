@@ -262,6 +262,7 @@ export class CalendarView extends BaseTopLevelView implements TopLevelView<Calen
 								mobileHeader: () => this.renderMobileHeader(vnode.attrs.header),
 								columnLayout: m(CalendarAgendaView, {
 									selectedDate: this.viewModel.selectedDate(),
+									selectedTime: this.viewModel.selectedTime(),
 									eventsForDays: this.viewModel.eventsForDays,
 									amPmFormat: shouldDefaultToAmPmTimeFormat(),
 									onEventClicked: (event, domEvent) => {

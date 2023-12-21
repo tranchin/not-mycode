@@ -6,6 +6,7 @@ import { stateBgHover } from "../../gui/builtinThemes.js"
 import { theme } from "../../gui/theme.js"
 import { styles } from "../../gui/styles.js"
 import { DefaultAnimationTime } from "../../gui/animation/Animations.js"
+import { px } from "../../gui/size.js"
 
 interface CalendarAgendaItemViewAttrs {
 	day: Date
@@ -14,6 +15,7 @@ interface CalendarAgendaItemViewAttrs {
 	color: string
 	click: (domEvent: MouseEvent) => unknown
 	selected?: boolean
+	height?: number
 }
 
 export class CalendarAgendaItemView implements Component<CalendarAgendaItemViewAttrs> {
@@ -26,6 +28,7 @@ export class CalendarAgendaItemView implements Component<CalendarAgendaItemViewA
 				style: {
 					transition: `background ${DefaultAnimationTime}ms`,
 					background: styles.isDesktopLayout() ? (attrs.selected ? stateBgHover : theme.list_bg) : undefined,
+					height: attrs.height ? px(attrs.height) : undefined,
 				},
 			},
 			[

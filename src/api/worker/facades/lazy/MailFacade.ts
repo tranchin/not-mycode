@@ -105,6 +105,7 @@ import {
 	aes256RandomKey,
 	bitArrayToUint8Array,
 	createAuthVerifier,
+	CryptoError,
 	decryptKey,
 	encryptKey,
 	generateRandomSalt,
@@ -898,8 +899,15 @@ export class MailFacade {
 				const instanceSessionKey = assertNotNull(
 					bucketKey.bucketEncSessionKeys.find((instanceSessionKey) => instanceElementId === instanceSessionKey.instanceId),
 				)
-				const decryptedSessionKey = decryptKey(await decBucketKey(), instanceSessionKey.symEncSessionKey)
-				return encryptKey(this.userFacade.getGroupKey(mailOwnerGroupId), decryptedSessionKey)
+				try {
+					const decryptedSessionKey = decryptKey(await decBucketKey(), instanceSessionKey.symEncSessionKey)
+					return encryptKey(this.userFacade.getGroupKey(mailOwnerGroupId), decryptedSessionKey)
+				} catch (e) {
+					if (e instanceof CryptoError) {
+						console.error(`CryptoError when decrypting/encrypting session key for instance ${instanceElementId} for mail ${mail._id}: ${e}`)
+					}
+					throw e
+				}
 			}
 		}
 		return await this.entityClient.loadMultiple(FileTypeRef, attachmentsListId, attachmentElementIds, ownerEncSessionKeyProvider)

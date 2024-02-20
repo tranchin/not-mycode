@@ -41,6 +41,8 @@ interface ConfigObject {
 	hasParticipatedInCredentialsMigration: boolean
 	// Stores each users' definition about contact synchronization
 	syncContactsWithPhonePreference: Record<Id, boolean>
+	// True if the app has already been run after install
+	isSetupComplete: boolean
 }
 
 /**
@@ -95,6 +97,7 @@ export class DeviceConfig implements CredentialsStorage, UsageTestStorage, NewsI
 			conversationViewShowOnlySelectedMail: loadedConfig.conversationViewShowOnlySelectedMail ?? false,
 			hasParticipatedInCredentialsMigration: loadedConfig.hasParticipatedInCredentialsMigration ?? false,
 			syncContactsWithPhonePreference: loadedConfig.syncContactsWithPhonePreference ?? {},
+			isSetupComplete: loadedConfig.isSetupComplete ?? false,
 		}
 
 		// We need to write the config if there was a migration and if we generate the signup token and if.
@@ -163,6 +166,15 @@ export class DeviceConfig implements CredentialsStorage, UsageTestStorage, NewsI
 
 	setNoAlarmsScheduled() {
 		this.config.scheduledAlarmModelVersionPerUser = {}
+		this.writeToStorage()
+	}
+
+	getIsSetupComplete(): boolean {
+		return this.config.isSetupComplete ?? false
+	}
+
+	setIsSetupComplete(value: boolean): void {
+		this.config.isSetupComplete = value
 		this.writeToStorage()
 	}
 

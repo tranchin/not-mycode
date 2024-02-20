@@ -100,6 +100,7 @@ o.spec("DeviceConfig", function () {
 				conversationViewShowOnlySelectedMail: false,
 				hasParticipatedInCredentialsMigration: false,
 				syncContactsWithPhonePreference: {},
+				isSetupComplete: true,
 			}
 
 			when(localStorageMock.getItem(DeviceConfig.LocalStorageKey)).thenReturn(JSON.stringify(storedInLocalStorage))
@@ -125,6 +126,7 @@ o.spec("DeviceConfig", function () {
 					},
 				},
 				hasParticipatedInCredentialsMigration: false,
+				isSetupComplete: true,
 			})
 
 			// We can't just call verify on localStorageMock.setItem because the JSON string may not match perfectly

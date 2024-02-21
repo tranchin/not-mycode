@@ -1,24 +1,26 @@
-import m, { Children, Vnode } from "mithril"
+import m, { Children, VnodeDOM } from "mithril"
 import { WizardPageAttrs, WizardPageN } from "../../base/WizardDialog.js"
+import { renderNextButton } from "../SetupWizard.js"
+import { Icon } from "../../base/Icon.js"
+import { Icons } from "../../base/icons/Icons.js"
 
-// TODO: Replace this placeholder with the final page.
 export class SetupCongratulationsPage implements WizardPageN<null> {
-	view({ attrs }: Vnode<WizardPageAttrs<null>>): Children {
-		return [
-			m(".center.h4.pt", "Welcome to Tuta Mail!"),
-			m(
-				".flex-center.full-width.pt-l",
-				m(
-					"p",
-					{
-						style: {
-							width: "260px",
-						},
-					},
-					"Please take a few moments to customise the app to your liking.",
-				),
-			),
-		]
+	private dom!: HTMLElement
+
+	oncreate(vnode: VnodeDOM<WizardPageAttrs<null>>) {
+		this.dom = vnode.dom as HTMLElement
+	}
+
+	view(): Children {
+		return m("section.full-height.center", [
+			m(Icon, {
+				icon: Icons.Notifications,
+				large: true,
+			}),
+			m("h2.pt", "Welcome to Tuta Mail!"),
+			m("p.full-width.pt-l", {}, "Please take a few moments to customise the app to your liking."),
+			renderNextButton(this.dom),
+		])
 	}
 }
 
@@ -28,7 +30,7 @@ export class SetupCongratulationsPageAttrs implements WizardPageAttrs<null> {
 	data: null = null
 
 	headerTitle(): string {
-		return "Welcome to Tuta Mail!"
+		return "Welcome!"
 	}
 
 	nextAction(showDialogs: boolean): Promise<boolean> {

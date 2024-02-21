@@ -1,8 +1,20 @@
-import { createWizardDialog, wizardPageWrapper } from "../base/WizardDialog.js"
+import { createWizardDialog, emitWizardEvent, WizardEventType, wizardPageWrapper } from "../base/WizardDialog.js"
 import { defer } from "@tutao/tutanota-utils"
 import { SetupCongratulationsPage, SetupCongratulationsPageAttrs } from "./setupwizardpages/SetupCongraulationsPage.js"
-import { isApp } from "../../api/common/Env.js"
 import { deviceConfig } from "../../misc/DeviceConfig.js"
+import m from "mithril"
+import { LoginButton } from "../base/buttons/LoginButton.js"
+import { isApp } from "../../api/common/Env.js"
+
+export function renderNextButton(dom: HTMLElement) {
+	return m(LoginButton, {
+		label: () => "Next",
+		class: "wizard-next-button",
+		onclick: () => {
+			emitWizardEvent(dom, WizardEventType.SHOW_NEXT_PAGE)
+		},
+	})
+}
 
 // Show the onboarding wizard if this is the first time the app has been opened since install
 export async function showSetupWizardIfNeeded(): Promise<void> {

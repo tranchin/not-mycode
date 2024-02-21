@@ -248,8 +248,9 @@ export class UserManagementFacade {
 		userName: string,
 		recoverData: RecoverData,
 	): Promise<UserAccountUserData> {
+		const kdfType = DEFAULT_KDF_TYPE
 		const salt = generateRandomSalt()
-		const userPassphraseKey = await this.loginFacade.deriveUserPassphraseKey(kdfType, password, salt)
+		const userPassphraseKey = await this.loginFacade.deriveUserPassphraseKey({ kdfType, passphrase, salt })
 		const mailGroupKey = freshVersioned(aes256RandomKey())
 		const contactGroupKey = freshVersioned(aes256RandomKey())
 		const fileGroupKey = freshVersioned(aes256RandomKey())

@@ -19,11 +19,11 @@ import {
 	uint8ArrayToKey,
 } from "@tutao/tutanota-crypto"
 import { concat, stringToUtf8Uint8Array } from "@tutao/tutanota-utils"
-import { PQMessage } from "./PQMessage.js"
+import { decodePQMessage, encodePQMessage, PQMessage } from "./PQMessage.js"
 import { CryptoProtocolVersion } from "../../common/TutanotaConstants.js"
 
 export class PQFacade {
-	constructor(private readonly kyberFacade: KyberFacade, private readonly pqMessageCodec: PQMessageCodec) {}
+	constructor(private readonly kyberFacade: KyberFacade) {}
 
 	public async generateKeyPairs(): Promise<PQKeyPairs> {
 		return {
@@ -40,7 +40,7 @@ export class PQFacade {
 		bucketKey: Uint8Array,
 	): Promise<Uint8Array> {
 		const encapsulated = await this.encapsulate(senderIdentityKeyPair, ephemeralKeyPair, recipientPublicKeys, bucketKey)
-		return this.pqMessageCodec.encodePQMessage(encapsulated)
+		return encodePQMessage(encapsulated)
 	}
 
 	public async encapsulate(
@@ -75,7 +75,7 @@ export class PQFacade {
 	}
 
 	public async decapsulateEncoded(encodedPQMessage: Uint8Array, recipientKeys: PQKeyPairs): Promise<Uint8Array> {
-		const decoded = this.pqMessageCodec.decodePQMessage(encodedPQMessage)
+		const decoded = decodePQMessage(encodedPQMessage)
 		return this.decapsulate(decoded, recipientKeys)
 	}
 

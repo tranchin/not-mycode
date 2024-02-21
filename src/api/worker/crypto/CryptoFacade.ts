@@ -43,6 +43,8 @@ import {
 	ContactTypeRef,
 	createEncryptTutanotaPropertiesData,
 	createInternalRecipientKeyData,
+	createSymEncInternalRecipientKeyData,
+	File,
 	FileTypeRef,
 	InternalRecipientKeyData,
 	Mail,
@@ -68,7 +70,6 @@ import {
 	bitArrayToUint8Array,
 	bytesToKyberPublicKey,
 	decryptKey,
-	decryptKeyPair,
 	EccKeyPair,
 	EccPublicKey,
 	ENABLE_MAC,
@@ -83,10 +84,7 @@ import {
 	isRsaPublicKey,
 	IV_BYTE_LENGTH,
 	KeyPairType,
-	PQKeyPairs,
 	random,
-	RsaEccKeyPair,
-	RsaKeyPair,
 	RsaPrivateKey,
 	sha256Hash,
 	uint8ArrayToBitArray,
@@ -101,7 +99,7 @@ import { elementIdPart, getElementId, getListId } from "../../common/utils/Entit
 import { InstanceMapper } from "./InstanceMapper.js"
 import { OwnerEncSessionKeysUpdateQueue } from "./OwnerEncSessionKeysUpdateQueue.js"
 import { PQFacade } from "../facades/PQFacade.js"
-import { decodePQMessage, encodePQMessage, PQMessageCodec } from "../facades/PQMessage.js"
+import { decodePQMessage, encodePQMessage } from "../facades/PQMessage.js"
 import { DefaultEntityRestCache } from "../rest/DefaultEntityRestCache.js"
 import { CryptoError } from "@tutao/tutanota-crypto/error.js"
 
@@ -144,7 +142,6 @@ export class CryptoFacade {
 		private readonly ownerEncSessionKeysUpdateQueue: OwnerEncSessionKeysUpdateQueue,
 		private readonly pq: PQFacade,
 		private readonly cache: DefaultEntityRestCache | null,
-		private readonly pqMessageCodec: PQMessageCodec,
 	) {}
 
 	async applyMigrationsForInstance<T>(decryptedInstance: T): Promise<T> {
@@ -330,7 +327,10 @@ export class CryptoFacade {
 		// for symmetrically encrypted instances _ownerEncSessionKey is sent from the server.
 		// in this case it is not yet and we need to set it because the rest of the app expects it.
 		const groupKey = this.userFacade.getGroupKey(instance._ownerGroup)
-		this.setOwnerEncSessionKeyUnmapped(instance as UnmappedOwnerGroupInstance, encryptKeyWithVersionedKey(groupKey, resolvedSessionKeyForInstance))
+		this.setOwnerEncSessionKeyUnmapped(
+			instance as UnmappedOwnerGroupInstance,
+			encryptKeyWithVersionedKey(groupKey, resolvedSessionKeys.resolvedSessionKeyForInstance),
+		)
 		return resolvedSessionKeys
 	}
 
@@ -384,7 +384,7 @@ export class CryptoFacade {
 		const userGroupKey = this.userFacade.getUserGroupKey()
 
 		// EncryptTutanotaPropertiesService could be removed and replaced with a Migration that writes the key
-		const groupEncSessionKey = encryptKeyWithVersionedKey(userGroupKey, aes128RandomKey())
+		const groupEncSessionKey = encryptKeyWithVersionedKey(userGroupKey, aes256RandomKey())
 		this.setOwnerEncSessionKeyUnmapped(data, groupEncSessionKey, this.userFacade.getUserGroupId())
 		const migrationData = createEncryptTutanotaPropertiesData({
 			properties: data._id,
@@ -580,16 +580,6 @@ export class CryptoFacade {
 		return decryptKey(bucketKey, neverNull(pubOrExtPermission.bucketEncSessionKey))
 	}
 
-	async loadKeypair(keyPairGroupId: Id): Promise<RsaKeyPair | RsaEccKeyPair | PQKeyPairs> {
-		const group = await this.entityClient.load(GroupTypeRef, keyPairGroupId)
-		try {
-			return decryptKeyPair(this.userFacade.getGroupKey(group._id).object, group.keys[0])
-		} catch (e) {
-			console.log("failed to decrypt keypair for group with id " + group._id)
-			throw e
-		}
-	}
-
 	private async decryptBucketKeyWithKeyPairOfGroupAndPrepareAuthentication(
 		keyPairGroupId: Id,
 		pubEncBucketKey: Uint8Array,
@@ -601,7 +591,7 @@ export class CryptoFacade {
 		const keyPair: AsymmetricKeyPair = await this.userFacade.loadKeypair(keyPairGroupId, recipientKeyVersion, this.entityClient)
 		const algo = keyPair.keyPairType
 		if (isPqKeyPairs(keyPair)) {
-			const pqMessage = this.pqMessageCodec.decodePQMessage(pubEncBucketKey)
+			const pqMessage = decodePQMessage(pubEncBucketKey)
 			const decryptedBucketKey = await this.pq.decapsulate(pqMessage, keyPair)
 			return { decryptedBucketKey: uint8ArrayToBitArray(decryptedBucketKey), pqMessageSenderIdentityPubKey: pqMessage.senderIdentityPubKey }
 		} else if (isRsaOrRsaEccKeyPair(keyPair)) {
@@ -670,20 +660,15 @@ export class CryptoFacade {
 			return this.decryptPubEncSymKey(
 				base64ToUint8Array(instance._ownerPublicEncSessionKey),
 				assertEnumValue(CryptoProtocolVersion, instance._publicCryptoProtocolVersion),
-				keyPair,
+				keypair,
 			)
 		}
 		return Promise.resolve(null)
 	}
 
-	async encryptPubSymKey(symKey: Aes128Key | Aes256Key, publicKeyGetOut: PublicKeyGetOut, senderGroupId: Id): Promise<PubEncSymKey> {
+	async encryptPubSymKey(symKey: Aes128Key | Aes256Key, recipientPublicKeys: Versioned<PublicKeys>, senderGroupId: Id): Promise<PubEncSymKey> {
 		let pubEncSymKey, cryptoProtocolVersion
-		const recipientPublicKeys: PublicKeys = {
-			pubRsaKey: publicKeyGetOut.pubRsaKey,
-			pubKyberKey: publicKeyGetOut.pubKyberKey,
-			pubEccKey: publicKeyGetOut.pubEccKey,
-		}
-		const recipientPublicKey = this.getRecipientPublicKey(recipientPublicKeys)
+		const recipientPublicKey = this.getRecipientPublicKey(recipientPublicKeys.object)
 		const algo = recipientPublicKey.keyPairType
 		let senderKeyVersion: NumberString
 		if (isPqPublicKey(recipientPublicKey)) {
@@ -700,7 +685,7 @@ export class CryptoFacade {
 		} else {
 			throw new CryptoError("unknown public key type: " + algo)
 		}
-		return { pubEncSymKey, cryptoProtocolVersion, senderKeyVersion, recipientKeyVersion: publicKeyGetOut.pubKeyVersion }
+		return { pubEncSymKey, cryptoProtocolVersion, senderKeyVersion, recipientKeyVersion: String(recipientPublicKeys.version) }
 	}
 
 	async decryptPubEncSymKey(
@@ -735,7 +720,7 @@ export class CryptoFacade {
 	 * the entity must already have an _ownerGroup
 	 * @returns the generated key
 	 */
-	setNewOwnerEncSessionKey(model: TypeModel, entity: Record<string, any>, keyToEncryptSessionKey?: AesKey): AesKey | null {
+	setNewOwnerEncSessionKey(model: TypeModel, entity: Record<string, any>, keyToEncryptSessionKey?: Versioned<AesKey>): AesKey | null {
 		if (!entity._ownerGroup) {
 			throw new Error(`no owner group set  ${JSON.stringify(entity)}`)
 		}
@@ -798,7 +783,15 @@ export class CryptoFacade {
 		publicKeyGetOut: PublicKeyGetOut,
 		senderGroupId: Id,
 	) {
-		const pubEncBucketKey = await this.encryptPubSymKey(bucketKey, publicKeyGetOut, senderGroupId)
+		const recipientPublicKeys: Versioned<PublicKeys> = {
+			object: {
+				pubRsaKey: publicKeyGetOut.pubRsaKey,
+				pubKyberKey: publicKeyGetOut.pubKyberKey,
+				pubEccKey: publicKeyGetOut.pubEccKey,
+			},
+			version: 0,
+		}
+		const pubEncBucketKey = await this.encryptPubSymKey(bucketKey, recipientPublicKeys, senderGroupId)
 		return createInternalRecipientKeyData({
 			mailAddress: recipientMailAddress,
 			pubEncBucketKey: pubEncBucketKey.pubEncSymKey,
@@ -808,7 +801,7 @@ export class CryptoFacade {
 		})
 	}
 
-	private createSymEncInternalRecipientKeyData(recipientMailAddress: string, bucketKey: Aes128Key | Aes256Key) {
+	private createSymEncInternalRecipientKeyData(recipientMailAddress: string, bucketKey: AesKey) {
 		const keyGroup = this.userFacade.getGroupId(GroupType.Mail)
 		const externalMailGroupKey = this.userFacade.getGroupKey(keyGroup)
 		return createSymEncInternalRecipientKeyData({
@@ -816,6 +809,7 @@ export class CryptoFacade {
 			// TODO version
 			symEncBucketKey: encryptKey(externalMailGroupKey.object, bucketKey),
 			keyGroup,
+			symKeyVersion: String(externalMailGroupKey.version),
 		})
 	}
 
@@ -974,14 +968,6 @@ export class CryptoFacade {
 			return { keyPairType: KeyPairType.TUTA_CRYPT, eccPublicKey, kyberPublicKey }
 		} else {
 			throw new Error("Inconsistent Keypair")
-		}
-	}
-
-	private getPrivateKey(keypair: RsaKeyPair | RsaEccKeyPair): RsaPrivateKey {
-		if (isRsaEccKeyPair(keypair)) {
-			return keypair.privateRsaKey
-		} else {
-			return keypair.privateKey
 		}
 	}
 }

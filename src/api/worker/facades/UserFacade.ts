@@ -1,5 +1,5 @@
 import { GroupType } from "../../common/TutanotaConstants"
-import { AesKey, decryptKeyPair, PQKeyPairs, RsaEccKeyPair, RsaKeyPair } from "@tutao/tutanota-crypto"
+import { AesKey, AsymmetricKeyPair, decryptKey, decryptKeyPair, isPqKeyPairs, PQKeyPairs, RsaEccKeyPair, RsaKeyPair } from "@tutao/tutanota-crypto"
 import { assertNotNull, getFromMap } from "@tutao/tutanota-utils"
 import { ProgrammingError } from "../../common/error/ProgrammingError"
 import {
@@ -162,7 +162,7 @@ export class UserFacade implements AuthDataProvider {
 		const groupKey = this.getGroupKey(group._id)
 
 		const result = this.getAndDecryptKeyPair(group, groupKey.object)
-		if (result instanceof PQKeyPairs) {
+		if (isPqKeyPairs(result)) {
 			return { object: result, version: Number(group.groupKeyVersion) }
 		} else {
 			return { object: result, version: 0 }
@@ -260,7 +260,7 @@ export class UserFacade implements AuthDataProvider {
 		groupKeyInstance: GroupKey
 	}> {
 		const formerKeysList = assertNotNull(group.formerGroupKeys, "no former group keys").list
-		const formerKeys = await entityClient.loadAll(GroupKeyTypeRef, formerKeysList) // nothing good can come from this...
+		const formerKeys: GroupKey[] = await entityClient.loadAll(GroupKeyTypeRef, formerKeysList) // nothing good can come from this...
 
 		let lastVersion = currentGroupKey.version
 		let lastOwnerGroupKey = currentGroupKey.object

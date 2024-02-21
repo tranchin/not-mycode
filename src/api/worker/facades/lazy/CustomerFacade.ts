@@ -64,6 +64,7 @@ import { PQFacade } from "../PQFacade.js"
 import { ProgrammingError } from "../../../common/error/ProgrammingError.js"
 import { getWhitelabelDomainInfo } from "../../../common/utils/CustomerUtils.js"
 import type { PdfWriter } from "../../pdf/PdfWriter.js"
+import { createCustomerAccountCreateData } from "../../../entities/tutanota/TypeRefs.js"
 
 assertWorkerOrNode()
 
@@ -125,7 +126,14 @@ export class CustomerFacade {
 		const pubRsaKey = keyData.systemAdminPubRsaKey
 		const pubEccKey = keyData.systemAdminPubEccKey
 		const pubKyberKey = keyData.systemAdminPubKyberKey
-		const systemAdminPubKeys = { pubEccKey, pubKyberKey, pubRsaKey }
+		const systemAdminPubKeys = {
+			object: {
+				pubEccKey,
+				pubKyberKey,
+				pubRsaKey,
+			},
+			version: Number(keyData.systemAdminPubKeyVersion),
+		}
 		const { pubEncSymKey, cryptoProtocolVersion } = await this.cryptoFacade.encryptPubSymKey(
 			sessionKey,
 			systemAdminPubKeys,

@@ -66,7 +66,6 @@ import { DomainConfigProvider } from "../common/DomainConfigProvider.js"
 import { KyberFacade, NativeKyberFacade, WASMKyberFacade } from "./facades/KyberFacade.js"
 import { PQFacade } from "./facades/PQFacade.js"
 import { PdfWriter } from "./pdf/PdfWriter.js"
-import { PQMessageCodec } from "./facades/PQMessage.js"
 
 assertWorkerOrNode()
 
@@ -196,8 +195,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		locator.kyberFacade = new WASMKyberFacade()
 	}
 
-	const pqMessageCodec = new PQMessageCodec()
-	locator.pqFacade = new PQFacade(locator.kyberFacade, pqMessageCodec)
+	locator.pqFacade = new PQFacade(locator.kyberFacade)
 
 	locator.crypto = new CryptoFacade(
 		locator.user,
@@ -209,7 +207,6 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		new OwnerEncSessionKeysUpdateQueue(locator.user, locator.serviceExecutor),
 		locator.pqFacade,
 		cache,
-		pqMessageCodec,
 	)
 
 	const loginListener: LoginListener = {

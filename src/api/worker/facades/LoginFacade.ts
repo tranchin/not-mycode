@@ -317,7 +317,7 @@ export class LoginFacade {
 		}
 		const newUserPassphraseKey = await this.deriveUserPassphraseKey(newPassphraseKeyData)
 
-		const pwEncUserGroupKey = encryptKey(newUserPassphraseKey, this.userFacade.getUserGroupKey())
+		const pwEncUserGroupKey = encryptKey(newUserPassphraseKey, this.userFacade.getUserGroupKey().object)
 		const newAuthVerifier = createAuthVerifier(newUserPassphraseKey)
 
 		const changeKdfPostIn = createChangeKdfPostIn({

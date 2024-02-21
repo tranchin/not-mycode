@@ -8,7 +8,7 @@ import { isApp } from "../../api/common/Env.js"
 
 export function renderNextButton(dom: HTMLElement) {
 	return m(LoginButton, {
-		label: () => "Next",
+		label: "next_action",
 		class: "wizard-next-button",
 		onclick: () => {
 			emitWizardEvent(dom, WizardEventType.SHOW_NEXT_PAGE)

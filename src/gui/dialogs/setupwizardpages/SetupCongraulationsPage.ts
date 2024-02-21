@@ -3,6 +3,7 @@ import { WizardPageAttrs, WizardPageN } from "../../base/WizardDialog.js"
 import { renderNextButton } from "../SetupWizard.js"
 import { Icon } from "../../base/Icon.js"
 import { Icons } from "../../base/icons/Icons.js"
+import { lang } from "../../../misc/LanguageViewModel.js"
 
 export class SetupCongratulationsPage implements WizardPageN<null> {
 	private dom!: HTMLElement
@@ -17,8 +18,8 @@ export class SetupCongratulationsPage implements WizardPageN<null> {
 				icon: Icons.Notifications,
 				large: true,
 			}),
-			m("h2.pt", "Welcome to Tuta Mail!"),
-			m("p.full-width.pt-l", {}, "Please take a few moments to customise the app to your liking."),
+			m("h2.pt", lang.get("welcome_text")),
+			m("p.full-width.pt-l", lang.get("onboarding_text")),
 			renderNextButton(this.dom),
 		])
 	}
@@ -30,7 +31,7 @@ export class SetupCongratulationsPageAttrs implements WizardPageAttrs<null> {
 	data: null = null
 
 	headerTitle(): string {
-		return "Welcome!"
+		return lang.get("welcome_label")
 	}
 
 	nextAction(showDialogs: boolean): Promise<boolean> {

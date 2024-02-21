@@ -30,25 +30,33 @@ export class SetupNotificationsPage implements WizardPageN<stream<NotificationPe
 		})
 	}
 
-	// TODO: Move text to translations
 	view({ attrs }: Vnode<WizardPageAttrs<stream<NotificationPermissionsData>>>): Children {
 		return m("section.center.pt", [
 			m(Icon, {
 				icon: Icons.Notifications,
 				large: true,
 			}),
-			m("p", "In order to notify you about incoming emails and to display reminders, we need your permission to display push notifications."),
-			renderPermissionButton("Grant Notification Permission", attrs.data().isNotificationPermissionGranted, async () => {
+			m("p", lang.get("allowNotifications_msg")),
+			renderPermissionButton("grant_notification_permission_action", attrs.data().isNotificationPermissionGranted, async () => {
 				// Ask for the notification permission
-				attrs.data({ ...attrs.data(), isNotificationPermissionGranted: await requestPermission(PermissionType.Notification) })
+				attrs.data({
+					...attrs.data(),
+					isNotificationPermissionGranted: await requestPermission(PermissionType.Notification, "grant_notification_permission_action"),
+				})
 				m.redraw()
 			}),
 			isAndroidApp()
 				? m("section.mt-l", [
 						m("p", lang.get("allowPushNotification_msg")),
-						renderPermissionButton("Grant Battery Permission", attrs.data().isBatteryPermissionGranted, async () => {
+						renderPermissionButton("grant_battery_permission_action", attrs.data().isBatteryPermissionGranted, async () => {
 							// Ask for permission to disable battery optimisations
-							attrs.data({ ...attrs.data(), isBatteryPermissionGranted: await requestPermission(PermissionType.IgnoreBatteryOptimization) })
+							attrs.data({
+								...attrs.data(),
+								isBatteryPermissionGranted: await requestPermission(
+									PermissionType.IgnoreBatteryOptimization,
+									"grant_battery_permission_action",
+								),
+							})
 						}),
 				  ])
 				: null,
@@ -78,7 +86,7 @@ export class SetupNotificationsPageAttrs implements WizardPageAttrs<stream<Notif
 	}
 
 	headerTitle(): string {
-		return "Notifications"
+		return lang.get("notificationSettings_action")
 	}
 
 	nextAction(showDialogs: boolean): Promise<boolean> {

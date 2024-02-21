@@ -14,10 +14,11 @@ import { locator } from "../../api/main/MainLocator.js"
 import { PermissionError } from "../../api/common/error/PermissionError.js"
 import { Dialog } from "../base/Dialog.js"
 import stream from "mithril/stream"
+import { TranslationKey } from "../../misc/LanguageViewModel.js"
 
-export function renderPermissionButton(permissionName: string, isPermissionGranted: boolean, onclick: ClickHandler) {
+export function renderPermissionButton(permissionName: TranslationKey, isPermissionGranted: boolean, onclick: ClickHandler) {
 	return m(BannerButton, {
-		text: () => (isPermissionGranted ? "Granted" : permissionName),
+		text: isPermissionGranted ? "granted_msg" : permissionName,
 		borderColor: theme.content_accent,
 		color: theme.content_accent,
 		class: "b full-width mt-s",
@@ -76,15 +77,14 @@ async function hasPermission(permission: PermissionType): Promise<boolean> {
 	return await locator.systemFacade.hasPermission(permission)
 }
 
-export async function requestPermission(permission: PermissionType): Promise<boolean> {
+export async function requestPermission(permission: PermissionType, deniedMessage: TranslationKey): Promise<boolean> {
 	try {
 		await locator.systemFacade.requestPermission(permission)
 		return true
 	} catch (e) {
 		if (e instanceof PermissionError) {
 			console.warn("Permission denied for", permission)
-			// TODO: Change message
-			Dialog.message("allowContactReadWrite_msg").then(() => locator.systemFacade.goToSettings())
+			Dialog.message(deniedMessage).then(() => locator.systemFacade.goToSettings())
 			return false
 		}
 		throw e

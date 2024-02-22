@@ -11,9 +11,8 @@ class MobileSystemFacadeReceiveDispatcher(
 	private val json: Json,
 	private val facade: MobileSystemFacade,
 ) {
-
+	
 	suspend fun dispatch(method: String, arg: List<String>): String {
-		when (method) {
 		when (method) {
 			"goToSettings" -> {
 				val result: Unit = this.facade.goToSettings(

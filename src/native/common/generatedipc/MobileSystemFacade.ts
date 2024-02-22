@@ -1,7 +1,5 @@
 /* generated file, don't edit. */
 
-import { NativeContact } from "./NativeContact.js"
-import { StructuredContact } from "./StructuredContact.js"
 import { PermissionType } from "./PermissionType.js"
 /**
  * Common operations implemented by each mobile platform.

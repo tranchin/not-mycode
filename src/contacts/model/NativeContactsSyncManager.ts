@@ -91,7 +91,18 @@ export class NativeContactsSyncManager {
 		}
 	}
 
-	async syncContacts() {
+	isEnabled(): boolean {
+		return this.deviceConfig.getUserSyncContactsWithPhonePreference(this.loginController.getUserController().userId) ?? false
+	}
+
+	enableSync() {
+		this.deviceConfig.setUserSyncContactsWithPhonePreference(this.loginController.getUserController().userId, true)
+	}
+
+	/**
+	 * @return is sync succeeded. It might fail if we don't have a permission.
+	 */
+	async syncContacts(): Promise<boolean> {
 		const contactListId = await this.contactModel.getContactListId()
 		const userId = this.loginController.getUserController().userId
 		const loginUsername = this.loginController.getUserController().loginUsername
@@ -131,7 +142,8 @@ export class NativeContactsSyncManager {
 		return true
 	}
 
-	async clearContacts() {
+	async disableSync() {
+		this.deviceConfig.setUserSyncContactsWithPhonePreference(this.loginController.getUserController().userId, true)
 		const loginUsername = this.loginController.getUserController().loginUsername
 		await this.mobilContactsFacade
 			.deleteContacts(loginUsername, null)

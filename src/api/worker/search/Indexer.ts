@@ -61,10 +61,12 @@ import { MailFacade } from "../facades/lazy/MailFacade.js"
 import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
 import { UserFacade } from "../facades/UserFacade.js"
 import { encryptKeyWithVersionedKey } from "../crypto/CryptoFacade.js"
+import { KeyLoaderFacade } from "../facades/KeyLoaderFacade.js"
 
 export type InitParams = {
 	user: User
 	userFacade: UserFacade
+	keyLoaderFacade: KeyLoaderFacade
 	entityClient: EntityClient
 }
 
@@ -73,6 +75,7 @@ const DB_VERSION: number = 3
 interface IndexerInitParams {
 	user: User
 	userFacade: UserFacade
+	keyLoaderFacade: KeyLoaderFacade
 	entityClient: EntityClient
 	retryOnError?: boolean
 	cacheInfo?: CacheInfo
@@ -166,10 +169,11 @@ export class Indexer {
 	/**
 	 * Opens a new DbFacade and initializes the metadata if it is not there yet
 	 */
-	async init({ user, userFacade, entityClient, retryOnError, cacheInfo }: IndexerInitParams): Promise<void> {
+	async init({ user, userFacade, keyLoaderFacade, entityClient, retryOnError, cacheInfo }: IndexerInitParams): Promise<void> {
 		this._initParams = {
 			user,
 			userFacade,
+			keyLoaderFacade,
 			entityClient,
 		}
 
@@ -186,7 +190,7 @@ export class Indexer {
 				await this._createIndexTables(user, userGroupKey)
 			} else {
 				const userGroupKeyVersion = await transaction.get(MetaDataOS, Metadata.userGroupKeyVersion)
-				const userGroupKey = await userFacade.loadSymGroupKey(userFacade.getUserGroupId(), userGroupKeyVersion, entityClient)
+				const userGroupKey = await keyLoaderFacade.loadSymGroupKey(userFacade.getUserGroupId(), userGroupKeyVersion)
 				await this.loadIndexTables(transaction, user, userGroupKey, userEncDbKey)
 			}
 
@@ -271,6 +275,7 @@ export class Indexer {
 			await this.init({
 				user: this._initParams.user,
 				userFacade: this._initParams.userFacade,
+				keyLoaderFacade: this._initParams.keyLoaderFacade,
 				entityClient: this._initParams.entityClient,
 			})
 		}
@@ -308,6 +313,7 @@ export class Indexer {
 			return this.init({
 				user: this._initParams.user,
 				userFacade: this._initParams.userFacade,
+				keyLoaderFacade: this._initParams.keyLoaderFacade,
 				entityClient: this._initParams.entityClient,
 				retryOnError: false,
 			}).then(() => {

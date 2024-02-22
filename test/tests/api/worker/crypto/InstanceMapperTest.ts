@@ -14,15 +14,18 @@ import { configureLoggedInUser, createMailLiteral, createTestUser } from "./Cryp
 import { EntityClient } from "../../../../../src/api/common/EntityClient.js"
 import { UserFacade } from "../../../../../src/api/worker/facades/UserFacade.js"
 import { object } from "testdouble"
+import { KeyLoaderFacade } from "../../../../../src/api/worker/facades/KeyLoaderFacade.js"
 
 o.spec("InstanceMapper", function () {
 	let entityClient: EntityClient
 	let userFacade: UserFacade
+	let keyLoaderFacade: KeyLoaderFacade
 
 	let instanceMapper: InstanceMapper
 	o.beforeEach(() => {
 		instanceMapper = new InstanceMapper()
 		userFacade = object()
+		keyLoaderFacade = object()
 		entityClient = object()
 	})
 
@@ -419,7 +422,7 @@ o.spec("InstanceMapper", function () {
 
 	o("decryption errors should be written to _errors field", async function () {
 		const testUser = createTestUser("Bob", entityClient)
-		configureLoggedInUser(testUser, userFacade)
+		configureLoggedInUser(testUser, userFacade, keyLoaderFacade)
 		let subject = "this is our subject"
 		let confidential = true
 		let senderName = "TutanotaTeam"

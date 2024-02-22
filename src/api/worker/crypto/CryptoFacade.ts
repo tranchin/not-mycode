@@ -54,7 +54,7 @@ import {
 } from "../../entities/tutanota/TypeRefs.js"
 import { typeRefToPath } from "../rest/EntityRestClient"
 import { LockedError, NotFoundError, PayloadTooLargeError, TooManyRequestsError } from "../../common/error/RestError"
-import { SessionKeyNotFoundError } from "../../common/error/SessionKeyNotFoundError" // importing with {} from CJS modules is not supported for dist-builds currently (must be a systemjs builder bug) // importing with {} from CJS modules is not supported for dist-builds currently (must be a systemjs builder bug) // importing with {} from CJS modules is not supported for dist-builds currently (must be a systemjs builder bug)
+import { SessionKeyNotFoundError } from "../../common/error/SessionKeyNotFoundError"
 import { birthdayToIsoDate, oldBirthdayToBirthday } from "../../common/utils/BirthdayUtils"
 import type { Entity, Instance, SomeEntity, TypeModel } from "../../common/EntityTypes"
 import { assertWorkerOrNode } from "../../common/Env"
@@ -102,6 +102,7 @@ import { PQFacade } from "../facades/PQFacade.js"
 import { decodePQMessage, encodePQMessage } from "../facades/PQMessage.js"
 import { DefaultEntityRestCache } from "../rest/DefaultEntityRestCache.js"
 import { CryptoError } from "@tutao/tutanota-crypto/error.js"
+import { KeyLoaderFacade } from "../facades/KeyLoaderFacade.js"
 
 assertWorkerOrNode()
 
@@ -142,6 +143,7 @@ export class CryptoFacade {
 		private readonly ownerEncSessionKeysUpdateQueue: OwnerEncSessionKeysUpdateQueue,
 		private readonly pq: PQFacade,
 		private readonly cache: DefaultEntityRestCache | null,
+		private readonly keyLoaderFacade: KeyLoaderFacade,
 	) {}
 
 	async applyMigrationsForInstance<T>(decryptedInstance: T): Promise<T> {
@@ -197,7 +199,7 @@ export class CryptoFacade {
 	}
 
 	async decryptSessionKey(instance: Record<string, any>, ownerEncSessionKey: CiphertextKey): Promise<AesKey> {
-		const gk = await this.userFacade.loadSymGroupKey(instance._ownerGroup, ownerEncSessionKey.encryptingKeyVersion, this.entityClient)
+		const gk = await this.keyLoaderFacade.loadSymGroupKey(instance._ownerGroup, ownerEncSessionKey.encryptingKeyVersion)
 		return decryptKey(gk, ownerEncSessionKey.key)
 	}
 
@@ -222,15 +224,11 @@ export class CryptoFacade {
 				const resolvedSessionKeys = await this.resolveWithBucketKey(bucketKey, instance, typeModel)
 				return resolvedSessionKeys.resolvedSessionKeyForInstance
 			} else if (instance._ownerEncSessionKey && this.userFacade.isFullyLoggedIn() && this.userFacade.hasGroup(instance._ownerGroup)) {
-				const gk = await this.userFacade.loadSymGroupKey(instance._ownerGroup, Number(instance._ownerKeyVersion ?? 0), this.entityClient)
+				const gk = await this.keyLoaderFacade.loadSymGroupKey(instance._ownerGroup, Number(instance._ownerKeyVersion ?? 0))
 				return this.resolveSessionKeyWithOwnerKey(instance, gk)
 			} else if (instance.ownerEncSessionKey) {
 				// Likely a DataTransferType, so this is a service.
-				const gk = await this.userFacade.loadSymGroupKey(
-					this.userFacade.getGroupId(GroupType.Mail),
-					Number(instance.ownerKeyVersion ?? 0),
-					this.entityClient,
-				)
+				const gk = await this.keyLoaderFacade.loadSymGroupKey(this.userFacade.getGroupId(GroupType.Mail), Number(instance.ownerKeyVersion ?? 0))
 				return this.resolveSessionKeyWithOwnerKey(instance, gk)
 			} else {
 				// See PermissionType jsdoc for more info on permissions
@@ -253,7 +251,7 @@ export class CryptoFacade {
 	 * @param data
 	 * @return the unmapped and still encrypted instance
 	 */
-	async applyMigrations<T extends SomeEntity>(typeRef: TypeRef<T>, data: any): Promise<any> {
+	async applyMigrations<T extends SomeEntity>(typeRef: TypeRef<T>, data: Record<string, any>): Promise<any> {
 		if (isSameTypeRef(typeRef, GroupInfoTypeRef) && data._ownerGroup == null) {
 			return this.applyCustomerGroupOwnershipToGroupInfo(data)
 		} else if (isSameTypeRef(typeRef, TutanotaPropertiesTypeRef) && data._ownerEncSessionKey == null) {
@@ -459,7 +457,7 @@ export class CryptoFacade {
 		let resolvedSessionKeyForInstance: AesKey | undefined = undefined
 		const instanceSessionKeys = await promiseMap(bucketKey.bucketEncSessionKeys, async (instanceSessionKey) => {
 			const decryptedSessionKey = decryptKey(decBucketKey, instanceSessionKey.symEncSessionKey)
-			const groupKey = await this.userFacade.loadSymGroupKey(instance._ownerGroup, Number(instance._ownerKeyVersion ?? 0), this.entityClient)
+			const groupKey = await this.keyLoaderFacade.loadSymGroupKey(instance._ownerGroup, Number(instance._ownerKeyVersion ?? 0))
 			const ownerEncSessionKey = encryptKey(groupKey, decryptedSessionKey)
 			const instanceSessionKeyWithOwnerEncSessionKey = createInstanceSessionKey(instanceSessionKey)
 			if (instanceElementId == instanceSessionKey.instanceId) {
@@ -554,22 +552,14 @@ export class CryptoFacade {
 		let bucketKey
 
 		if (bucketPermission.ownerEncBucketKey != null) {
-			const ownerGroupKey = await this.userFacade.loadSymGroupKey(
-				neverNull(bucketPermission._ownerGroup),
-				Number(bucketPermission.ownerKeyVersion),
-				this.entityClient,
-			)
+			const ownerGroupKey = await this.keyLoaderFacade.loadSymGroupKey(neverNull(bucketPermission._ownerGroup), Number(bucketPermission.ownerKeyVersion))
 			bucketKey = decryptKey(ownerGroupKey, bucketPermission.ownerEncBucketKey)
 		} else if (bucketPermission.symEncBucketKey) {
 			// legacy case: for very old email sent to external user we used symEncBucketKey on the bucket permission.
 			// The bucket key is encrypted with the user group key of the external user.
 			// We maintain this code as we still have some old BucketKeys in some external mailboxes.
 			// Can be removed if we finished mail details migration or when we do cleanup of external mailboxes.
-			const userGroupKey = await this.userFacade.loadSymGroupKey(
-				this.userFacade.getUserGroupId(),
-				Number(bucketPermission.symKeyVersion),
-				this.entityClient,
-			)
+			const userGroupKey = await this.keyLoaderFacade.loadSymGroupKey(this.userFacade.getUserGroupId(), Number(bucketPermission.symKeyVersion))
 			bucketKey = decryptKey(userGroupKey, bucketPermission.symEncBucketKey)
 		} else {
 			throw new SessionKeyNotFoundError(
@@ -588,7 +578,7 @@ export class CryptoFacade {
 		decryptedBucketKey: AesKey
 		pqMessageSenderIdentityPubKey: EccPublicKey | null
 	}> {
-		const keyPair: AsymmetricKeyPair = await this.userFacade.loadKeypair(keyPairGroupId, recipientKeyVersion, this.entityClient)
+		const keyPair: AsymmetricKeyPair = await this.keyLoaderFacade.loadKeypair(keyPairGroupId, recipientKeyVersion)
 		const algo = keyPair.keyPairType
 		if (isPqKeyPairs(keyPair)) {
 			const pqMessage = decodePQMessage(pubEncBucketKey)
@@ -656,7 +646,7 @@ export class CryptoFacade {
 	 */
 	async resolveServiceSessionKey(typeModel: TypeModel, instance: Record<string, any>): Promise<Aes128Key | Aes256Key | null> {
 		if (instance._ownerPublicEncSessionKey) {
-			const keypair = await this.userFacade.loadKeypair(instance._ownerGroup, Number(assertNotNull(instance._ownerKeyVersion)), this.entityClient)
+			const keypair = await this.keyLoaderFacade.loadKeypair(instance._ownerGroup, Number(assertNotNull(instance._ownerKeyVersion)))
 			return this.decryptPubEncSymKey(
 				base64ToUint8Array(instance._ownerPublicEncSessionKey),
 				assertEnumValue(CryptoProtocolVersion, instance._publicCryptoProtocolVersion),
@@ -672,7 +662,7 @@ export class CryptoFacade {
 		const algo = recipientPublicKey.keyPairType
 		let senderKeyVersion: NumberString
 		if (isPqPublicKey(recipientPublicKey)) {
-			const senderKeyPair = await this.userFacade.loadCurrentKeyPair(senderGroupId, this.entityClient)
+			const senderKeyPair = await this.keyLoaderFacade.loadCurrentKeyPair(senderGroupId)
 			const senderEccKeyPair = await this.getOrMakeSenderIdentityKeyPair(senderKeyPair.object, senderGroupId)
 			const ephemeralKeyPair = generateEccKeyPair()
 			pubEncSymKey = encodePQMessage(await this.pq.encapsulate(senderEccKeyPair, ephemeralKeyPair, recipientPublicKey, bitArrayToUint8Array(symKey)))

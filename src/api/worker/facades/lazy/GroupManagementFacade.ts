@@ -30,6 +30,7 @@ import { UserFacade } from "../UserFacade.js"
 import { ProgrammingError } from "../../../common/error/ProgrammingError.js"
 import { DefaultEntityRestCache } from "../../rest/DefaultEntityRestCache.js"
 import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
+import { KeyLoaderFacade } from "../KeyLoaderFacade.js"
 
 assertWorkerOrNode()
 
@@ -41,6 +42,7 @@ export class GroupManagementFacade {
 		private readonly rsa: RsaImplementation,
 		private readonly serviceExecutor: IServiceExecutor,
 		private readonly entityRestCache: DefaultEntityRestCache,
+		private readonly keyLoaderFacade: KeyLoaderFacade,
 	) {}
 
 	async readUsedSharedMailGroupStorage(group: Group): Promise<number> {
@@ -278,7 +280,7 @@ export class GroupManagementFacade {
 				// e.g. I am a member of the group that administrates group G and want to add a new member to G
 				const version = Number(group.adminGroupKeyVersion)
 				adminGroupKey = {
-					object: await this.user.loadSymGroupKey(assertNotNull(group.admin), version, this.entityClient),
+					object: await this.keyLoaderFacade.loadSymGroupKey(assertNotNull(group.admin), version),
 					version,
 				}
 			} else {
@@ -286,7 +288,7 @@ export class GroupManagementFacade {
 				const globalAdminGroupId = this.user.getGroupId(GroupType.Admin)
 				const localAdminGroup = await this.entityClient.load(GroupTypeRef, assertNotNull(group.admin))
 				const version = Number(localAdminGroup.adminGroupKeyVersion)
-				const globalAdminGroupKey = await this.user.loadSymGroupKey(globalAdminGroupId, version, this.entityClient)
+				const globalAdminGroupKey = await this.keyLoaderFacade.loadSymGroupKey(globalAdminGroupId, version)
 
 				if (localAdminGroup.admin === globalAdminGroupId) {
 					adminGroupKey = {

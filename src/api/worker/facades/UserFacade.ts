@@ -1,22 +1,10 @@
 import { GroupType } from "../../common/TutanotaConstants"
-import { AesKey, AsymmetricKeyPair, decryptKey, decryptKeyPair, isPqKeyPairs, PQKeyPairs, RsaEccKeyPair, RsaKeyPair } from "@tutao/tutanota-crypto"
+import { AesKey, decryptKey } from "@tutao/tutanota-crypto"
 import { assertNotNull, getFromMap } from "@tutao/tutanota-utils"
 import { ProgrammingError } from "../../common/error/ProgrammingError"
-import {
-	createWebsocketLeaderStatus,
-	Group,
-	GroupKey,
-	GroupKeyTypeRef,
-	GroupMembership,
-	GroupTypeRef,
-	User,
-	WebsocketLeaderStatus,
-} from "../../entities/sys/TypeRefs"
+import { createWebsocketLeaderStatus, GroupMembership, User, WebsocketLeaderStatus } from "../../entities/sys/TypeRefs"
 import { LoginIncompleteError } from "../../common/error/LoginIncompleteError"
 import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
-import { EntityClient } from "../../common/EntityClient.js"
-import { getElementId } from "../../common/utils/EntityUtils.js"
-import { NotFoundError } from "../../common/error/RestError.js"
 
 export interface AuthDataProvider {
 	/**
@@ -128,59 +116,6 @@ export class UserFacade implements AuthDataProvider {
 		})
 	}
 
-	async loadSymGroupKey(groupId: Id, version: number, entityClient: EntityClient): Promise<AesKey> {
-		const group = await entityClient.load(GroupTypeRef, groupId)
-		const groupKey = this.getGroupKey(group._id)
-
-		if (groupKey.version === version) {
-			return groupKey.object
-		}
-		const { symmetricGroupKey } = await this.findFormerGroupKey(group, groupKey, version, entityClient)
-
-		return symmetricGroupKey
-	}
-
-	async loadKeypair(keyPairGroupId: Id, groupKeyVersion: number, entityClient: EntityClient): Promise<AsymmetricKeyPair> {
-		const group = await entityClient.load(GroupTypeRef, keyPairGroupId)
-		const groupKey = this.getGroupKey(group._id)
-
-		if (groupKey.version === groupKeyVersion) {
-			return this.getAndDecryptKeyPair(group, groupKey.object)
-		}
-		let { symmetricGroupKey, groupKeyInstance } = await this.findFormerGroupKey(group, groupKey, groupKeyVersion, entityClient)
-
-		try {
-			return decryptKeyPair(symmetricGroupKey, groupKeyInstance.keyPair)
-		} catch (e) {
-			console.log("failed to decrypt keypair for group with id " + group._id)
-			throw e
-		}
-	}
-
-	async loadCurrentKeyPair(groupId: Id, entityClient: EntityClient): Promise<Versioned<RsaKeyPair | RsaEccKeyPair | PQKeyPairs>> {
-		const group = await entityClient.load(GroupTypeRef, groupId)
-		const groupKey = this.getGroupKey(group._id)
-
-		const result = this.getAndDecryptKeyPair(group, groupKey.object)
-		if (isPqKeyPairs(result)) {
-			return { object: result, version: Number(group.groupKeyVersion) }
-		} else {
-			return { object: result, version: 0 }
-		}
-	}
-
-	public decodeGroupKeyVersion(id: Id): number {
-		// FIXME determine how we encode versions as element IDs for former group keys?
-		return Number(id)
-	}
-
-	private getAndDecryptKeyPair(group: Group, groupKey: AesKey) {
-		if (group.currentKeys == null) {
-			throw new NotFoundError(`no key pair on group ${group._id}`)
-		}
-		return decryptKeyPair(groupKey, group.currentKeys)
-	}
-
 	getMembership(groupId: Id): GroupMembership {
 		let membership = this.getLoggedInUser().memberships.find((g: GroupMembership) => g.group === groupId)
 
@@ -248,44 +183,5 @@ export class UserFacade implements AuthDataProvider {
 		this.leaderStatus = createWebsocketLeaderStatus({
 			leaderStatus: false,
 		})
-	}
-
-	private async findFormerGroupKey(
-		group: Group,
-		currentGroupKey: Versioned<AesKey>,
-		targetKeyVersion: number,
-		entityClient: EntityClient,
-	): Promise<{
-		symmetricGroupKey: AesKey
-		groupKeyInstance: GroupKey
-	}> {
-		const formerKeysList = assertNotNull(group.formerGroupKeys, "no former group keys").list
-		const formerKeys: GroupKey[] = await entityClient.loadAll(GroupKeyTypeRef, formerKeysList) // nothing good can come from this...
-
-		let lastVersion = currentGroupKey.version
-		let lastOwnerGroupKey = currentGroupKey.object
-		let lastGroupKey: GroupKey | null = null
-
-		for (const encryptedKey of formerKeys.reverse()) {
-			const version = this.decodeGroupKeyVersion(getElementId(encryptedKey))
-			if (version + 1 > lastVersion) {
-				continue
-			} else if (version + 1 === lastVersion) {
-				lastOwnerGroupKey = decryptKey(lastOwnerGroupKey, encryptedKey.ownerEncGKey)
-				lastVersion = version
-				lastGroupKey = encryptedKey
-				if (lastVersion <= targetKeyVersion) {
-					break
-				}
-			} else {
-				throw new Error(`unexpected version ${version}; expected ${lastVersion}`)
-			}
-		}
-
-		if (lastVersion !== targetKeyVersion || !lastGroupKey) {
-			throw new Error(`could not get version (last version is ${lastVersion} of ${formerKeys.length} key(s) loaded from list ${formerKeysList})`)
-		}
-
-		return { symmetricGroupKey: lastOwnerGroupKey, groupKeyInstance: lastGroupKey }
 	}
 }

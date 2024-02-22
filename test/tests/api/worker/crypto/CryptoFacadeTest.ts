@@ -83,6 +83,7 @@ import { loadLibOQSWASM } from "../WASMTestUtils.js"
 import { createTestEntity } from "../../../TestUtils.js"
 import { RSA_TEST_KEYPAIR } from "../facades/RsaPqPerformanceTest.js"
 import { DefaultEntityRestCache } from "../../../../../src/api/worker/rest/DefaultEntityRestCache.js"
+import { KeyLoaderFacade } from "../../../../../src/api/worker/facades/KeyLoaderFacade.js"
 
 const { captor, anything, argThat } = matchers
 
@@ -113,12 +114,14 @@ o.spec("CryptoFacadeTest", function () {
 	let ownerEncSessionKeysUpdateQueue: OwnerEncSessionKeysUpdateQueue
 	let crypto: CryptoFacade
 	let userFacade: UserFacade
+	let keyLoaderFacade: KeyLoaderFacade
 	let cache: DefaultEntityRestCache
 
 	o.before(function () {
 		restClient = object()
 		when(restClient.request(anything(), anything(), anything())).thenResolve(undefined)
 		userFacade = object()
+		keyLoaderFacade = object()
 		cache = object()
 	})
 
@@ -126,7 +129,18 @@ o.spec("CryptoFacadeTest", function () {
 		serviceExecutor = object()
 		entityClient = object()
 		ownerEncSessionKeysUpdateQueue = object()
-		crypto = new CryptoFacade(userFacade, entityClient, restClient, rsa, serviceExecutor, instanceMapper, ownerEncSessionKeysUpdateQueue, pqFacade, cache)
+		crypto = new CryptoFacade(
+			userFacade,
+			entityClient,
+			restClient,
+			rsa,
+			serviceExecutor,
+			instanceMapper,
+			ownerEncSessionKeysUpdateQueue,
+			pqFacade,
+			cache,
+			keyLoaderFacade,
+		)
 	})
 
 	o("resolve session key: unencrypted instance", async function () {
@@ -141,7 +155,7 @@ o.spec("CryptoFacadeTest", function () {
 
 	o("resolve session key: _ownerEncSessionKey instance", async function () {
 		const recipientUser = createTestUser("Bob", entityClient)
-		configureLoggedInUser(recipientUser, userFacade)
+		configureLoggedInUser(recipientUser, userFacade, keyLoaderFacade)
 		let subject = "this is our subject"
 		let confidential = true
 		let senderName = "TutanotaTeam"
@@ -158,8 +172,8 @@ o.spec("CryptoFacadeTest", function () {
 	o("resolve session key: rsa public key decryption of session key.", async function () {
 		o.timeout(500) // in CI or with debugging it can take a while
 		const recipientUser = createTestUser("Bob", entityClient)
-		configureLoggedInUser(recipientUser, userFacade)
-		when(userFacade.loadKeypair(recipientUser.userGroup._id, 0, anything())).thenResolve(RSA_TEST_KEYPAIR)
+		configureLoggedInUser(recipientUser, userFacade, keyLoaderFacade)
+		when(keyLoaderFacade.loadKeypair(recipientUser.userGroup._id, 0)).thenResolve(RSA_TEST_KEYPAIR)
 
 		let subject = "this is our subject"
 		let confidential = true
@@ -222,7 +236,7 @@ o.spec("CryptoFacadeTest", function () {
 		let senderName = "TutanotaTeam"
 
 		const recipientTestUser = createTestUser("Bob", entityClient)
-		configureLoggedInUser(recipientTestUser, userFacade)
+		configureLoggedInUser(recipientTestUser, userFacade, keyLoaderFacade)
 
 		let pqKeyPairs = await pqFacade.generateKeyPairs()
 
@@ -237,7 +251,7 @@ o.spec("CryptoFacadeTest", function () {
 			version: "0",
 		})
 		recipientTestUser.userGroup.currentKeys = recipientKeyPair
-		when(userFacade.loadKeypair(recipientTestUser.userGroup._id, 0, anything())).thenResolve(pqKeyPairs)
+		when(keyLoaderFacade.loadKeypair(recipientTestUser.userGroup._id, 0)).thenResolve(pqKeyPairs)
 
 		const senderIdentityKeyPair = generateEccKeyPair()
 
@@ -341,6 +355,7 @@ o.spec("CryptoFacadeTest", function () {
 			ownerEncSessionKeysUpdateQueue,
 			pqFacadeMock,
 			cache,
+			keyLoaderFacade,
 		)
 		let senderMailAddress = "alice@tutanota.com"
 		let recipientMailAddress = "bob@tutanota.com"
@@ -396,7 +411,7 @@ o.spec("CryptoFacadeTest", function () {
 			groupKeyVersion: "0",
 			formerGroupKeys: null,
 		})
-		when(userFacade.loadCurrentKeyPair(senderUserGroup._id, anything())).thenResolve({ version: 0, object: senderKeyPairs })
+		when(keyLoaderFacade.loadCurrentKeyPair(senderUserGroup._id)).thenResolve({ version: 0, object: senderKeyPairs })
 
 		const notFoundRecipients = []
 		const pqEncapsulation: PQBucketKeyEncapsulation = {
@@ -457,6 +472,7 @@ o.spec("CryptoFacadeTest", function () {
 			ownerEncSessionKeysUpdateQueue,
 			pqFacadeMock,
 			cache,
+			keyLoaderFacade,
 		)
 		let senderMailAddress = "alice@tutanota.com"
 		let recipientMailAddress = "bob@tutanota.com"
@@ -514,7 +530,7 @@ o.spec("CryptoFacadeTest", function () {
 			groupKeyVersion: "0",
 			formerGroupKeys: null,
 		})
-		when(userFacade.loadCurrentKeyPair(senderUserGroup._id, anything())).thenResolve({ version: 0, object: senderKeyPairs })
+		when(keyLoaderFacade.loadCurrentKeyPair(senderUserGroup._id)).thenResolve({ version: 0, object: senderKeyPairs })
 
 		const notFoundRecipients = []
 		const pqEncapsulation: PQBucketKeyEncapsulation = {
@@ -580,6 +596,7 @@ o.spec("CryptoFacadeTest", function () {
 			ownerEncSessionKeysUpdateQueue,
 			pqFacadeMock,
 			cache,
+			keyLoaderFacade,
 		)
 		let senderMailAddress = "alice@tutanota.com"
 		let recipientMailAddress = "bob@tutanota.com"
@@ -633,7 +650,7 @@ o.spec("CryptoFacadeTest", function () {
 			user: null,
 			formerGroupKeys: null,
 		})
-		when(userFacade.loadCurrentKeyPair(senderUserGroup._id, anything())).thenResolve({ version: 0, object: senderKeyPairs })
+		when(keyLoaderFacade.loadCurrentKeyPair(senderUserGroup._id)).thenResolve({ version: 0, object: senderKeyPairs })
 		const notFoundRecipients = []
 
 		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: recipientMailAddress, version: null }))).thenResolve(
@@ -1231,7 +1248,7 @@ o.spec("CryptoFacadeTest", function () {
 			_ownerGroup: ownerGroup,
 			_ownerEncSessionKey: encryptKey(gk, sk),
 		}
-		when(userFacade.loadSymGroupKey(ownerGroup, 0, anything())).thenResolve(gk)
+		when(keyLoaderFacade.loadSymGroupKey(ownerGroup, 0)).thenResolve(gk)
 
 		const mailDetailsBlobSessionKey = neverNull(await crypto.resolveSessionKey(MailDetailsBlobTypeModel, mailDetailsBlobLiteral))
 		o(mailDetailsBlobSessionKey).deepEquals(sk)
@@ -1272,7 +1289,7 @@ o.spec("CryptoFacadeTest", function () {
 	}> {
 		// configure test user
 		const recipientUser = createTestUser("Bob", entityClient)
-		configureLoggedInUser(recipientUser, userFacade)
+		configureLoggedInUser(recipientUser, userFacade, keyLoaderFacade)
 
 		let privateKey = RSA_TEST_KEYPAIR.privateKey
 		let publicKey = RSA_TEST_KEYPAIR.publicKey
@@ -1282,7 +1299,7 @@ o.spec("CryptoFacadeTest", function () {
 			pubRsaKey: hexToUint8Array(rsaPublicKeyToHex(publicKey)),
 		})
 		recipientUser.userGroup.currentKeys = keyPair
-		when(userFacade.loadKeypair(recipientUser.userGroup._id, 0, anything())).thenResolve(RSA_TEST_KEYPAIR)
+		when(keyLoaderFacade.loadKeypair(recipientUser.userGroup._id, 0)).thenResolve(RSA_TEST_KEYPAIR)
 
 		// configure mail
 		let subject = "this is our subject"
@@ -1374,7 +1391,7 @@ o.spec("CryptoFacadeTest", function () {
 	}> {
 		// create test user
 		const recipientUser = createTestUser("Bob", entityClient)
-		configureLoggedInUser(recipientUser, userFacade)
+		configureLoggedInUser(recipientUser, userFacade, keyLoaderFacade)
 
 		let pqKeyPairs = await pqFacade.generateKeyPairs()
 
@@ -1388,7 +1405,7 @@ o.spec("CryptoFacadeTest", function () {
 			symEncPrivRsaKey: null,
 			version: "0",
 		})
-		when(userFacade.loadKeypair(recipientUser.userGroup._id, 0, anything())).thenResolve(pqKeyPairs)
+		when(keyLoaderFacade.loadKeypair(recipientUser.userGroup._id, 0)).thenResolve(pqKeyPairs)
 
 		recipientUser.userGroup.currentKeys = recipientKeyPair
 
@@ -1485,7 +1502,7 @@ o.spec("CryptoFacadeTest", function () {
 	}> {
 		// create user
 		const externalUser = createTestUser("Bob", entityClient)
-		configureLoggedInUser(externalUser, userFacade)
+		configureLoggedInUser(externalUser, userFacade, keyLoaderFacade)
 
 		// create test mail
 		let subject = "this is our subject"
@@ -1573,7 +1590,7 @@ o.spec("CryptoFacadeTest", function () {
 		externalUser.mailGroup.admin = externalUser.userGroup._id
 		externalUser.mailGroup.adminGroupEncGKey = encryptKey(externalUser.userGroupKey, externalUser.mailGroupKey)
 
-		configureLoggedInUser(internalUser, userFacade)
+		configureLoggedInUser(internalUser, userFacade, keyLoaderFacade)
 
 		// setup test mail (confidentail reply from external)
 
@@ -1722,7 +1739,7 @@ export function createTestUser(name: string, entityClient: EntityClient): TestUs
 /**
  * Helper function to mock the user facade so that the given test user is considered as logged in user.
  */
-export function configureLoggedInUser(testUser: TestUser, userFacade: UserFacade) {
+export function configureLoggedInUser(testUser: TestUser, userFacade: UserFacade, keyLoaderFacade: KeyLoaderFacade) {
 	when(userFacade.getLoggedInUser()).thenReturn(testUser.user)
 	when(userFacade.getGroupKey(testUser.mailGroup._id)).thenReturn({ object: testUser.mailGroupKey, version: 0 })
 	when(userFacade.getGroupKey(testUser.userGroup._id)).thenReturn({ object: testUser.userGroupKey, version: 0 })
@@ -1731,6 +1748,6 @@ export function configureLoggedInUser(testUser: TestUser, userFacade: UserFacade
 	when(userFacade.getUserGroupKey()).thenReturn({ object: testUser.userGroupKey, version: 0 })
 	when(userFacade.isLeader()).thenReturn(true)
 	when(userFacade.isFullyLoggedIn()).thenReturn(true)
-	when(userFacade.loadSymGroupKey(testUser.mailGroup._id, 0, anything())).thenResolve(testUser.mailGroupKey)
-	when(userFacade.loadSymGroupKey(testUser.userGroup._id, 0, anything())).thenResolve(testUser.userGroupKey)
+	when(keyLoaderFacade.loadSymGroupKey(testUser.mailGroup._id, 0)).thenResolve(testUser.mailGroupKey)
+	when(keyLoaderFacade.loadSymGroupKey(testUser.userGroup._id, 0)).thenResolve(testUser.userGroupKey)
 }

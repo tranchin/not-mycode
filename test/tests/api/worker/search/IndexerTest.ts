@@ -31,6 +31,7 @@ import { GroupDataOS, Metadata, MetaDataOS } from "../../../../../src/api/worker
 import { MailFacade } from "../../../../../src/api/worker/facades/lazy/MailFacade.js"
 import { MailIndexer } from "../../../../../src/api/worker/search/MailIndexer.js"
 import { UserFacade } from "../../../../../src/api/worker/facades/UserFacade.js"
+import { KeyLoaderFacade } from "../../../../../src/api/worker/facades/KeyLoaderFacade.js"
 
 const SERVER_TIME = new Date("1994-06-08").getTime()
 let contactList = createTestEntity(ContactListTypeRef)
@@ -51,6 +52,7 @@ o.spec("Indexer test", () => {
 
 	const mailFacade: MailFacade = downcast({})
 	const userFacade = object<UserFacade>()
+	const keyLoaderFacade = object<KeyLoaderFacade>()
 	const entityClient = object<EntityClient>()
 
 	o("init new db", async function () {
@@ -110,7 +112,7 @@ o.spec("Indexer test", () => {
 
 		when(userFacade.getUserGroupKey()).thenResolve(userGroupKey)
 
-		await indexer.init({ user, userFacade, entityClient })
+		await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
 		o(indexer._loadGroupData.args).deepEquals([user])
 		o(indexer._initGroupData.args[0]).deepEquals(groupBatches)
 		o(metadata[Metadata.mailIndexingEnabled]).equals(false)
@@ -182,9 +184,9 @@ o.spec("Indexer test", () => {
 		user.userGroup.group = "user-group-id"
 
 		when(userFacade.getUserGroupId()).thenReturn(user.userGroup.group)
-		when(userFacade.loadSymGroupKey(user.userGroup.group, userGroupKeyVersion, entityClient)).thenResolve(userGroupKey.object)
+		when(keyLoaderFacade.loadSymGroupKey(user.userGroup.group, userGroupKeyVersion)).thenResolve(userGroupKey.object)
 
-		await indexer.init({ user, userFacade, entityClient })
+		await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
 		o(indexer.db.key).deepEquals(dbKey)
 		o(indexer._loadGroupDiff.args).deepEquals([user])
 		o(indexer._updateGroups.args).deepEquals([user, groupDiff])
@@ -255,9 +257,9 @@ o.spec("Indexer test", () => {
 		user.userGroup.group = "user-group-id"
 
 		when(userFacade.getUserGroupId()).thenReturn(user.userGroup.group)
-		when(userFacade.loadSymGroupKey(user.userGroup.group, userGroupKeyVersion, entityClient)).thenResolve(userGroupKey.object)
+		when(keyLoaderFacade.loadSymGroupKey(user.userGroup.group, userGroupKeyVersion)).thenResolve(userGroupKey.object)
 
-		await indexer.init({ user, userFacade, entityClient })
+		await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
 		o(indexer.db.key).deepEquals(dbKey)
 		o(indexer._loadGroupDiff.args).deepEquals([user])
 		o(indexer._updateGroups.args).deepEquals([user, groupDiff])
@@ -1239,14 +1241,14 @@ o.spec("Indexer test", () => {
 		o("When init() is called and contacts have already been indexed they are not indexed again", async function () {
 			when(indexer._contact.getIndexTimestamp(contactList)).thenResolve(FULL_INDEXED_TIMESTAMP)
 			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
-			await indexer.init({ user, userFacade, entityClient })
+			await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
 			verify(indexer._contact.indexFullContactList(contactList), { times: 0 })
 		})
 
 		o("When init() is called and contacts have not been indexed before, they are indexed", async function () {
 			when(indexer._contact.getIndexTimestamp(contactList)).thenResolve(NOTHING_INDEXED_TIMESTAMP)
 			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
-			await indexer.init({ user, userFacade, entityClient })
+			await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
 			verify(indexer._contact.indexFullContactList(contactList))
 		})
 
@@ -1261,7 +1263,7 @@ o.spec("Indexer test", () => {
 			when(indexer._mail.enableMailIndexing(matchers.anything())).thenResolve(undefined)
 
 			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
-			await indexer.init({ user, userFacade, entityClient, cacheInfo })
+			await indexer.init({ user, userFacade, entityClient, keyLoaderFacade, cacheInfo })
 			verify(indexer._entity.loadAll(ContactTypeRef, contactList.contacts))
 		})
 
@@ -1275,7 +1277,7 @@ o.spec("Indexer test", () => {
 			when(indexer._mail.enableMailIndexing(matchers.anything())).thenResolve(undefined)
 
 			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
-			await indexer.init({ user, userFacade, entityClient, cacheInfo })
+			await indexer.init({ user, userFacade, entityClient, keyLoaderFacade, cacheInfo })
 
 			verify(indexer._contact.indexFullContactList(contactList))
 			verify(indexer._entity.loadAll(ContactTypeRef, contactList.contacts), { times: 0 })
@@ -1293,7 +1295,7 @@ o.spec("Indexer test", () => {
 			let userGroupKey = freshVersioned(aes256RandomKey())
 			when(userFacade.getUserGroupKey()).thenResolve(userGroupKey)
 
-			await indexer.init({ user, userFacade, entityClient, cacheInfo })
+			await indexer.init({ user, userFacade, keyLoaderFacade, entityClient, cacheInfo })
 		})
 	})
 })

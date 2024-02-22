@@ -66,6 +66,7 @@ import { DomainConfigProvider } from "../common/DomainConfigProvider.js"
 import { KyberFacade, NativeKyberFacade, WASMKyberFacade } from "./facades/KyberFacade.js"
 import { PQFacade } from "./facades/PQFacade.js"
 import { PdfWriter } from "./pdf/PdfWriter.js"
+import { KeyLoaderFacade } from "./facades/KeyLoaderFacade.js"
 
 assertWorkerOrNode()
 
@@ -84,6 +85,7 @@ export type WorkerLocatorType = {
 	pqFacade: PQFacade
 	entropyFacade: EntropyFacade
 	blobAccessToken: BlobAccessTokenFacade
+	keyLoader: KeyLoaderFacade
 
 	// login
 	user: UserFacade
@@ -197,6 +199,8 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 
 	locator.pqFacade = new PQFacade(locator.kyberFacade)
 
+	locator.keyLoader = new KeyLoaderFacade(locator.user, locator.cachingEntityClient)
+
 	locator.crypto = new CryptoFacade(
 		locator.user,
 		locator.cachingEntityClient,
@@ -207,6 +211,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 		new OwnerEncSessionKeysUpdateQueue(locator.user, locator.serviceExecutor),
 		locator.pqFacade,
 		cache,
+		locator.keyLoader,
 	)
 
 	const loginListener: LoginListener = {
@@ -219,7 +224,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 				// index new items in background
 				console.log("initIndexer after log in")
 
-				initIndexer(worker, cacheInfo, locator.user, locator.cachingEntityClient)
+				initIndexer(worker, cacheInfo, locator.user, locator.cachingEntityClient, locator.keyLoader)
 			}
 
 			return mainInterface.loginListener.onFullLoginSuccess(sessionType, cacheInfo)
@@ -283,6 +288,7 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 			locator.rsa,
 			locator.serviceExecutor,
 			assertNotNull(cache),
+			locator.keyLoader,
 		)
 	})
 	locator.userManagement = lazyMemoized(async () => {
@@ -401,7 +407,13 @@ export async function initLocator(worker: WorkerImpl, browserData: BrowserData) 
 
 const RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS = 30000
 
-async function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo, userFacade: UserFacade, entityClient: EntityClient): Promise<void> {
+async function initIndexer(
+	worker: WorkerImpl,
+	cacheInfo: CacheInfo,
+	userFacade: UserFacade,
+	entityClient: EntityClient,
+	keyLoaderFacade: KeyLoaderFacade,
+): Promise<void> {
 	const indexer = await locator.indexer()
 	try {
 		await indexer.init({
@@ -409,18 +421,19 @@ async function initIndexer(worker: WorkerImpl, cacheInfo: CacheInfo, userFacade:
 			userFacade,
 			entityClient,
 			cacheInfo,
+			keyLoaderFacade,
 		})
 	} catch (e) {
 		if (e instanceof ServiceUnavailableError) {
 			console.log("Retry init indexer in 30 seconds after ServiceUnavailableError")
 			await delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS)
 			console.log("_initIndexer after ServiceUnavailableError")
-			return initIndexer(worker, cacheInfo, userFacade, entityClient)
+			return initIndexer(worker, cacheInfo, userFacade, entityClient, keyLoaderFacade)
 		} else if (e instanceof ConnectionError) {
 			console.log("Retry init indexer in 30 seconds after ConnectionError")
 			await delay(RETRY_TIMOUT_AFTER_INIT_INDEXER_ERROR_MS)
 			console.log("_initIndexer after ConnectionError")
-			return initIndexer(worker, cacheInfo, userFacade, entityClient)
+			return initIndexer(worker, cacheInfo, userFacade, entityClient, keyLoaderFacade)
 		} else {
 			// not awaiting
 			worker.sendError(e)

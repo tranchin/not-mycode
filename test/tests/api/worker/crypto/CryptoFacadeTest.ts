@@ -155,10 +155,11 @@ o.spec("CryptoFacadeTest", function () {
 		o(sessionKey).deepEquals(sk)
 	})
 
-	o("resolve session key: rsa public key decryption of session key", async function () {
+	o("resolve session key: rsa public key decryption of session key.", async function () {
 		o.timeout(500) // in CI or with debugging it can take a while
 		const recipientUser = createTestUser("Bob", entityClient)
 		configureLoggedInUser(recipientUser, userFacade)
+		when(userFacade.loadKeypair(recipientUser.userGroup._id, 0, anything())).thenResolve(RSA_TEST_KEYPAIR)
 
 		let subject = "this is our subject"
 		let confidential = true
@@ -193,6 +194,7 @@ o.spec("CryptoFacadeTest", function () {
 			type: BucketPermissionType.Public,
 			group: recipientUser.userGroup._id,
 			pubEncBucketKey,
+			pubKeyVersion: "0",
 		})
 
 		when(entityClient.loadAll(BucketPermissionTypeRef, getListId(bucketPermission))).thenResolve([bucketPermission])
@@ -235,6 +237,7 @@ o.spec("CryptoFacadeTest", function () {
 			version: "0",
 		})
 		recipientTestUser.userGroup.currentKeys = recipientKeyPair
+		when(userFacade.loadKeypair(recipientTestUser.userGroup._id, 0, anything())).thenResolve(pqKeyPairs)
 
 		const senderIdentityKeyPair = generateEccKeyPair()
 
@@ -320,7 +323,7 @@ o.spec("CryptoFacadeTest", function () {
 			}),
 		)
 
-		const sessionKey = neverNull(await crypto.resolveSessionKey(testData.MailTypeModel, testData.mailLiteral))
+		// const sessionKey = neverNull(await crypto.resolveSessionKey(testData.MailTypeModel, testData.mailLiteral))
 		const updatedFiles = await crypto.enforceSessionKeyUpdateIfNeeded(mail, files)
 		verify(ownerEncSessionKeysUpdateQueue.postUpdateSessionKeysService(anything()), { times: 1 })
 		verify(cache.deleteFromCacheIfExists(FileTypeRef, "listId", "2"))
@@ -393,6 +396,8 @@ o.spec("CryptoFacadeTest", function () {
 			groupKeyVersion: "0",
 			formerGroupKeys: null,
 		})
+		when(userFacade.loadCurrentKeyPair(senderUserGroup._id, anything())).thenResolve({ version: 0, object: senderKeyPairs })
+
 		const notFoundRecipients = []
 		const pqEncapsulation: PQBucketKeyEncapsulation = {
 			kyberCipherText: new Uint8Array([1]),
@@ -405,7 +410,7 @@ o.spec("CryptoFacadeTest", function () {
 			encapsulation: pqEncapsulation,
 		}
 
-		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: recipientMailAddress, version: "0" }))).thenResolve(
+		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: recipientMailAddress, version: null }))).thenResolve(
 			createPublicKeyGetOut({
 				pubKeyVersion: "0",
 				pubEccKey: recipientKeyPair.pubEccKey,
@@ -509,6 +514,8 @@ o.spec("CryptoFacadeTest", function () {
 			groupKeyVersion: "0",
 			formerGroupKeys: null,
 		})
+		when(userFacade.loadCurrentKeyPair(senderUserGroup._id, anything())).thenResolve({ version: 0, object: senderKeyPairs })
+
 		const notFoundRecipients = []
 		const pqEncapsulation: PQBucketKeyEncapsulation = {
 			kyberCipherText: new Uint8Array([1]),
@@ -522,7 +529,7 @@ o.spec("CryptoFacadeTest", function () {
 			encapsulation: pqEncapsulation,
 		}
 
-		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: recipientMailAddress, version: "0" }))).thenResolve(
+		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: recipientMailAddress, version: null }))).thenResolve(
 			createPublicKeyGetOut({
 				pubRsaKey: null,
 				pubKeyVersion: "0",
@@ -530,7 +537,7 @@ o.spec("CryptoFacadeTest", function () {
 				pubKyberKey: recipientKeyPair.pubKyberKey,
 			}),
 		)
-		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: senderMailAddress, version: "0" }))).thenResolve(
+		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: senderMailAddress, version: null }))).thenResolve(
 			createPublicKeyGetOut({
 				pubKeyVersion: "0",
 				pubRsaKey: senderKeyPair.pubRsaKey,
@@ -626,9 +633,10 @@ o.spec("CryptoFacadeTest", function () {
 			user: null,
 			formerGroupKeys: null,
 		})
+		when(userFacade.loadCurrentKeyPair(senderUserGroup._id, anything())).thenResolve({ version: 0, object: senderKeyPairs })
 		const notFoundRecipients = []
 
-		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: recipientMailAddress, version: "0" }))).thenResolve(
+		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: recipientMailAddress, version: null }))).thenResolve(
 			createPublicKeyGetOut({
 				pubKeyVersion: "0",
 				pubRsaKey: recipientKeyPair.pubRsaKey,
@@ -636,7 +644,7 @@ o.spec("CryptoFacadeTest", function () {
 				pubKyberKey: null,
 			}),
 		)
-		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: senderMailAddress, version: "0" }))).thenResolve(
+		when(serviceExecutor.get(PublicKeyService, createPublicKeyGetIn({ mailAddress: senderMailAddress, version: null }))).thenResolve(
 			createPublicKeyGetOut({
 				pubKeyVersion: "0",
 				pubEccKey: senderKeyPair.pubEccKey,
@@ -1212,16 +1220,18 @@ o.spec("CryptoFacadeTest", function () {
 	o("resolve session key: MailDetailsBlob", async function () {
 		const gk = aes256RandomKey()
 		const sk = aes256RandomKey()
-		when(userFacade.getGroupKey("mailGroupId")).thenReturn({ object: gk, version: 0 })
-		when(userFacade.hasGroup("mailGroupId")).thenReturn(true)
+		const ownerGroup = "mailGroupId"
+		when(userFacade.getGroupKey(ownerGroup)).thenReturn({ object: gk, version: 0 })
+		when(userFacade.hasGroup(ownerGroup)).thenReturn(true)
 		when(userFacade.isFullyLoggedIn()).thenReturn(true)
 
 		const MailDetailsBlobTypeModel = await resolveTypeReference(MailDetailsBlobTypeRef)
 		const mailDetailsBlobLiteral = {
 			_id: ["mailDetailsArchiveId", "mailDetailsId"],
-			_ownerGroup: "mailGroupId",
+			_ownerGroup: ownerGroup,
 			_ownerEncSessionKey: encryptKey(gk, sk),
 		}
+		when(userFacade.loadSymGroupKey(ownerGroup, 0, anything())).thenResolve(gk)
 
 		const mailDetailsBlobSessionKey = neverNull(await crypto.resolveSessionKey(MailDetailsBlobTypeModel, mailDetailsBlobLiteral))
 		o(mailDetailsBlobSessionKey).deepEquals(sk)
@@ -1272,6 +1282,7 @@ o.spec("CryptoFacadeTest", function () {
 			pubRsaKey: hexToUint8Array(rsaPublicKeyToHex(publicKey)),
 		})
 		recipientUser.userGroup.currentKeys = keyPair
+		when(userFacade.loadKeypair(recipientUser.userGroup._id, 0, anything())).thenResolve(RSA_TEST_KEYPAIR)
 
 		// configure mail
 		let subject = "this is our subject"
@@ -1377,6 +1388,7 @@ o.spec("CryptoFacadeTest", function () {
 			symEncPrivRsaKey: null,
 			version: "0",
 		})
+		when(userFacade.loadKeypair(recipientUser.userGroup._id, 0, anything())).thenResolve(pqKeyPairs)
 
 		recipientUser.userGroup.currentKeys = recipientKeyPair
 
@@ -1719,4 +1731,6 @@ export function configureLoggedInUser(testUser: TestUser, userFacade: UserFacade
 	when(userFacade.getUserGroupKey()).thenReturn({ object: testUser.userGroupKey, version: 0 })
 	when(userFacade.isLeader()).thenReturn(true)
 	when(userFacade.isFullyLoggedIn()).thenReturn(true)
+	when(userFacade.loadSymGroupKey(testUser.mailGroup._id, 0, anything())).thenResolve(testUser.mailGroupKey)
+	when(userFacade.loadSymGroupKey(testUser.userGroup._id, 0, anything())).thenResolve(testUser.userGroupKey)
 }

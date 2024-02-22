@@ -1,30 +1,29 @@
 import o from "@tutao/otest"
-import * as UserIdReturn from "../../../../../src/api/entities/sys/TypeRefs.js"
-import { UserIdReturnTypeRef } from "../../../../../src/api/entities/sys/TypeRefs.js"
-import { aes128RandomKey, aesDecrypt, aesEncrypt, ENABLE_MAC, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
+import { UserReturn, UserReturnTypeRef } from "../../../../../src/api/entities/sys/TypeRefs.js"
+import { aes256RandomKey, aesDecrypt, aesEncrypt, ENABLE_MAC, IV_BYTE_LENGTH, random } from "@tutao/tutanota-crypto"
 import { decryptValue, encryptValue, InstanceMapper } from "../../../../../src/api/worker/crypto/InstanceMapper.js"
 import { Cardinality, ValueType } from "../../../../../src/api/common/EntityConstants.js"
 import { ModelValue } from "../../../../../src/api/common/EntityTypes.js"
 import { assertThrows } from "@tutao/tutanota-test-utils"
 import { ProgrammingError } from "../../../../../src/api/common/error/ProgrammingError.js"
-import {
-	base64ToUint8Array,
-	freshVersioned,
-	isSameTypeRef,
-	neverNull,
-	stringToUtf8Uint8Array,
-	uint8ArrayToBase64,
-	utf8Uint8ArrayToString,
-} from "@tutao/tutanota-utils"
+import { base64ToUint8Array, isSameTypeRef, neverNull, stringToUtf8Uint8Array, uint8ArrayToBase64, utf8Uint8ArrayToString } from "@tutao/tutanota-utils"
 import { resolveTypeReference } from "../../../../../src/api/common/EntityFunctions.js"
 import { ContactAddressTypeRef, ContactTypeRef, Mail, MailAddressTypeRef, MailTypeRef } from "../../../../../src/api/entities/tutanota/TypeRefs.js"
 import { createTestEntity } from "../../../TestUtils.js"
-import { createMailLiteral } from "./CryptoFacadeTest.js"
+import { configureLoggedInUser, createMailLiteral, createTestUser } from "./CryptoFacadeTest.js"
+import { EntityClient } from "../../../../../src/api/common/EntityClient.js"
+import { UserFacade } from "../../../../../src/api/worker/facades/UserFacade.js"
+import { object } from "testdouble"
 
 o.spec("InstanceMapper", function () {
+	let entityClient: EntityClient
+	let userFacade: UserFacade
+
 	let instanceMapper: InstanceMapper
 	o.beforeEach(() => {
 		instanceMapper = new InstanceMapper()
+		userFacade = object()
+		entityClient = object()
 	})
 
 	function createValueType(type, encrypted, cardinality): ModelValue & { name: string; since: number } {
@@ -41,16 +40,16 @@ o.spec("InstanceMapper", function () {
 
 	o.spec("decrypt value", function () {
 		o("decrypt string / number value without mac", function () {
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = "this is a string value"
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
+			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.One), encryptedValue, sk)).equals(value)
 			value = "516546"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
+			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.One), encryptedValue, sk)).equals(value)
 		})
 		o("decrypt string / number value with mac", function () {
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = "this is a string value"
 			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.One), encryptedValue, sk)).equals(value)
@@ -60,20 +59,20 @@ o.spec("InstanceMapper", function () {
 		})
 		o("decrypt boolean value without mac", function () {
 			let valueType: ModelValue = createValueType(ValueType.Boolean, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = "0"
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
+			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", valueType, encryptedValue, sk)).equals(false)
 			value = "1"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
+			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", valueType, encryptedValue, sk)).equals(true)
 			value = "32498"
-			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
+			encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", valueType, encryptedValue, sk)).equals(true)
 		})
 		o("decrypt boolean value with mac", function () {
 			let valueType: ModelValue = createValueType(ValueType.Boolean, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = "0"
 			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", valueType, encryptedValue, sk)).equals(false)
@@ -86,30 +85,30 @@ o.spec("InstanceMapper", function () {
 		})
 		o("decrypt date value without mac", function () {
 			let valueType: ModelValue = createValueType(ValueType.Date, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = new Date().getTime().toString()
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, false))
+			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", valueType, encryptedValue, sk)).deepEquals(new Date(parseInt(value)))
 		})
 		o("decrypt date value with mac", function () {
 			let valueType: ModelValue = createValueType(ValueType.Date, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = new Date().getTime().toString()
 			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, stringToUtf8Uint8Array(value), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			o(decryptValue("test", valueType, encryptedValue, sk)).deepEquals(new Date(parseInt(value)))
 		})
 		o("decrypt bytes value without mac", function () {
 			let valueType: ModelValue = createValueType(ValueType.Bytes, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = random.generateRandomData(5)
-			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, false))
+			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
 			o(decryptedValue instanceof Uint8Array).equals(true)
 			o(Array.from(decryptedValue)).deepEquals(Array.from(value))
 		})
 		o("decrypt bytes value with mac", function () {
 			let valueType: ModelValue = createValueType(ValueType.Bytes, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = random.generateRandomData(5)
 			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
@@ -118,7 +117,7 @@ o.spec("InstanceMapper", function () {
 		})
 		o("decrypt compressedString", function () {
 			let valueType: ModelValue = createValueType(ValueType.CompressedString, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = base64ToUint8Array("QHRlc3Q=")
 			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
@@ -127,7 +126,7 @@ o.spec("InstanceMapper", function () {
 		})
 		o("decrypt compressedString w resize", function () {
 			let valueType: ModelValue = createValueType(ValueType.CompressedString, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = base64ToUint8Array("X3RleHQgBQD//1FQdGV4dCA=")
 			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, value, random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
@@ -138,14 +137,14 @@ o.spec("InstanceMapper", function () {
 		})
 		o("decrypt empty compressedString", function () {
 			let valueType: ModelValue = createValueType(ValueType.CompressedString, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let encryptedValue = uint8ArrayToBase64(aesEncrypt(sk, new Uint8Array([]), random.generateRandomData(IV_BYTE_LENGTH), true, true))
 			let decryptedValue = decryptValue("test", valueType, encryptedValue, sk)
 			o(typeof decryptedValue === "string").equals(true)
 			o(decryptedValue).equals("")
 		})
 		o("do not decrypt null values", function () {
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			o(decryptValue("test", createValueType(ValueType.String, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
 			o(decryptValue("test", createValueType(ValueType.Date, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
 			o(decryptValue("test", createValueType(ValueType.Bytes, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
@@ -160,7 +159,7 @@ o.spec("InstanceMapper", function () {
 
 		function makeTestForErrorOnNull(type) {
 			return async () => {
-				let sk = aes128RandomKey()
+				let sk = aes256RandomKey()
 
 				const e = await assertThrows(ProgrammingError, () => decryptValue("test", createValueType(type, true, Cardinality.One), null, sk))
 				o(e.message).equals("Value test with cardinality ONE can not be null")
@@ -201,7 +200,7 @@ o.spec("InstanceMapper", function () {
 	o.spec("encryptValue", function () {
 		o("encrypt string / number value", function () {
 			const valueType = createValueType(ValueType.String, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = "this is a string value"
 			let encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
 			let expected = uint8ArrayToBase64(
@@ -218,7 +217,7 @@ o.spec("InstanceMapper", function () {
 		})
 		o("encrypt boolean value", function () {
 			let valueType: ModelValue = createValueType(ValueType.Boolean, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = false
 			let encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
 			let expected = uint8ArrayToBase64(
@@ -248,7 +247,7 @@ o.spec("InstanceMapper", function () {
 		})
 		o("encrypt date value", function () {
 			let valueType: ModelValue = createValueType(ValueType.Date, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = new Date()
 			let encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
 			let expected = uint8ArrayToBase64(
@@ -265,7 +264,7 @@ o.spec("InstanceMapper", function () {
 		})
 		o("encrypt bytes value", function () {
 			let valueType: ModelValue = createValueType(ValueType.Bytes, true, Cardinality.One)
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			let value = random.generateRandomData(5)
 			let encryptedValue = neverNull(encryptValue("test", valueType, value, sk))
 			let expected = uint8ArrayToBase64(
@@ -275,7 +274,7 @@ o.spec("InstanceMapper", function () {
 			o(Array.from(decryptValue("test", valueType, encryptedValue, sk))).deepEquals(Array.from(value))
 		})
 		o("do not encrypt null values", function () {
-			let sk = aes128RandomKey()
+			let sk = aes256RandomKey()
 			o(encryptValue("test", createValueType(ValueType.String, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
 			o(encryptValue("test", createValueType(ValueType.Date, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
 			o(encryptValue("test", createValueType(ValueType.Bytes, true, Cardinality.ZeroOrOne), null, sk)).equals(null)
@@ -301,7 +300,7 @@ o.spec("InstanceMapper", function () {
 
 		function makeTestForErrorOnNull(type) {
 			return async () => {
-				let sk = aes128RandomKey()
+				let sk = aes256RandomKey()
 
 				const e = await assertThrows(ProgrammingError, async () => encryptValue("test", createValueType(type, true, Cardinality.One), null, sk))
 				o(e.message).equals("Value test with cardinality ONE can not be null")
@@ -338,28 +337,28 @@ o.spec("InstanceMapper", function () {
 		let subject = "this is our subject"
 		let confidential = true
 		let senderName = "TutanotaTeam"
-		let recipientName = "Yahoo"
-		let gk = freshVersioned(aes128RandomKey())
-		let sk = aes128RandomKey()
-		let mail = createMailLiteral(gk, sk, subject, confidential, senderName, recipientName)
+		const user = createTestUser("Alice", entityClient)
+		const sk = aes256RandomKey()
+		let mail = createMailLiteral(user.mailGroupKey, sk, subject, confidential, senderName, user.name, user.mailGroup._id)
 		const MailTypeModel = await resolveTypeReference(MailTypeRef)
-		const decrypted = await instanceMapper.decryptAndMapToInstance<Mail>(MailTypeModel, mail, sk)
-		o(isSameTypeRef(decrypted._type, MailTypeRef)).equals(true)
-		o(decrypted.receivedDate.getTime()).equals(1470039025474)
-		o(neverNull(decrypted.sentDate).getTime()).equals(1470039021474)
-		o(decrypted.confidential).equals(confidential)
-		o(decrypted.subject).equals(subject)
-		o(decrypted.replyType).equals("0")
-		// aggregates
-		o(isSameTypeRef(decrypted.sender._type, MailAddressTypeRef)).equals(true)
-		o(decrypted.sender.name).equals(senderName)
-		o(decrypted.sender.address).equals("hello@tutao.de")
-		o(decrypted.toRecipients[0].name).equals(recipientName)
-		o(decrypted.toRecipients[0].address).equals("support@yahoo.com")
+		return instanceMapper.decryptAndMapToInstance<Mail>(MailTypeModel, mail, sk).then((decrypted) => {
+			o(isSameTypeRef(decrypted._type, MailTypeRef)).equals(true)
+			o(decrypted.receivedDate.getTime()).equals(1470039025474)
+			o(neverNull(decrypted.sentDate).getTime()).equals(1470039021474)
+			o(decrypted.confidential).equals(confidential)
+			o(decrypted.subject).equals(subject)
+			o(decrypted.replyType).equals("0")
+			// aggregates
+			o(isSameTypeRef(decrypted.sender._type, MailAddressTypeRef)).equals(true)
+			o(decrypted.sender.name).equals(senderName)
+			o(decrypted.sender.address).equals("hello@tutao.de")
+			o(decrypted.toRecipients[0].name).equals(user.name)
+			o(decrypted.toRecipients[0].address).equals("support@yahoo.com")
+		})
 	})
 
 	o("encrypt instance", async function () {
-		let sk = aes128RandomKey()
+		let sk = aes256RandomKey()
 		let address = createTestEntity(ContactAddressTypeRef)
 		address.type = "0"
 		address.address = "Entenhausen"
@@ -390,41 +389,45 @@ o.spec("InstanceMapper", function () {
 		o(utf8Uint8ArrayToString(aesDecrypt(sk, base64ToUint8Array(result.autoTransmitPassword)))).equals(contact.autoTransmitPassword)
 	})
 
-	o("map unencrypted to DB literal", async function () {
-		let userIdReturn = createTestEntity(UserIdReturnTypeRef)
-		userIdReturn._format = "0"
-		userIdReturn.userId = "KOBqO7a----0"
-		let userIdLiteral = {
+	o("map unencrypted to instance", async function () {
+		let userReturnLiteral = {
 			_format: "0",
-			userId: "KOBqO7a----0",
+			user: "KOBqO7a----0",
+			userGroup: "someUserGroup",
 		}
-		const UserIdReturnTypeModel = await resolveTypeReference(UserIdReturnTypeRef)
-		const result = await instanceMapper.encryptAndMapToLiteral(UserIdReturnTypeModel, userIdReturn, null)
-		o(result).deepEquals(userIdLiteral)
+		const UserReturnTypeModel = await resolveTypeReference(UserReturnTypeRef)
+
+		const userReturn: UserReturn = await instanceMapper.decryptAndMapToInstance(UserReturnTypeModel, userReturnLiteral, null)
+		o(userReturn._format).equals("0")
+		o(userReturn.user).equals("KOBqO7a----0")
+	})
+
+	o("map unencrypted to DB literal", async function () {
+		let userReturn = createTestEntity(UserReturnTypeRef)
+		userReturn._format = "0"
+		userReturn.user = "KOBqO7a----0"
+		let userReturnLiteral = {
+			_format: "0",
+			user: "KOBqO7a----0",
+			userGroup: "someUserGroup",
+		}
+		const UserReturnTypeModel = await resolveTypeReference(UserReturnTypeRef)
+		return instanceMapper.encryptAndMapToLiteral(UserReturnTypeModel, userReturnLiteral, null).then((result) => {
+			o(result).deepEquals(userReturnLiteral)
+		})
 	})
 
 	o("decryption errors should be written to _errors field", async function () {
+		const testUser = createTestUser("Bob", entityClient)
+		configureLoggedInUser(testUser, userFacade)
 		let subject = "this is our subject"
 		let confidential = true
 		let senderName = "TutanotaTeam"
-		let recipientName = "Yahoo"
-		let gk = freshVersioned(aes128RandomKey())
-		let sk = aes128RandomKey()
-		let mail = createMailLiteral(gk, sk, subject, confidential, senderName, recipientName)
+		let sk = aes256RandomKey()
+		let mail = createMailLiteral(testUser.mailGroupKey, sk, subject, confidential, senderName, testUser.name, testUser.mailGroup._id)
 		mail.subject = "asdf"
 		const MailTypeModel = await resolveTypeReference(MailTypeRef)
 		const instance: Mail = await instanceMapper.decryptAndMapToInstance(MailTypeModel, mail, sk)
 		o(typeof instance._errors["subject"]).equals("string")
-	})
-
-	o("map unencrypted to instance", async function () {
-		let userIdLiteral = {
-			_format: "0",
-			userId: "KOBqO7a----0",
-		}
-		const UserIdReturnTypeModel = await resolveTypeReference(UserIdReturnTypeRef)
-		const userIdReturn: UserIdReturn.UserIdReturn = await instanceMapper.decryptAndMapToInstance(UserIdReturnTypeModel, userIdLiteral, null)
-		o(userIdReturn._format).equals("0")
-		o(userIdReturn.userId).equals("KOBqO7a----0")
 	})
 })

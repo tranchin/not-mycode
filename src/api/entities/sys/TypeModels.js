@@ -66,7 +66,7 @@ export const typeModels = {
                 "id": 2223,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -648,7 +648,7 @@ export const typeModels = {
                 "id": 2227,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -1781,7 +1781,7 @@ export const typeModels = {
                 "id": 2248,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "protocolVersion": {
@@ -1835,7 +1835,7 @@ export const typeModels = {
                 "id": 2249,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "type": {
@@ -4005,7 +4005,7 @@ export const typeModels = {
                 "id": 2224,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -4962,7 +4962,7 @@ export const typeModels = {
                 "id": 2238,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -5442,7 +5442,7 @@ export const typeModels = {
                 "id": 2271,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "enabled": {
@@ -5657,7 +5657,7 @@ export const typeModels = {
                 "id": 2225,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -6308,7 +6308,7 @@ export const typeModels = {
                 "id": 2235,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -7663,7 +7663,7 @@ export const typeModels = {
                 "id": 2236,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -7990,7 +7990,7 @@ export const typeModels = {
                 "id": 2231,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -8548,7 +8548,7 @@ export const typeModels = {
                 "id": 2242,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -8605,13 +8605,13 @@ export const typeModels = {
                 "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
-            "symEncSessionKeyVersion": {
+            "symKeyVersion": {
                 "final": true,
-                "name": "symEncSessionKeyVersion",
+                "name": "symKeyVersion",
                 "id": 2251,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "type": {
@@ -9576,7 +9576,7 @@ export const typeModels = {
                 "id": 2241,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -9741,7 +9741,7 @@ export const typeModels = {
                 "id": 2234,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -11359,7 +11359,7 @@ export const typeModels = {
                 "id": 2229,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -12800,7 +12800,7 @@ export const typeModels = {
                 "id": 2233,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {
@@ -13977,7 +13977,7 @@ export const typeModels = {
                 "id": 2230,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "_permissions": {

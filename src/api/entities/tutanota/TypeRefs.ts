@@ -72,7 +72,7 @@ export type CalendarEvent = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	description: string;
 	endTime: Date;
@@ -148,7 +148,7 @@ export type CalendarEventUpdate = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	sender: string;
 
@@ -181,7 +181,7 @@ export type CalendarGroupRoot = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	index:  null | CalendarEventIndexRef;
@@ -222,7 +222,7 @@ export type Contact = {
 	_owner: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	autoTransmitPassword: string;
 	birthdayIso: null | string;
@@ -271,7 +271,7 @@ export type ContactList = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	contacts: Id;
@@ -291,7 +291,7 @@ export type ContactListEntry = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	emailAddress: string;
 }
@@ -309,7 +309,7 @@ export type ContactListGroupRoot = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	entries: Id;
@@ -668,7 +668,7 @@ export type EmailTemplate = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	tag: string;
 	title: string;
@@ -772,7 +772,7 @@ export type File = {
 	_owner: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	cid: null | string;
 	mimeType: null | string;
@@ -797,7 +797,7 @@ export type FileSystem = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	files: Id;
@@ -1006,7 +1006,7 @@ export type KnowledgeBaseEntry = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	description: string;
 	title: string;
@@ -1054,7 +1054,7 @@ export type Mail = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	authStatus: null | NumberString;
 	confidential: boolean;
@@ -1130,7 +1130,7 @@ export type MailBody = {
 	_owner: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	compressedText: null | string;
 	text: null | string;
@@ -1149,7 +1149,7 @@ export type MailBox = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	lastInfoDate: Date;
 	symEncShareBucketKey: null | Uint8Array;
@@ -1193,7 +1193,7 @@ export type MailDetailsBlob = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	details: MailDetails;
@@ -1212,7 +1212,7 @@ export type MailDetailsDraft = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	details: MailDetails;
@@ -1244,7 +1244,7 @@ export type MailFolder = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	folderType: NumberString;
 	name: string;
@@ -1280,7 +1280,7 @@ export type MailHeaders = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	compressedHeaders: null | string;
 	headers: null | string;
@@ -1321,7 +1321,7 @@ export type MailboxProperties = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	reportMovedMails: NumberString;
 
@@ -1795,7 +1795,7 @@ export type TemplateGroupRoot = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	knowledgeBase: Id;
@@ -1815,7 +1815,7 @@ export type TutanotaProperties = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	customEmailSignature: string;
 	defaultSender: null | string;
@@ -1960,7 +1960,7 @@ export type UserSettingsGroupRoot = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	startOfTheWeek: NumberString;
 	timeFormat: NumberString;

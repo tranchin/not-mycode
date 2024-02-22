@@ -18,7 +18,7 @@ export type AccountingInfo = {
 	_modified: Date;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	invoiceAddress: string;
 	invoiceCountry: null | string;
@@ -157,7 +157,7 @@ export type AuditLogEntry = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	action: string;
 	actorIpAddress: null | string;
@@ -467,13 +467,13 @@ export type BucketPermission = {
 	_ownerGroup: null | Id;
 	_permissions: Id;
 	ownerEncBucketKey: null | Uint8Array;
-	ownerKeyVersion: NumberString;
+	ownerKeyVersion: null | NumberString;
 	protocolVersion: NumberString;
 	pubEncBucketKey: null | Uint8Array;
 	pubKeyVersion: null | NumberString;
 	senderKeyVersion: null | NumberString;
 	symEncBucketKey: null | Uint8Array;
-	symKeyVersion: NumberString;
+	symKeyVersion: null | NumberString;
 	type: NumberString;
 
 	group: Id;
@@ -954,7 +954,7 @@ export type CustomerServerProperties = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	requirePasswordUpdateAfterReset: boolean;
 	saveEncryptedIpAddressInSession: boolean;
@@ -1219,7 +1219,7 @@ export type GiftCard = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	message: string;
 	migrated: boolean;
@@ -1355,7 +1355,7 @@ export type Group = {
 	_ownerGroup: null | Id;
 	_permissions: Id;
 	adminGroupEncGKey: null | Uint8Array;
-	adminGroupKeyVersion: NumberString;
+	adminGroupKeyVersion: null | NumberString;
 	enabled: boolean;
 	external: boolean;
 	groupKeyVersion: NumberString;
@@ -1388,7 +1388,7 @@ export type GroupInfo = {
 	_listEncSessionKey: null | Uint8Array;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	created: Date;
 	deleted: null | Date;
@@ -1525,7 +1525,7 @@ export type Invoice = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	address: string;
 	adminUser: null | string;
@@ -1835,7 +1835,7 @@ export type MissedNotification = {
 	_id: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	changeTime: Date;
 	confirmationId: Id;
@@ -1926,7 +1926,7 @@ export type OrderProcessingAgreement = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	customerAddress: string;
 	signatureDate: Date;
@@ -2079,14 +2079,14 @@ export type Permission = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	bucketEncSessionKey: null | Uint8Array;
 	listElementApplication: null | string;
 	listElementTypeId: null | NumberString;
 	ops: null | string;
 	symEncSessionKey: null | Uint8Array;
-	symEncSessionKeyVersion: NumberString;
+	symKeyVersion: null | NumberString;
 	type: NumberString;
 
 	bucket:  null | Bucket;
@@ -2326,7 +2326,7 @@ export type PushIdentifier = {
 	_owner: Id;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	disabled: boolean;
 	displayName: string;
@@ -2363,7 +2363,7 @@ export type ReceivedGroupInvitation = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	capability: NumberString;
 	groupType: null | NumberString;
@@ -2796,7 +2796,7 @@ export type Session = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	accessKey: null | Uint8Array;
 	clientIdentifier: string;
@@ -3124,7 +3124,7 @@ export type UserAlarmInfo = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 
 	alarmInfo: AlarmInfo;
@@ -3435,7 +3435,7 @@ export type WhitelabelChild = {
 	_id: IdTuple;
 	_ownerEncSessionKey: null | Uint8Array;
 	_ownerGroup: null | Id;
-	_ownerKeyVersion: NumberString;
+	_ownerKeyVersion: null | NumberString;
 	_permissions: Id;
 	comment: string;
 	createdDate: Date;

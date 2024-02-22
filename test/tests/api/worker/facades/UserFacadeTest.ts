@@ -17,7 +17,6 @@ import { EntityClient } from "../../../../../src/api/common/EntityClient.js"
 import { PQFacade } from "../../../../../src/api/worker/facades/PQFacade.js"
 import { WASMKyberFacade } from "../../../../../src/api/worker/facades/KyberFacade.js"
 import { loadLibOQSWASM } from "../WASMTestUtils.js"
-import { PQMessageCodec } from "../../../../../src/api/worker/facades/PQMessage.js"
 
 o.spec("UserFacadeTest", function () {
 	o("a fresh UserFacade doesn't think it's logged or partially logged in", function () {
@@ -43,7 +42,7 @@ o.spec("UserFacadeTest", function () {
 
 	o("loadKeyPair loads former key", async function (): Promise<void> {
 		const facade = new UserFacade()
-		const pqFacade = new PQFacade(new WASMKyberFacade(await loadLibOQSWASM()), new PQMessageCodec())
+		const pqFacade = new PQFacade(new WASMKyberFacade(await loadLibOQSWASM()))
 		const formerKeysDecrypted: BitArray[] = []
 		const formerKeyPairsDecrypted: PQKeyPairs[] = []
 		for (let i = 0; i < 10; i++) {

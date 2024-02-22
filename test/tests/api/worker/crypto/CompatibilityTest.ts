@@ -44,7 +44,6 @@ import { uncompress } from "../../../../../src/api/worker/Compression.js"
 import { matchers, object, when } from "testdouble"
 import { PQFacade } from "../../../../../src/api/worker/facades/PQFacade.js"
 import { WASMKyberFacade } from "../../../../../src/api/worker/facades/KyberFacade.js"
-import { PQMessageCodec } from "../../../../../src/api/worker/facades/PQMessage.js"
 import { loadArgon2WASM, loadLibOQSWASM } from "../WASMTestUtils.js"
 
 const originalRandom = random.generateRandomData
@@ -280,7 +279,7 @@ o.spec("crypto compatibility", function () {
 				kyberPublicKey: kyberKeyPair.publicKey,
 			}
 			const pqKeyPairs: PQKeyPairs = { keyPairType: KeyPairType.TUTA_CRYPT, eccKeyPair, kyberKeyPair }
-			const pqFacade = new PQFacade(new WASMKyberFacade(liboqs), new PQMessageCodec())
+			const pqFacade = new PQFacade(new WASMKyberFacade(liboqs))
 
 			const encapsulation = await pqFacade.encapsulateEncoded(eccKeyPair, ephemeralKeyPair, pqPublicKeys, bucketKey)
 			o(encapsulation).deepEquals(hexToUint8Array(td.pqMessage))

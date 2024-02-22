@@ -1290,8 +1290,10 @@ o.spec("Indexer test", () => {
 
 			indexer._mail.enableMailIndexing = func<MailIndexer["enableMailIndexing"]>()
 			when(indexer._mail.enableMailIndexing(matchers.anything())).thenResolve(undefined)
+			let userGroupKey = freshVersioned(aes256RandomKey())
+			when(userFacade.getUserGroupKey()).thenResolve(userGroupKey)
 
-			await indexer.init({ user, userGroupKey, cacheInfo })
+			await indexer.init({ user, userFacade, entityClient, cacheInfo })
 		})
 	})
 })

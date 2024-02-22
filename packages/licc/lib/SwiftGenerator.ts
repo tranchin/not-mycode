@@ -62,6 +62,7 @@ export class SwiftGenerator implements LangGenerator {
 		methodGenerator.line(`) async throws -> ${renderedReturn.name}`)
 	}
 
+	// TODO: Fix Enum handling
 	generateReceiveDispatcher(definition: FacadeDefinition): string {
 		const acc = new Accumulator()
 		acc.line("import Foundation")

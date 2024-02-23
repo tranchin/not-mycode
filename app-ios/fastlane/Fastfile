@@ -28,7 +28,7 @@ platform :ios do
 			api_key_path: ENV["API_KEY_JSON_FILE_PATH"]
 		)
 		build_app(
-			scheme: "tutanota",
+			scheme: "tuta prod",
 			output_directory: "releases",
 			output_name: "tutanota-" + get_version_number(target: "tutanota"),
 			include_symbols: true,
@@ -59,7 +59,7 @@ platform :ios do
 		)
 		ipa_name = "tutanota-" + get_version_number(target: "tutanota") + "-adhoc"
 		build_app(
-			scheme: "tutanota-staging",
+			scheme: "tuta staging",
 			output_directory: "releases",
 			output_name: ipa_name,
 			export_options: {
@@ -90,7 +90,7 @@ platform :ios do
 			api_key_path: ENV["API_KEY_JSON_FILE_PATH"]
 		)
 		build_app(
-			scheme: "tutanota",
+			scheme: "tuta staging",
 			output_directory: "releases",
 			output_name: "tutanota-" + get_version_number(target: "tutanota") + "-adhoc-test",
 			export_options: {
@@ -112,7 +112,7 @@ platform :ios do
 			api_key_path: ENV["API_KEY_JSON_FILE_PATH"]
 		)
 		build_app(
-			scheme: "tutanota",
+			scheme: "tuta staging",
 			output_directory: "releases",
 			output_name: "tutanota-" + get_version_number(target: "tutanota") + "-test",
 			export_options: {
@@ -128,7 +128,7 @@ platform :ios do
 		sh "mkdir -p ../../build"
  		sh "if xcrun simctl list | grep iphone-15-ios-17-2; then echo 'Using existing simulator'; else xcrun simctl create iphone-15-ios-17-2 com.apple.CoreSimulator.SimDeviceType.iPhone-15 com.apple.CoreSimulator.SimRuntime.iOS-17-2; fi"
 		run_tests(
-				scheme: "tutanota",
+				scheme: "tuta debug",
 				devices: ["iphone-15-ios-17-2"]
 		)
  	end

@@ -3060,7 +3060,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tutanota.app/tutanota";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tuta D.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tuta D";
 			};
 			name = "Debug Production";
 		};
@@ -3263,7 +3263,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tutanota.app/tutanota";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tuta D.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tuta D";
 			};
 			name = "Debug Staging";
 		};
@@ -3457,7 +3457,7 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "tutanotaTests/tutanotaTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tutanota.app/tutanota";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tuta D.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tuta D";
 			};
 			name = "Release Staging";
 		};
@@ -3648,7 +3648,7 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "tutanotaTests/tutanotaTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tutanota.app/tutanota";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tuta D.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tuta D";
 			};
 			name = "Release Production";
 		};
@@ -3961,7 +3961,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tutanota.app/tutanota";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tuta D.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tuta D";
 			};
 			name = "Debug Development";
 		};
@@ -3986,7 +3986,7 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "tutanotaTests/tutanotaTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tutanota.app/tutanota";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tuta D.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tuta D";
 			};
 			name = "Release Development";
 		};

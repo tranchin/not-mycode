@@ -16,7 +16,7 @@
 default_platform(:ios)
 
 platform :ios do
-	desc "Push a new release to AppStore"
+	desc "Push a new prod release to AppStore"
 	lane :release do |options|
 		match(
 			app_identifier: ["de.tutao.tutanota", "de.tutao.tutanota.TutanotaShareExtension"],
@@ -46,10 +46,42 @@ platform :ios do
 		end
 	end
 
-	desc "Build a new release for ad-hoc"
+	desc "Build a new prod release for ad-hoc"
 	lane :adhoc do |options|
 		match(
 			app_identifier: ["de.tutao.tutanota", "de.tutao.tutanota.TutanotaShareExtension"],
+			type: "appstore",
+			verbose: false,
+			readonly: true,
+			generate_apple_certs: false,
+			keychain_password: ENV["FASTLANE_KEYCHAIN_PASSWORD"],
+			api_key_path: ENV["API_KEY_JSON_FILE_PATH"]
+		)
+		ipa_name = "tutanota-" + get_version_number(target: "tutanota") + "-adhoc"
+		build_app(
+			scheme: "tutanota-staging",
+			output_directory: "releases",
+			output_name: ipa_name,
+			export_options: {
+				method: "ad-hoc"
+			},
+			verbose: false
+		)
+		if options[:submit]
+			update_fastlane(
+				app_identifier: "",
+				api_key_path: ENV["API_KEY_JSON_FILE_PATH"],
+				ipa: ipa_name,
+				submit_beta_review: false,
+				skip_waiting_for_build_processing: true,
+			)
+		end
+	end
+
+	desc "Build a new staging release for ad-hoc"
+	lane :adhoctest do
+		match(
+			app_identifier: ["de.tutao.tutanota.test", "de.tutao.tutanota.test.TutanotaShareExtension"],
 			type: "adhoc",
 			verbose: false,
 			readonly: true,
@@ -60,7 +92,7 @@ platform :ios do
 		build_app(
 			scheme: "tutanota",
 			output_directory: "releases",
-			output_name: "tutanota-" + get_version_number(target: "tutanota") + "-adhoc",
+			output_name: "tutanota-" + get_version_number(target: "tutanota") + "-test",
 			export_options: {
 				method: "ad-hoc"
 			},
@@ -68,10 +100,10 @@ platform :ios do
 		)
 	end
 
-	desc "Build against test system"
-	lane :adhoctest do
+	desc "Push a new staging release to TestFlight"
+	lane :releasetest do
 		match(
-			app_identifier: ["de.tutao.tutanota", "de.tutao.tutanota.TutanotaShareExtension"],
+			app_identifier: ["de.tutao.tutanota.test", "de.tutao.tutanota.test.TutanotaShareExtension"],
 			type: "adhoc",
 			verbose: false,
 			readonly: true,
@@ -101,7 +133,7 @@ platform :ios do
 		)
  	end
 
- 	desc "Renew adhoc cert"
+ 	desc "Renew prod adhoc cert"
  	lane :renewadhoccert do
 		match(
 			app_identifier: ["de.tutao.tutanota", "de.tutao.tutanota.TutanotaShareExtension"],
@@ -115,7 +147,7 @@ platform :ios do
 		)
  	end
 
-	desc "Renew appstore cert"
+	desc "Renew prod appstore cert"
 	lane :renewappstorecert do
 		match(
 			app_identifier: ["de.tutao.tutanota", "de.tutao.tutanota.TutanotaShareExtension"],
@@ -128,4 +160,32 @@ platform :ios do
 			platform: "ios"
 		)
 	end
+
+	desc "Renew staging adhoc cert"
+	lane :renewadhoccerttest do
+	   match(
+		   app_identifier: ["de.tutao.tutanota.test", "de.tutao.tutanota.test.TutanotaShareExtension"],
+		   type: "adhoc",
+		   verbose: true,
+		   readonly: false,
+		   generate_apple_certs: true,
+		   keychain_password: ENV["FASTLANE_KEYCHAIN_PASSWORD"],
+		   api_key_path: ENV["API_KEY_JSON_FILE_PATH"],
+		   platform: "ios"
+	   )
+	end
+
+   desc "Renew staging appstore cert"
+   lane :renewappstorecerttest do
+	   match(
+		   app_identifier: ["de.tutao.tutanota.test", "de.tutao.tutanota.test.TutanotaShareExtension"],
+		   type: "appstore",
+		   verbose: true,
+		   readonly: false,
+		   generate_apple_certs: true,
+		   keychain_password: ENV["FASTLANE_KEYCHAIN_PASSWORD"],
+		   api_key_path: ENV["API_KEY_JSON_FILE_PATH"],
+		   platform: "ios"
+	   )
+   end
 end

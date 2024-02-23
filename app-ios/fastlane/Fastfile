@@ -92,7 +92,7 @@ platform :ios do
 		build_app(
 			scheme: "tutanota",
 			output_directory: "releases",
-			output_name: "tutanota-" + get_version_number(target: "tutanota") + "-test",
+			output_name: "tutanota-" + get_version_number(target: "tutanota") + "-adhoc-test",
 			export_options: {
 				method: "ad-hoc"
 			},

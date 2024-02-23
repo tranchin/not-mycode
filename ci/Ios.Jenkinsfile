@@ -39,7 +39,7 @@ pipeline {
     	}
 		stage("Run tests") {
 			agent {
-				label 'mac-m1'
+				label 'mac-intel'
 			}
 			environment {
 				LC_ALL = "en_US.UTF-8"
@@ -62,7 +62,7 @@ pipeline {
 				LANG = "en_US.UTF-8"
 			}
 			agent {
-				label 'mac-m1'
+				label 'mac-intel'
 			}
 			stages {
 				stage('Staging') {

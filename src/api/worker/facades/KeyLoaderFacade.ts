@@ -86,7 +86,7 @@ export class KeyLoaderFacade {
 		return { symmetricGroupKey: lastOwnerGroupKey, groupKeyInstance: lastGroupKey }
 	}
 
-	public decodeGroupKeyVersion(id: Id): number {
+	private decodeGroupKeyVersion(id: Id): number {
 		// FIXME determine how we encode versions as element IDs for former group keys?
 		return Number(id)
 	}

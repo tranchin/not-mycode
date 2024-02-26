@@ -86,6 +86,10 @@ export class SetupNotificationsPageAttrs implements WizardPageAttrs<stream<Notif
 	}
 
 	isSkipAvailable(): boolean {
+		return false
+	}
+
+	isCloseAvailable(): boolean {
 		return true
 	}
 

@@ -25,6 +25,10 @@ export class SetupCongratulationsPageAttrs implements WizardPageAttrs<null> {
 	}
 
 	isSkipAvailable(): boolean {
+		return false
+	}
+
+	isCloseAvailable(): boolean {
 		return true
 	}
 

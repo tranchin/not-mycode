@@ -29,6 +29,11 @@ export interface WizardPageAttrs<T> {
 	isSkipAvailable(): boolean
 
 	/**
+	 * Checks if the wizard can be skipped.
+	 */
+	isCloseAvailable?(): boolean
+
+	/**
 	 * Checks if the page is enabled and can be displayed.
 	 */
 	isEnabled(): boolean
@@ -215,21 +220,31 @@ class WizardDialogAttrs<T> {
 			click: () => this.goToPreviousPageOrClose(),
 			type: ButtonType.Secondary,
 		}
-		const skipButtonAttrs: ButtonAttrs = {
-			label: "skip_action",
-			click: () => this.goToNextPageOrCloseWizard(),
-			type: ButtonType.Secondary,
+
+		// Render the buttons on the top right if we are on an intermediate page
+		const rightButtons: ButtonAttrs[] = []
+		if (this.currentPage && this._getEnabledPages().indexOf(this.currentPage) !== this._getEnabledPages().length - 1) {
+			const pageAttrs = this.currentPage.attrs
+			if (pageAttrs.isSkipAvailable()) {
+				rightButtons.push({
+					label: "skip_action",
+					click: () => this.goToNextPageOrCloseWizard(),
+					type: ButtonType.Secondary,
+				})
+			}
+			if (pageAttrs.isCloseAvailable != null && pageAttrs.isCloseAvailable()) {
+				rightButtons.push({
+					label: "close_alt",
+					click: () => this.closeAction(),
+					type: ButtonType.Secondary,
+				})
+			}
 		}
 
 		// the wizard dialog has a reference to this._headerBarAttrs -> changing this object changes the dialog
 		Object.assign(this._headerBarAttrs, {
 			left: currentPageIndex >= 0 && this.allowedToVisitPage(currentPageIndex - 1, currentPageIndex) ? [backButtonAttrs] : [],
-			right: () =>
-				this.currentPage &&
-				this.currentPage.attrs.isSkipAvailable() &&
-				this._getEnabledPages().indexOf(this.currentPage) !== this._getEnabledPages().length - 1
-					? [skipButtonAttrs]
-					: [],
+			right: () => rightButtons,
 			middle: () => (this.currentPage ? this.currentPage.attrs.headerTitle() : ""),
 		})
 	}

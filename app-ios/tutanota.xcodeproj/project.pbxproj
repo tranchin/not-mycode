@@ -278,6 +278,7 @@
 		3DEA43312B6D1E2E0037F318 /* lint.sh in Resources */ = {isa = PBXBuildFile; fileRef = 3DEA43302B6D1E2E0037F318 /* lint.sh */; };
 		3DEF18F32924E1F1009C4B55 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEF18F22924E1F1009C4B55 /* ShareViewController.swift */; };
 		3DEF18FA2924E1F1009C4B55 /* TutanotaShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 3DEF18F02924E1F1009C4B55 /* TutanotaShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3DEF392A2B8CA8C000019695 /* PermissionType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEF39292B8CA8C000019695 /* PermissionType.swift */; };
 		3DF7FA5A2AB2EE3B00DB08D1 /* Argon2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF7FA592AB2EE3B00DB08D1 /* Argon2.swift */; };
 		3DF7FA5E2AB2FBE700DB08D1 /* CompatibilityTestSwift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF7FA5D2AB2FBE700DB08D1 /* CompatibilityTestSwift.swift */; };
 /* End PBXBuildFile section */
@@ -608,6 +609,7 @@
 		3DEF18F02924E1F1009C4B55 /* TutanotaShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TutanotaShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		3DEF18F22924E1F1009C4B55 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		3DEF18F72924E1F1009C4B55 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		3DEF39292B8CA8C000019695 /* PermissionType.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PermissionType.swift; sourceTree = "<group>"; };
 		3DF3055B253853C300E942A8 /* TUTCrypto.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TUTCrypto.h; path = tutanota/Sources/Crypto/TUTCrypto.h; sourceTree = SOURCE_ROOT; };
 		3DF7FA592AB2EE3B00DB08D1 /* Argon2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Argon2.swift; sourceTree = "<group>"; };
 		3DF7FA5D2AB2FBE700DB08D1 /* CompatibilityTestSwift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompatibilityTestSwift.swift; sourceTree = "<group>"; };
@@ -1529,6 +1531,7 @@
 				3D78AC6D2B600F1B009C9EED /* NativePushFacade.swift */,
 				3D78AC692B600F1B009C9EED /* NativePushFacadeReceiveDispatcher.swift */,
 				3D78AC6F2B600F1B009C9EED /* NativeShortcut.swift */,
+				3DEF39292B8CA8C000019695 /* PermissionType.swift */,
 				3D78AC702B600F1B009C9EED /* RsaKeyPair.swift */,
 				3D78AC5F2B600F1B009C9EED /* RsaPrivateKey.swift */,
 				3D78AC632B600F1B009C9EED /* RsaPublicKey.swift */,
@@ -2226,6 +2229,7 @@
 				3D0E44CA2B3C3EC000F933A1 /* rand_entropy.c in Sources */,
 				3D78AC882B600F1C009C9EED /* SqlCipherFacade.swift in Sources */,
 				3D9B12A6272192C2002B46A1 /* AlarmNotification.swift in Sources */,
+				3DEF392A2B8CA8C000019695 /* PermissionType.swift in Sources */,
 				3D78ACA12B600F1C009C9EED /* KyberKeyPair.swift in Sources */,
 				3D78ACAF2B600F1C009C9EED /* ThemeFacadeReceiveDispatcher.swift in Sources */,
 				3D78ACAD2B600F1C009C9EED /* NativeCryptoFacadeReceiveDispatcher.swift in Sources */,

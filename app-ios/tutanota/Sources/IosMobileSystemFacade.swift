@@ -27,4 +27,29 @@ class IosMobileSystemFacade: MobileSystemFacade {
 		self.viewController.present(activityViewController, animated: true, completion: nil)
 		return true
 	}
+	func hasPermission(_ permission: PermissionType) async throws -> Bool {
+		switch permission {
+		case PermissionType.Contacts:
+			let status = CNContactStore.authorizationStatus(for: .contacts)
+			return status == .authorized
+		case PermissionType.IgnoreBatteryOptimization:
+			// This permission does not exist in iOS, only on Android
+			return true
+		case PermissionType.Notification:
+			let settings = await UNUserNotificationCenter.current().notificationSettings()
+			return settings.authorizationStatus == .authorized
+		}
+	}
+
+	func requestPermission(_ permission: PermissionType) async throws {
+		switch permission {
+		case PermissionType.Contacts: try await acquireContactsPermission()
+		case PermissionType.IgnoreBatteryOptimization:
+			// This permission does not exist in iOS, only on Android
+			return
+		case PermissionType.Notification:
+			let isPermissionGranted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+			if !isPermissionGranted { throw PermissionError(message: "Notification Permission was not granted.") }
+		}
+	}
 }

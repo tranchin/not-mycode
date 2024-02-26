@@ -79,6 +79,18 @@ export class ContactListEntryViewer implements Component<ContactListEntryViewerA
 										presharedPassword: null,
 										socialIds: [],
 										title: null,
+										department: null,
+										middleName: null,
+										namePrefix: null,
+										nameSuffix: null,
+										phoneticFirst: null,
+										phoneticLast: null,
+										phoneticMiddle: null,
+										customDate: [],
+										messengerHandles: [],
+										pronouns: [],
+										relationships: [],
+										websites: [],
 									})
 									attrs.contactCreate(newContact)
 								},

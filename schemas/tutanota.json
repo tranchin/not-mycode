@@ -95,6 +95,71 @@
 					"info": "AddValue InternalRecipientKeyData/protocolVersion/1352."
 				}
 			]
+		},
+		{
+			"version": 67,
+			"changes": [
+				{
+					"name": "AddValue",
+					"sourceType": "Contact",
+					"info": "AddValue Contact/middleName/1380."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Contact",
+					"info": "AddValue Contact/namePrefix/1381."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Contact",
+					"info": "AddValue Contact/nameSuffix/1382."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Contact",
+					"info": "AddValue Contact/phoneticFirst/1383."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Contact",
+					"info": "AddValue Contact/phoneticMiddle/1384."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Contact",
+					"info": "AddValue Contact/phoneticLast/1385."
+				},
+				{
+					"name": "AddValue",
+					"sourceType": "Contact",
+					"info": "AddValue Contact/department/1386."
+				},
+				{
+					"name": "AddAssociation",
+					"sourceType": "Contact",
+					"info": "AddAssociation Contact/customDate/AGGREGATION/1387."
+				},
+				{
+					"name": "AddAssociation",
+					"sourceType": "Contact",
+					"info": "AddAssociation Contact/websites/AGGREGATION/1388."
+				},
+				{
+					"name": "AddAssociation",
+					"sourceType": "Contact",
+					"info": "AddAssociation Contact/relationships/AGGREGATION/1389."
+				},
+				{
+					"name": "AddAssociation",
+					"sourceType": "Contact",
+					"info": "AddAssociation Contact/messengerHandles/AGGREGATION/1390."
+				},
+				{
+					"name": "AddAssociation",
+					"sourceType": "Contact",
+					"info": "AddAssociation Contact/pronouns/AGGREGATION/1391."
+				}
+			]
 		}
 	]
 }

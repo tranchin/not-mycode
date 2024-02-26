@@ -22,6 +22,14 @@ export class KeyLoaderFacade {
 		return symmetricGroupKey
 	}
 
+	async loadSymUserGroupKey(userGroupKeyVersion: number): Promise<AesKey> {
+		return this.loadSymGroupKey(this.userFacade.getUserGroupId(), userGroupKeyVersion)
+	}
+
+	getCurrentUserGroupKey(): Versioned<AesKey> {
+		return this.userFacade.getUserGroupKey()
+	}
+
 	async loadKeypair(keyPairGroupId: Id, groupKeyVersion: number): Promise<AsymmetricKeyPair> {
 		const group = await this.entityClient.load(GroupTypeRef, keyPairGroupId)
 		const groupKey = this.userFacade.getGroupKey(group._id)

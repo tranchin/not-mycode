@@ -59,24 +59,19 @@ import {
 } from "./IndexTables.js"
 import { MailFacade } from "../facades/lazy/MailFacade.js"
 import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
-import { UserFacade } from "../facades/UserFacade.js"
 import { encryptKeyWithVersionedKey } from "../crypto/CryptoFacade.js"
 import { KeyLoaderFacade } from "../facades/KeyLoaderFacade.js"
 
 export type InitParams = {
 	user: User
-	userFacade: UserFacade
 	keyLoaderFacade: KeyLoaderFacade
-	entityClient: EntityClient
 }
 
 const DB_VERSION: number = 3
 
 interface IndexerInitParams {
 	user: User
-	userFacade: UserFacade
 	keyLoaderFacade: KeyLoaderFacade
-	entityClient: EntityClient
 	retryOnError?: boolean
 	cacheInfo?: CacheInfo
 }
@@ -169,12 +164,10 @@ export class Indexer {
 	/**
 	 * Opens a new DbFacade and initializes the metadata if it is not there yet
 	 */
-	async init({ user, userFacade, keyLoaderFacade, entityClient, retryOnError, cacheInfo }: IndexerInitParams): Promise<void> {
+	async init({ user, keyLoaderFacade, retryOnError, cacheInfo }: IndexerInitParams): Promise<void> {
 		this._initParams = {
 			user,
-			userFacade,
 			keyLoaderFacade,
-			entityClient,
 		}
 
 		try {
@@ -185,12 +178,12 @@ export class Indexer {
 			const transaction = await this.db.dbFacade.createTransaction(true, [MetaDataOS])
 			const userEncDbKey = await transaction.get(MetaDataOS, Metadata.userEncDbKey)
 			if (!userEncDbKey) {
-				const userGroupKey = await userFacade.getUserGroupKey()
+				const userGroupKey = keyLoaderFacade.getCurrentUserGroupKey()
 				// database was opened for the first time - create new tables
 				await this._createIndexTables(user, userGroupKey)
 			} else {
 				const userGroupKeyVersion = await transaction.get(MetaDataOS, Metadata.userGroupKeyVersion)
-				const userGroupKey = await keyLoaderFacade.loadSymGroupKey(userFacade.getUserGroupId(), userGroupKeyVersion)
+				const userGroupKey = await keyLoaderFacade.loadSymUserGroupKey(userGroupKeyVersion)
 				await this.loadIndexTables(transaction, user, userGroupKey, userEncDbKey)
 			}
 
@@ -274,9 +267,7 @@ export class Indexer {
 			await this.deleteIndex(this._initParams.user._id)
 			await this.init({
 				user: this._initParams.user,
-				userFacade: this._initParams.userFacade,
 				keyLoaderFacade: this._initParams.keyLoaderFacade,
-				entityClient: this._initParams.entityClient,
 			})
 		}
 	}
@@ -312,9 +303,7 @@ export class Indexer {
 			// do not try to init again on error
 			return this.init({
 				user: this._initParams.user,
-				userFacade: this._initParams.userFacade,
 				keyLoaderFacade: this._initParams.keyLoaderFacade,
-				entityClient: this._initParams.entityClient,
 				retryOnError: false,
 			}).then(() => {
 				if (mailIndexingWasEnabled) {

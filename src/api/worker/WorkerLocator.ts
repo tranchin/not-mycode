@@ -418,8 +418,6 @@ async function initIndexer(
 	try {
 		await indexer.init({
 			user: assertNotNull(locator.user.getUser()),
-			userFacade,
-			entityClient,
 			cacheInfo,
 			keyLoaderFacade,
 		})

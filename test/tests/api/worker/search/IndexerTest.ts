@@ -30,7 +30,6 @@ import { InfoMessageHandler } from "../../../../../src/gui/InfoMessageHandler.js
 import { GroupDataOS, Metadata, MetaDataOS } from "../../../../../src/api/worker/search/IndexTables.js"
 import { MailFacade } from "../../../../../src/api/worker/facades/lazy/MailFacade.js"
 import { MailIndexer } from "../../../../../src/api/worker/search/MailIndexer.js"
-import { UserFacade } from "../../../../../src/api/worker/facades/UserFacade.js"
 import { KeyLoaderFacade } from "../../../../../src/api/worker/facades/KeyLoaderFacade.js"
 
 const SERVER_TIME = new Date("1994-06-08").getTime()
@@ -51,9 +50,7 @@ o.spec("Indexer test", () => {
 	const entityRestCache: DefaultEntityRestCache = downcast({})
 
 	const mailFacade: MailFacade = downcast({})
-	const userFacade = object<UserFacade>()
 	const keyLoaderFacade = object<KeyLoaderFacade>()
-	const entityClient = object<EntityClient>()
 
 	o("init new db", async function () {
 		let metadata = {}
@@ -110,9 +107,9 @@ o.spec("Indexer test", () => {
 		user.userGroup.group = "user-group-id"
 		let userGroupKey = freshVersioned(aes256RandomKey())
 
-		when(userFacade.getUserGroupKey()).thenResolve(userGroupKey)
+		when(keyLoaderFacade.getCurrentUserGroupKey()).thenReturn(userGroupKey)
 
-		await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
+		await indexer.init({ user, keyLoaderFacade })
 		o(indexer._loadGroupData.args).deepEquals([user])
 		o(indexer._initGroupData.args[0]).deepEquals(groupBatches)
 		o(metadata[Metadata.mailIndexingEnabled]).equals(false)
@@ -183,10 +180,9 @@ o.spec("Indexer test", () => {
 		user.userGroup = createTestEntity(GroupMembershipTypeRef)
 		user.userGroup.group = "user-group-id"
 
-		when(userFacade.getUserGroupId()).thenReturn(user.userGroup.group)
-		when(keyLoaderFacade.loadSymGroupKey(user.userGroup.group, userGroupKeyVersion)).thenResolve(userGroupKey.object)
+		when(keyLoaderFacade.loadSymUserGroupKey(userGroupKeyVersion)).thenResolve(userGroupKey.object)
 
-		await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
+		await indexer.init({ user, keyLoaderFacade })
 		o(indexer.db.key).deepEquals(dbKey)
 		o(indexer._loadGroupDiff.args).deepEquals([user])
 		o(indexer._updateGroups.args).deepEquals([user, groupDiff])
@@ -256,10 +252,9 @@ o.spec("Indexer test", () => {
 		user.userGroup = createTestEntity(GroupMembershipTypeRef)
 		user.userGroup.group = "user-group-id"
 
-		when(userFacade.getUserGroupId()).thenReturn(user.userGroup.group)
-		when(keyLoaderFacade.loadSymGroupKey(user.userGroup.group, userGroupKeyVersion)).thenResolve(userGroupKey.object)
+		when(keyLoaderFacade.loadSymUserGroupKey(userGroupKeyVersion)).thenResolve(userGroupKey.object)
 
-		await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
+		await indexer.init({ user, keyLoaderFacade })
 		o(indexer.db.key).deepEquals(dbKey)
 		o(indexer._loadGroupDiff.args).deepEquals([user])
 		o(indexer._updateGroups.args).deepEquals([user, groupDiff])
@@ -1201,7 +1196,7 @@ o.spec("Indexer test", () => {
 		let userGroupKey
 
 		function makeIndexer() {
-			userGroupKey = aes256RandomKey()
+			userGroupKey = freshVersioned(aes256RandomKey())
 			const infoMessageHandlerDouble = object<InfoMessageHandler>()
 
 			const entityRestClientDouble: EntityRestClient = instance(EntityRestClient)
@@ -1240,15 +1235,15 @@ o.spec("Indexer test", () => {
 
 		o("When init() is called and contacts have already been indexed they are not indexed again", async function () {
 			when(indexer._contact.getIndexTimestamp(contactList)).thenResolve(FULL_INDEXED_TIMESTAMP)
-			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
-			await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
+			when(keyLoaderFacade.getCurrentUserGroupKey()).thenReturn(userGroupKey)
+			await indexer.init({ user, keyLoaderFacade })
 			verify(indexer._contact.indexFullContactList(contactList), { times: 0 })
 		})
 
 		o("When init() is called and contacts have not been indexed before, they are indexed", async function () {
 			when(indexer._contact.getIndexTimestamp(contactList)).thenResolve(NOTHING_INDEXED_TIMESTAMP)
-			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
-			await indexer.init({ user, userFacade, keyLoaderFacade, entityClient })
+			when(keyLoaderFacade.getCurrentUserGroupKey()).thenReturn(userGroupKey)
+			await indexer.init({ user, keyLoaderFacade })
 			verify(indexer._contact.indexFullContactList(contactList))
 		})
 
@@ -1262,8 +1257,8 @@ o.spec("Indexer test", () => {
 			indexer._mail.enableMailIndexing = func<MailIndexer["enableMailIndexing"]>()
 			when(indexer._mail.enableMailIndexing(matchers.anything())).thenResolve(undefined)
 
-			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
-			await indexer.init({ user, userFacade, entityClient, keyLoaderFacade, cacheInfo })
+			when(keyLoaderFacade.getCurrentUserGroupKey()).thenReturn(userGroupKey)
+			await indexer.init({ user, keyLoaderFacade, cacheInfo })
 			verify(indexer._entity.loadAll(ContactTypeRef, contactList.contacts))
 		})
 
@@ -1276,8 +1271,8 @@ o.spec("Indexer test", () => {
 			indexer._mail.enableMailIndexing = func<MailIndexer["enableMailIndexing"]>()
 			when(indexer._mail.enableMailIndexing(matchers.anything())).thenResolve(undefined)
 
-			when(userFacade.getUserGroupKey()).thenReturn({ object: aes256RandomKey(), version: 0 })
-			await indexer.init({ user, userFacade, entityClient, keyLoaderFacade, cacheInfo })
+			when(keyLoaderFacade.getCurrentUserGroupKey()).thenReturn(userGroupKey)
+			await indexer.init({ user, keyLoaderFacade, cacheInfo })
 
 			verify(indexer._contact.indexFullContactList(contactList))
 			verify(indexer._entity.loadAll(ContactTypeRef, contactList.contacts), { times: 0 })
@@ -1292,10 +1287,9 @@ o.spec("Indexer test", () => {
 
 			indexer._mail.enableMailIndexing = func<MailIndexer["enableMailIndexing"]>()
 			when(indexer._mail.enableMailIndexing(matchers.anything())).thenResolve(undefined)
-			let userGroupKey = freshVersioned(aes256RandomKey())
-			when(userFacade.getUserGroupKey()).thenResolve(userGroupKey)
+			when(keyLoaderFacade.getCurrentUserGroupKey()).thenReturn(userGroupKey)
 
-			await indexer.init({ user, userFacade, keyLoaderFacade, entityClient, cacheInfo })
+			await indexer.init({ user, keyLoaderFacade, cacheInfo })
 		})
 	})
 })

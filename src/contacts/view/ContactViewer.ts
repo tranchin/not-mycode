@@ -7,7 +7,7 @@ import { ContactPhoneNumberType, getContactSocialType } from "../../api/common/T
 import type { Contact, ContactAddress, ContactPhoneNumber, ContactSocialId } from "../../api/entities/tutanota/TypeRefs.js"
 import { assertNotNull, downcast, memoized, NBSP, noOp } from "@tutao/tutanota-utils"
 import { getContactAddressTypeLabel, getContactPhoneNumberTypeLabel, getContactSocialTypeLabel } from "./ContactGuiUtils"
-import { formatBirthdayOfContact, getSocialUrl } from "../model/ContactUtils"
+import { formatContactDate, getSocialUrl } from "../model/ContactUtils"
 import { assertMainOrNode } from "../../api/common/Env"
 import { IconButton } from "../../gui/base/IconButton.js"
 import { ButtonSize } from "../../gui/base/ButtonSize.js"
@@ -35,7 +35,7 @@ export class ContactViewer implements ClassComponent<ContactViewerAttrs> {
 	})
 
 	private readonly formattedBirthday = memoized((contact: Contact) => {
-		return this.hasBirthday(contact) ? formatBirthdayOfContact(contact) : null
+		return this.hasBirthday(contact) ? formatContactDate(contact.birthdayIso) : null
 	})
 
 	private hasBirthday(contact: Contact): boolean {

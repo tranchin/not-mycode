@@ -1652,3 +1652,4 @@ export type TranslationKeyType =
 	| "telegram_label"
 	| "discord_label"
 	| "anniversary_label"
+	| "pronouns_label"

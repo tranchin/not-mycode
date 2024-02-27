@@ -3,7 +3,7 @@ import { Dialog } from "../gui/base/Dialog"
 import type { TranslationKey } from "../misc/LanguageViewModel"
 import { lang } from "../misc/LanguageViewModel"
 import { isMailAddress } from "../misc/FormatValidator"
-import { formatBirthdayNumeric, formatBirthdayOfContact } from "./model/ContactUtils"
+import { formatBirthdayNumeric, formatContactDate } from "./model/ContactUtils"
 import {
 	ContactAddressType,
 	ContactCustomDateType,
@@ -47,6 +47,7 @@ import { ButtonType } from "../gui/base/Button.js"
 import { birthdayToIsoDate } from "../api/common/utils/BirthdayUtils"
 import {
 	ContactCustomDateTypeToLabel,
+	ContactCustomWebsiteTypeToLabel,
 	ContactMailAddressTypeToLabel,
 	ContactMessengerHandleTypeToLabel,
 	ContactPhoneNumberTypeToLabel,
@@ -65,7 +66,7 @@ import type { TextFieldAttrs } from "../gui/base/TextField.js"
 import { Autocomplete, TextField, TextFieldType } from "../gui/base/TextField.js"
 import { EntityClient } from "../api/common/EntityClient"
 import { timestampToGeneratedId } from "../api/common/utils/EntityUtils"
-import { ContactAggregateEditor } from "./ContactAggregateEditor"
+import { AggregateEditorAttrs, ContactAggregateEditor } from "./ContactAggregateEditor"
 import { DefaultAnimationTime } from "../gui/animation/Animations"
 import { DialogHeaderBarAttrs } from "../gui/base/DialogHeaderBar"
 import { ProgrammingError } from "../api/common/error/ProgrammingError.js"
@@ -79,6 +80,11 @@ assertMainOrNode()
 
 const TAG = "[ContactEditor]"
 
+interface CompleteCustomDate extends ContactCustomDate {
+	date: string
+	isValid: boolean
+}
+
 export class ContactEditor {
 	private readonly dialog: Dialog
 	private hasInvalidBirthday: boolean
@@ -90,7 +96,7 @@ export class ContactEditor {
 	private readonly relationships: Array<[ContactRelationship, Id]>
 	private readonly messengerHandles: Array<[ContactMessengerHandle, Id]>
 	private readonly pronouns: Array<[ContactPronouns, Id]>
-	private readonly customDates: Array<[ContactCustomDate, Id]>
+	private readonly customDates: Array<[CompleteCustomDate, Id]>
 	private birthday: string
 	private isPasswordRevealed: boolean = false
 	windowCloseUnsubscribe: () => unknown
@@ -173,11 +179,11 @@ export class ContactEditor {
 		this.messengerHandles.push(this.newMessengerHandler())
 		this.pronouns = this.contact.pronouns.map((pronoun) => [pronoun, id(pronoun)])
 		this.pronouns.push(this.newPronoun())
-		this.customDates = this.contact.customDate.map((date) => [date, id(date)])
+		this.customDates = this.contact.customDate.map((date) => [{ ...date, date: formatContactDate(date.dateIso), isValid: true }, id(date)])
 		this.customDates.push(this.newCustomDate())
 
 		this.hasInvalidBirthday = false
-		this.birthday = formatBirthdayOfContact(this.contact) || ""
+		this.birthday = formatContactDate(this.contact.birthdayIso) || ""
 		this.dialog = this.createDialog()
 		this.windowCloseUnsubscribe = noOp
 	}
@@ -208,7 +214,7 @@ export class ContactEditor {
 				this.renderCommentField(),
 			]),
 			m(".wrapping-row", [
-				m(".mail.mt-xl", [
+				m(".custom-dates.mt-xl", [
 					m(".h4", lang.get("dates_label")),
 					m(".aggregateEditors", [
 						this.customDates.map(([date, id], index) => {
@@ -244,14 +250,23 @@ export class ContactEditor {
 						}),
 					]),
 				]),
-			]),
-			m(".wrapping-row", [
 				m(".address.mt-xl", [
 					m(".h4", lang.get("address_label")),
 					m(".aggregateEditors", [
 						this.addresses.map(([address, id], index) => {
 							const lastEditor = index === lastIndex(this.addresses)
 							return this.renderAddressesEditor(id, !lastEditor, address)
+						}),
+					]),
+				]),
+			]),
+			m(".wrapping-row", [
+				m(".pronouns.mt-xl", [
+					m(".h4", lang.get("pronouns_label")),
+					m(".aggregateEditors", [
+						this.pronouns.map(([pronouns, id], index) => {
+							const lastEditor = index === lastIndex(this.pronouns)
+							return this.renderPronounsEditor(id, !lastEditor, pronouns)
 						}),
 					]),
 				]),
@@ -319,6 +334,11 @@ export class ContactEditor {
 		this.contact.phoneNumbers = this.phoneNumbers.map((e) => e[0]).filter((e) => e.number.trim().length > 0)
 		this.contact.addresses = this.addresses.map((e) => e[0]).filter((e) => e.address.trim().length > 0)
 		this.contact.socialIds = this.socialIds.map((e) => e[0]).filter((e) => e.socialId.trim().length > 0)
+		this.contact.customDate = this.customDates.map((e) => e[0] as ContactCustomDate).filter((e) => e.dateIso.trim().length > 0)
+		this.contact.relationships = this.relationships.map((e) => e[0]).filter((e) => e.person.trim().length > 0)
+		this.contact.websites = this.websites.map((e) => e[0]).filter((e) => e.url.length > 0)
+		this.contact.messengerHandles = this.messengerHandles.map((e) => e[0]).filter((e) => e.handle.length > 0)
+		this.contact.pronouns = this.pronouns.map((e) => e[0]).filter((e) => e.pronouns.length > 0)
 		try {
 			if (this.isNewContact) {
 				await this.saveNewContact()
@@ -362,19 +382,31 @@ export class ContactEditor {
 		}
 	}
 
-	private renderCustomDatesEditor(id: Id, allowCancel: boolean, date: ContactCustomDate): Children {
-		let helpLabel: TranslationKey = "emptyString_msg"
+	private renderCustomDatesEditor(id: Id, allowCancel: boolean, date: CompleteCustomDate): Children {
+		let dateHelpText = () => {
+			let bday = createBirthday({
+				day: "22",
+				month: "9",
+				year: "2000",
+			})
+			return !date.isValid
+				? lang.get("invalidDateFormat_msg", {
+						"{1}": formatBirthdayNumeric(bday),
+				  })
+				: ""
+		}
 
 		const typeLabels: Array<[ContactCustomDateType, TranslationKey]> = typedEntries(ContactCustomDateTypeToLabel)
 		return m(ContactAggregateEditor, {
-			value: date.dateIso,
-			fieldType: TextFieldType.Email,
+			value: date.date,
+			fieldType: TextFieldType.Text,
 			label: getContactCustomDateTypeToLabel(downcast(date.type), date.customTypeName),
-			helpLabel,
+			helpLabel: () => dateHelpText(),
 			cancelAction: () => {
 				findAndRemove(this.mailAddresses, (t) => t[1] === id)
 			},
 			onUpdate: (value) => {
+				date.date = value
 				if (value.trim().length > 0) {
 					let parsedDate = parseBirthday(value, (referenceDate) => formatDate(referenceDate))
 
@@ -382,12 +414,15 @@ export class ContactEditor {
 						try {
 							date.dateIso = birthdayToIsoDate(parsedDate)
 							if (date === lastThrow(this.customDates)[0]) this.customDates.push(this.newCustomDate())
+							date.isValid = true
 						} catch (e) {
-							helpLabel = "invalidInputFormat_msg"
+							date.isValid = false
 						}
 					} else {
-						helpLabel = "invalidInputFormat_msg"
+						date.isValid = false
 					}
+				} else {
+					date.isValid = true
 				}
 			},
 			animateCreate: !date.dateIso,
@@ -395,7 +430,7 @@ export class ContactEditor {
 			key: id,
 			typeLabels,
 			onTypeSelected: (type) => this.onTypeSelected(type === ContactCustomDateType.CUSTOM, type, date),
-		})
+		} satisfies AggregateEditorAttrs<any>)
 	}
 
 	private renderMailAddressesEditor(id: Id, allowCancel: boolean, mailAddress: ContactMailAddress): Children {
@@ -495,7 +530,7 @@ export class ContactEditor {
 	}
 
 	private renderWebsitesEditor(id: Id, allowCancel: boolean, website: ContactWebsite): Children {
-		const typeLabels = typedEntries(ContactSocialTypeToLabel)
+		const typeLabels = typedEntries(ContactCustomWebsiteTypeToLabel)
 		return m(ContactAggregateEditor, {
 			value: website.url,
 			fieldType: TextFieldType.Text,
@@ -560,6 +595,28 @@ export class ContactEditor {
 		})
 	}
 
+	private renderPronounsEditor(id: Id, allowCancel: boolean, pronouns: ContactPronouns): Children {
+		const typeLabels = typedEntries({ "0": "language_label" } as Record<string, TranslationKey>)
+		return m(ContactAggregateEditor, {
+			value: pronouns.pronouns,
+			fieldType: TextFieldType.Text,
+			label: pronouns.language,
+			helpLabel: "emptyString_msg",
+			cancelAction: () => {
+				findAndRemove(this.messengerHandles, (t) => t[1] === id)
+			},
+			onUpdate: (value) => {
+				pronouns.pronouns = value
+				if (pronouns === lastThrow(this.pronouns)[0]) this.pronouns.push(this.newPronoun())
+			},
+			animateCreate: !pronouns.pronouns,
+			allowCancel,
+			key: id,
+			typeLabels,
+			onTypeSelected: () => this.onLanguageSelect(pronouns),
+		})
+	}
+
 	private renderCommentField(): Children {
 		return m(StandaloneField, {
 			label: "comment_label",
@@ -581,7 +638,11 @@ export class ContactEditor {
 		return m(StandaloneField, {
 			label,
 			value: (this.contact[fieldName] ?? "") as string,
-			oninput: (value) => (this.contact[fieldName] = value as any), // FIXME
+			oninput: (value: string) => {
+				if (typeof value === "string") {
+					this.contact[fieldName] = downcast(value)
+				}
+			},
 		} satisfies TextFieldAttrs)
 	}
 
@@ -749,13 +810,13 @@ export class ContactEditor {
 		return [contactPronouns, this.newId()]
 	}
 
-	private newCustomDate(): [ContactCustomDate, Id] {
+	private newCustomDate(): [CompleteCustomDate, Id] {
 		const contactDate = createContactCustomDate({
 			dateIso: "",
 			type: ContactCustomDateType.ANNIVERSARY,
 			customTypeName: "",
 		})
-		return [contactDate, this.newId()]
+		return [{ ...contactDate, date: "", isValid: true }, this.newId()]
 	}
 
 	private newWebsite(): [ContactWebsite, Id] {
@@ -786,6 +847,18 @@ export class ContactEditor {
 		} else {
 			aggregate.type = key
 		}
+	}
+
+	private onLanguageSelect(pronouns: ContactPronouns): void {
+		setTimeout(() => {
+			Dialog.showTextInputDialog({
+				title: "language_label",
+				label: "language_label",
+				defaultValue: pronouns.language.length > 0 ? pronouns.language : "",
+			}).then((name) => {
+				pronouns.language = name
+			})
+		}, DefaultAnimationTime) // wait till the dropdown is hidden
 	}
 
 	private renderRevealIcon(): Children {

@@ -40,14 +40,12 @@ export function formatBirthdayNumeric(birthday: Birthday): string {
 }
 
 /**
- * Returns the birthday of the contact as formatted string using default date formatter including date, month and year.
- * If birthday contains no year only month and day will be included.
- * If there is no birthday or an invalid birthday format an empty string returns.
+ * Returns the given date of the contact as formatted string using default date formatter including date, month and year.
+ * If date contains no year only month and day will be included.
+ * If there is no date or an invalid birthday format an empty string returns.
  */
-export function formatBirthdayOfContact(contact: Contact): string {
-	if (contact.birthdayIso) {
-		const isoDate = contact.birthdayIso
-
+export function formatContactDate(isoDate: string | null): string {
+	if (isoDate) {
 		try {
 			return formatBirthdayNumeric(isoDateToBirthday(isoDate))
 		} catch (e) {

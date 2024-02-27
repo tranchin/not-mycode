@@ -1667,5 +1667,6 @@ export default {
 		"telegram_label": "Telegram",
 		"discord_label": "Discord",
 		"anniversary_label": "Anniversary",
+		"pronouns_label": "Pronouns"
 	}
 }

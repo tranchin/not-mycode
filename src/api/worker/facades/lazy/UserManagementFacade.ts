@@ -155,7 +155,6 @@ export class UserManagementFacade {
 			group: group._id,
 			newAdminGroup: newAdminGroup._id,
 			newAdminGroupEncGKey: newAdminGroupEncGKey.key,
-			// FIXME: newAdminGroupKeyVersion: newAdminGroupEncGKey.version.toString(),
 		})
 
 		await this.serviceExecutor.post(UpdateAdminshipService, data)
@@ -314,7 +313,6 @@ export class UserManagementFacade {
 	}
 
 	// always pass the current user group key. if the key is rotated, the recovery code must be reencrypted.
-	// FIXME is this really what we decided? always reencrypting the recovery code? What exactly is our threat model here?
 	// If we don't reencrypt, we can store the user group key version to be able to find out who ever had access to it
 	generateRecoveryCode(userGroupKey: AesKey): RecoverData {
 		const recoveryCode = aes256RandomKey()

@@ -5,7 +5,7 @@ import { Versioned } from "@tutao/tutanota-utils/dist/Utils.js"
 import { UserFacade } from "./UserFacade.js"
 import { assertNotNull } from "@tutao/tutanota-utils"
 import { NotFoundError } from "../../common/error/RestError.js"
-import { getElementId } from "../../common/utils/EntityUtils.js"
+import { customIdToString, getElementId } from "../../common/utils/EntityUtils.js"
 
 export class KeyLoaderFacade {
 	constructor(private readonly userFacade: UserFacade, private readonly entityClient: EntityClient) {}
@@ -102,8 +102,7 @@ export class KeyLoaderFacade {
 	}
 
 	private decodeGroupKeyVersion(id: Id): number {
-		// FIXME determine how we encode versions as element IDs for former group keys?
-		return Number(id)
+		return Number(customIdToString(id))
 	}
 
 	private getAndDecryptKeyPair(group: Group, groupKey: AesKey) {

@@ -19,6 +19,7 @@ import { EntityClient } from "../../../../../src/api/common/EntityClient.js"
 import { object, when } from "testdouble"
 import { KeyLoaderFacade } from "../../../../../src/api/worker/facades/KeyLoaderFacade.js"
 import { Versioned } from "@tutao/tutanota-utils"
+import { stringToCustomId } from "../../../../../src/api/common/utils/EntityUtils.js"
 
 o.spec("KeyLoaderFacadeTest", function () {
 	let userFacade: UserFacade
@@ -55,7 +56,7 @@ o.spec("KeyLoaderFacadeTest", function () {
 		let lastKey = currentGroupKey.object
 		for (let i = formerKeysDecrypted.length - 1; i >= 0; i--) {
 			const key: GroupKey = createTestEntity(GroupKeyTypeRef)
-			key._id = ["list", i.toString()]
+			key._id = ["list", stringToCustomId(i.toString())]
 			key.ownerEncGKey = encryptKey(lastKey, formerKeysDecrypted[i])
 
 			const pqKeyPair = formerKeyPairsDecrypted[i]

@@ -252,32 +252,12 @@
 				{
 					"name": "AddValue",
 					"sourceType": "UserAccountUserData",
-					"info": "AddValue UserAccountUserData/userKeyVersion/1393."
-				},
-				{
-					"name": "AddValue",
-					"sourceType": "UserAccountUserData",
-					"info": "AddValue UserAccountUserData/customerKeyVersion/1394."
-				},
-				{
-					"name": "AddValue",
-					"sourceType": "UserAccountUserData",
-					"info": "AddValue UserAccountUserData/fileGroupKeyVersion/1395."
-				},
-				{
-					"name": "AddValue",
-					"sourceType": "UserAccountUserData",
-					"info": "AddValue UserAccountUserData/contactGroupKeyVersion/1396."
-				},
-				{
-					"name": "AddValue",
-					"sourceType": "UserAccountUserData",
-					"info": "AddValue UserAccountUserData/mailGroupKeyVersion/1397."
+					"info": "AddValue UserAccountUserData/customerKeyVersion/1393."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "DraftAttachment",
-					"info": "AddValue DraftAttachment/ownerKeyVersion/1406."
+					"info": "AddValue DraftAttachment/ownerKeyVersion/1402."
 				},
 				{
 					"name": "RenameAttribute",
@@ -287,17 +267,17 @@
 				{
 					"name": "AddValue",
 					"sourceType": "InternalRecipientKeyData",
-					"info": "AddValue InternalRecipientKeyData/senderKeyVersion/1407."
+					"info": "AddValue InternalRecipientKeyData/senderKeyVersion/1403."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "CreateExternalUserGroupData",
-					"info": "AddValue CreateExternalUserGroupData/internalUserGroupKeyVersion/1409."
+					"info": "AddValue CreateExternalUserGroupData/internalUserGroupKeyVersion/1405."
 				},
 				{
 					"name": "AddValue",
 					"sourceType": "SymEncInternalRecipientKeyData",
-					"info": "AddValue SymEncInternalRecipientKeyData/symKeyVersion/1410."
+					"info": "AddValue SymEncInternalRecipientKeyData/symKeyVersion/1406."
 				}
 			]
 		}

@@ -5857,7 +5857,7 @@ export const typeModels = {
                 "id": 2267,
                 "since": 96,
                 "type": "AGGREGATION",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "refType": "KeyPair",
                 "dependency": null
             }
@@ -12220,7 +12220,7 @@ export const typeModels = {
                 "id": 2245,
                 "since": 96,
                 "type": "Number",
-                "cardinality": "One",
+                "cardinality": "ZeroOrOne",
                 "encrypted": false
             },
             "symEncSessionKey": {

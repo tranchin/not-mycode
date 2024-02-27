@@ -1871,18 +1871,15 @@ export type UserAccountUserData = {
 
 	_id: Id;
 	contactEncContactListSessionKey: Uint8Array;
-	contactGroupKeyVersion: NumberString;
 	customerEncContactGroupInfoSessionKey: Uint8Array;
 	customerEncFileGroupInfoSessionKey: Uint8Array;
 	customerEncMailGroupInfoSessionKey: Uint8Array;
 	customerKeyVersion: NumberString;
 	encryptedName: Uint8Array;
 	fileEncFileSystemSessionKey: Uint8Array;
-	fileGroupKeyVersion: NumberString;
 	kdfVersion: NumberString;
 	mailAddress: string;
 	mailEncMailBoxSessionKey: Uint8Array;
-	mailGroupKeyVersion: NumberString;
 	pwEncUserGroupKey: Uint8Array;
 	recoverCodeEncUserGroupKey: Uint8Array;
 	recoverCodeVerifier: Uint8Array;
@@ -1895,7 +1892,6 @@ export type UserAccountUserData = {
 	userEncMailGroupKey: Uint8Array;
 	userEncRecoverCode: Uint8Array;
 	userEncTutanotaPropertiesSessionKey: Uint8Array;
-	userKeyVersion: NumberString;
 	verifier: Uint8Array;
 }
 export const UserAreaGroupDataTypeRef: TypeRef<UserAreaGroupData> = new TypeRef("tutanota", "UserAreaGroupData")
@@ -1909,7 +1905,7 @@ export type UserAreaGroupData = {
 
 	_id: Id;
 	adminEncGroupKey: null | Uint8Array;
-	adminKeyVersion: NumberString;
+	adminKeyVersion: null | NumberString;
 	customerEncGroupInfoSessionKey: Uint8Array;
 	customerKeyVersion: NumberString;
 	groupEncGroupRootSessionKey: Uint8Array;

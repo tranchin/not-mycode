@@ -1420,7 +1420,7 @@ export type GroupKey = {
 	ownerKeyVersion: NumberString;
 	pubAdminGroupEncGKey: null | Uint8Array;
 
-	keyPair: KeyPair;
+	keyPair:  null | KeyPair;
 }
 export const GroupKeysRefTypeRef: TypeRef<GroupKeysRef> = new TypeRef("sys", "GroupKeysRef")
 
@@ -3015,7 +3015,7 @@ export type UpdatePermissionKeyData = {
 
 	_format: NumberString;
 	ownerEncSessionKey: null | Uint8Array;
-	ownerKeyVersion: NumberString;
+	ownerKeyVersion: null | NumberString;
 	symEncSessionKey: null | Uint8Array;
 
 	bucketPermission: IdTuple;

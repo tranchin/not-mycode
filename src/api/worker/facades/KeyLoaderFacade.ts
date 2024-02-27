@@ -37,10 +37,17 @@ export class KeyLoaderFacade {
 		if (groupKey.version === groupKeyVersion) {
 			return this.getAndDecryptKeyPair(group, groupKey.object)
 		}
-		let { symmetricGroupKey, groupKeyInstance } = await this.findFormerGroupKey(group, groupKey, groupKeyVersion)
+		const {
+			symmetricGroupKey,
+			groupKeyInstance: { keyPair },
+		} = await this.findFormerGroupKey(group, groupKey, groupKeyVersion)
+
+		if (keyPair == null) {
+			throw new Error(`key pair not found for group ${keyPairGroupId} and version ${groupKeyVersion}`)
+		}
 
 		try {
-			return decryptKeyPair(symmetricGroupKey, groupKeyInstance.keyPair)
+			return decryptKeyPair(symmetricGroupKey, keyPair)
 		} catch (e) {
 			console.log("failed to decrypt keypair for group with id " + group._id)
 			throw e

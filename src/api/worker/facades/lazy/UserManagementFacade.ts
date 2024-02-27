@@ -295,16 +295,12 @@ export class UserManagementFacade {
 			userEncEntropy: userEncEntropy,
 			userEncClientKey: userEncClientKey.key,
 			userEncTutanotaPropertiesSessionKey: userEncTutanotaPropertiesSessionKey.key,
-			userKeyVersion: userEncTutanotaPropertiesSessionKey.encryptingKeyVersion.toString(),
 
 			contactEncContactListSessionKey: contactEncContactListSessionKey.key,
-			contactGroupKeyVersion: contactEncContactListSessionKey.encryptingKeyVersion.toString(),
 
 			fileEncFileSystemSessionKey: fileEncFileSystemSessionKey.key,
-			fileGroupKeyVersion: fileEncFileSystemSessionKey.encryptingKeyVersion.toString(),
 
 			mailEncMailBoxSessionKey: mailEncMailBoxSessionKey.key,
-			mailGroupKeyVersion: mailEncMailBoxSessionKey.encryptingKeyVersion.toString(),
 
 			customerEncMailGroupInfoSessionKey: customerEncMailGroupInfoSessionKey.key,
 			customerEncContactGroupInfoSessionKey: customerEncContactGroupInfoSessionKey.key,

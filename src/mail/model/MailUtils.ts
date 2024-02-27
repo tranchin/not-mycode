@@ -85,7 +85,6 @@ export function createNewContact(user: User, mailAddress: string, name: string):
 		socialIds: [],
 		department: null,
 		middleName: null,
-		namePrefix: null,
 		nameSuffix: null,
 		phoneticFirst: null,
 		phoneticLast: null,

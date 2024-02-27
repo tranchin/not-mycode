@@ -3,7 +3,7 @@
 import { DAY_IN_MILLIS, downcast } from "@tutao/tutanota-utils"
 import type { CertificateInfo, CreditCard, EmailSenderListElement, GroupMembership } from "../entities/sys/TypeRefs.js"
 import { AccountingInfo, Customer } from "../entities/sys/TypeRefs.js"
-import type { CalendarEventAttendee, UserSettingsGroupRoot } from "../entities/tutanota/TypeRefs.js"
+import type { CalendarEventAttendee, ContactCustomDate, ContactRelationship, UserSettingsGroupRoot } from "../entities/tutanota/TypeRefs.js"
 import { ContactSocialId, MailFolder } from "../entities/tutanota/TypeRefs.js"
 import { isApp, isElectronClient } from "./Env"
 import type { Country } from "./CountryList"
@@ -163,6 +163,8 @@ export const enum ContactCustomDateType {
 }
 
 export const getContactSocialType = (contactSocialId: ContactSocialId): ContactSocialType => downcast(contactSocialId.type)
+export const getCustomDateType = (customDate: ContactCustomDate): ContactCustomDateType => downcast(customDate.type)
+export const getRelationshipType = (relationship: ContactRelationship): ContactRelationshipType => downcast(relationship.type)
 
 export const enum OperationType {
 	CREATE = "0",

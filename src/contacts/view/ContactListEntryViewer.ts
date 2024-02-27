@@ -81,7 +81,6 @@ export class ContactListEntryViewer implements Component<ContactListEntryViewerA
 										title: null,
 										department: null,
 										middleName: null,
-										namePrefix: null,
 										nameSuffix: null,
 										phoneticFirst: null,
 										phoneticLast: null,

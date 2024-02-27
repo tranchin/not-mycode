@@ -319,7 +319,6 @@ export function vCardListToContacts(vCardList: string[], ownerGroupId: Id): Cont
 			// FIXME: see if anything in here can be imported from the vcard
 			department: null,
 			middleName: null,
-			namePrefix: null,
 			nameSuffix: null,
 			phoneticFirst: null,
 			phoneticLast: null,

@@ -141,7 +141,6 @@ export class ContactEditor {
 					oldBirthdayAggregate: null,
 					department: null,
 					middleName: null,
-					namePrefix: null,
 					nameSuffix: null,
 					phoneticFirst: null,
 					phoneticLast: null,
@@ -199,18 +198,17 @@ export class ContactEditor {
 	view(): Children {
 		return m("#contact-editor", [
 			m(".wrapping-row", [this.renderFirstNameField(), this.renderLastNameField()]),
-			m(".wrapping-row", [this.renderField("middleName", "middleName_placeholder"), this.renderField("namePrefix", "namePrefix_placeholder")]),
+			m(".wrapping-row", [this.renderField("middleName", "middleName_placeholder"), this.renderTitleField()]),
 			m(".wrapping-row", [this.renderField("nameSuffix", "nameSuffix_placeholder"), this.renderField("phoneticFirst", "phoneticFirst_placeholder")]),
 			m(".wrapping-row", [
 				this.renderField("phoneticMiddle", "phoneticMiddle_placeholder"),
 				this.renderField("phoneticLast", "phoneticLast_placeholder"),
 			]),
-			m(".wrapping-row", [this.renderTitleField(), this.renderBirthdayField()]),
+			m(".wrapping-row", [this.renderField("nickname", "nickname_placeholder"), this.renderBirthdayField()]),
 			m(".wrapping-row", [
 				this.renderRoleField(),
 				this.renderField("department", "department_placeholder"),
 				this.renderCompanyField(),
-				this.renderField("nickname", "nickname_placeholder"),
 				this.renderCommentField(),
 			]),
 			m(".wrapping-row", [

@@ -231,7 +231,6 @@ export type Contact = {
 	firstName: string;
 	lastName: string;
 	middleName: null | string;
-	namePrefix: null | string;
 	nameSuffix: null | string;
 	nickname: null | string;
 	oldBirthdayDate: null | Date;

@@ -1,9 +1,17 @@
 import { lang } from "../../misc/LanguageViewModel"
-import type { Birthday, Contact, ContactAddress, ContactMailAddress, ContactPhoneNumber, ContactSocialId } from "../../api/entities/tutanota/TypeRefs.js"
+import type {
+	Birthday,
+	Contact,
+	ContactAddress,
+	ContactMailAddress,
+	ContactMessengerHandle,
+	ContactPhoneNumber,
+	ContactSocialId,
+} from "../../api/entities/tutanota/TypeRefs.js"
 import { formatDate } from "../../misc/Formatter"
 import { isoDateToBirthday } from "../../api/common/utils/BirthdayUtils"
 import { assertMainOrNode } from "../../api/common/Env"
-import { ContactAddressType, ContactPhoneNumberType, ContactSocialType } from "../../api/common/TutanotaConstants"
+import { ContactAddressType, ContactMessengerHandleType, ContactPhoneNumberType, ContactSocialType } from "../../api/common/TutanotaConstants"
 import { StructuredMailAddress } from "../../native/common/generatedipc/StructuredMailAddress.js"
 import { StructuredPhoneNumber } from "../../native/common/generatedipc/StructuredPhoneNumber.js"
 import { StructuredAddress } from "../../native/common/generatedipc/StructuredAddress.js"
@@ -92,6 +100,22 @@ export function getSocialUrl(contactId: ContactSocialId): string {
 	}
 
 	return `${http}${worldwidew}${socialUrlType}${contactId.socialId.trim()}`
+}
+
+export function getMessengerHandleUrl(handle: ContactMessengerHandle): string {
+	const replaceNumberExp = new RegExp(/[^0-9+]/g)
+	switch (handle.type) {
+		case ContactMessengerHandleType.SIGNAL:
+			return `sgnl://signal.me/#p/${handle.handle.replaceAll(replaceNumberExp, "")}`
+		case ContactMessengerHandleType.WHATSAPP:
+			return `whatsapp://send?phone=${handle.handle.replaceAll(replaceNumberExp, "")}`
+		case ContactMessengerHandleType.TELEGRAM:
+			return `tg://resolve?domain=${handle.handle}`
+		case ContactMessengerHandleType.DISCORD:
+			return `discord://-/users/${handle.handle}`
+		default:
+			return ""
+	}
 }
 
 export function extractStructuredMailAddresses(addresses: ContactMailAddress[]): ReadonlyArray<StructuredMailAddress> {
